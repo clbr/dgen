@@ -1029,9 +1029,9 @@ void add_table_header(FILE* filep)
 	fprintf(filep, "/* ========================= OPCODE TABLE BUILDER ========================= */\n");
 	fprintf(filep, "/* ======================================================================== */\n\n");
 
+	fprintf(filep, "#include <stdlib.h>\n\n");
 	fprintf(filep, "#include \"m68kops.h\"\n");
 	fprintf(filep, "#include \"m68kcpu.h\"\n");
-	fprintf(filep, "#include <stdlib.h>\n\n");
 	fprintf(filep, "#include <string.h>\n\n");
 
 	fprintf(filep, "extern void  (*m68k_instruction_jump_table[])(void); /* opcode handler jump table */\n\n");

@@ -3,6 +3,9 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.24 <- v1.23
+ * Fixed compilation on GCC 4.
+
 v1.23 <- v1.22
  * Added fullscreen toggle, using Alt-Enter by default.
  * Added the ability to set modifiers on key bindings, using the prefixes

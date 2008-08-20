@@ -1931,7 +1931,6 @@ static void selective_usereg(void) {
 	case aind: case ainc: case adec:
 	case adsp: case axdp:
 		usereg();
-	default:
 	}
 }
 
