@@ -10,4 +10,4 @@ void font_text(SDL_Surface *surf, int x, int y, const char *message);
 // Writes a string with given length
 void font_text_n(SDL_Surface *surf, int x, int y, const char *message, int n);
 
-#endif __FONT_H__
+#endif /* __FONT_H__ */

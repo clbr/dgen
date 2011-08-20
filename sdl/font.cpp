@@ -31,7 +31,7 @@ static inline void _putglyph(char *p, int Bpp, int pitch, char which)
   for(; *glyph != -1; ++glyph)
     {
       p += (((x += *glyph) >> 3) * pitch); x &= 7;
-      for(i = 0; i < Bpp; ++i) p[(x * Bpp) + i] = 0xff;
+      for(i = 0; i < Bpp; ++i) p[(x * Bpp) + i] = (char)0xff;
     }
 }
 

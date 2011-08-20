@@ -69,7 +69,7 @@ static char temp[256];
 struct bmap mdscr;
 unsigned char *mdpal = NULL;
 struct sndinfo sndi;
-char *pd_options = "fX:Y:S:"
+const char *pd_options = "fX:Y:S:"
 #ifdef SDL_OPENGL_SUPPORT
   "G:"
 #endif
@@ -574,12 +574,12 @@ void pd_graphics_update()
 	          break;
 	        case 4:
 	          {
-	            long *pp = (long*)p, *qq = (long*)q;
+	            int *pp = (int*)p, *qq = (int*)q;
 	            for(j = 0; j < 320; ++j, ++qq)
 	              for(k = 0; k < x_scale; ++k)
 		        *(pp++) = *qq;
 	            if(y_scale != 1)
-	              for(pp = (long*)p, j = 1; j < y_scale; ++j)
+	              for(pp = (int*)p, j = 1; j < y_scale; ++j)
 		        {
 		          p += screen->pitch;
 		          memcpy(p, pp, xs*4);
@@ -757,7 +757,7 @@ static int stop_events(md &/*megad*/)
 int pd_handle_events(md &megad)
 {
   SDL_Event event;
-  long ksym;
+  int ksym;
 
   // If there's any chance your implementation might run under Linux, add these
   // next four lines for joystick handling.
@@ -1083,7 +1083,7 @@ void pd_message(const char *msg)
 inline void pd_clear_message()
 {
   int i, j;
-  long *p = (long*)((char*)screen->pixels + (screen->pitch * ys));
+  int *p = (int*)((char*)screen->pixels + (screen->pitch * ys));
 #ifdef SDL_OPENGL_SUPPORT
   if(opengl)
     {
