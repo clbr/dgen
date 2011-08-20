@@ -49,9 +49,9 @@ md_vdp::md_vdp()
 
 md_vdp::~md_vdp()
 {
-  free(mem); 
-  mem=vram=cram=vsram=NULL;
-  ok=0;
+	delete [] mem;
+	mem = vram = cram = vsram = NULL;
+	ok = 0;
 }
 
 int md_vdp::dma_len()
