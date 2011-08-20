@@ -51,7 +51,7 @@ void pd_sound_write(int seg);
 
 // This should be a list of all the command-line options specific to this
 // platform, in the form given to getopt(3), i.e "a:b::c".
-extern char *pd_options;
+extern const char *pd_options;
 // And, this is called to handle platform-specific stuff.
 void pd_option(char c, const char *optarg);
 
