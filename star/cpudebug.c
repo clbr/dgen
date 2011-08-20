@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "starcpu.h"
 #include "cpudebug.h"
 
@@ -44,13 +45,13 @@ static void cpudebug_printf(const char *fmt, ...) {
 	while(*s) cpudebug_putc(*s++);
 }
 
-#define byte unsigned char
-#define word unsigned short int
-#define dword unsigned int
+#define byte uint8_t
+#define word uit16_t
+#define dword uint32_t
 
-#define int08 signed char
-#define int16 signed short int
-#define int32 signed int
+#define int08 int8_t
+#define int16 int16_t
+#define int32 int32_t
 
 int cpudebug_disabled(void){return 0;}
 

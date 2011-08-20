@@ -4,6 +4,7 @@
 
 #include "m68k.h"
 #include <limits.h>
+#include <stdint.h>
 
 /* ======================================================================== */
 /* ==================== ARCHITECTURE-DEPENDANT DEFINES ==================== */
@@ -35,75 +36,9 @@
 #define M68K_OVER_32_BIT     0
 #endif /* UINT_MAX > 0xffffffff */
 
-/* Data types used in this emulation core */
-#undef int8
-#undef int16
-#undef int32
-#undef uint
-#undef uint8
-#undef uint16
-#undef uint
-
-#define int8   signed char			/* ASG: changed from char to signed char */
-#define uint8  unsigned char
-#define int16  short
-#define uint16 unsigned short
-#define int32  long
-
-/* int and unsigned int must be at least 32 bits wide */
-#define uint   unsigned int
-
-
-/* Allow for architectures that don't have 8-bit sizes */
-#if M68K_HAS_8_BIT_SIZE
-#define MAKE_INT_8(A) (int8)((A)&0xff)
-#else
-#undef  int8
-#define int8   int
-#undef  uint8
-#define uint8  unsigned int
-INLINE int MAKE_INT_8(int value)
-{
-   /* Will this work for 1's complement machines? */
-   return (value & 0x80) ? value | ~0xff : value & 0xff;
-}
-#endif /* M68K_HAS_8_BIT_SIZE */
-
-
-/* Allow for architectures that don't have 16-bit sizes */
-#if M68K_HAS_16_BIT_SIZE
-#define MAKE_INT_16(A) (int16)((A)&0xffff)
-#else
-#undef  int16
-#define int16  int
-#undef  uint16
-#define uint16 unsigned int
-INLINE int MAKE_INT_16(int value)
-{
-   /* Will this work for 1's complement machines? */
-   return (value & 0x8000) ? value | ~0xffff : value & 0xffff;
-}
-#endif /* M68K_HAS_16_BIT_SIZE */
-
-
-/* Allow for architectures that don't have 32-bit sizes */
-#if M68K_HAS_32_BIT_SIZE
-#if M68K_OVER_32_BIT
-#define MAKE_INT_32(A) (int32)((A)&0xffffffff)
-#else
-#define MAKE_INT_32(A) (int32)(A)
-#endif /* M68K_OVER_32_BIT */
-#else
-#undef  int32
-#define int32  int
-INLINE int MAKE_INT_32(int value)
-{
-   /* Will this work for 1's complement machines? */
-   return (value & 0x80000000) ? value | ~0xffffffff : value & 0xffffffff;
-}
-#endif /* M68K_HAS_32_BIT_SIZE */
-
-
+#define MAKE_INT_8(A) (int8_t)((A) & 0xff)
+#define MAKE_INT_16(A) (int16_t)((A) & 0xffff)
+#define MAKE_INT_32(A) (int32_t)((A) & 0xffffffff)
 
 /* ======================================================================== */
 /* ============================ GENERAL DEFINES =========================== */
@@ -484,8 +419,8 @@ INLINE int MAKE_INT_32(int value)
 
 #ifdef M68K_LOG
 
-extern char* m68k_disassemble_quick(uint pc);
-extern uint  m68k_pc_offset;
+extern char* m68k_disassemble_quick(uint32_t pc);
+extern uint32_t  m68k_pc_offset;
 extern char* m68k_cpu_names[];
 
 #define M68K_DO_LOG(A) if(M68K_LOG) fprintf A
@@ -508,30 +443,30 @@ extern char* m68k_cpu_names[];
 
 typedef struct
 {
-   uint mode;        /* CPU Operation Mode: 68000, 68010, or 68020 */
-   uint dr[8];       /* Data Registers */
-   uint ar[8];       /* Address Registers */
-   uint ppc;		 /* Previous program counter */
-   uint pc;          /* Program Counter */
-   uint sp[4];       /* User, Interrupt, and Master Stack Pointers */
-   uint vbr;         /* Vector Base Register (68010+) */
-   uint sfc;         /* Source Function Code Register (m68010+) */
-   uint dfc;         /* Destination Function Code Register (m68010+) */
-   uint ir;          /* Instruction Register */
-   uint t1_flag;     /* Trace 1 */
-   uint t0_flag;     /* Trace 0 */
-   uint s_flag;      /* Supervisor */
-   uint m_flag;      /* Master/Interrupt state */
-   uint x_flag;      /* Extend */
-   uint n_flag;      /* Negative */
-   uint not_z_flag;  /* Zero, inverted for speedups */
-   uint v_flag;      /* Overflow */
-   uint c_flag;      /* Carry */
-   uint int_mask;    /* I0-I2 */
-   uint int_state;   /* Current interrupt state -- ASG: changed from ints_pending */
-   uint stopped;     /* Stopped state */
-   uint halted;      /* Halted state */
-   uint int_cycles;  /* ASG: extra cycles from generated interrupts */
+   uint32_t mode;        /* CPU Operation Mode: 68000, 68010, or 68020 */
+   uint32_t dr[8];       /* Data Registers */
+   uint32_t ar[8];       /* Address Registers */
+   uint32_t ppc;		 /* Previous program counter */
+   uint32_t pc;          /* Program Counter */
+   uint32_t sp[4];       /* User, Interrupt, and Master Stack Pointers */
+   uint32_t vbr;         /* Vector Base Register (68010+) */
+   uint32_t sfc;         /* Source Function Code Register (m68010+) */
+   uint32_t dfc;         /* Destination Function Code Register (m68010+) */
+   uint32_t ir;          /* Instruction Register */
+   uint32_t t1_flag;     /* Trace 1 */
+   uint32_t t0_flag;     /* Trace 0 */
+   uint32_t s_flag;      /* Supervisor */
+   uint32_t m_flag;      /* Master/Interrupt state */
+   uint32_t x_flag;      /* Extend */
+   uint32_t n_flag;      /* Negative */
+   uint32_t not_z_flag;  /* Zero, inverted for speedups */
+   uint32_t v_flag;      /* Overflow */
+   uint32_t c_flag;      /* Carry */
+   uint32_t int_mask;    /* I0-I2 */
+   uint32_t int_state;   /* Current interrupt state -- ASG: changed from ints_pending */
+   uint32_t stopped;     /* Stopped state */
+   uint32_t halted;      /* Halted state */
+   uint32_t int_cycles;  /* ASG: extra cycles from generated interrupts */
 
    /* Callbacks to host */
    int  (*int_ack_callback)(int int_line);  /* Interrupt Acknowledge */
@@ -546,61 +481,61 @@ typedef struct
 
 
 extern int           m68k_clks_left;
-extern uint          m68k_tracing;
-extern uint          m68k_sr_implemented_bits[];
+extern uint32_t          m68k_tracing;
+extern uint32_t          m68k_sr_implemented_bits[];
 extern m68k_cpu_core m68k_cpu;
-extern uint*         m68k_cpu_dar[];
-extern uint*         m68k_movem_pi_table[];
-extern uint*         m68k_movem_pd_table[];
-extern uint8         m68k_int_masks[];
-extern uint8         m68k_shift_8_table[];
-extern uint16        m68k_shift_16_table[];
-extern uint          m68k_shift_32_table[];
-extern uint8         m68k_exception_cycle_table[];
+extern uint32_t*         m68k_cpu_dar[];
+extern uint32_t*         m68k_movem_pi_table[];
+extern uint32_t*         m68k_movem_pd_table[];
+extern uint8_t         m68k_int_masks[];
+extern uint8_t         m68k_shift_8_table[];
+extern uint16_t        m68k_shift_16_table[];
+extern uint32_t          m68k_shift_32_table[];
+extern uint8_t         m68k_exception_cycle_table[];
 
 
 /* Read data from anywhere */
-INLINE uint m68ki_read_8  (uint address);
-INLINE uint m68ki_read_16 (uint address);
-INLINE uint m68ki_read_32 (uint address);
+INLINE uint32_t m68ki_read_8  (uint32_t address);
+INLINE uint32_t m68ki_read_16 (uint32_t address);
+INLINE uint32_t m68ki_read_32 (uint32_t address);
 
 /* Write to memory */
-INLINE void m68ki_write_8 (uint address, uint value);
-INLINE void m68ki_write_16(uint address, uint value);
-INLINE void m68ki_write_32(uint address, uint value);
+INLINE void m68ki_write_8 (uint32_t address, uint32_t value);
+INLINE void m68ki_write_16(uint32_t address, uint32_t value);
+INLINE void m68ki_write_32(uint32_t address, uint32_t value);
 
 /* Read data immediately after the program counter */
-INLINE uint m68ki_read_imm_8(void);
-INLINE uint m68ki_read_imm_16(void);
-INLINE uint m68ki_read_imm_32(void);
+INLINE uint32_t m68ki_read_imm_8(void);
+INLINE uint32_t m68ki_read_imm_16(void);
+INLINE uint32_t m68ki_read_imm_32(void);
 
 /* Reads the next word after the program counter */
-INLINE uint m68ki_read_instruction(void);
+INLINE uint32_t m68ki_read_instruction(void);
 
 /* Read data with specific function code */
-INLINE uint m68ki_read_8_fc  (uint address, uint fc);
-INLINE uint m68ki_read_16_fc (uint address, uint fc);
-INLINE uint m68ki_read_32_fc (uint address, uint fc);
+INLINE uint32_t m68ki_read_8_fc  (uint32_t address, uint32_t fc);
+INLINE uint32_t m68ki_read_16_fc (uint32_t address, uint32_t fc);
+INLINE uint32_t m68ki_read_32_fc (uint32_t address, uint32_t fc);
 
 /* Write data with specific function code */
-INLINE void m68ki_write_8_fc (uint address, uint fc, uint value);
-INLINE void m68ki_write_16_fc(uint address, uint fc, uint value);
-INLINE void m68ki_write_32_fc(uint address, uint fc, uint value);
+INLINE void m68ki_write_8_fc (uint32_t address, uint32_t fc, uint32_t value);
+INLINE void m68ki_write_16_fc(uint32_t address, uint32_t fc, uint32_t value);
+INLINE void m68ki_write_32_fc(uint32_t address, uint32_t fc, uint32_t value);
 
-INLINE uint m68ki_get_ea_ix(void);     /* Get ea for address register indirect + index */
-INLINE uint m68ki_get_ea_pcix(void);   /* Get ea for program counter indirect + index */
-INLINE uint m68ki_get_ea_ix_dst(void); /* Get ea ix for destination of move instruction */
+INLINE uint32_t m68ki_get_ea_ix(void);     /* Get ea for address register indirect + index */
+INLINE uint32_t m68ki_get_ea_pcix(void);   /* Get ea for program counter indirect + index */
+INLINE uint32_t m68ki_get_ea_ix_dst(void); /* Get ea ix for destination of move instruction */
 
 INLINE void m68ki_set_s_flag(int value);                 /* Set the S flag */
 INLINE void m68ki_set_m_flag(int value);                 /* Set the M flag */
 INLINE void m68ki_set_sm_flag(int s_value, int m_value); /* Set the S and M flags */
-INLINE void m68ki_set_ccr(uint value);                   /* set the condition code register */
-INLINE void m68ki_set_sr(uint value);                    /* set the status register */
-INLINE void m68ki_set_sr_no_int(uint value);             /* ASG: set the status register, but don't check interrupts */
-INLINE void m68ki_set_pc(uint address);                  /* set the program counter */
-INLINE void m68ki_service_interrupt(uint pending_mask);  /* service a pending interrupt -- ASG: added parameter */
-INLINE void m68ki_exception(uint vector);                /* process an exception */
-INLINE void m68ki_interrupt(uint vector);				 /* process an interrupt */
+INLINE void m68ki_set_ccr(uint32_t value);                   /* set the condition code register */
+INLINE void m68ki_set_sr(uint32_t value);                    /* set the status register */
+INLINE void m68ki_set_sr_no_int(uint32_t value);             /* ASG: set the status register, but don't check interrupts */
+INLINE void m68ki_set_pc(uint32_t address);                  /* set the program counter */
+INLINE void m68ki_service_interrupt(uint32_t pending_mask);  /* service a pending interrupt -- ASG: added parameter */
+INLINE void m68ki_exception(uint32_t vector);                /* process an exception */
+INLINE void m68ki_interrupt(uint32_t vector);				 /* process an interrupt */
 INLINE void m68ki_check_interrupts(void); 				 /* ASG: check for interrupts */
 
 /* ======================================================================== */
@@ -608,17 +543,17 @@ INLINE void m68ki_check_interrupts(void); 				 /* ASG: check for interrupts */
 /* ======================================================================== */
 
 /* Set the function code and read memory from anywhere. */
-INLINE uint m68ki_read_8(uint address)
+INLINE uint32_t m68ki_read_8(uint32_t address)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    return m68k_read_memory_8(ADDRESS_68K(address));
 }
-INLINE uint m68ki_read_16(uint address)
+INLINE uint32_t m68ki_read_16(uint32_t address)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    return m68k_read_memory_16(ADDRESS_68K(address));
 }
-INLINE uint m68ki_read_32(uint address)
+INLINE uint32_t m68ki_read_32(uint32_t address)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    return m68k_read_memory_32(ADDRESS_68K(address));
@@ -626,17 +561,17 @@ INLINE uint m68ki_read_32(uint address)
 
 
 /* Set the function code and write memory to anywhere. */
-INLINE void m68ki_write_8(uint address, uint value)
+INLINE void m68ki_write_8(uint32_t address, uint32_t value)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    m68k_write_memory_8(ADDRESS_68K(address), value);
 }
-INLINE void m68ki_write_16(uint address, uint value)
+INLINE void m68ki_write_16(uint32_t address, uint32_t value)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    m68k_write_memory_16(ADDRESS_68K(address), value);
 }
-INLINE void m68ki_write_32(uint address, uint value)
+INLINE void m68ki_write_32(uint32_t address, uint32_t value)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    m68k_write_memory_32(ADDRESS_68K(address), value);
@@ -644,19 +579,19 @@ INLINE void m68ki_write_32(uint address, uint value)
 
 
 /* Set the function code and read memory immediately following the PC. */
-INLINE uint m68ki_read_imm_8(void)
+INLINE uint32_t m68ki_read_imm_8(void)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    CPU_PC += 2;
    return m68k_read_immediate_8(ADDRESS_68K(CPU_PC-1));
 }
-INLINE uint m68ki_read_imm_16(void)
+INLINE uint32_t m68ki_read_imm_16(void)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    CPU_PC += 2;
    return m68k_read_immediate_16(ADDRESS_68K(CPU_PC-2));
 }
-INLINE uint m68ki_read_imm_32(void)
+INLINE uint32_t m68ki_read_imm_32(void)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_DATA : FUNCTION_CODE_USER_DATA);
    CPU_PC += 4;
@@ -665,7 +600,7 @@ INLINE uint m68ki_read_imm_32(void)
 
 
 /* Set the function code and read an instruction immediately following the PC. */
-INLINE uint m68ki_read_instruction(void)
+INLINE uint32_t m68ki_read_instruction(void)
 {
    m68ki_set_fc(CPU_S ? FUNCTION_CODE_SUPERVISOR_PROGRAM : FUNCTION_CODE_USER_PROGRAM);
    CPU_PC += 2;
@@ -674,33 +609,33 @@ INLINE uint m68ki_read_instruction(void)
 
 
 /* Read/Write data with a specific function code (used by MOVES) */
-INLINE uint m68ki_read_8_fc(uint address, uint fc)
+INLINE uint32_t m68ki_read_8_fc(uint32_t address, uint32_t fc)
 {
    m68ki_set_fc(fc&7);
    return m68k_read_memory_8(ADDRESS_68K(address));
 }
-INLINE uint m68ki_read_16_fc(uint address, uint fc)
+INLINE uint32_t m68ki_read_16_fc(uint32_t address, uint32_t fc)
 {
    m68ki_set_fc(fc&7);
    return m68k_read_memory_16(ADDRESS_68K(address));
 }
-INLINE uint m68ki_read_32_fc(uint address, uint fc)
+INLINE uint32_t m68ki_read_32_fc(uint32_t address, uint32_t fc)
 {
    m68ki_set_fc(fc&7);
    return m68k_read_memory_32(ADDRESS_68K(address));
 }
 
-INLINE void m68ki_write_8_fc(uint address, uint fc, uint value)
+INLINE void m68ki_write_8_fc(uint32_t address, uint32_t fc, uint32_t value)
 {
    m68ki_set_fc(fc&7);
    m68k_write_memory_8(ADDRESS_68K(address), value);
 }
-INLINE void m68ki_write_16_fc(uint address, uint fc, uint value)
+INLINE void m68ki_write_16_fc(uint32_t address, uint32_t fc, uint32_t value)
 {
    m68ki_set_fc(fc&7);
    m68k_write_memory_16(ADDRESS_68K(address), value);
 }
-INLINE void m68ki_write_32_fc(uint address, uint fc, uint value)
+INLINE void m68ki_write_32_fc(uint32_t address, uint32_t fc, uint32_t value)
 {
    m68ki_set_fc(fc&7);
    m68k_write_memory_32(ADDRESS_68K(address), value);
@@ -708,12 +643,12 @@ INLINE void m68ki_write_32_fc(uint address, uint fc, uint value)
 
 
 /* Decode address register indirect with index */
-INLINE uint m68ki_get_ea_ix(void)
+INLINE uint32_t m68ki_get_ea_ix(void)
 {
-   uint extension = m68ki_read_imm_16();
-   uint ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
-   uint base = AY;
-   uint outer = 0;
+   uint32_t extension = m68ki_read_imm_16();
+   uint32_t ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
+   uint32_t base = AY;
+   uint32_t outer = 0;
 
    /* Sign-extend the index value if needed */
    if(!EXT_INDEX_LONG(extension))
@@ -748,12 +683,12 @@ INLINE uint m68ki_get_ea_ix(void)
 }
 
 /* Decode address register indirect with index for MOVE destination */
-INLINE uint m68ki_get_ea_ix_dst(void)
+INLINE uint32_t m68ki_get_ea_ix_dst(void)
 {
-   uint extension = m68ki_read_imm_16();
-   uint ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
-   uint base = AX; /* This is the only thing different from m68ki_get_ea_ix() */
-   uint outer = 0;
+   uint32_t extension = m68ki_read_imm_16();
+   uint32_t ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
+   uint32_t base = AX; /* This is the only thing different from m68ki_get_ea_ix() */
+   uint32_t outer = 0;
 
    /* Sign-extend the index value if needed */
    if(!EXT_INDEX_LONG(extension))
@@ -788,12 +723,12 @@ INLINE uint m68ki_get_ea_ix_dst(void)
 }
 
 /* Decode program counter indirect with index */
-INLINE uint m68ki_get_ea_pcix(void)
+INLINE uint32_t m68ki_get_ea_pcix(void)
 {
-   uint base = (CPU_PC+=2) - 2;
-   uint extension = m68ki_read_16(base);
-   uint ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
-   uint outer = 0;
+   uint32_t base = (CPU_PC+=2) - 2;
+   uint32_t extension = m68ki_read_16(base);
+   uint32_t ea_index = m68k_cpu_dar[EXT_INDEX_AR(extension)!=0][EXT_INDEX_REGISTER(extension)];
+   uint32_t outer = 0;
 
    /* Sign-extend the index value if needed */
    if(!EXT_INDEX_LONG(extension))
@@ -880,7 +815,7 @@ INLINE void m68ki_set_sm_flag(int s_value, int m_value)
 
 
 /* Set the condition code register */
-INLINE void m68ki_set_ccr(uint value)
+INLINE void m68ki_set_ccr(uint32_t value)
 {
    CPU_X = BIT_4(value);
    CPU_N = BIT_3(value);
@@ -890,7 +825,7 @@ INLINE void m68ki_set_ccr(uint value)
 }
 
 /* Set the status register */
-INLINE void m68ki_set_sr(uint value)
+INLINE void m68ki_set_sr(uint32_t value)
 {
    /* ASG: detect changes to the INT_MASK */
    int old_mask = CPU_INT_MASK;
@@ -916,7 +851,7 @@ INLINE void m68ki_set_sr(uint value)
 
 
 /* Set the status register */
-INLINE void m68ki_set_sr_no_int(uint value)
+INLINE void m68ki_set_sr_no_int(uint32_t value)
 {
    /* Mask out the "unimplemented" bits */
    value &= m68k_sr_implemented_bits[CPU_MODE];
@@ -940,7 +875,7 @@ INLINE void m68ki_set_sr_no_int(uint value)
  * ram access times for data to be retrieved immediately following
  * the PC.
  */
-INLINE void m68ki_set_pc(uint address)
+INLINE void m68ki_set_pc(uint32_t address)
 {
    /* Set the program counter */
    CPU_PC = address;
@@ -954,10 +889,10 @@ INLINE void m68ki_set_pc(uint address)
 
 
 /* Process an exception */
-INLINE void m68ki_exception(uint vector)
+INLINE void m68ki_exception(uint32_t vector)
 {
    /* Save the old status register */
-   uint old_sr = m68ki_get_sr();
+   uint32_t old_sr = m68ki_get_sr();
 
    /* Use up some clock cycles */
    USE_CLKS(m68k_exception_cycle_table[vector]);
@@ -979,10 +914,10 @@ INLINE void m68ki_exception(uint vector)
 
 
 /* Process an interrupt (or trap) */
-INLINE void m68ki_interrupt(uint vector)
+INLINE void m68ki_interrupt(uint32_t vector)
 {
    /* Save the old status register */
-   uint old_sr = m68ki_get_sr();
+   uint32_t old_sr = m68ki_get_sr();
 
    /* Use up some clock cycles */
    /* ASG: just keep them pending */
@@ -1006,10 +941,10 @@ INLINE void m68ki_interrupt(uint vector)
 
 
 /* Service an interrupt request */
-INLINE void m68ki_service_interrupt(uint pending_mask)	/* ASG: added parameter here */
+INLINE void m68ki_service_interrupt(uint32_t pending_mask)	/* ASG: added parameter here */
 {
-   uint int_level = 7;
-   uint vector;
+   uint32_t int_level = 7;
+   uint32_t vector;
 
    /* Start at level 7 and then go down */
    for(;!(pending_mask & (1<<int_level));int_level--)	/* ASG: changed to use parameter instead of CPU_INTS_PENDING */
@@ -1083,7 +1018,7 @@ INLINE void m68ki_service_interrupt(uint pending_mask)	/* ASG: added parameter h
 /* ASG: Check for interrupts */
 INLINE void m68ki_check_interrupts(void)
 {
-   uint pending_mask = 1 << CPU_INT_STATE;
+   uint32_t pending_mask = 1 << CPU_INT_STATE;
    if (pending_mask & m68k_int_masks[CPU_INT_MASK])
       m68ki_service_interrupt(pending_mask);
 }

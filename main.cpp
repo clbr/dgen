@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdint.h>
 
 #define IS_MAIN_CPP
 #include "md.h"
@@ -227,7 +228,7 @@ int main(int argc, char *argv[])
 {
   int c = 0, pal_mode = 0, running = 1, usec = 0,
       wp = 0, rp = 0, start_slot = -1;
-  unsigned long long f = 0;
+  uint64_t f = 0;
   char *patches = NULL, *rom = NULL;
   struct timeval oldclk, newclk, startclk, endclk;
   FILE *demo = NULL;

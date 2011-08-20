@@ -46,28 +46,34 @@
 #ifndef	_MZ80_H_
 #define	_MZ80_H_
 
+#include <stdint.h>
+
 #ifndef UINT32
-#define UINT32  unsigned long int
+#define UINT32  uint32_t
 #endif
 
 #ifndef UINT16
-#define UINT16  unsigned short int
+#define UINT16  uint16_t
 #endif
 
 #ifndef UINT8
-#define UINT8   unsigned char
+#define UINT8   uint8_t
 #endif
 
 #ifndef INT32
-#define INT32  signed long int
+#define INT32  int32_t
 #endif
 
 #ifndef INT16
-#define INT16  signed short int
+#define INT16  int16_t
 #endif
 
 #ifndef INT8
-#define INT8   signed char
+#define INT8   int8_t
+#endif
+
+#ifndef UINTPTR
+#define UINTPTR uintptr_t
 #endif
 
 #ifdef __cplusplus
@@ -387,7 +393,7 @@ extern UINT32 mz80ReadValue(UINT8 bWhat, UINT32 dwAddr);
 typedef struct mz80context CONTEXTMZ80;
 
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif	// _MZ80_H_

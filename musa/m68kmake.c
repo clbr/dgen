@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#include <stdint.h>
 
 int atoh(char* buff);
 char* modify_ea_string(char* old_ea_string, char* insert_string);
@@ -869,7 +869,7 @@ char* modify_ea_string(char* old_ea_string, char* insert_string)
 	char* ea_start;
 	char* ea_end;
 
-	if(strstr(old_ea_string, "uint ea") != NULL)
+	if(strstr(old_ea_string, "uint32_t ea") != NULL)
 		return blank;
 	strcpy(buff, old_ea_string);
 	ea_start = strstr(buff, "m68ki_get_ea_");
@@ -890,7 +890,7 @@ char* modify_imm_string(char* old_ea_string, char* insert_string)
 	char* ea_start;
 	char* ea_end;
 
-	if(strstr(old_ea_string, "uint ea") != NULL)
+	if(strstr(old_ea_string, "uint32_t ea") != NULL)
 		return blank;
 	strcpy(buff, old_ea_string);
 	real_start = strstr(buff, "m68ki_read_");
@@ -960,6 +960,7 @@ int get_clk_add(int func_num, int ea_mode)
 
 void add_op_header(FILE* filep, char low, char high)
 {
+	fprintf(filep, "#include <stdint.h>\n\n");
 	fprintf(filep, "#include \"m68kcpu.h\"\n\n");
 	fprintf(filep, "#include \"m68kops.h\"\n\n");
 	fprintf(filep, "/* ======================================================================== */\n");
@@ -1040,9 +1041,9 @@ void add_table_header(FILE* filep)
 	fprintf(filep, "typedef struct\n");
 	fprintf(filep, "{\n");
 	fprintf(filep, "\tvoid (*opcode_handler)(void); /* handler function */\n");
-	fprintf(filep, "\tuint bits;\t\t\t/* number of bits set in mask */\n");
-    fprintf(filep, "\tuint mask;\t\t\t/* mask on opcode */\n");
-	fprintf(filep, "\tuint match;\t\t\t/* what to match after masking */\n");
+	fprintf(filep, "\tuint32_t bits;\t\t\t/* number of bits set in mask */\n");
+    fprintf(filep, "\tuint32_t mask;\t\t\t/* mask on opcode */\n");
+	fprintf(filep, "\tuint32_t match;\t\t\t/* what to match after masking */\n");
 	fprintf(filep, "} opcode_handler_struct;\n\n\n");
 
 	fprintf(filep, "/* Opcode handler table */\n");
@@ -1076,7 +1077,7 @@ void add_table_footer(FILE* filep)
 	fprintf(filep, "void m68ki_build_opcode_table(void)\n");
 	fprintf(filep, "{\n");
 	fprintf(filep, "\topcode_handler_struct *ostruct;\n");
-	fprintf(filep, "\tuint table_length = 0;\n");
+	fprintf(filep, "\tuint32_t table_length = 0;\n");
 	fprintf(filep, "\tint i,j;\n");
 	fprintf(filep, "\n");
 	fprintf(filep, "\tfor(ostruct = m68k_opcode_handler_table;ostruct->opcode_handler != 0;ostruct++)\n");
@@ -1293,8 +1294,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x10)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_AI;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_AI;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_AI"));
 
@@ -1314,8 +1315,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 				for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x18)));
 				/* print new ea mode */
-				if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PI_8;\n", ea_spaces);
+				if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PI_8;\n", ea_spaces);
 				else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PI_8"));
 
@@ -1331,8 +1332,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 				for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x1f)));
 				/* print new ea mode */
-				if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PI7_8;\n", ea_spaces);
+				if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PI7_8;\n", ea_spaces);
 				else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PI7_8"));
 
@@ -1350,8 +1351,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 				for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x18)));
 				/* print new ea mode */
-				if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PI_16;\n", ea_spaces);
+				if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PI_16;\n", ea_spaces);
 				else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PI_16"));
 
@@ -1369,8 +1370,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 				for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x18)));
 				/* print new ea mode */
-				if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PI_32;\n", ea_spaces);
+				if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PI_32;\n", ea_spaces);
 				else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PI_32"));
 
@@ -1391,8 +1392,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			   for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x20)));
 			   /* print new ea mode */
-			   if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PD_8;\n", ea_spaces);
+			   if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PD_8;\n", ea_spaces);
 			   else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PD_8"));
 
@@ -1409,8 +1410,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			   for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x27)));
 			   /* print new ea mode */
-			   if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PD7_8;\n", ea_spaces);
+			   if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PD7_8;\n", ea_spaces);
 			   else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PD7_8"));
 
@@ -1428,8 +1429,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			   for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x20)));
 			   /* print new ea mode */
-			   if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PD_16;\n", ea_spaces);
+			   if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PD_16;\n", ea_spaces);
 			   else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PD_16"));
 
@@ -1447,8 +1448,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			   for(i=1;i<ea_line;i++)
 					fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x20)));
 			   /* print new ea mode */
-			   if(strstr(func_lines[ea_line], "uint ea") != NULL)
-					fprintf(output_file, "%suint ea = EA_PD_32;\n", ea_spaces);
+			   if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+					fprintf(output_file, "%suint32_t ea = EA_PD_32;\n", ea_spaces);
 			   else
 					fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PD_32"));
 
@@ -1467,8 +1468,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x28)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_DI;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_DI;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_DI"));
 
@@ -1486,8 +1487,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x30)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_IX;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_IX;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_IX"));
 
@@ -1505,8 +1506,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x38)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_AW;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_AW;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_AW"));
 
@@ -1524,8 +1525,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x39)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_AL;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_AL;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_AL"));
 
@@ -1543,8 +1544,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x3a)));
 			/* print new ea mode */
-			fprintf(output_file, "%suint old_pc = (CPU_PC+=2) - 2;\n", ea_spaces);
-			fprintf(output_file, "%suint ea = old_pc + MAKE_INT_16(m68ki_read_16(old_pc));\n", ea_spaces);
+			fprintf(output_file, "%suint32_t old_pc = (CPU_PC+=2) - 2;\n", ea_spaces);
+			fprintf(output_file, "%suint32_t ea = old_pc + MAKE_INT_16(m68ki_read_16(old_pc));\n", ea_spaces);
 			fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "ea"));
 
 			/* print rest of function */
@@ -1561,8 +1562,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x3b)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = EA_PCIX;\n", ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = EA_PCIX;\n", ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_ea_string(func_lines[ea_line], "EA_PCIX"));
 
@@ -1586,8 +1587,8 @@ int generate_funcs(FILE* file_ac, FILE* file_dm, FILE* file_nz)
 			for(i=1;i<ea_line;i++)
 				fprintf(output_file, "%s", strstr(func_lines[i], "USE_CLKS") == NULL ? func_lines[i] : replace_clk_string(func_lines[i], "USE_CLKS", get_clk_add(func_num, 0x3c)));
 			/* print new ea mode */
-			if(strstr(func_lines[ea_line], "uint ea") != NULL)
-				fprintf(output_file, "%suint ea = %s;\n", imm_ptr, ea_spaces);
+			if(strstr(func_lines[ea_line], "uint32_t ea") != NULL)
+				fprintf(output_file, "%suint32_t ea = %s;\n", imm_ptr, ea_spaces);
 			else
 				fprintf(output_file, "%s", modify_imm_string(func_lines[ea_line], imm_ptr));
 

@@ -32,6 +32,7 @@ static const char* copyright_notice =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "m68kcpu.h"
 #include "m68kops.h"
@@ -49,13 +50,13 @@ void m68ki_build_opcode_table(void);
 /* ================================= DATA ================================= */
 /* ======================================================================== */
 
-static uint  m68k_emulation_initialized = 0;                /* flag if emulation has been initialized */
+static uint32_t  m68k_emulation_initialized = 0;                /* flag if emulation has been initialized */
 void         (*m68k_instruction_jump_table[0x10000])(void); /* opcode handler jump table */
 int          m68k_clks_left = 0;                            /* Number of clocks remaining */
-uint         m68k_tracing = 0;
+uint32_t         m68k_tracing = 0;
 
 #ifdef M68K_LOG
-uint  m68k_pc_offset = 2;
+uint32_t  m68k_pc_offset = 2;
 char* m68k_cpu_names[5] =
 {
    "Invalid CPU",
@@ -67,7 +68,7 @@ char* m68k_cpu_names[5] =
 #endif /* M68K_LOG */
 
 /* Mask which bits of the SR ar eimplemented */
-uint m68k_sr_implemented_bits[5] =
+uint32_t m68k_sr_implemented_bits[5] =
 {
    0x0000, /* invalid */
    0xa71f, /* 68000: T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
@@ -80,15 +81,15 @@ uint m68k_sr_implemented_bits[5] =
 m68k_cpu_core m68k_cpu = {0};
 
 /* Pointers to speed up address register indirect with index calculation */
-uint* m68k_cpu_dar[2] = {CPU_D, CPU_A};
+uint32_t* m68k_cpu_dar[2] = {CPU_D, CPU_A};
 
 /* Pointers to speed up movem instructions */
-uint* m68k_movem_pi_table[16] =
+uint32_t* m68k_movem_pi_table[16] =
 {
    CPU_D, CPU_D+1, CPU_D+2, CPU_D+3, CPU_D+4, CPU_D+5, CPU_D+6, CPU_D+7,
    CPU_A, CPU_A+1, CPU_A+2, CPU_A+3, CPU_A+4, CPU_A+5, CPU_A+6, CPU_A+7
 };
-uint* m68k_movem_pd_table[16] =
+uint32_t* m68k_movem_pd_table[16] =
 {
    CPU_A+7, CPU_A+6, CPU_A+5, CPU_A+4, CPU_A+3, CPU_A+2, CPU_A+1, CPU_A,
    CPU_D+7, CPU_D+6, CPU_D+5, CPU_D+4, CPU_D+3, CPU_D+2, CPU_D+1, CPU_D,
@@ -96,17 +97,17 @@ uint* m68k_movem_pd_table[16] =
 
 
 /* Used when checking for pending interrupts */
-uint8 m68k_int_masks[] = {0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80, 0x80};
+uint8_t m68k_int_masks[] = {0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80, 0x80};
 
 /* Used by shift & rotate instructions */
-uint8 m68k_shift_8_table[65] =
+uint8_t m68k_shift_8_table[65] =
 {
     0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
-uint16 m68k_shift_16_table[65] =
+uint16_t m68k_shift_16_table[65] =
 {
     0x0000, 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00, 0xff80, 0xffc0, 0xffe0,
     0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
@@ -115,7 +116,7 @@ uint16 m68k_shift_16_table[65] =
     0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
     0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
-uint m68k_shift_32_table[65] =
+uint32_t m68k_shift_32_table[65] =
 {
     0x00000000, 0x80000000, 0xc0000000, 0xe0000000, 0xf0000000, 0xf8000000, 0xfc000000, 0xfe000000,
     0xff000000, 0xff800000, 0xffc00000, 0xffe00000, 0xfff00000, 0xfff80000, 0xfffc0000, 0xfffe0000,
@@ -131,7 +132,7 @@ uint m68k_shift_32_table[65] =
 /* Number of clock cycles to use for exception processing.
  * I used 4 for any vectors that are undocumented for processing times.
  */
-uint8 m68k_exception_cycle_table[256] =
+uint8_t m68k_exception_cycle_table[256] =
 {
    40, /*  0: Reset - should never be called                                 */
    40, /*  1: Reset - should never be called                                 */
