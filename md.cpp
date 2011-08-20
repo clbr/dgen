@@ -424,6 +424,7 @@ md::md()
 #endif
 
   z80_init();
+  mz80init();
 
   reset(); // reset megadrive
 
