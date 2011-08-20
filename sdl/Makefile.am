@@ -3,7 +3,7 @@
 
 EXTRA_DIST = dgenfont.pbm chartfont.c
 
-INCLUDES += -I..
+INCLUDES = -I..
 
 noinst_PROGRAMS = pbm2df
 

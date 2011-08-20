@@ -1,6 +1,9 @@
 # DGen/SDL v1.20+
 # Automakefile for mz80
 
+INCLUDES =
+SUFFIXES =
+
 include $(top_srcdir)/Makefile.asm.am
 # Since the chop_ script flakes on mz80, we use mz80's builtin facility
 if NO_USCORE

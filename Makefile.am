@@ -1,5 +1,8 @@
 # DGen/SDL v1.20+
 
+SUFFIXES =
+INCLUDES =
+
 include $(top_srcdir)/Makefile.asm.am
 
 DIST_SUBDIRS = star musa mz80 sdl

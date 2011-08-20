@@ -1,9 +1,6 @@
 # DGen/SDL v1.20+
 # Automakefile for Musashi
 
-# hack it so that musa doesn't get affected by memcpy defines
-CFLAGS = @CFLAGS@ -Umemcpy
-
 noinst_PROGRAMS = m68kmake
 
 noinst_LIBRARIES = libmusa68.a

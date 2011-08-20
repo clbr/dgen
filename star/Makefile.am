@@ -1,6 +1,9 @@
 # DGen/SDL v1.20+
 # Automakefile for StarScream
 
+INCLUDES =
+SUFFIXES =
+
 include $(top_srcdir)/Makefile.asm.am
 
 # Safety net, so all of StarScream is distributed (as per the StarScream
@@ -13,7 +16,7 @@ noinst_LIBRARIES = libstarcpu.a
 
 star: star.c
 	$(CC) -o star star.c
-	
+
 starcpu.asmu: star
 	./star -hog starcpu.asmu
 
