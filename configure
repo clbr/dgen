@@ -1754,100 +1754,6 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_c_try_link
-ac_fn_c_check_header_mongrel "$LINENO" "SDL_joystick.h" "ac_cv_header_SDL_joystick_h" "$ac_includes_default"
-if test "x$ac_cv_header_SDL_joystick_h" = xyes; then :
-  JOYSTICK_SUPPORT=SDL
-else
-
-# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
-# -------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_c_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
-  yes:no:
-fi
-
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_c_check_header_mongrel
 
 # ac_fn_c_check_func LINENO FUNC VAR
 # ----------------------------------
@@ -5467,12 +5373,6 @@ CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
 EXTRAOBJS=
 
 JOYSTICK_SUPPORT=no
-ac_fn_c_check_header_mongrel "$LINENO" "linux/joystick.h" "ac_cv_header_linux_joystick_h" "$ac_includes_default"
-if test "x$ac_cv_header_linux_joystick_h" = xyes; then :
-  JOYSTICK_SUPPORT=LINUX
-fi
-
-)
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
 $as_echo_n "checking for X... " >&6; }
@@ -6169,89 +6069,6 @@ else
   OPENGL_SUPPORT=yes
 fi
 
-if test x$OPENGL_SUPPORT \!= xno; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OpenGL support in SDL" >&5
-$as_echo_n "checking for OpenGL support in SDL... " >&6; }
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <SDL.h>
-int
-main ()
-{
-int foo() { int x = SDL_OPENGL; }
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  OPENGL_SUPPORT=yes
-else
-  OPENGL_SUPPORT=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENGL_SUPPORT" >&5
-$as_echo "$OPENGL_SUPPORT" >&6; }
-  # Check for the GL libs
-  if test x$OPENGL_SUPPORT \!= xno; then
-    oldCPPFLAGS=$CPPFLAGS
-    oldLIBS=$LIBS
-    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-    LIBS="$LIBS $SDL_LIBS"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glBegin in -lGL" >&5
-$as_echo_n "checking for glBegin in -lGL... " >&6; }
-if ${ac_cv_lib_GL_glBegin+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lGL  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char glBegin ();
-int
-main ()
-{
-return glBegin ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_GL_glBegin=yes
-else
-  ac_cv_lib_GL_glBegin=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_GL_glBegin" >&5
-$as_echo "$ac_cv_lib_GL_glBegin" >&6; }
-if test "x$ac_cv_lib_GL_glBegin" = xyes; then :
-  ac_fn_c_check_header_mongrel "$LINENO" "GL/gl.h" "ac_cv_header_GL_gl_h" "$ac_includes_default"
-if test "x$ac_cv_header_GL_gl_h" = xyes; then :
-
-else
-  OPENGL_SUPPORT=no
-fi
-
-
-else
-  OPENGL_SUPPORT=no
-
-fi
-
-    LIBS=$oldLIBS
-    CPPFLAGS=$oldCPPFLAGS
-  fi
-
-fi
 
 if test x$OPENGL_SUPPORT \!= xno; then
   $as_echo "#define SDL_OPENGL_SUPPORT 1" >>confdefs.h
@@ -6375,14 +6192,6 @@ $as_echo "$NASM_FMT" >&6; }
 				else
 					CHOP_=cat
 				fi
-				 if test x$NASM_FMT = xelf; then
-  NO_USCORE_TRUE=
-  NO_USCORE_FALSE='#'
-else
-  NO_USCORE_TRUE='#'
-  NO_USCORE_FALSE=
-fi
-
 
 
 # Check whether --with-mmx was given.
@@ -6451,6 +6260,14 @@ $as_echo "no" >&6; }
 	MMX=false
 	;;
 esac
+
+ if test x$NASM_FMT = xelf; then
+  NO_USCORE_TRUE=
+  NO_USCORE_FALSE='#'
+else
+  NO_USCORE_TRUE='#'
+  NO_USCORE_FALSE=
+fi
 
 
 if $ASM; then
