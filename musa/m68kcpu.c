@@ -2,6 +2,7 @@
 /* ========================= LICENSING & COPYRIGHT ======================== */
 /* ======================================================================== */
 
+#if 0
 static const char* copyright_notice =
 "MUSASHI\n"
 "Version 2.0a (1999-02-21)\n"
@@ -18,7 +19,7 @@ static const char* copyright_notice =
 "The latest version of this code can be obtained at:\n"
 "http://milliways.scas.bcit.bc.ca/~karl/musashi\n"
 ;
-
+#endif
 
 /* ======================================================================== */
 /* ================================= NOTES ================================ */
@@ -78,7 +79,7 @@ uint32_t m68k_sr_implemented_bits[5] =
 };
 
 /* The CPU core */
-m68k_cpu_core m68k_cpu = {0};
+m68k_cpu_core m68k_cpu;
 
 /* Pointers to speed up address register indirect with index calculation */
 uint32_t* m68k_cpu_dar[2] = {CPU_D, CPU_A};
@@ -486,6 +487,7 @@ void m68k_clear_irq(int int_line)
 /* Reset the M68K */
 void m68k_pulse_reset(void *param)
 {
+	(void)param;
    CPU_HALTED = 0;
    CPU_STOPPED = 0;
    CPU_INT_STATE = 0;	/* ASG: changed from CPU_INTS_PENDING */

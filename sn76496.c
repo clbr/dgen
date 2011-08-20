@@ -54,7 +54,7 @@ struct SN76496
     int Volume[4];      /* volume of voice 0-2 and noise */
     unsigned int RNG;       /* noise generator      */
     int NoiseFB;        /* noise feedback mask */
-    int Period[4];
+    unsigned int Period[4];
     int Count[4];
     int Output[4];
 };
@@ -140,10 +140,10 @@ void SN76496Write(int chip,int data)
 }
 
 
-void SN76496_0_w(int offset,int data) { SN76496Write(0,data); }
-void SN76496_1_w(int offset,int data) { SN76496Write(1,data); }
-void SN76496_2_w(int offset,int data) { SN76496Write(2,data); }
-void SN76496_3_w(int offset,int data) { SN76496Write(3,data); }
+void SN76496_0_w(int offset, int data) { (void)offset; SN76496Write(0, data); }
+void SN76496_1_w(int offset, int data) { (void)offset; SN76496Write(1, data); }
+void SN76496_2_w(int offset, int data) { (void)offset; SN76496Write(2, data); }
+void SN76496_3_w(int offset, int data) { (void)offset; SN76496Write(3, data); }
 
 
 
@@ -189,7 +189,7 @@ static void SN76496_set_volume(int chip,int volume,int gain)
     int i;
     double out;
 
-
+    (void)volume;
     ///// commented out by starshine
     //stream_set_volume(R->Channel,volume);
 
@@ -218,8 +218,9 @@ int SN76496_init(int chip,int clock,int sample_rate,int sample_bits)
 {
     int i;
     struct SN76496 *R = &sn[chip];
-    char name[40];
+    /* char name[40]; */
 
+    (void)sample_bits;
     ////// commented out by starshine
     //sprintf(name,"SN76496 #%d",chip);
     //R->Channel = stream_init(msound,

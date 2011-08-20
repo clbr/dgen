@@ -561,7 +561,6 @@ static int feedback4;       /* connect for operator 4 */
 #ifndef __RAINE__
 static void Log(int level,char *format,...)
 {
-    int i;
     va_list argptr;
 
     if( level < LOG_LEVEL ) return;
@@ -825,7 +824,7 @@ INLINE void set_det_mul(FM_ST *ST,FM_CH *CH,FM_SLOT *SLOT,int v)
 {
     SLOT->mul = MUL_TABLE[v&0x0f];
     SLOT->DT  = ST->DT_TABLE[(v>>4)&7];
-    CH->SLOT[SLOT1].Incr=-1;
+    CH->SLOT[SLOT1].Incr = (unsigned int)-1;
 }
 
 /* set total level */
@@ -847,7 +846,7 @@ INLINE void set_ar_ksr(FM_CH *CH,FM_SLOT *SLOT,int v,signed int *ar_table)
     SLOT->AR   = (v&=0x1f) ? &ar_table[v<<1] : RATE_0;
     SLOT->evsa = SLOT->AR[SLOT->ksr];
     if( SLOT->evm == ENV_MOD_AR ) SLOT->evs = SLOT->evsa;
-    CH->SLOT[SLOT1].Incr=-1;
+    CH->SLOT[SLOT1].Incr = (unsigned int)-1;
 }
 /* set decay rate */
 INLINE void set_dr(FM_SLOT *SLOT,int v,signed int *dr_table)
@@ -941,7 +940,7 @@ INLINE void CALC_FCSLOT(FM_SLOT *SLOT , int fc , int kc )
 /* ---------- frequency counter  ---------- */
 INLINE void CALC_FCOUNT(FM_CH *CH )
 {
-    if( CH->SLOT[SLOT1].Incr==-1){
+    if (CH->SLOT[SLOT1].Incr == (unsigned int)-1) {
         int fc = CH->fc;
         int kc = CH->kcode;
         CALC_FCSLOT(&CH->SLOT[SLOT1] , fc , kc );
@@ -954,8 +953,7 @@ INLINE void CALC_FCOUNT(FM_CH *CH )
 /* ---------- frequency counter  ---------- */
 INLINE void OPM_CALC_FCOUNT(YM2151 *OPM , FM_CH *CH )
 {
-    if( CH->SLOT[SLOT1].Incr==-1)
-    {
+    if (CH->SLOT[SLOT1].Incr == (unsigned int)-1) {
         int fc = CH->fc;
         int kc = CH->kcode;
         CALC_FCSLOT(&CH->SLOT[SLOT1] , OPM->KC_TABLE[fc + CH->SLOT[SLOT1].DT2] , kc );
@@ -1107,6 +1105,7 @@ static void FMCloseTable( void )
 /* OPN/OPM Mode  Register Write */
 INLINE void FMSetMode( FM_ST *ST ,int n,int v )
 {
+	(void)n;
     /* b7 = CSM MODE */
     /* b6 = 3 slot mode */
     /* b5 = reset b */
@@ -1233,6 +1232,7 @@ void OPNSetPris(FM_OPN *OPN , int pris , int TimerPris, int SSGpris)
 {
     int fn;
 
+    (void)SSGpris;
     /* frequency base */
     OPN->ST.freqbase = (OPN->ST.rate) ? ((double)OPN->ST.clock * 4096.0 / OPN->ST.rate) / pris : 0;
     /* Timer base time */
@@ -1343,7 +1343,7 @@ static void OPNWriteReg(FM_OPN *OPN, int r, int v)
                 CH->kcode = (blk<<2)|OPN_FKTABLE[(fn>>7)];
                 /* make basic increment counter 32bit = 1 cycle */
                 CH->fc = OPN->FN_TABLE[fn]>>(7-blk);
-                CH->SLOT[SLOT1].Incr=-1;
+                CH->SLOT[SLOT1].Incr = (unsigned int)-1;
             }
             break;
         case 1:     /* 0xa4-0xa6 : FNUM2,BLK */
@@ -1358,7 +1358,7 @@ static void OPNWriteReg(FM_OPN *OPN, int r, int v)
                 OPN->SL3.kcode[c]= (blk<<2)|OPN_FKTABLE[(fn>>7)];
                 /* make basic increment counter 32bit = 1 cycle */
                 OPN->SL3.fc[c] = OPN->FN_TABLE[fn]>>(7-blk);
-                (OPN->P_CH)[2].SLOT[SLOT1].Incr=-1;
+                (OPN->P_CH)[2].SLOT[SLOT1].Incr = (unsigned int)-1;
             }
             break;
         case 3:     /* 0xac-0xae : 3CH FNUM2,BLK */
@@ -1426,7 +1426,7 @@ void YM2203UpdateOne(int num, void *buffer, int length)
     /* frequency counter channel C */
     if( (State->mode & 0xc0) ){
         /* 3SLOT MODE */
-        if( cch[2]->SLOT[SLOT1].Incr==-1){
+	if (cch[2]->SLOT[SLOT1].Incr == (unsigned int)-1) {
             /* 3 slot mode */
             CALC_FCSLOT(&cch[2]->SLOT[SLOT1] , OPN->SL3.fc[1] , OPN->SL3.kcode[1] );
             CALC_FCSLOT(&cch[2]->SLOT[SLOT2] , OPN->SL3.fc[2] , OPN->SL3.kcode[2] );
@@ -1671,7 +1671,7 @@ void YM2612UpdateOne(int num, void **buffer, int length)
     CALC_FCOUNT( cch[1] );
     if( (State->mode & 0xc0) ){
         /* 3SLOT MODE */
-        if( cch[2]->SLOT[SLOT1].Incr==-1){
+	if (cch[2]->SLOT[SLOT1].Incr == (unsigned int)-1) {
             /* 3 slot mode */
             CALC_FCSLOT(&cch[2]->SLOT[SLOT1] , OPN->SL3.fc[1] , OPN->SL3.kcode[1] );
             CALC_FCSLOT(&cch[2]->SLOT[SLOT2] , OPN->SL3.fc[2] , OPN->SL3.kcode[2] );
@@ -1722,7 +1722,7 @@ void YM2612UpdateOne(int num, void **buffer, int length)
 int YM2612Init(int num, int clock, int rate,
                FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler)
 {
-    int i,j;
+    int i;
 
     if (FM2612) return (-1);    /* duplicate init. */
     cur_chip = NULL;    /* hiro-shi!! */
@@ -1861,7 +1861,6 @@ int YM2612Write(int n, int a,int v)
 unsigned char YM2612Read(int n,int a)
 {
     YM2612 *F2612 = &(FM2612[n]);
-    int addr = F2612->OPN.ST.address;
 
     switch( a&3){
     case 0: /* status 0 */

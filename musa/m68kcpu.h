@@ -36,9 +36,12 @@
 #define M68K_OVER_32_BIT     0
 #endif /* UINT_MAX > 0xffffffff */
 
-#define MAKE_INT_8(A) (int8_t)((A) & 0xff)
-#define MAKE_INT_16(A) (int16_t)((A) & 0xffff)
-#define MAKE_INT_32(A) (int32_t)((A) & 0xffffffff)
+#define MAKE_INT_8(A) (int8_t)((A) & UINT8_C(0xff))
+#define MAKE_INT_16(A) (int16_t)((A) & UINT16_C(0xffff))
+#define MAKE_INT_32(A) (int32_t)((A) & UINT32_C(0xffffffff))
+#define MAKE_UINT_8(A) (uint8_t)((A) & UINT8_C(0xff))
+#define MAKE_UINT_16(A) (uint16_t)((A) & UINT16_C(0xffff))
+#define MAKE_UINT_32(A) (uint32_t)((A) & UINT32_C(0xffffffff))
 
 /* ======================================================================== */
 /* ============================ GENERAL DEFINES =========================== */
@@ -83,38 +86,38 @@
 /* ======================================================================== */
 
 /* Bit Isolation Macros */
-#define BIT_0(A)  ((A) & 0x00000001)
-#define BIT_1(A)  ((A) & 0x00000002)
-#define BIT_2(A)  ((A) & 0x00000004)
-#define BIT_3(A)  ((A) & 0x00000008)
-#define BIT_4(A)  ((A) & 0x00000010)
-#define BIT_5(A)  ((A) & 0x00000020)
-#define BIT_6(A)  ((A) & 0x00000040)
-#define BIT_7(A)  ((A) & 0x00000080)
-#define BIT_8(A)  ((A) & 0x00000100)
-#define BIT_9(A)  ((A) & 0x00000200)
-#define BIT_A(A)  ((A) & 0x00000400)
-#define BIT_B(A)  ((A) & 0x00000800)
-#define BIT_C(A)  ((A) & 0x00001000)
-#define BIT_D(A)  ((A) & 0x00002000)
-#define BIT_E(A)  ((A) & 0x00004000)
-#define BIT_F(A)  ((A) & 0x00008000)
-#define BIT_10(A) ((A) & 0x00010000)
-#define BIT_11(A) ((A) & 0x00020000)
-#define BIT_12(A) ((A) & 0x00040000)
-#define BIT_13(A) ((A) & 0x00080000)
-#define BIT_14(A) ((A) & 0x00100000)
-#define BIT_15(A) ((A) & 0x00200000)
-#define BIT_16(A) ((A) & 0x00400000)
-#define BIT_17(A) ((A) & 0x00800000)
-#define BIT_18(A) ((A) & 0x01000000)
-#define BIT_19(A) ((A) & 0x02000000)
-#define BIT_1A(A) ((A) & 0x04000000)
-#define BIT_1B(A) ((A) & 0x08000000)
-#define BIT_1C(A) ((A) & 0x10000000)
-#define BIT_1D(A) ((A) & 0x20000000)
-#define BIT_1E(A) ((A) & 0x40000000)
-#define BIT_1F(A) ((A) & 0x80000000)
+#define BIT_0(A)  ((A) & UINT32_C(0x00000001))
+#define BIT_1(A)  ((A) & UINT32_C(0x00000002))
+#define BIT_2(A)  ((A) & UINT32_C(0x00000004))
+#define BIT_3(A)  ((A) & UINT32_C(0x00000008))
+#define BIT_4(A)  ((A) & UINT32_C(0x00000010))
+#define BIT_5(A)  ((A) & UINT32_C(0x00000020))
+#define BIT_6(A)  ((A) & UINT32_C(0x00000040))
+#define BIT_7(A)  ((A) & UINT32_C(0x00000080))
+#define BIT_8(A)  ((A) & UINT32_C(0x00000100))
+#define BIT_9(A)  ((A) & UINT32_C(0x00000200))
+#define BIT_A(A)  ((A) & UINT32_C(0x00000400))
+#define BIT_B(A)  ((A) & UINT32_C(0x00000800))
+#define BIT_C(A)  ((A) & UINT32_C(0x00001000))
+#define BIT_D(A)  ((A) & UINT32_C(0x00002000))
+#define BIT_E(A)  ((A) & UINT32_C(0x00004000))
+#define BIT_F(A)  ((A) & UINT32_C(0x00008000))
+#define BIT_10(A) ((A) & UINT32_C(0x00010000))
+#define BIT_11(A) ((A) & UINT32_C(0x00020000))
+#define BIT_12(A) ((A) & UINT32_C(0x00040000))
+#define BIT_13(A) ((A) & UINT32_C(0x00080000))
+#define BIT_14(A) ((A) & UINT32_C(0x00100000))
+#define BIT_15(A) ((A) & UINT32_C(0x00200000))
+#define BIT_16(A) ((A) & UINT32_C(0x00400000))
+#define BIT_17(A) ((A) & UINT32_C(0x00800000))
+#define BIT_18(A) ((A) & UINT32_C(0x01000000))
+#define BIT_19(A) ((A) & UINT32_C(0x02000000))
+#define BIT_1A(A) ((A) & UINT32_C(0x04000000))
+#define BIT_1B(A) ((A) & UINT32_C(0x08000000))
+#define BIT_1C(A) ((A) & UINT32_C(0x10000000))
+#define BIT_1D(A) ((A) & UINT32_C(0x20000000))
+#define BIT_1E(A) ((A) & UINT32_C(0x40000000))
+#define BIT_1F(A) ((A) & UINT32_C(0x80000000))
 
 /* Get the most significant bit for specific sizes */
 #define GET_MSB_8(A)  ((A) & 0x80)
@@ -373,31 +376,31 @@
 #if M68K_BKPT_ACK
 #define m68ki_bkpt_ack(A) CPU_BKPT_ACK_CALLBACK(A)
 #else
-#define m68ki_bkpt_ack(A)
+#define m68ki_bkpt_ack(A) ((void)(A))
 #endif /* M68K_BKPT_ACK */
 
 #if M68K_OUTPUT_RESET
 #define m68ki_output_reset() CPU_RESET_INSTR_CALLBACK()
 #else
-#define m68ki_output_reset()
+#define m68ki_output_reset() ((void)0)
 #endif /* M68K_OUTPUT_RESET */
 
 #if M68K_PC_CHANGED
 #define m68ki_pc_changed(A) CPU_PC_CHANGED_CALLBACK(A)
 #else
-#define m68ki_pc_changed(A)
+#define m68ki_pc_changed(A) ((void)(A))
 #endif /* M68K_PC_CHANGED */
 
 #if M68K_SET_FC
 #define m68ki_set_fc(A) CPU_SET_FC_CALLBACK(A)
 #else
-#define m68ki_set_fc(A)
+#define m68ki_set_fc(A) ((void)(A))
 #endif /* M68K_SET_FC */
 
 #if M68K_INSTR_HOOK
 #define m68ki_instr_hook() CPU_INSTR_HOOK_CALLBACK()
 #else
-#define m68ki_instr_hook()
+#define m68ki_instr_hook() ((void)0)
 #endif /* M68K_INSTR_HOOK */
 
 #if M68K_TRACE
@@ -526,9 +529,9 @@ INLINE uint32_t m68ki_get_ea_ix(void);     /* Get ea for address register indire
 INLINE uint32_t m68ki_get_ea_pcix(void);   /* Get ea for program counter indirect + index */
 INLINE uint32_t m68ki_get_ea_ix_dst(void); /* Get ea ix for destination of move instruction */
 
-INLINE void m68ki_set_s_flag(int value);                 /* Set the S flag */
-INLINE void m68ki_set_m_flag(int value);                 /* Set the M flag */
-INLINE void m68ki_set_sm_flag(int s_value, int m_value); /* Set the S and M flags */
+INLINE void m68ki_set_s_flag(uint32_t value);            /* Set the S flag */
+INLINE void m68ki_set_m_flag(uint32_t value);            /* Set the M flag */
+INLINE void m68ki_set_sm_flag(uint32_t s_value, uint32_t m_value); /* Set the S and M flags */
 INLINE void m68ki_set_ccr(uint32_t value);                   /* set the condition code register */
 INLINE void m68ki_set_sr(uint32_t value);                    /* set the status register */
 INLINE void m68ki_set_sr_no_int(uint32_t value);             /* ASG: set the status register, but don't check interrupts */
@@ -671,12 +674,12 @@ INLINE uint32_t m68ki_get_ea_ix(void)
    if(EXT_BR_SUPPRESSED(extension))
       base = 0;
    if(EXT_BD_PRESENT(extension))
-      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_NO_MEMORY_INDIRECT(extension))
       return base + ea_index;
 
    if(EXT_OD_PRESENT(extension))
-      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_POSTINDEX(extension))
       return m68ki_read_32(base) + ea_index + outer;
    return m68ki_read_32(base + ea_index) + outer;
@@ -711,12 +714,12 @@ INLINE uint32_t m68ki_get_ea_ix_dst(void)
    if(EXT_BR_SUPPRESSED(extension))
       base = 0;
    if(EXT_BD_PRESENT(extension))
-      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_NO_MEMORY_INDIRECT(extension))
       return base + ea_index;
 
    if(EXT_OD_PRESENT(extension))
-      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_POSTINDEX(extension))
       return m68ki_read_32(base) + ea_index + outer;
    return m68ki_read_32(base + ea_index) + outer;
@@ -751,12 +754,12 @@ INLINE uint32_t m68ki_get_ea_pcix(void)
    if(EXT_BR_SUPPRESSED(extension))
       base = 0;
    if(EXT_BD_PRESENT(extension))
-      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      base += EXT_BD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_NO_MEMORY_INDIRECT(extension))
       return base + ea_index;
 
    if(EXT_OD_PRESENT(extension))
-      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+      outer = EXT_OD_LONG(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
    if(EXT_POSTINDEX(extension))
       return m68ki_read_32(base) + ea_index + outer;
    return m68ki_read_32(base + ea_index) + outer;
@@ -764,7 +767,7 @@ INLINE uint32_t m68ki_get_ea_pcix(void)
 
 
 /* Set the S flag and change the active stack pointer. */
-INLINE void m68ki_set_s_flag(int value)
+INLINE void m68ki_set_s_flag(uint32_t value)
 {
    /* ASG: Only do the rest if we're changing */
    value = (value != 0);
@@ -780,7 +783,7 @@ INLINE void m68ki_set_s_flag(int value)
 }
 
 /* Set the M flag and change the active stack pointer. */
-INLINE void m68ki_set_m_flag(int value)
+INLINE void m68ki_set_m_flag(uint32_t value)
 {
    /* ASG: Only do the rest if we're changing */
    value = (value != 0 && CPU_MODE & CPU_MODE_020_PLUS)<<1;
@@ -796,7 +799,7 @@ INLINE void m68ki_set_m_flag(int value)
 }
 
 /* Set the S and M flags and change the active stack pointer. */
-INLINE void m68ki_set_sm_flag(int s_value, int m_value)
+INLINE void m68ki_set_sm_flag(uint32_t s_value, uint32_t m_value)
 {
    /* ASG: Only do the rest if we're changing */
    s_value = (s_value != 0);
@@ -828,7 +831,7 @@ INLINE void m68ki_set_ccr(uint32_t value)
 INLINE void m68ki_set_sr(uint32_t value)
 {
    /* ASG: detect changes to the INT_MASK */
-   int old_mask = CPU_INT_MASK;
+	uint32_t old_mask = CPU_INT_MASK;
 
    /* Mask out the "unimplemented" bits */
    value &= m68k_sr_implemented_bits[CPU_MODE];

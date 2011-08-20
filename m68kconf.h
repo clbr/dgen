@@ -76,7 +76,7 @@ extern FILE* some_file_handle
  */
 #ifndef INLINE
 //#define INLINE static __inline__
-#define INLINE static
+#define INLINE static inline
 #endif
 
 

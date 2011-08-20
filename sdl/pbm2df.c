@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 
   for(y = 0; y < 13; ++y)
     for(x = 0; x < 768; ++x)
-	fscanf(pbm, "%d", &pbm_contents[x][y]);
+	fscanf(pbm, "%u", &pbm_contents[x][y]);
   fclose(pbm);
 
   /* Start the header to our output file */

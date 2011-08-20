@@ -66,7 +66,7 @@ static INT32 sdwCyclesRemaining; /* Used as a countdown */
 static UINT32 dwReturnCode; /* Return code from exec() */
 static UINT32 dwOriginalCycles; /* How many cycles did we start with? */
 static UINT32 dwElapsedTicks;	/* How many ticks did we elapse? */
-static INT32 sdwAddr;		/* Temporary address storage */
+static UINT32 sdwAddr;		/* Temporary address storage */
 static UINT32 dwAddr;		/* Temporary stack address */
 static UINT8 *pbAddAdcTable;	/* Pointer to add/adc flag table */
 static UINT8 *pbSubSbcTable;	/* Pointer to sub/sbc flag table */

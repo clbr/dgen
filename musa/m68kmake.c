@@ -825,7 +825,7 @@ static opcode_handler_struct g_func_table[] =
 	{"m68020_unpk_mm_ay7"    , 0xfff8, 0x8f88, 0x000, 0,   8},
 	{"m68020_unpk_mm_axy7"   , 0xffff, 0x8f8f, 0x000, 0,   8},
 	{"m68020_unpk_mm"        , 0xf1f8, 0x8188, 0x000, 0,   8},
-	{0, 0, 0, 0, 0}
+	{0, 0, 0, 0, 0, 0}
 };
 
 /* Convert a hex value written in ASCII */

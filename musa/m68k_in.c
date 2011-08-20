@@ -2089,7 +2089,7 @@ void m68000_bclr_s(void)
 void m68020_bfchg_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 	uint32_t mask = MASK_OUT_ABOVE_32(0xffffffff << (32 - width));
@@ -2105,7 +2105,7 @@ void m68020_bfchg_d(void)
 void m68020_bfchg(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2126,7 +2126,7 @@ void m68020_bfchg(void)
 void m68020_bfclr_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 	uint32_t mask = MASK_OUT_ABOVE_32(0xffffffff << (32 - width));
@@ -2142,7 +2142,7 @@ void m68020_bfclr_d(void)
 void m68020_bfclr(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2163,7 +2163,7 @@ void m68020_bfclr(void)
 void m68020_bfexts_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 
@@ -2178,7 +2178,7 @@ void m68020_bfexts_d(void)
 void m68020_bfexts(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2197,7 +2197,7 @@ void m68020_bfexts(void)
 void m68020_bfextu_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 
@@ -2211,7 +2211,7 @@ void m68020_bfextu_d(void)
 void m68020_bfextu(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2229,7 +2229,7 @@ void m68020_bfextu(void)
 void m68020_bfffo_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 	uint32_t mask = 1 << (width - 1);
@@ -2246,7 +2246,7 @@ void m68020_bfffo_d(void)
 void m68020_bfffo(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2267,7 +2267,7 @@ void m68020_bfffo(void)
 void m68020_bfins_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t insert = MASK_OUT_ABOVE_32(CPU_D[(word2 >> 12) & 7] << (32 - width));
 	uint32_t orig_insert = insert >> (32 - width);
@@ -2288,7 +2288,7 @@ void m68020_bfins_d(void)
 void m68020_bfins(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2308,7 +2308,7 @@ void m68020_bfins(void)
 void m68020_bfset_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 	uint32_t mask = MASK_OUT_ABOVE_32(0xffffffff << (32 - width));
@@ -2324,7 +2324,7 @@ void m68020_bfset_d(void)
 void m68020_bfset(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2345,7 +2345,7 @@ void m68020_bfset(void)
 void m68020_bftst_d(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t offset = (BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
+	uint32_t offset = (BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : word2 >> 6) & 31;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
 	uint32_t data = ROL_32(DY, offset) >> (32 - width);
 
@@ -2359,7 +2359,7 @@ void m68020_bftst_d(void)
 void m68020_bftst(void)
 {
 	uint32_t word2 = m68ki_read_imm_16();
-	uint32_t full_offset = BIT_B(word2) ? MAKE_INT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
+	uint32_t full_offset = BIT_B(word2) ? MAKE_UINT_32(CPU_D[(word2 >> 6) & 7]) : (word2 >> 6) & 31;
 	uint32_t base = m68ki_get_ea_8() + (full_offset >> 3);
 	uint32_t offset = full_offset & 7;
 	uint32_t width = (((BIT_5(word2) ? CPU_D[word2 & 7] : word2) - 1) & 31) + 1;
@@ -2526,6 +2526,7 @@ void m68020_callm(void)
 	{
 		uint32_t ea = m68ki_get_ea_32();
 
+		(void)ea;
 		m68ki_add_trace();			   /* auto-disable (see m68kcpu.h) */
 		CPU_PC += 2;
 		M68K_DO_LOG((M68K_LOG, "%s at %08x: called unimplemented instruction %04x (%s)\n",
@@ -2656,8 +2657,8 @@ void m68020_cas2_16(void)
 				return;
 			}
 		}
-		*r_src1 = BIT_1F(word2) ? MAKE_INT_16(dst1) : MASK_OUT_ABOVE_16(*r_src1) | dst1;
-		*r_src2 = BIT_F(word2) ? MAKE_INT_16(dst2) : MASK_OUT_ABOVE_16(*r_src2) | dst2;
+		*r_src1 = BIT_1F(word2) ? MAKE_UINT_16(dst1) : MASK_OUT_ABOVE_16(*r_src1) | dst1;
+		*r_src2 = BIT_F(word2) ? MAKE_UINT_16(dst2) : MASK_OUT_ABOVE_16(*r_src2) | dst2;
 		USE_CLKS(25);
 		return;
 	}
