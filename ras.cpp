@@ -547,21 +547,25 @@ void md_vdp::draw_window(int line, int front)
     }
   add = -2;
   where = dest + (start * Bpp);
-  for(x=-1; x<w; ++x)
-    {
-      if(!total_window)
-	if(reg[17] & 0x80) 
-	  {
-	    if(x < ((reg[17]&0x1f) << 1)) goto skip;
-	  } else {
-	    if(x >= ((reg[17]&0x1f) << 1)) goto skip;
-	  }
-      which = get_word(((unsigned char*)vram) + (pl+(add&((size-1)<<1))));
-      if((which>>15) == front)
-	draw_tile(which, line&7, where);
-skip:
-      add += 2; where += Bpp_times8;
-    }
+	for (x = -1; (x < w); ++x) {
+		if (!total_window) {
+			if (reg[17] & 0x80) {
+				if (x < ((reg[17] & 0x1f) << 1))
+					goto skip;
+			}
+			else {
+				if (x >= ((reg[17] & 0x1f) << 1))
+					goto skip;
+			}
+		}
+		which = get_word(((unsigned char *)vram) +
+				 (pl + (add & ((size - 1) << 1))));
+		if ((which >> 15) == front)
+			draw_tile(which, (line & 7), where);
+	skip:
+		add += 2;
+		where += Bpp_times8;
+	}
 }
 
 void md_vdp::draw_sprites(int line, int front)

@@ -48,8 +48,6 @@ static int xtab[321]; // x - 256 for the 64x256 texture
 static int x4tab_r[321], x4tab_g[321], x4tab_b[321]; // x*4 (RGBA)
 // Display list
 static GLuint dlist;
-// Texture pitches
-static int mypitch = 256*4, mypitchb = 64*4;
 // Is OpenGL mode enabled?
 static int opengl = 0;
 // Text
@@ -105,7 +103,7 @@ static void sigalrm_handler(int)
 
 // Screenshots, thanks to Allan Noe <psyclone42@geocities.com>
 static void do_screenshot(void) {
-  char fname[20], msg[80], *ok;
+  char fname[20], msg[80];
   static int n = 0;
   int x;
   FILE *fp;
@@ -210,8 +208,6 @@ static void maketex(int num, int size)
 
 static void makedlist()
 {
-  int i;
-
   dlist=glGenLists(1);
   glNewList(dlist,GL_COMPILE);
 
@@ -423,10 +419,8 @@ void pd_graphics_palette_update()
 }
 
 #ifdef SDL_OPENGL_SUPPORT
-void update_textures() {
-  int i,x,y;
-  int c,x2;
-
+void update_textures() 
+{
   glBindTexture(GL_TEXTURE_2D,texture[0]);
   glTexSubImage2D(GL_TEXTURE_2D,0,0,15,256,224,GL_RGBA,GL_UNSIGNED_BYTE,mybuffer);
 
@@ -444,12 +438,13 @@ void update_textures() {
 // Anyway, feel free to use it in your implementation. :)
 void pd_graphics_update()
 {
+#ifdef ASM_CTV
   static int f = 0;
+#endif
   int i, j, k;
   unsigned char *p, *q;
 #ifdef SDL_OPENGL_SUPPORT
-  int x, y, x2;
-  unsigned char *pb, *qb;
+  int x;
 #endif
   
   // If you need to do any sort of locking before writing to the buffer, do so
@@ -865,7 +860,7 @@ int pd_handle_events(md &megad)
 //	    }
 	  else if(ksym == dgen_craptv_toggle)
 	    {
-		  dgen_craptv = ((++dgen_craptv) % NUM_CTV);
+		  dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
 		  sprintf(temp, "Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
 		  pd_message(temp);
 	    }

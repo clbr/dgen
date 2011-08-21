@@ -100,7 +100,8 @@ private:
   void draw_plane_front1(int line);
   // Working variables for the above
   unsigned char sprite_order[0x101], *sprite_base;
-  int sprite_count, Bpp, Bpp_times8;
+  int sprite_count, Bpp;
+  unsigned int Bpp_times8;
   unsigned char *dest;
 public:
   md_vdp(); ~md_vdp();

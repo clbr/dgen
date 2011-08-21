@@ -10,6 +10,7 @@
  * NO clipping whatsoever, so try to keep the glyphs on-screen. Thank you :-)
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +26,7 @@ extern int *dgen_font[];
 // necessary
 static inline void _putglyph(char *p, int Bpp, int pitch, char which)
 {
-  int *glyph = dgen_font[which];
+  int *glyph = dgen_font[(size_t)which];
   int x = 0, i;
 
   for(; *glyph != -1; ++glyph)

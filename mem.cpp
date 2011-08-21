@@ -36,12 +36,15 @@ unsigned short md::z80_port_read(unsigned short a)
 {
   int ret=0;
 
+  (void)a;
 //  dprintf("z80 port read %.2x return %.4x\n",a,ret);
 
   return ret;
 }
 void md::z80_port_write(unsigned short a,unsigned char v)
 {
+	(void)a;
+	(void)v;
 //  dprintf("z80 port write %.2x %.2x\n",a,v);
 }
 
@@ -174,7 +177,7 @@ unsigned md::misc_readbyte(unsigned a)
            if (avail&1) headcode=0x80;
       else if (avail&2) headcode=0x80;
       else if (avail&4) headcode=0x00;
-      ret=headcode+(country_ver&0x0f) | (pal? 0x40 : 0);
+	   ret = ((headcode + (country_ver & 0x0f)) | (pal ? 0x40 : 0));
     }
     else ret=country_ver;
     goto end;

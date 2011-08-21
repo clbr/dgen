@@ -300,23 +300,24 @@ int md::reset()
   return 0;
 }
 
-static struct MemoryReadByte mem_read[]=
-{
-  {0x2000,0xffff,root_z80_read},
-  {(UINT32) -1,(UINT32) -1,NULL}
+static struct MemoryReadByte mem_read[] = {
+	{ 0x2000, 0xffff, root_z80_read, NULL },
+	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
-static struct MemoryWriteByte mem_write[]=
-{
-  {0x2000,0xffff,root_z80_write},
-  {(UINT32) -1,(UINT32) -1,NULL}
+
+static struct MemoryWriteByte mem_write[] = {
+	{ 0x2000, 0xffff, root_z80_write, NULL },
+	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
-static struct z80PortRead io_read[] ={
-  {0x00,0x00ff,root_z80_port_read},
-  {(UINT16) -1,(UINT16) -1,NULL}
+
+static struct z80PortRead io_read[] = {
+	{ 0x00, 0x00ff, root_z80_port_read, NULL },
+	{ (UINT16)-1, (UINT16)-1, NULL, NULL }
 };
-static struct z80PortWrite io_write[]={
-  {0x00,0x00ff,root_z80_port_write},
-  {(UINT16) -1,(UINT16) -1,NULL}
+
+static struct z80PortWrite io_write[] = {
+	{ 0x00, 0x00ff, root_z80_port_write, NULL },
+	{ (UINT16)-1, (UINT16)-1, NULL, NULL }
 };
 
 int md::z80_init()
@@ -487,7 +488,7 @@ int md::plug_in(unsigned char *cart,int len)
         saveram = (unsigned char*)malloc(save_len);
 	// If save RAM does not overlap main ROM, set it active by default since
 	// a few games can't manage to properly switch it on/off.
-	if(save_start >= romlen)
+	if(save_start >= (unsigned int)romlen)
 	  save_active = 1;
       }
       else {
