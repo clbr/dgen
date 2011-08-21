@@ -77,26 +77,22 @@ dnl Check for OpenGL support in SDL
 AC_ARG_WITH(opengl,
 	    [  --without-opengl        Don't use SDL OpenGL support],
 	    OPENGL_SUPPORT=$withval, OPENGL_SUPPORT=yes)
-dnl if test x$OPENGL_SUPPORT \!= xno; then
-dnl   AC_MSG_CHECKING([for OpenGL support in SDL])
-dnl   AC_TRY_COMPILE([#include <SDL.h>], [int foo() { int x = SDL_OPENGL; }],
-dnl 	         OPENGL_SUPPORT=yes, OPENGL_SUPPORT=no)
-dnl   AC_MSG_RESULT($OPENGL_SUPPORT)
-dnl   # Check for the GL libs
-dnl   if test x$OPENGL_SUPPORT \!= xno; then
-dnl     oldCPPFLAGS=$CPPFLAGS
-dnl     oldLIBS=$LIBS
-dnl     CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-dnl     LIBS="$LIBS $SDL_LIBS"
-dnl     AC_CHECK_LIB(GL, glBegin,
-dnl       AC_CHECK_HEADER(GL/gl.h, , OPENGL_SUPPORT=no),
-dnl       OPENGL_SUPPORT=no
-dnl     )
-dnl     LIBS=$oldLIBS
-dnl     CPPFLAGS=$oldCPPFLAGS
-dnl   fi
-dnl 
-dnl fi
+if test x$OPENGL_SUPPORT \!= xno; then
+  AC_MSG_CHECKING([for OpenGL support in SDL])
+  AC_TRY_COMPILE([#include <SDL.h>], [int foo() { int x = SDL_OPENGL; }],
+	         OPENGL_SUPPORT=yes, OPENGL_SUPPORT=no)
+  AC_MSG_RESULT($OPENGL_SUPPORT)
+  # Check for the GL libs
+  if test x$OPENGL_SUPPORT \!= xno; then
+    oldCPPFLAGS=$CPPFLAGS
+    oldLIBS=$LIBS
+    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+    LIBS="$LIBS $SDL_LIBS"
+    AC_CHECK_HEADER(GL/gl.h, AC_CHECK_LIB(GL, glBegin, , OPENGL_SUPPORT=no), OPENGL_SUPPORT=no)
+    LIBS=$oldLIBS
+    CPPFLAGS=$oldCPPFLAGS
+  fi
+fi
 
 if test x$OPENGL_SUPPORT \!= xno; then
   AC_DEFINE(SDL_OPENGL_SUPPORT)
