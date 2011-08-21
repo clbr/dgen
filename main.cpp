@@ -482,8 +482,9 @@ int main(int argc, char *argv[])
     }
   // Print fps
   gettimeofday(&endclk, NULL);
-  printf("%d frames per second (optimal %d)\n",
-	 (unsigned)(f / (endclk.tv_sec - startclk.tv_sec)), (pal_mode? 50 : 60));
+  if (endclk.tv_sec - startclk.tv_sec)
+	  printf("%d frames per second (optimal %d)\n",
+		 (unsigned)(f / (endclk.tv_sec - startclk.tv_sec)), (pal_mode? 50 : 60));
   
   // Cleanup
   if(demo) fclose(demo);
