@@ -312,7 +312,6 @@ int pd_graphics_init(int want_sound, int want_pal)
       fprintf(stderr, "sdl: Couldn't init SDL: %s!\n", SDL_GetError());
       return 0;
     }
-  atexit(SDL_Quit);
   ysize = (want_pal? 240 : 224);
 
   // Set screen size vars
@@ -1121,4 +1120,5 @@ void pd_quit()
   if(sndi.l) free((void*)sndi.l);
   if(sndi.r) free((void*)sndi.r);
   if(mdpal) free((void*)mdpal);
+  SDL_Quit();
 }
