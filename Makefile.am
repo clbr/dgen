@@ -8,7 +8,7 @@ include $(top_srcdir)/Makefile.asm.am
 DIST_SUBDIRS = star musa mz80 sdl
 SUBDIRS = @CPUDIRS@ @INTERFACE@
 
-INCLUDES += -I$(top_srcdir)/@INTERFACE@
+INCLUDES += -I$(top_srcdir)/musa -I$(top_srcdir)/@INTERFACE@
 
 bin_PROGRAMS = dgen tobin
 

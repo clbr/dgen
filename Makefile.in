@@ -280,7 +280,7 @@ top_srcdir = @top_srcdir@
 
 # Tell how to make assembler files
 SUFFIXES = .asmu .asm
-INCLUDES = -I$(top_srcdir)/@INTERFACE@
+INCLUDES = -I$(top_srcdir)/musa -I$(top_srcdir)/@INTERFACE@
 DIST_SUBDIRS = star musa mz80 sdl
 SUBDIRS = @CPUDIRS@ @INTERFACE@
 man_MANS = dgen.1 dgenrc.5 tobin.1

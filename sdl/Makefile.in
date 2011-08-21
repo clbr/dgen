@@ -202,7 +202,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = dgenfont.pbm chartfont.c
-INCLUDES = -I..
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/musa
 noinst_LIBRARIES = libpd.a
 
 # built sources
