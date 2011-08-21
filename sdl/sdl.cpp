@@ -44,7 +44,6 @@ static unsigned char mybufferb[256][64][4];
 // Textures (one 256x256 and on 64x256 => 320x256)
 static GLuint texture[2];
 // xtabs for faster buffer access
-static int xtab[321]; // x - 256 for the 64x256 texture
 static int x4tab_r[321], x4tab_g[321], x4tab_b[321]; // x*4 (RGBA)
 // Display list
 static GLuint dlist;
@@ -192,8 +191,8 @@ static void maketex(int num, int size)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
   switch (num)
     {
@@ -245,8 +244,6 @@ static void init_textures()
   int i,j;
 
   // First, the x tables (for a little faster access)
-  for (i=256;i<321;i++)
-    xtab[i]=i-256;
   for (i=0;i<321;i++)
     {
       x4tab_r[i]=(i*4)+2;
@@ -444,7 +441,7 @@ void pd_graphics_update()
   int i, j, k;
   unsigned char *p, *q;
 #ifdef SDL_OPENGL_SUPPORT
-  int x;
+  int x, xb;
 #endif
   
   // If you need to do any sort of locking before writing to the buffer, do so
@@ -474,22 +471,17 @@ void pd_graphics_update()
 #ifdef SDL_OPENGL_SUPPORT
       if(opengl)
 	{
-	  // Copy, converting from BGRA to RGBA
-	  for(x = 0; x < 320; ++x)
-	    {
-	      if(x < 256)
-	        {
-		  mybuffer[i][x][R] = *(q + x4tab_r[x]);
-		  mybuffer[i][x][G] = *(q + x4tab_g[x]);
-		  mybuffer[i][x][B] = *(q + x4tab_b[x]);
+		// Copy, converting from BGRA to RGBA
+		for (x = 0; (x < 256); ++x) {
+			mybuffer[i][x][R] = *(q + x4tab_r[x]);
+			mybuffer[i][x][G] = *(q + x4tab_g[x]);
+			mybuffer[i][x][B] = *(q + x4tab_b[x]);
 		}
-	      else if(x < 320)
-	        {
-		  mybufferb[i][xtab[x]][R] = *(q + x4tab_r[x]);
-		  mybufferb[i][xtab[x]][G] = *(q + x4tab_g[x]);
-		  mybufferb[i][xtab[x]][B] = *(q + x4tab_b[x]);
+		for (xb = 0; (xb < 64); ++xb, ++x) {
+			mybufferb[i][xb][R] = *(q + x4tab_r[x]);
+			mybufferb[i][xb][G] = *(q + x4tab_g[x]);
+			mybufferb[i][xb][B] = *(q + x4tab_b[x]);
 		}
-	    }
 	}
       else
         {
