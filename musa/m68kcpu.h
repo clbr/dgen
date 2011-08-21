@@ -3,7 +3,6 @@
 
 
 #include "m68k.h"
-#include <limits.h>
 #include <stdint.h>
 
 /* ======================================================================== */
@@ -12,36 +11,12 @@
 
 /* Check if we have certain storage sizes */
 
-#if UCHAR_MAX == 0xff
-#define M68K_HAS_8_BIT_SIZE  1
-#else
-#define M68K_HAS_8_BIT_SIZE  0
-#endif /* UCHAR_MAX == 0xff */
-
-#if USHRT_MAX == 0xffff
-#define M68K_HAS_16_BIT_SIZE 1
-#else
-#define M68K_HAS_16_BIT_SIZE 0
-#endif /* USHRT_MAX == 0xffff */
-
-#if ULONG_MAX == 0xffffffff
-#define M68K_HAS_32_BIT_SIZE 1
-#else
-#define M68K_HAS_32_BIT_SIZE 0
-#endif /* ULONG_MAX == 0xffffffff */
-
-#if UINT_MAX > 0xffffffff
-#define M68K_OVER_32_BIT     1
-#else
-#define M68K_OVER_32_BIT     0
-#endif /* UINT_MAX > 0xffffffff */
-
-#define MAKE_INT_8(A) (int8_t)((A) & UINT8_C(0xff))
-#define MAKE_INT_16(A) (int16_t)((A) & UINT16_C(0xffff))
-#define MAKE_INT_32(A) (int32_t)((A) & UINT32_C(0xffffffff))
-#define MAKE_UINT_8(A) (uint8_t)((A) & UINT8_C(0xff))
-#define MAKE_UINT_16(A) (uint16_t)((A) & UINT16_C(0xffff))
-#define MAKE_UINT_32(A) (uint32_t)((A) & UINT32_C(0xffffffff))
+#define MAKE_INT_8(A) (int8_t)(A)
+#define MAKE_INT_16(A) (int16_t)(A)
+#define MAKE_INT_32(A) (int32_t)(A)
+#define MAKE_UINT_8(A) (uint8_t)(A)
+#define MAKE_UINT_16(A) (uint16_t)(A)
+#define MAKE_UINT_32(A) (uint32_t)(A)
 
 /* ======================================================================== */
 /* ============================ GENERAL DEFINES =========================== */
