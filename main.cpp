@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
 
   // Parse the RC file
   parse_rc(NULL);
+  pd_rc();
 
   // Check all our options
   strcpy(temp, "s:hvr:n:p:RPjd:D:");
@@ -251,6 +252,7 @@ int main(int argc, char *argv[])
 	case 'r':
 	  // Parse another RC file
 	  parse_rc(optarg);
+	  pd_rc();
 	  break;
 	case 'n':
 	  // Sleep for n microseconds

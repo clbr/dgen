@@ -170,22 +170,25 @@ void pd_help()
   );
 }
 
+// Handle rc variables
+void pd_rc()
+{
+	// Set stuff up from the rcfile first, so we can override it with
+	// command-line options
+	fullscreen = dgen_fullscreen;
+	x_scale = y_scale = dgen_scale;
+#ifdef SDL_OPENGL_SUPPORT
+	opengl = dgen_opengl;
+	if (opengl) {
+		xs = dgen_opengl_width;
+		ys = dgen_opengl_height;
+	}
+#endif
+}
+
 // Handle the switches
 void pd_option(char c, const char *)
 {
-  // Set stuff up from the rcfile first, so we can override it with commandline
-  // options
-  fullscreen = dgen_fullscreen;
-  x_scale = y_scale = dgen_scale;
-#ifdef SDL_OPENGL_SUPPORT
-  opengl = dgen_opengl;
-  if(opengl)
-    {
-      xs = dgen_opengl_width;
-      ys = dgen_opengl_height;
-    }
-#endif
-
   if(c == 'f') fullscreen = !fullscreen;
   if(c == 'X') x_scale = atoi(optarg);
   if(c == 'Y') y_scale = atoi(optarg);

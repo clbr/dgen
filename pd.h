@@ -49,6 +49,8 @@ int pd_sound_rp();
 // one of the playback buffer segments.
 void pd_sound_write(int seg);
 
+// Register platform-specific rc variables
+void pd_rc();
 // This should be a list of all the command-line options specific to this
 // platform, in the form given to getopt(3), i.e "a:b::c".
 extern const char *pd_options;
