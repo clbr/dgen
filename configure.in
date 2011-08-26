@@ -63,9 +63,10 @@ EXTRAOBJS=
 
 dnl Check for SDL joystick
 JOYSTICK_SUPPORT=no
-dnl AC_CHECK_HEADER(SDL_joystick.h, JOYSTICK_SUPPORT=SDL,
-dnl 	dnl Check for Linux joystick as a backup
-dnl 	AC_CHECK_HEADER(linux/joystick.h, JOYSTICK_SUPPORT=LINUX))
+AC_CHECK_HEADER(SDL_joystick.h, JOYSTICK_SUPPORT=SDL, [
+	dnl Check for Linux joystick as a backup
+	AC_CHECK_HEADER(linux/joystick.h, JOYSTICK_SUPPORT=LINUX)
+])
 
 dnl Check for X (so we can find the OpenGL headers)
 AC_PATH_XTRA

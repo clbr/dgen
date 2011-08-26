@@ -30,7 +30,6 @@
 extern int js_map_button [2][16];
 
 #ifdef LINUX_JOYSTICK_SUPPORT
-#warning USING LINUX JOYSTICK
 #include <linux/joystick.h>
 
 int joypads[2] = {0};
@@ -159,7 +158,6 @@ void md::read_joysticks()
 }
 
 #elif defined(SDL_JOYSTICK_SUPPORT)
-#warning USING SDL JOYSTICK
 #include <SDL.h>
 #include <SDL_joystick.h>
 
