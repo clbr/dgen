@@ -202,7 +202,6 @@ static unsigned char font_7[25] =   {   1, 1, 1, 1, 1,
 					0, 1, 0, 0, 0,
 					1, 0, 0, 0, 0 };
 
-#if 0 /* unused */
 static unsigned char font_8[25] =   {   0, 1, 1, 1, 0,
 					1, 0, 0, 0, 1,
 					0, 1, 1, 1, 0,
@@ -214,7 +213,6 @@ static unsigned char font_9[25] =   {   1, 1, 1, 1, 1,
 					1, 1, 1, 1, 1,
 					0, 0, 0, 0, 1,
 					1, 1, 1, 1, 1 };
-#endif
 
 static unsigned char font_ast[25] = {   1, 0, 1, 0, 1,
 					0, 1, 1, 1, 0,
@@ -241,7 +239,7 @@ static unsigned char font_per[25] =  {  0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0,
-					0, 0, 1, 0, 0 };
+					1, 0, 0, 0, 0 };
 
 
 static unsigned char font_ex[25] =   {  0, 0, 1, 0, 0,

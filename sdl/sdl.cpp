@@ -38,6 +38,22 @@
 // (256/320 == 512/640. 512-320 == 192 (Negative half ignored).
 // Positive tex end pos (range from 0.0 to 1.0 (0 to 320) in x) == 192/320)
 static double tex_end = (double)192/320;
+
+// Since the useful texture height is smaller than the texture itself
+// (224 or 240 versus 256), we need stretch it vertically outside of the
+// visible area. tex_lower stores the value where the texture should end.
+static double tex_lower;
+
+static void compute_tex_lower(int h)
+{
+	double th = 256.0;
+
+	h += 5; // reserve 5 pixels for the message bar
+	th += (256.0 - (double)h); // add the difference to the total height
+	th /= (double)h; // divide by the original height
+	tex_lower = th;
+}
+
 // Framebuffer textures
 static unsigned char mybuffer[256][256][4];
 static unsigned char mybufferb[256][64][4];
@@ -217,22 +233,30 @@ static void makedlist()
   // 256x256
   glBindTexture(GL_TEXTURE_2D, texture[0]);
 
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0,1.0); glVertex2f(-1.0,-1.0); // upper left
-    glTexCoord2f(0.0,0.0); glVertex2f(-1.0,1.0); // lower left
-    glTexCoord2f(1.0,0.0); glVertex2f(tex_end,1.0); // lower right
-    glTexCoord2f(1.0,1.0); glVertex2f(tex_end,-1.0); // upper right
-  glEnd();
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 1.0);
+	glVertex2f(-1.0, -tex_lower); // lower left
+	glTexCoord2f(0.0, 0.0);
+	glVertex2f(-1.0, 1.0); // upper left
+	glTexCoord2f(1.0, 0.0);
+	glVertex2f(tex_end, 1.0); // upper right
+	glTexCoord2f(1.0, 1.0);
+	glVertex2f(tex_end, -tex_lower); // lower right
+	glEnd();
 
   // 64x256
   glBindTexture(GL_TEXTURE_2D, texture[1]);
 
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0,1.0); glVertex2f(tex_end,-1.0); // upper left
-    glTexCoord2f(0.0,0.0); glVertex2f(tex_end,1.0); // lower left
-    glTexCoord2f(1.0,0.0); glVertex2f(1.0,1.0); // lower right
-    glTexCoord2f(1.0,1.0); glVertex2f(1.0,-1.0); // upper right
-  glEnd();
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 1.0);
+	glVertex2f(tex_end, -tex_lower); // lower left
+	glTexCoord2f(0.0, 0.0);
+	glVertex2f(tex_end, 1.0); // upper left
+	glTexCoord2f(1.0, 0.0);
+	glVertex2f(1.0, 1.0); // upper right
+	glTexCoord2f(1.0, 1.0);
+	glVertex2f(1.0, -tex_lower); // lower right
+	glEnd();
 
   glDisable(GL_TEXTURE_2D);
 
@@ -267,12 +291,14 @@ static void init_textures()
 	m_clear[i][j][A]=255;
       }
 
-  // Dithering
-  glEnable(GL_DITHER);
-  // Anti-aliasing
-  glEnable(GL_LINE_SMOOTH);
-  glEnable(GL_POINT_SMOOTH);
-  
+  // Disable dithering
+  glDisable(GL_DITHER);
+  // Disable anti-aliasing
+  glDisable(GL_LINE_SMOOTH);
+  glDisable(GL_POINT_SMOOTH);
+  // Disable depth buffer
+  glDisable(GL_DEPTH_TEST);
+
   glClearColor(1.0,1.0,1.0,1.0);
   glShadeModel(GL_FLAT);
 
@@ -316,10 +342,15 @@ int pd_graphics_init(int want_sound, int want_pal)
   // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
   // for the message bar.
 #ifdef SDL_OPENGL_SUPPORT
-  if(opengl)
-    screen = SDL_SetVideoMode(xs, ys, 0,
-      fullscreen? (SDL_HWPALETTE | SDL_HWSURFACE | SDL_OPENGL | SDL_GL_DOUBLEBUFFER | SDL_FULLSCREEN) :
-		  (SDL_HWPALETTE | SDL_HWSURFACE | SDL_OPENGL | SDL_GL_DOUBLEBUFFER));
+	if (opengl) {
+		compute_tex_lower(ysize);
+		screen = SDL_SetVideoMode(xs, ys, 0,
+					  (SDL_HWPALETTE | SDL_HWSURFACE |
+					   SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
+					   (fullscreen ?
+					    SDL_FULLSCREEN :
+					    SDL_RESIZABLE)));
+	}
   else
 #endif
     screen = SDL_SetVideoMode(xs, ys + 16, 0,
@@ -418,13 +449,15 @@ void pd_graphics_palette_update()
 #ifdef SDL_OPENGL_SUPPORT
 void update_textures() 
 {
-  glBindTexture(GL_TEXTURE_2D,texture[0]);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,15,256,224,GL_RGBA,GL_UNSIGNED_BYTE,mybuffer);
+	glBindTexture(GL_TEXTURE_2D,texture[0]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
+			GL_RGBA,GL_UNSIGNED_BYTE, mybuffer);
 
-  glBindTexture(GL_TEXTURE_2D,texture[1]);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,15,64,224,GL_RGBA,GL_UNSIGNED_BYTE,mybufferb);
+	glBindTexture(GL_TEXTURE_2D,texture[1]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, ysize,
+			GL_RGBA,GL_UNSIGNED_BYTE, mybufferb);
 
-  display();
+	display();
 }
 #endif
 
@@ -931,6 +964,33 @@ int pd_handle_events(md &megad)
             do_screenshot();
           }
 	  break;
+#ifdef SDL_OPENGL_SUPPORT
+	case SDL_VIDEORESIZE:
+	{
+		SDL_Surface *tmp;
+		char buf[64];
+
+		tmp = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
+				       (SDL_HWPALETTE | SDL_HWSURFACE |
+					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
+					SDL_RESIZABLE));
+		buf[0] = '\0';
+		if (tmp == NULL)
+			snprintf(buf, sizeof(buf),
+				 "Failed to resize video to %dx%d.",
+				 event.resize.w, event.resize.h);
+		else {
+			screen = tmp;
+			glViewport(0, 0, event.resize.w, event.resize.h);
+			init_textures();
+			snprintf(buf, sizeof(buf),
+				 "Video resized to %dx%d.",
+				 event.resize.w, event.resize.h);
+		}
+		pd_message(buf);
+		break;
+	}
+#endif
 	case SDL_KEYUP:
 	  ksym = event.key.keysym.sym;
 	  // Check for modifiers
@@ -1023,8 +1083,8 @@ static void ogl_write_text(const char *msg)
 	case '5':	    p = font_5; break;
 	case '6':	    p = font_6; break;
 	case '7':	    p = font_7; break;
-	case '8':	    p = font_0; break;
-	case '9':	    p = font_0; break;
+	case '8':	    p = font_8; break;
+	case '9':	    p = font_9; break;
 	case '*':	    p = font_ast; break;
 	case '!':	    p = font_ex; break;
 	case '.':	    p = font_per; break;
@@ -1052,9 +1112,10 @@ void pd_message(const char *msg)
 #ifdef SDL_OPENGL_SUPPORT
   if(opengl)
     {
-      ogl_write_text(msg);
-      glBindTexture(GL_TEXTURE_2D, texture[0]);
-      glTexSubImage2D(GL_TEXTURE_2D, 0,0,ys,256,5,GL_RGBA,GL_UNSIGNED_BYTE,message);
+		ogl_write_text(msg);
+		glBindTexture(GL_TEXTURE_2D, texture[0]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0,ysize, 256, 5,
+				GL_RGBA,GL_UNSIGNED_BYTE, message);
     }
   else
     {
@@ -1075,9 +1136,10 @@ inline void pd_clear_message()
 #ifdef SDL_OPENGL_SUPPORT
   if(opengl)
     {
-      memset(message,0,256*5*4);
-      glBindTexture(GL_TEXTURE_2D, texture[0]);
-      glTexSubImage2D(GL_TEXTURE_2D,0,0,ys,256,5,GL_RGBA,GL_UNSIGNED_BYTE,m_clear);
+		memset(message, 0, (256 * 5 * 4));
+		glBindTexture(GL_TEXTURE_2D, texture[0]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
+				GL_RGBA,GL_UNSIGNED_BYTE, m_clear);
     }
   else
     {
