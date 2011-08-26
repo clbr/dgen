@@ -26,7 +26,7 @@ dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
 
 dgen_LDADD = -L@INTERFACE@ -lpd @STAR@ @MUSA@ @MZ80@ @SDL_LIBS@ @EXTRAOBJS@
 
-dgen_DEPENDENCIES = @EXTRAOBJS@
+dgen_DEPENDENCIES = @EXTRAOBJS@ @INTERFACE@
 
 EXTRA_dgen_SOURCES = asm_tiles.asmu ctv.asmu asm_memcpy.asmu mmx_memcpy.asmu \
 		     sn76496u.c zz80.c md-phil.cpp
