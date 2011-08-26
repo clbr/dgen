@@ -67,7 +67,7 @@ static GLuint dlist;
 static int opengl = 0;
 // Text
 static unsigned char message[5][256][4];
-static unsigned char m_clear[256][5][4];
+static unsigned char m_clear[5][256][4];
 #endif // SDL_OPENGL_SUPPORT
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
@@ -475,7 +475,8 @@ void pd_graphics_update()
   static int f = 0;
 #endif
   int i, j, k;
-  unsigned char *p, *q;
+  unsigned char *p = NULL;
+  unsigned char *q;
 #ifdef SDL_OPENGL_SUPPORT
   int x, xb;
 #endif
