@@ -189,16 +189,28 @@ void pd_rc()
 // Handle the switches
 void pd_option(char c, const char *)
 {
-  if(c == 'f') fullscreen = !fullscreen;
-  if(c == 'X') x_scale = atoi(optarg);
-  if(c == 'Y') y_scale = atoi(optarg);
-  if(c == 'S') x_scale = y_scale = atoi(optarg);
+	switch (c) {
+	case 'f':
+		fullscreen = !fullscreen;
+		break;
+	case 'X':
+		x_scale = atoi(optarg);
+		opengl = 0;
+		break;
+	case 'Y':
+		y_scale = atoi(optarg);
+		opengl = 0;
+		break;
+	case 'S':
+		x_scale = y_scale = atoi(optarg);
+		opengl = 0;
+		break;
 #ifdef SDL_OPENGL_SUPPORT
-  if(c == 'G')
-    {
-      sscanf(optarg, " %d x %d ", &xs, &ys);
-      opengl = 1;
-    }
+	case 'G':
+		sscanf(optarg, " %d x %d ", &xs, &ys);
+		opengl = 1;
+		break;
+	}
 #endif
 }
 
