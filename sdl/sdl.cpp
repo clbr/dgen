@@ -364,9 +364,9 @@ int pd_graphics_init(int want_sound, int want_pal)
 		  (SDL_HWPALETTE | SDL_HWSURFACE));
   if(!screen)
     {
-      fprintf(stderr, "sdl: Couldn't set %dx%d video mode: %s!",
-	      xs, ys, SDL_GetError());
-      return 0;
+		fprintf(stderr, "sdl: Unable to set video mode: %s\n",
+			SDL_GetError());
+		return 0;
     }
   // We don't need setuid priveledges anymore
   if(getuid() != geteuid())
