@@ -203,25 +203,16 @@ void pd_option(char c, const char *)
 }
 
 #ifdef SDL_OPENGL_SUPPORT
-static void maketex(int num, int size)
+static void maketex(GLuint *id, void *buffer, int width)
 {
-  glGenTextures(num,&texture[num-1]);
-  glBindTexture(GL_TEXTURE_2D,texture[num-1]);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-  switch (num)
-    {
-    case 1:
-      glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,size,256,0,GL_RGBA, GL_UNSIGNED_BYTE, mybuffer);
-      break;
-    case 2:
-      glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,size,256,0,GL_RGBA, GL_UNSIGNED_BYTE, mybufferb);
-      break;
-    };
+	glGenTextures(1, id);
+	glBindTexture(GL_TEXTURE_2D, *id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, 256, 0, GL_RGBA,
+		     GL_UNSIGNED_BYTE, buffer);
 }
 
 static void makedlist()
@@ -305,8 +296,8 @@ static void init_textures()
   glClearColor(1.0,1.0,1.0,1.0);
   glShadeModel(GL_FLAT);
 
-  maketex(1,256);
-  maketex(2,64);
+  maketex(&texture[0], mybuffer, 256);
+  maketex(&texture[1], mybufferb, 64);
 
   makedlist();
 }
