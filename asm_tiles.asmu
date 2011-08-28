@@ -189,7 +189,7 @@ __drawtile1_solid:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -297,7 +297,7 @@ __drawtile1:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -410,7 +410,7 @@ __drawtile2_solid:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -634,7 +634,7 @@ __drawtile3_solid:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -750,7 +750,7 @@ __drawtile3:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -861,7 +861,7 @@ __drawtile4_solid:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
@@ -977,7 +977,7 @@ __drawtile4:
 	pushad
 	mov ebp, esp
 
-.setup
+.setup:
 
 .get_pal:	
 
