@@ -19,10 +19,12 @@ int main(int argc, char *argv[])
     { printf("Usage: %s pbmfile outfile\n", argv[0]); exit(2); }
   if(!(pbm = fopen(argv[1], "r"))) exit(1);
 
-  fgets(magic, 0x20, pbm);
+  if (fgets(magic, 0x20, pbm) == NULL)
+		goto invalid;
   /* Throw away possible comments */
   do {
-    fgets(tmp, 0x200, pbm);
+		if (fgets(tmp, 0x200, pbm) == NULL)
+			goto invalid;
   } while(*tmp == '#');
   sscanf(tmp, "%d%d", &x, &y);
   /* Verify magic and dimensions */
@@ -32,7 +34,8 @@ int main(int argc, char *argv[])
 
   for(y = 0; y < 13; ++y)
     for(x = 0; x < 768; ++x)
-	fscanf(pbm, "%u", &pbm_contents[x][y]);
+			if (fscanf(pbm, "%u", &pbm_contents[x][y]) != 1)
+				goto invalid;
   fclose(pbm);
 
   /* Start the header to our output file */
@@ -70,4 +73,8 @@ int main(int argc, char *argv[])
   printf("Successfully generated dgen font source \"%s\" from \"%s\"\n",
 	 argv[2], argv[1]);
   return 0;
+invalid:
+	fclose(pbm);
+	printf("Invalid file contents\n");
+	return 1;
 }
