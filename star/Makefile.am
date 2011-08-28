@@ -14,8 +14,7 @@ INCLUDES += -I..
 
 noinst_LIBRARIES = libstarcpu.a
 
-star: star.c
-	$(CC) -o star star.c
+noinst_PROGRAMS = star
 
 starcpu.asmu: star
 	./star -hog starcpu.asmu
@@ -29,4 +28,3 @@ libstarcpu_a_DEPENDENCIES = starcpu.o
 EXTRA_libstarcpu_a_SOURCES = star.c
 
 DISTCLEANFILES = starcpu.asmu star
-

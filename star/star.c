@@ -1931,6 +1931,8 @@ static void selective_usereg(void) {
 	case aind: case ainc: case adec:
 	case adsp: case axdp:
 		usereg();
+	default:
+		break;
 	}
 }
 
@@ -2412,7 +2414,6 @@ static void prefixes(void) {
 ** the jump table / loop info table
 */
 static void suffixes(void) {
-	emit("end\n");
 }
 
 /****************************************************************************

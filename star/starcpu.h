@@ -23,7 +23,7 @@ struct STARSCREAM_PROGRAMREGION {
 struct STARSCREAM_DATAREGION {
 	unsigned lowaddr;
 	unsigned highaddr;
-	void    *memorycall;
+	unsigned (*memorycall)(unsigned, unsigned);
 	void    *userdata;
 };
 

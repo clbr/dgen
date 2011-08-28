@@ -18,6 +18,7 @@
 # DGen/SDL v1.20+
 # Automakefile for StarScream
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -40,6 +41,7 @@ host_triplet = @host@
 target_triplet = @target@
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/Makefile.asm.am
+noinst_PROGRAMS = star$(EXEEXT)
 subdir = star
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -55,6 +57,10 @@ ARFLAGS = cru
 libstarcpu_a_AR = $(AR) $(ARFLAGS)
 am_libstarcpu_a_OBJECTS =
 libstarcpu_a_OBJECTS = $(am_libstarcpu_a_OBJECTS)
+PROGRAMS = $(noinst_PROGRAMS)
+star_SOURCES = star.c
+star_OBJECTS = star.$(OBJEXT)
+star_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -63,8 +69,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libstarcpu_a_SOURCES) $(EXTRA_libstarcpu_a_SOURCES)
-DIST_SOURCES = $(libstarcpu_a_SOURCES) $(EXTRA_libstarcpu_a_SOURCES)
+SOURCES = $(libstarcpu_a_SOURCES) $(EXTRA_libstarcpu_a_SOURCES) star.c
+DIST_SOURCES = $(libstarcpu_a_SOURCES) $(EXTRA_libstarcpu_a_SOURCES) \
+	star.c
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -107,7 +114,6 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MUSA = @MUSA@
 NASM = @NASM@
 NASM_FMT = @NASM_FMT@
 OBJEXT = @OBJEXT@
@@ -125,7 +131,6 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-STAR = @STAR@
 STRIP = @STRIP@
 VERSION = @VERSION@
 XMKMF = @XMKMF@
@@ -244,6 +249,12 @@ libstarcpu.a: $(libstarcpu_a_OBJECTS) $(libstarcpu_a_DEPENDENCIES)
 	$(libstarcpu_a_AR) libstarcpu.a $(libstarcpu_a_OBJECTS) $(libstarcpu_a_LIBADD)
 	$(RANLIB) libstarcpu.a
 
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+star$(EXEEXT): $(star_OBJECTS) $(star_DEPENDENCIES) 
+	@rm -f star$(EXEEXT)
+	$(LINK) $(star_OBJECTS) $(star_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -350,7 +361,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES)
+all-am: Makefile $(LIBRARIES) $(PROGRAMS)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -380,7 +391,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-noinstLIBRARIES mostlyclean-am
+clean-am: clean-generic clean-noinstLIBRARIES clean-noinstPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -450,14 +462,14 @@ uninstall-am:
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-noinstLIBRARIES ctags distclean distclean-compile \
-	distclean-generic distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	clean-noinstLIBRARIES clean-noinstPROGRAMS ctags distclean \
+	distclean-compile distclean-generic distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am
@@ -470,9 +482,6 @@ uninstall-am:
 	@@CHOP_@ $< > .$<
 	@NASM@ -f @NASM_FMT@ -o $@ .$<
 	@rm -f .$<
-
-star: star.c
-	$(CC) -o star star.c
 
 starcpu.asmu: star
 	./star -hog starcpu.asmu
