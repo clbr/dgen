@@ -44,11 +44,21 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	mkinstalldirs
 bin_PROGRAMS = dgen$(EXEEXT) tobin$(EXEEXT)
 @JOYSTICK_TRUE@am__append_1 = md-phil.cpp
-@MZ80_TRUE@am__append_2 = mz80/mz80.o
-@ZZ80_TRUE@am__append_3 = zz80.c
-@ASM_TRUE@am__append_4 = asm_tiles.asmu ctv.asmu
-@ASM_TRUE@@MMX_TRUE@am__append_5 = mmx_memcpy.asmu
-@ASM_TRUE@@MMX_FALSE@am__append_6 = asm_memcpy.asmu
+
+# MUSASHI M680x0 CPU emulator
+@MUSA_TRUE@am__append_2 = musa/libmusa68.a
+
+# StarScream M680x0 CPU emulator
+@STAR_TRUE@am__append_3 = star/libstarcpu.a
+
+# Multi-Z80 sound chip emulator (C version)
+@ZZ80_TRUE@am__append_4 = zz80.c
+
+# Multi-Z80 sound chip emulator (assembly version)
+@MZ80_TRUE@am__append_5 = mz80/libmz80.a
+@ASM_TRUE@am__append_6 = asm_tiles.asmu ctv.asmu
+@ASM_TRUE@@MMX_TRUE@am__append_7 = mmx_memcpy.asmu
+@ASM_TRUE@@MMX_FALSE@am__append_8 = asm_memcpy.asmu
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -67,20 +77,19 @@ am__dgen_SOURCES_DIST = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp \
 	decode.c vdp.cpp save.cpp graph.cpp myfm.cpp fm.c sn76496.c \
 	ras.cpp main.cpp rc.h md-phil.h rc-vars.h md.h mz80.h fm.h \
 	decode.h mem.cpp ras-drawplane.h pd.h driver.h sn76496.h \
-	starcpu.h m68k.h m68kconf.h md-phil.cpp mz80/mz80.o zz80.c \
-	asm_tiles.asmu ctv.asmu mmx_memcpy.asmu asm_memcpy.asmu
+	starcpu.h m68k.h m68kconf.h md-phil.cpp zz80.c asm_tiles.asmu \
+	ctv.asmu mmx_memcpy.asmu asm_memcpy.asmu
 @JOYSTICK_TRUE@am__objects_1 = md-phil.$(OBJEXT)
-am__objects_2 =
-@ZZ80_TRUE@am__objects_3 = zz80.$(OBJEXT)
-@ASM_TRUE@am__objects_4 = asm_tiles.$(OBJEXT) ctv.$(OBJEXT)
-@ASM_TRUE@@MMX_TRUE@am__objects_5 = mmx_memcpy.$(OBJEXT)
-@ASM_TRUE@@MMX_FALSE@am__objects_6 = asm_memcpy.$(OBJEXT)
+@ZZ80_TRUE@am__objects_2 = zz80.$(OBJEXT)
+@ASM_TRUE@am__objects_3 = asm_tiles.$(OBJEXT) ctv.$(OBJEXT)
+@ASM_TRUE@@MMX_TRUE@am__objects_4 = mmx_memcpy.$(OBJEXT)
+@ASM_TRUE@@MMX_FALSE@am__objects_5 = asm_memcpy.$(OBJEXT)
 am_dgen_OBJECTS = rc.$(OBJEXT) romload.$(OBJEXT) md.$(OBJEXT) \
 	mdfr.$(OBJEXT) md-joe.$(OBJEXT) decode.$(OBJEXT) vdp.$(OBJEXT) \
 	save.$(OBJEXT) graph.$(OBJEXT) myfm.$(OBJEXT) fm.$(OBJEXT) \
 	sn76496.$(OBJEXT) ras.$(OBJEXT) main.$(OBJEXT) mem.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6)
+	$(am__objects_4) $(am__objects_5)
 dgen_OBJECTS = $(am_dgen_OBJECTS)
 am_tobin_OBJECTS = tobin.$(OBJEXT) romload.$(OBJEXT)
 tobin_OBJECTS = $(am_tobin_OBJECTS)
@@ -214,7 +223,6 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MUSA = @MUSA@
 NASM = @NASM@
 NASM_FMT = @NASM_FMT@
 OBJEXT = @OBJEXT@
@@ -232,7 +240,6 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-STAR = @STAR@
 STRIP = @STRIP@
 VERSION = @VERSION@
 XMKMF = @XMKMF@
@@ -298,7 +305,8 @@ top_srcdir = @top_srcdir@
 
 # Tell how to make assembler files
 SUFFIXES = .asmu .asm
-INCLUDES = -I$(top_srcdir)/musa -I$(top_srcdir)/@INTERFACE@
+INCLUDES = -I$(top_srcdir)/musa -I$(top_srcdir)/star \
+	-I$(top_srcdir)/@INTERFACE@
 DIST_SUBDIRS = star musa mz80 sdl
 SUBDIRS = @CPUDIRS@ @INTERFACE@
 man_MANS = dgen.1 dgenrc.5 tobin.1
@@ -309,11 +317,11 @@ dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c \
 	vdp.cpp save.cpp graph.cpp myfm.cpp fm.c sn76496.c ras.cpp \
 	main.cpp rc.h md-phil.h rc-vars.h md.h mz80.h fm.h decode.h \
 	mem.cpp ras-drawplane.h pd.h driver.h sn76496.h mz80.h \
-	starcpu.h m68k.h m68kconf.h $(am__append_1) $(am__append_2) \
-	$(am__append_3) $(am__append_4) $(am__append_5) \
-	$(am__append_6)
-dgen_LDADD = @INTERFACE@/libpd.a @STAR@ @MUSA@ @SDL_LIBS@
-dgen_DEPENDENCIES = @INTERFACE@/libpd.a @STAR@ @MUSA@
+	starcpu.h m68k.h m68kconf.h $(am__append_1) $(am__append_4) \
+	$(am__append_6) $(am__append_7) $(am__append_8)
+dgen_LDADD = @SDL_LIBS@ $(dgen_DEPENDENCIES)
+dgen_DEPENDENCIES = @INTERFACE@/libpd.a $(am__append_2) \
+	$(am__append_3) $(am__append_5)
 tobin_SOURCES = tobin.c romload.c
 all: all-recursive
 

@@ -611,10 +611,12 @@ ZZ80_FALSE
 ZZ80_TRUE
 MZ80_FALSE
 MZ80_TRUE
+STAR_FALSE
+STAR_TRUE
+MUSA_FALSE
+MUSA_TRUE
 JOYSTICK_FALSE
 JOYSTICK_TRUE
-STAR
-MUSA
 CPUDIRS
 CHOP_
 NASM_FMT
@@ -6349,7 +6351,7 @@ $as_echo "no" >&6; }
 fi
 
 
-		if test x$NASM \!= "xnot found"; then
+		if test "x$NASM" \!= "xnot found"; then
 						{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for NASM object format" >&5
 $as_echo_n "checking for NASM object format... " >&6; }
 			cat >___DgSdFmTTeSt.asm <<EOF
@@ -6433,17 +6435,17 @@ $as_echo "not found" >&6; }
 			ASM=false
 			MMX=false
 		fi
-	else
-		ASM=false
-		MMX=false
-	fi
-	if test x$ASM = xfalse; then
-		as_fn_error $? "
+		if test x$ASM = xfalse; then
+				as_fn_error $? "
 *** NASM is necessary on x86 platforms for assembler optimizations.
 *** A package most likely came with your Unix distribution, but if one didn't,
 *** it can be found at http://www.web-sites.co.uk/nasm/ (or at
 *** http://www.bebits.com/ for BeOS)
-		" "$LINENO" 5
+			   	" "$LINENO" 5
+		fi
+	else
+		ASM=false
+		MMX=false
 	fi
 	;;
 *)
@@ -6469,16 +6471,15 @@ if test "x$ASM" = xtrue; then
 	$as_echo "#define ASM_CTV 1" >>confdefs.h
 
 	if test "x$MMX" = xtrue; then
-		$as_echo "#define MMX 1" >>confdefs.h
-
-		$as_echo "#define memcpy mmx_memcpy" >>confdefs.h
+		$as_echo "#define MMX_MEMCPY 1" >>confdefs.h
 
 	else
-		$as_echo "#define memcpy asm_memcpy" >>confdefs.h
+		$as_echo "#define ASM_MEMCPY 1" >>confdefs.h
 
 	fi
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
+		MZ80=true
 	fi
 fi
 
@@ -6487,7 +6488,7 @@ $as_echo_n "checking whether MZ80 is available... " >&6; }
 if test -z "$MZ80"; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-	ZZ80=1
+	ZZ80=true
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -6519,7 +6520,7 @@ $as_echo "no" >&6; }
 		as_fn_error $? "*** You have disabled both CPU cores. You need at least one." "$LINENO" 5
 	fi
 	CPUDIRS="$CPUDIRS musa"
-	MUSA="musa/libmusa68.a"
+	MUSA=true
 	$as_echo "#define COMPILE_WITH_MUSA 1" >>confdefs.h
 
 else
@@ -6527,17 +6528,15 @@ else
 $as_echo "yes" >&6; }
 	if test x$USEMUSA \!= xno; then
 		CPUDIRS="$CPUDIRS musa"
-		MUSA="musa/libmusa68.a"
+		MUSA=true
 		$as_echo "#define COMPILE_WITH_MUSA 1" >>confdefs.h
 
 	fi
 	CPUDIRS="$CPUDIRS star"
-	STAR="star/starcpu.o"
+	STAR=true
 	$as_echo "#define COMPILE_WITH_STAR 1" >>confdefs.h
 
 fi
-
-
 
 
 
@@ -6553,7 +6552,23 @@ else
   JOYSTICK_FALSE=
 fi
 
- if test "x$MZ80" = x1; then
+ if test "x$MUSA" = xtrue; then
+  MUSA_TRUE=
+  MUSA_FALSE='#'
+else
+  MUSA_TRUE='#'
+  MUSA_FALSE=
+fi
+
+ if test "x$STAR" = xtrue; then
+  STAR_TRUE=
+  STAR_FALSE='#'
+else
+  STAR_TRUE='#'
+  STAR_FALSE=
+fi
+
+ if test "x$MZ80" = xtrue; then
   MZ80_TRUE=
   MZ80_FALSE='#'
 else
@@ -6561,7 +6576,7 @@ else
   MZ80_FALSE=
 fi
 
- if test "x$ZZ80" = x1; then
+ if test "x$ZZ80" = xtrue; then
   ZZ80_TRUE=
   ZZ80_FALSE='#'
 else
@@ -6760,6 +6775,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${JOYSTICK_TRUE}" && test -z "${JOYSTICK_FALSE}"; then
   as_fn_error $? "conditional \"JOYSTICK\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${MUSA_TRUE}" && test -z "${MUSA_FALSE}"; then
+  as_fn_error $? "conditional \"MUSA\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${STAR_TRUE}" && test -z "${STAR_FALSE}"; then
+  as_fn_error $? "conditional \"STAR\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MZ80_TRUE}" && test -z "${MZ80_FALSE}"; then

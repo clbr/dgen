@@ -8,7 +8,8 @@ include $(top_srcdir)/Makefile.asm.am
 DIST_SUBDIRS = star musa mz80 sdl
 SUBDIRS = @CPUDIRS@ @INTERFACE@
 
-INCLUDES += -I$(top_srcdir)/musa -I$(top_srcdir)/@INTERFACE@
+INCLUDES += -I$(top_srcdir)/musa -I$(top_srcdir)/star \
+	-I$(top_srcdir)/@INTERFACE@
 
 bin_PROGRAMS = dgen tobin
 
@@ -24,16 +25,32 @@ dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
 	       ras-drawplane.h pd.h driver.h sn76496.h \
 	       mz80.h starcpu.h m68k.h m68kconf.h
 
+dgen_LDADD = @SDL_LIBS@
+
+dgen_DEPENDENCIES = @INTERFACE@/libpd.a
+
 if JOYSTICK
 dgen_SOURCES += md-phil.cpp
 endif
 
-if MZ80
-dgen_SOURCES += mz80/mz80.o
+# MUSASHI M680x0 CPU emulator
+if MUSA
+dgen_DEPENDENCIES += musa/libmusa68.a
 endif
 
+# StarScream M680x0 CPU emulator
+if STAR
+dgen_DEPENDENCIES += star/libstarcpu.a
+endif
+
+# Multi-Z80 sound chip emulator (C version)
 if ZZ80
 dgen_SOURCES += zz80.c
+endif
+
+# Multi-Z80 sound chip emulator (assembly version)
+if MZ80
+dgen_DEPENDENCIES += mz80/libmz80.a
 endif
 
 if ASM
@@ -45,9 +62,6 @@ dgen_SOURCES += asm_memcpy.asmu
 endif
 endif
 
-dgen_LDADD = @INTERFACE@/libpd.a @STAR@ @MUSA@ @SDL_LIBS@
-
-dgen_DEPENDENCIES = @INTERFACE@/libpd.a @STAR@ @MUSA@
+dgen_LDADD += $(dgen_DEPENDENCIES)
 
 tobin_SOURCES = tobin.c romload.c
-

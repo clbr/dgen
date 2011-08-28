@@ -124,7 +124,7 @@ i?86|BePC)
 	if test x$USENASM \!= xno; then
 		dnl Check for NASM
 		AC_CHECK_PROG(NASM, nasm, nasm, [not found])
-		if test x$NASM \!= "xnot found"; then
+		if test "x$NASM" \!= "xnot found"; then
 			dnl Find NASM object format
 			AC_MSG_CHECKING([for NASM object format])
 			cat >___DgSdFmTTeSt.asm <<EOF
@@ -201,17 +201,17 @@ EOF
 			ASM=false
 			MMX=false
 		fi
-	else
-		ASM=false
-		MMX=false
-	fi
-	if test x$ASM = xfalse; then
-		AC_MSG_ERROR([
+		if test x$ASM = xfalse; then
+				AC_MSG_ERROR([
 *** NASM is necessary on x86 platforms for assembler optimizations.
 *** A package most likely came with your Unix distribution, but if one didn't,
 *** it can be found at http://www.web-sites.co.uk/nasm/ (or at
 *** http://www.bebits.com/ for BeOS)
-		])
+			   	])
+		fi
+	else
+		ASM=false
+		MMX=false
 	fi
 	;;
 *)
@@ -228,13 +228,13 @@ if test "x$ASM" = xtrue; then
 	AC_DEFINE(ASM_TILES)
 	AC_DEFINE(ASM_CTV)
 	if test "x$MMX" = xtrue; then
-		AC_DEFINE(MMX)
-		AC_DEFINE(memcpy, mmx_memcpy)
+		AC_DEFINE(MMX_MEMCPY)
 	else
-		AC_DEFINE(memcpy, asm_memcpy)
+		AC_DEFINE(ASM_MEMCPY)
 	fi
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
+		MZ80=true
 	fi
 fi
 
@@ -242,7 +242,7 @@ dnl Use ZZ80 if MZ80 isn't here
 AC_MSG_CHECKING([whether MZ80 is available])
 if test -z "$MZ80"; then
 	AC_MSG_RESULT([no])
-	ZZ80=1
+	ZZ80=true
 else
 	AC_MSG_RESULT([yes])
 fi
@@ -263,17 +263,17 @@ if test x$ASM = xfalse -o \! -f star/star.c -o x$USESTAR = xno; then
 		AC_MSG_ERROR([*** You have disabled both CPU cores. You need at least one.])
 	fi
 	CPUDIRS="$CPUDIRS musa"
-	MUSA="musa/libmusa68.a"
+	MUSA=true
 	AC_DEFINE(COMPILE_WITH_MUSA)
 else
 	AC_MSG_RESULT([yes])
 	if test x$USEMUSA \!= xno; then
 		CPUDIRS="$CPUDIRS musa"
-		MUSA="musa/libmusa68.a"
+		MUSA=true
 		AC_DEFINE(COMPILE_WITH_MUSA)
 	fi
 	CPUDIRS="$CPUDIRS star"
-	STAR="star/starcpu.o"
+	STAR=true
 	AC_DEFINE(COMPILE_WITH_STAR)
 fi
 
@@ -283,12 +283,12 @@ AC_SUBST(NASM)
 AC_SUBST(NASM_FMT)
 AC_SUBST(CHOP_)
 AC_SUBST(CPUDIRS)
-AC_SUBST(MUSA)
-AC_SUBST(STAR)
 
 AM_CONDITIONAL([JOYSTICK], [! test "$JOYSTICK_SUPPORT" = no])
-AM_CONDITIONAL([MZ80], [test "x$MZ80" = x1])
-AM_CONDITIONAL([ZZ80], [test "x$ZZ80" = x1])
+AM_CONDITIONAL([MUSA], [test "x$MUSA" = xtrue])
+AM_CONDITIONAL([STAR], [test "x$STAR" = xtrue])
+AM_CONDITIONAL([MZ80], [test "x$MZ80" = xtrue])
+AM_CONDITIONAL([ZZ80], [test "x$ZZ80" = xtrue])
 AM_CONDITIONAL([ASM], [test "x$ASM" = xtrue])
 AM_CONDITIONAL([MMX], [test "x$MMX" = xtrue])
 
