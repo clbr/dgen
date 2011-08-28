@@ -18,8 +18,7 @@ EXTRA_DIST = mz80.txt
 
 noinst_LIBRARIES = libmz80.a
 
-makez80: makez80.c
-	$(CC) -o makez80 makez80.c
+noinst_PROGRAMS = makez80
 
 mz80.asm: makez80
 	./makez80 $(plain) -s -x86 mz80.asm
