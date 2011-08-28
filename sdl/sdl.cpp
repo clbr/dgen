@@ -104,7 +104,7 @@ static volatile int sigalrm_happened = 0;
 
 #ifdef SDL_JOYSTICK_SUPPORT
 // Extern joystick stuff
-extern int js_map_button[2][16];
+extern long js_map_button[2][16];
 #endif
 
 // Number of seconds to sustain messages
