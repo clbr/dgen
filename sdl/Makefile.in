@@ -118,7 +118,6 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MUSA = @MUSA@
 NASM = @NASM@
 NASM_FMT = @NASM_FMT@
 OBJEXT = @OBJEXT@
@@ -136,7 +135,6 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-STAR = @STAR@
 STRIP = @STRIP@
 VERSION = @VERSION@
 XMKMF = @XMKMF@
@@ -200,7 +198,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = dgenfont.pbm chartfont.c
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/musa
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/musa -I$(top_srcdir)/star
 noinst_LIBRARIES = libpd.a
 
 # built sources
