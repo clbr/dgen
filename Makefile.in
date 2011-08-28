@@ -43,6 +43,12 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	config.guess config.sub depcomp install-sh missing \
 	mkinstalldirs
 bin_PROGRAMS = dgen$(EXEEXT) tobin$(EXEEXT)
+@JOYSTICK_TRUE@am__append_1 = md-phil.cpp
+@MZ80_TRUE@am__append_2 = mz80/mz80.o
+@ZZ80_TRUE@am__append_3 = zz80.c
+@ASM_TRUE@am__append_4 = asm_tiles.asmu ctv.asmu
+@ASM_TRUE@@MMX_TRUE@am__append_5 = mmx_memcpy.asmu
+@ASM_TRUE@@MMX_FALSE@am__append_6 = asm_memcpy.asmu
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -57,10 +63,24 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
 	"$(DESTDIR)$(man5dir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__dgen_SOURCES_DIST = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp \
+	decode.c vdp.cpp save.cpp graph.cpp myfm.cpp fm.c sn76496.c \
+	ras.cpp main.cpp rc.h md-phil.h rc-vars.h md.h mz80.h fm.h \
+	decode.h mem.cpp ras-drawplane.h pd.h driver.h sn76496.h \
+	starcpu.h m68k.h m68kconf.h md-phil.cpp mz80/mz80.o zz80.c \
+	asm_tiles.asmu ctv.asmu mmx_memcpy.asmu asm_memcpy.asmu
+@JOYSTICK_TRUE@am__objects_1 = md-phil.$(OBJEXT)
+am__objects_2 =
+@ZZ80_TRUE@am__objects_3 = zz80.$(OBJEXT)
+@ASM_TRUE@am__objects_4 = asm_tiles.$(OBJEXT) ctv.$(OBJEXT)
+@ASM_TRUE@@MMX_TRUE@am__objects_5 = mmx_memcpy.$(OBJEXT)
+@ASM_TRUE@@MMX_FALSE@am__objects_6 = asm_memcpy.$(OBJEXT)
 am_dgen_OBJECTS = rc.$(OBJEXT) romload.$(OBJEXT) md.$(OBJEXT) \
 	mdfr.$(OBJEXT) md-joe.$(OBJEXT) decode.$(OBJEXT) vdp.$(OBJEXT) \
 	save.$(OBJEXT) graph.$(OBJEXT) myfm.$(OBJEXT) fm.$(OBJEXT) \
-	sn76496.$(OBJEXT) ras.$(OBJEXT) main.$(OBJEXT) mem.$(OBJEXT)
+	sn76496.$(OBJEXT) ras.$(OBJEXT) main.$(OBJEXT) mem.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6)
 dgen_OBJECTS = $(am_dgen_OBJECTS)
 am_tobin_OBJECTS = tobin.$(OBJEXT) romload.$(OBJEXT)
 tobin_OBJECTS = $(am_tobin_OBJECTS)
@@ -78,8 +98,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(dgen_SOURCES) $(EXTRA_dgen_SOURCES) $(tobin_SOURCES)
-DIST_SOURCES = $(dgen_SOURCES) $(EXTRA_dgen_SOURCES) $(tobin_SOURCES)
+SOURCES = $(dgen_SOURCES) $(tobin_SOURCES)
+DIST_SOURCES = $(am__dgen_SOURCES_DIST) $(tobin_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -180,7 +200,6 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-EXTRAOBJS = @EXTRAOBJS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -196,7 +215,6 @@ LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 MUSA = @MUSA@
-MZ80 = @MZ80@
 NASM = @NASM@
 NASM_FMT = @NASM_FMT@
 OBJEXT = @OBJEXT@
@@ -287,19 +305,15 @@ man_MANS = dgen.1 dgenrc.5 tobin.1
 EXTRA_DIST = sample.dgenrc $(man_MANS) Makefile.asm.am
 
 # dgen
-dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
-	       save.cpp graph.cpp myfm.cpp fm.c sn76496.c ras.cpp main.cpp \
-	       rc.h md-phil.h rc-vars.h md.h mz80.h fm.h decode.h mem.cpp \
-	       ras-drawplane.h pd.h driver.h sn76496.h \
-	       mz80.h starcpu.h m68k.h m68kconf.h
-
-dgen_LDADD = -L@INTERFACE@ -lpd @STAR@ @MUSA@ @MZ80@ @SDL_LIBS@ @EXTRAOBJS@
-dgen_DEPENDENCIES = @EXTRAOBJS@ @INTERFACE@
-EXTRA_dgen_SOURCES = asm_tiles.asmu ctv.asmu asm_memcpy.asmu mmx_memcpy.asmu \
-		     sn76496u.c zz80.c md-phil.cpp
-
-
-# tobin
+dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c \
+	vdp.cpp save.cpp graph.cpp myfm.cpp fm.c sn76496.c ras.cpp \
+	main.cpp rc.h md-phil.h rc-vars.h md.h mz80.h fm.h decode.h \
+	mem.cpp ras-drawplane.h pd.h driver.h sn76496.h mz80.h \
+	starcpu.h m68k.h m68kconf.h $(am__append_1) $(am__append_2) \
+	$(am__append_3) $(am__append_4) $(am__append_5) \
+	$(am__append_6)
+dgen_LDADD = @INTERFACE@/libpd.a @STAR@ @MUSA@ @SDL_LIBS@
+dgen_DEPENDENCIES = @INTERFACE@/libpd.a @STAR@ @MUSA@
 tobin_SOURCES = tobin.c romload.c
 all: all-recursive
 
@@ -404,7 +418,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/romload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/save.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sn76496.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sn76496u.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tobin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vdp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zz80.Po@am__quote@

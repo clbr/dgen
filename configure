@@ -603,8 +603,16 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-EXTRAOBJS
-MZ80
+MMX_FALSE
+MMX_TRUE
+ASM_FALSE
+ASM_TRUE
+ZZ80_FALSE
+ZZ80_TRUE
+MZ80_FALSE
+MZ80_TRUE
+JOYSTICK_FALSE
+JOYSTICK_TRUE
 STAR
 MUSA
 CPUDIRS
@@ -5457,8 +5465,6 @@ INTERFACE=sdl
 OLD_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
 
-EXTRAOBJS=
-
 JOYSTICK_SUPPORT=no
 ac_fn_c_check_header_mongrel "$LINENO" "SDL_joystick.h" "ac_cv_header_SDL_joystick_h" "$ac_includes_default"
 if test "x$ac_cv_header_SDL_joystick_h" = xyes; then :
@@ -6273,7 +6279,6 @@ if test x$JOYSTICK_SUPPORT \!= xno; then
 #define ${JOYSTICK_SUPPORT}_JOYSTICK_SUPPORT 1
 _ACEOF
 
-	EXTRAOBJS="$EXTRAOBJS md-phil.o"
 fi
 
 oldLIBS=$LIBS
@@ -6458,26 +6463,22 @@ else
 fi
 
 
-if $ASM; then
-	EXTRAOBJS="$EXTRAOBJS asm_tiles.o ctv.o"
+if test "x$ASM" = xtrue; then
 	$as_echo "#define ASM_TILES 1" >>confdefs.h
 
 	$as_echo "#define ASM_CTV 1" >>confdefs.h
 
-	if $MMX; then
-		EXTRAOBJS="$EXTRAOBJS mmx_memcpy.o"
+	if test "x$MMX" = xtrue; then
 		$as_echo "#define MMX 1" >>confdefs.h
 
 		$as_echo "#define memcpy mmx_memcpy" >>confdefs.h
 
 	else
-		EXTRAOBJS="$EXTRAOBJS asm_memcpy.o"
 		$as_echo "#define memcpy asm_memcpy" >>confdefs.h
 
 	fi
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
-		MZ80="mz80/mz80.o"
 	fi
 fi
 
@@ -6486,7 +6487,7 @@ $as_echo_n "checking whether MZ80 is available... " >&6; }
 if test -z "$MZ80"; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-	EXTRAOBJS="$EXTRAOBJS zz80.o"
+	ZZ80=1
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -6518,7 +6519,7 @@ $as_echo "no" >&6; }
 		as_fn_error $? "*** You have disabled both CPU cores. You need at least one." "$LINENO" 5
 	fi
 	CPUDIRS="$CPUDIRS musa"
-	MUSA="-Lmusa -lmusa68"
+	MUSA="musa/libmusa68.a"
 	$as_echo "#define COMPILE_WITH_MUSA 1" >>confdefs.h
 
 else
@@ -6526,7 +6527,7 @@ else
 $as_echo "yes" >&6; }
 	if test x$USEMUSA \!= xno; then
 		CPUDIRS="$CPUDIRS musa"
-		MUSA="-Lmusa -lmusa68"
+		MUSA="musa/libmusa68.a"
 		$as_echo "#define COMPILE_WITH_MUSA 1" >>confdefs.h
 
 	fi
@@ -6544,6 +6545,45 @@ fi
 
 
 
+ if ! test "$JOYSTICK_SUPPORT" = no; then
+  JOYSTICK_TRUE=
+  JOYSTICK_FALSE='#'
+else
+  JOYSTICK_TRUE='#'
+  JOYSTICK_FALSE=
+fi
+
+ if test "x$MZ80" = x1; then
+  MZ80_TRUE=
+  MZ80_FALSE='#'
+else
+  MZ80_TRUE='#'
+  MZ80_FALSE=
+fi
+
+ if test "x$ZZ80" = x1; then
+  ZZ80_TRUE=
+  ZZ80_FALSE='#'
+else
+  ZZ80_TRUE='#'
+  ZZ80_FALSE=
+fi
+
+ if test "x$ASM" = xtrue; then
+  ASM_TRUE=
+  ASM_FALSE='#'
+else
+  ASM_TRUE='#'
+  ASM_FALSE=
+fi
+
+ if test "x$MMX" = xtrue; then
+  MMX_TRUE=
+  MMX_FALSE='#'
+else
+  MMX_TRUE='#'
+  MMX_FALSE=
+fi
 
 
 ac_config_files="$ac_config_files Makefile star/Makefile musa/Makefile mz80/Makefile sdl/Makefile"
@@ -6716,6 +6756,26 @@ fi
 
 if test -z "${NO_USCORE_TRUE}" && test -z "${NO_USCORE_FALSE}"; then
   as_fn_error $? "conditional \"NO_USCORE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${JOYSTICK_TRUE}" && test -z "${JOYSTICK_FALSE}"; then
+  as_fn_error $? "conditional \"JOYSTICK\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${MZ80_TRUE}" && test -z "${MZ80_FALSE}"; then
+  as_fn_error $? "conditional \"MZ80\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ZZ80_TRUE}" && test -z "${ZZ80_FALSE}"; then
+  as_fn_error $? "conditional \"ZZ80\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ASM_TRUE}" && test -z "${ASM_FALSE}"; then
+  as_fn_error $? "conditional \"ASM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${MMX_TRUE}" && test -z "${MMX_FALSE}"; then
+  as_fn_error $? "conditional \"MMX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

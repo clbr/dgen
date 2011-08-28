@@ -24,14 +24,30 @@ dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
 	       ras-drawplane.h pd.h driver.h sn76496.h \
 	       mz80.h starcpu.h m68k.h m68kconf.h
 
-dgen_LDADD = -L@INTERFACE@ -lpd @STAR@ @MUSA@ @MZ80@ @SDL_LIBS@ @EXTRAOBJS@
+if JOYSTICK
+dgen_SOURCES += md-phil.cpp
+endif
 
-dgen_DEPENDENCIES = @EXTRAOBJS@ @INTERFACE@
+if MZ80
+dgen_SOURCES += mz80/mz80.o
+endif
 
-EXTRA_dgen_SOURCES = asm_tiles.asmu ctv.asmu asm_memcpy.asmu mmx_memcpy.asmu \
-		     sn76496u.c zz80.c md-phil.cpp
+if ZZ80
+dgen_SOURCES += zz80.c
+endif
 
-# tobin
+if ASM
+dgen_SOURCES += asm_tiles.asmu ctv.asmu
+if MMX
+dgen_SOURCES += mmx_memcpy.asmu
+else
+dgen_SOURCES += asm_memcpy.asmu
+endif
+endif
+
+dgen_LDADD = @INTERFACE@/libpd.a @STAR@ @MUSA@ @SDL_LIBS@
+
+dgen_DEPENDENCIES = @INTERFACE@/libpd.a @STAR@ @MUSA@
 
 tobin_SOURCES = tobin.c romload.c
 

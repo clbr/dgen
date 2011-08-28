@@ -59,8 +59,6 @@ dnl Add SDL cflags to CPPFLAGS, just to check for SDL_joystick header
 OLD_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
 
-EXTRAOBJS=
-
 dnl Check for SDL joystick
 JOYSTICK_SUPPORT=no
 AC_CHECK_HEADER(SDL_joystick.h, JOYSTICK_SUPPORT=SDL, [
@@ -105,7 +103,6 @@ CPPFLAGS=$OLD_CPPFLAGS
 if test x$JOYSTICK_SUPPORT \!= xno; then
 	AC_DEFINE(JOYSTICK_SUPPORT)
 	AC_DEFINE_UNQUOTED(${JOYSTICK_SUPPORT}_JOYSTICK_SUPPORT)
-	EXTRAOBJS="$EXTRAOBJS md-phil.o"
 fi
 
 oldLIBS=$LIBS
@@ -227,21 +224,17 @@ esac
 AM_CONDITIONAL([NO_USCORE], [test x$NASM_FMT = xelf])
 
 dnl We are free to use assembler! :)
-if $ASM; then
-	EXTRAOBJS="$EXTRAOBJS asm_tiles.o ctv.o"
+if test "x$ASM" = xtrue; then
 	AC_DEFINE(ASM_TILES)
 	AC_DEFINE(ASM_CTV)
-	if $MMX; then
-		EXTRAOBJS="$EXTRAOBJS mmx_memcpy.o"
+	if test "x$MMX" = xtrue; then
 		AC_DEFINE(MMX)
 		AC_DEFINE(memcpy, mmx_memcpy)
 	else
-		EXTRAOBJS="$EXTRAOBJS asm_memcpy.o"
 		AC_DEFINE(memcpy, asm_memcpy)
 	fi
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
-		MZ80="mz80/mz80.o"
 	fi
 fi
 
@@ -249,7 +242,7 @@ dnl Use ZZ80 if MZ80 isn't here
 AC_MSG_CHECKING([whether MZ80 is available])
 if test -z "$MZ80"; then
 	AC_MSG_RESULT([no])
-	EXTRAOBJS="$EXTRAOBJS zz80.o"
+	ZZ80=1
 else
 	AC_MSG_RESULT([yes])
 fi
@@ -270,13 +263,13 @@ if test x$ASM = xfalse -o \! -f star/star.c -o x$USESTAR = xno; then
 		AC_MSG_ERROR([*** You have disabled both CPU cores. You need at least one.])
 	fi
 	CPUDIRS="$CPUDIRS musa"
-	MUSA="-Lmusa -lmusa68"
+	MUSA="musa/libmusa68.a"
 	AC_DEFINE(COMPILE_WITH_MUSA)
 else
 	AC_MSG_RESULT([yes])
 	if test x$USEMUSA \!= xno; then
 		CPUDIRS="$CPUDIRS musa"
-		MUSA="-Lmusa -lmusa68"
+		MUSA="musa/libmusa68.a"
 		AC_DEFINE(COMPILE_WITH_MUSA)
 	fi
 	CPUDIRS="$CPUDIRS star"
@@ -292,8 +285,12 @@ AC_SUBST(CHOP_)
 AC_SUBST(CPUDIRS)
 AC_SUBST(MUSA)
 AC_SUBST(STAR)
-AC_SUBST(MZ80)
-AC_SUBST(EXTRAOBJS)
+
+AM_CONDITIONAL([JOYSTICK], [! test "$JOYSTICK_SUPPORT" = no])
+AM_CONDITIONAL([MZ80], [test "x$MZ80" = x1])
+AM_CONDITIONAL([ZZ80], [test "x$ZZ80" = x1])
+AM_CONDITIONAL([ASM], [test "x$ASM" = xtrue])
+AM_CONDITIONAL([MMX], [test "x$MMX" = xtrue])
 
 dnl Done!
 AC_OUTPUT([
