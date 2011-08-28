@@ -284,8 +284,8 @@ public:
   void patch(const char *list);
   // Get/put the battery save RAM
   int has_save_ram();
-  void get_save_ram(FILE *from);
-  void put_save_ram(FILE *into);
+  int get_save_ram(FILE *from);
+  int put_save_ram(FILE *into);
   
   // Added by Phillip K. Hornung <redx@pknet.com>
   // Linux joystick initialization and handling routines

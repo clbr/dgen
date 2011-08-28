@@ -43,22 +43,24 @@ int sound_is_okay = 0;
 FILE *debug_log = NULL;
 
 // Do a demo frame, if active
-#define DO_DEMO \
-	if(demo_record) { \
-	  foo = htonl(megad.pad[0]); \
-	  fwrite(&foo, sizeof(foo), 1, demo); \
-	  foo = htonl(megad.pad[1]); \
-	  fwrite(&foo, sizeof(foo), 1, demo); \
-	} if(demo_play) { \
-	  fread(&foo, sizeof(foo), 1, demo); \
-	  megad.pad[0] = ntohl(foo); \
-	  fread(&foo, sizeof(foo), 1, demo); \
-	  megad.pad[1] = ntohl(foo); \
-	  if(feof(demo)) \
-	    { \
-	      pd_message("Demo finished."); \
-	      demo_play = 0; \
-	    } \
+#define DO_DEMO							\
+	if (demo_record) {					\
+		foo = htonl(megad.pad[0]);			\
+		fwrite(&foo, sizeof(foo), 1, demo);		\
+		foo = htonl(megad.pad[1]);			\
+		fwrite(&foo, sizeof(foo), 1, demo);		\
+	}							\
+	if (demo_play) {					\
+		size_t i;					\
+								\
+		i = fread(&foo, sizeof(foo), 1, demo);		\
+		megad.pad[0] = ntohl(foo);			\
+		i += fread(&foo, sizeof(foo), 1, demo);		\
+		megad.pad[1] = ntohl(foo);			\
+		if (feof(demo))	{				\
+			pd_message("Demo finished.");		\
+			demo_play = 0;				\
+		}						\
 	}
 
 // Convenience, so I don't have to type this constantly
@@ -198,30 +200,30 @@ void md_load(md& megad)
 // Load/save states from file
 static void ram_save(md& megad)
 {
-  FILE *save = NULL;
-  if(!megad.has_save_ram()) return;
-  sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
-  if((save = fopen(temp, "wb")))
-    {
-      megad.put_save_ram(save);
-      fclose(save);
-    }
-  else
-    {
-      fprintf(stderr, "Couldn't save battery RAM to %s!\n", temp);
-    }
+	FILE *save;
+
+	if (!megad.has_save_ram())
+		return;
+	sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
+	if (((save = fopen(temp, "wb")) == NULL) ||
+	    (megad.put_save_ram(save)))
+		fprintf(stderr, "Couldn't save battery RAM to %s\n", temp);
+	if (save)
+		fclose(save);
 }
 
 static void ram_load(md& megad)
 {
-  FILE *load = NULL;
-  if(!megad.has_save_ram()) return;
-  sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
-  if((load = fopen(temp, "rb")))
-    {
-      megad.get_save_ram(load);
-      fclose(load);
-    }
+	FILE *load;
+
+	if (!megad.has_save_ram())
+		return;
+	sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
+	if (((load = fopen(temp, "rb")) == NULL) ||
+	    (megad.get_save_ram(load)))
+		fprintf(stderr, "Couldn't load battery RAM from %s\n", temp);
+	if (load)
+		fclose(load);
 }
 
 int main(int argc, char *argv[])

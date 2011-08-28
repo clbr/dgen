@@ -42,16 +42,18 @@ void md::patch(const char *list)
 }
 
 // Get/put saveram from/to FILE*'s
-void md::get_save_ram(FILE *from)
+int md::get_save_ram(FILE *from)
 {
-  // Pretty simple, just read the saveram raw
-  fread((void*)saveram, 1, save_len, from);
+	// Pretty simple, just read the saveram raw
+	// Return 0 on success
+	return !fread((void*)saveram, save_len, 1, from);
 }
 
-void md::put_save_ram(FILE *into)
+int md::put_save_ram(FILE *into)
 {
-  // Just the opposite of the above :)
-  fwrite((void*)saveram, 1, save_len, into);
+	// Just the opposite of the above :)
+	// Return 0 on success
+	return !fwrite((void*)saveram, save_len, 1, into);
 }
 
 // Dave: This is my code, but I thought it belonged here
