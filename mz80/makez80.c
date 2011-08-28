@@ -46,19 +46,24 @@
  *
  */ 
 
+/* 2011-08-28 - dgen-sdl: fix compilation issues */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
+#include <inttypes.h>
 
-#define	VERSION 					"3.4"
+#define	MZ80_VERSION "3.4"
 
 #define TRUE            		0xff
 #define FALSE           		0x0
 #define INVALID					0xff
 
-#define UINT32          		unsigned long int
-#define UINT8           		unsigned char
+#define UINT32 uint32_t
+#define UINT8 uint8_t
+#define INT8 char
 
 #define	TIMING_REGULAR			0x00
 #define	TIMING_XXCB				0x01
@@ -95,7 +100,7 @@ UINT8 bWhat = MZ80_UNKNOWN;
 
 void ProcBegin(UINT32 dwOpcode);
 
-UINT8 *pbLocalReg[8] =
+INT8 *pbLocalReg[8] =
 {
 	"ch",
 	"cl",
@@ -107,7 +112,7 @@ UINT8 *pbLocalReg[8] =
 	"al"
 };
 
-UINT8 *pbLocalRegC[8] =
+INT8 *pbLocalRegC[8] =
 {
 	"cpu.z80B",
 	"cpu.z80C",
@@ -119,7 +124,7 @@ UINT8 *pbLocalRegC[8] =
 	"cpu.z80A"
 };
 
-UINT8 *pbPushReg[8] = 
+INT8 *pbPushReg[8] = 
 {
 	"cl",
 	"ch",
@@ -131,7 +136,7 @@ UINT8 *pbPushReg[8] =
 	"al"
 };
 
-UINT8 *pbFlags[8] =
+INT8 *pbFlags[8] =
 {
 	"nz",
 	"z",
@@ -143,7 +148,7 @@ UINT8 *pbFlags[8] =
 	"s"
 };
 
-UINT8 *pbRegPairC[] =
+INT8 *pbRegPairC[] =
 {
 	"cpu.z80BC",
 	"cpu.z80DE",
@@ -151,7 +156,7 @@ UINT8 *pbRegPairC[] =
 	"cpu.z80sp"
 };
 
-UINT8 *pbFlagsC[8] =
+INT8 *pbFlagsC[8] =
 {
 	"(!(cpu.z80F & Z80_FLAG_ZERO))",
 	"(cpu.z80F & Z80_FLAG_ZERO)",
@@ -163,7 +168,7 @@ UINT8 *pbFlagsC[8] =
 	"(cpu.z80F & Z80_FLAG_SIGN)"
 };
 
-UINT8 *pbMathReg[8] =
+INT8 *pbMathReg[8] =
 {
 	"ch",
 	"cl",
@@ -175,7 +180,7 @@ UINT8 *pbMathReg[8] =
 	"al"
 };
 
-UINT8 *pbMathRegC[8] =
+INT8 *pbMathRegC[8] =
 {
 	"cpu.z80B",
 	"cpu.z80C",
@@ -187,7 +192,7 @@ UINT8 *pbMathRegC[8] =
 	"cpu.z80A"
 };
 
-UINT8 *pbRegPairs[4] = 
+INT8 *pbRegPairs[4] = 
 {
 	"cx",	// BC
 	"word [_z80de]", // DE
@@ -195,7 +200,7 @@ UINT8 *pbRegPairs[4] =
 	"word [_z80sp]"  // SP
 };
 
-UINT8 *pbRegPairsC[4] = 
+INT8 *pbRegPairsC[4] = 
 {
 	"cpu.z80BC",	// BC
 	"cpu.z80DE", // DE
@@ -203,7 +208,7 @@ UINT8 *pbRegPairsC[4] =
 	"cpu.z80sp"  // SP
 };
 
-UINT8 *pbPopRegPairs[4] = 
+INT8 *pbPopRegPairs[4] = 
 {
 	"cx",	// BC
 	"word [_z80de]", // DE
@@ -211,7 +216,7 @@ UINT8 *pbPopRegPairs[4] =
 	"ax"  // SP
 };
 
-UINT8 *pbPopRegPairC[4] = 
+INT8 *pbPopRegPairC[4] = 
 {
 	"cpu.z80BC",
 	"cpu.z80DE",
@@ -219,7 +224,7 @@ UINT8 *pbPopRegPairC[4] =
 	"cpu.z80AF"
 };
 
-UINT8 *pbIndexedRegPairs[4] = 
+INT8 *pbIndexedRegPairs[4] = 
 {
 	"cx",	// BC
 	"word [_z80de]", // DE
@@ -1200,7 +1205,7 @@ struct sOp DDFDCBOps[] =
 
 void InvalidInstructionC(UINT32 dwCount)
 {
-	fprintf(fp, "				InvalidInstruction(%ld);\n", dwCount);
+	fprintf(fp, "				InvalidInstruction(%" PRIu32 ");\n", dwCount);
 }
 
 UINT32 Timing(UINT8 bWho, UINT32 dwOpcode)
@@ -1239,14 +1244,14 @@ UINT32 Timing(UINT8 bWho, UINT32 dwOpcode)
 	return(dwTiming);
 }
 
-void IndexedOffset(UINT8 *Localmz80Index)
+void IndexedOffset(INT8 *Localmz80Index)
 {
 	fprintf(fp, "		mov	dl, [esi]	; Fetch our offset\n");
 	fprintf(fp, "		inc	esi		; Move past the offset\n");
 	fprintf(fp, "		or	dl, dl		; Is this bad boy signed?\n");
-	fprintf(fp, "		jns	notSigned%ld	; Nope!\n", dwGlobalLabel);
+	fprintf(fp, "		jns	notSigned%" PRIu32 "	; Nope!\n", dwGlobalLabel);
 	fprintf(fp, "		dec	dh			; Make it FFable\n");
-	fprintf(fp, "notSigned%ld:\n", dwGlobalLabel);
+	fprintf(fp, "notSigned%" PRIu32 ":\n", dwGlobalLabel);
 	fprintf(fp, "		add	dx, [_z80%s]	; Our offset!\n", Localmz80Index);
 	++dwGlobalLabel;
 }
@@ -1351,7 +1356,7 @@ void FDHandler(UINT32 dwOpcode)
 	}
 }
 
-StandardHeader()
+void StandardHeader(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -1481,39 +1486,40 @@ StandardHeader()
 	fprintf(fp, "\n\n");
 }
 
-Alignment()
+void Alignment(void)
 {
 	fprintf(fp, "\ntimes ($$-$) & 3 nop	; pad with NOPs to 4-byte boundary\n\n");
 }
 
 void ProcBegin(UINT32 dwOpcode)
 {
+	(void)dwOpcode;
 	Alignment();
 	fprintf(fp, "%s:\n", procname);
 }
 
-void SetSubFlagsSZHVC(UINT8 *pszLeft, UINT8 *pszRight)
+void SetSubFlagsSZHVC(INT8 *pszLeft, INT8 *pszRight)
 {
 	fprintf(fp, "				cpu.z80F = (cpu.z80F & ~(Z80_FLAG_CARRY | Z80_FLAG_NEGATIVE | Z80_FLAG_OVERFLOW_PARITY | \n");
 	fprintf(fp, "							   Z80_FLAG_HALF_CARRY | Z80_FLAG_ZERO | Z80_FLAG_SIGN)) |\n");
 	fprintf(fp, "								pbSubSbcTable[((UINT32) %s << 8) | %s];\n", pszLeft, pszRight);
 }
 
-void SetSbcFlagsSZHVC(UINT8 *pszLeft, UINT8 *pszRight)
+void SetSbcFlagsSZHVC(INT8 *pszLeft, INT8 *pszRight)
 {
 	fprintf(fp, "				cpu.z80F = (cpu.z80F & ~(Z80_FLAG_CARRY | Z80_FLAG_NEGATIVE | Z80_FLAG_OVERFLOW_PARITY | \n");
 	fprintf(fp, "							   Z80_FLAG_HALF_CARRY | Z80_FLAG_ZERO | Z80_FLAG_SIGN)) |\n");
 	fprintf(fp, "								pbSubSbcTable[((UINT32) %s << 8) | %s | (((UINT32) cpu.z80F & Z80_FLAG_CARRY) << 16)];\n", pszLeft, pszRight);
 }
 
-void SetAddFlagsSZHVC(UINT8 *pszLeft, UINT8 *pszRight)
+void SetAddFlagsSZHVC(INT8 *pszLeft, INT8 *pszRight)
 {
 	fprintf(fp, "				cpu.z80F = (cpu.z80F & ~(Z80_FLAG_CARRY | Z80_FLAG_NEGATIVE | Z80_FLAG_OVERFLOW_PARITY | \n");
 	fprintf(fp, "							   Z80_FLAG_HALF_CARRY | Z80_FLAG_ZERO | Z80_FLAG_SIGN)) |\n");
 	fprintf(fp, "								pbAddAdcTable[((UINT32) %s << 8) | %s];\n", pszLeft, pszRight);
 }
 
-void SetAdcFlagsSZHVC(UINT8 *pszLeft, UINT8 *pszRight)
+void SetAdcFlagsSZHVC(INT8 *pszLeft, INT8 *pszRight)
 {
 	fprintf(fp, "				cpu.z80F = (cpu.z80F & ~(Z80_FLAG_CARRY | Z80_FLAG_NEGATIVE | Z80_FLAG_OVERFLOW_PARITY | \n");
 	fprintf(fp, "							   Z80_FLAG_HALF_CARRY | Z80_FLAG_ZERO | Z80_FLAG_SIGN)) |\n");
@@ -1522,7 +1528,7 @@ void SetAdcFlagsSZHVC(UINT8 *pszLeft, UINT8 *pszRight)
 
 UINT32 dwOverflowCount = 0;
 
-SetOverflow()
+void SetOverflow(void)
 {
 	fprintf(fp, "		seto	dl\n");
 	fprintf(fp, "		and	ah, 0fbh	; Knock out parity/overflow\n");
@@ -1534,7 +1540,7 @@ void FetchNextInstruction(UINT32 dwOpcode)
 {
 	if (0xffffffff != dwOpcode)
 	{
-		fprintf(fp, "		sub	edi, byte %ld\n", Timing(bCurrentMode, dwOpcode));
+		fprintf(fp, "		sub	edi, byte %" PRIu32 "\n", Timing(bCurrentMode, dwOpcode));
 		
 		if (bCurrentMode == TIMING_REGULAR)
 			fprintf(fp, "		js	near noMoreExec\n");
@@ -1547,7 +1553,7 @@ void FetchNextInstruction(UINT32 dwOpcode)
 	fprintf(fp, "		jmp	dword [z80regular+edx*4]\n\n");
 }
 
-void WriteValueToMemory(UINT8 *pszAddress, UINT8 *pszValue)
+void WriteValueToMemory(INT8 *pszAddress, INT8 *pszValue)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -1569,34 +1575,34 @@ void WriteValueToMemory(UINT8 *pszAddress, UINT8 *pszValue)
 			 strcmp(pszAddress, "[_z80iy]") == 0)
 			fprintf(fp, "		mov	dx, %s\n", pszAddress);
 
-		fprintf(fp, "		mov	edi, [_z80MemWrite]	; Point to the write array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80MemWrite]	; Point to the write array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of our list?\n");
-		fprintf(fp, "		je	memoryWrite%ld	; Yes - go write it!\n", dwGlobalLabel);
+		fprintf(fp, "		je	memoryWrite%" PRIu32 "	; Yes - go write it!\n", dwGlobalLabel);
 
 		if (strcmp(pszAddress, "[_z80de]") == 0 ||
 			 strcmp(pszAddress, "[_orgval]") == 0 ||
 			 strcmp(pszAddress, "[_z80ix]") == 0 ||
 			 strcmp(pszAddress, "[_z80iy]") == 0)
-			fprintf(fp, "		cmp	dx, [edi]	; Are we smaller?\n", pszAddress);
+			fprintf(fp, "		cmp	dx, [edi]	; Are we smaller?\n");
 		else
 			fprintf(fp, "		cmp	%s, [edi]	; Are we smaller?\n", pszAddress);
 
-		fprintf(fp, "		jb	nextAddr%ld	; Yes... go to the next addr\n", dwGlobalLabel);
+		fprintf(fp, "		jb	nextAddr%" PRIu32 "	; Yes... go to the next addr\n", dwGlobalLabel);
 
 		if (strcmp(pszAddress, "[_z80de]") == 0 ||
 			 strcmp(pszAddress, "[_orgval]") == 0 ||
 			 strcmp(pszAddress, "[_z80ix]") == 0 ||
 			 strcmp(pszAddress, "[_z80iy]") == 0)
-			fprintf(fp, "		cmp	dx, [edi+4]	; Are we smaller?\n", pszAddress);
+			fprintf(fp, "		cmp	dx, [edi+4]	; Are we smaller?\n");
 		else
 			fprintf(fp, "		cmp	%s, [edi+4]	; Are we smaller?\n", pszAddress);
 	
-		fprintf(fp, "		jbe	callRoutine%ld	; If not, go call it!\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "	; If not, go call it!\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 10h		; Next structure, please\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 	
 		// Save off our registers!
 	
@@ -1607,9 +1613,9 @@ void WriteValueToMemory(UINT8 *pszAddress, UINT8 *pszValue)
 			fprintf(fp, "		mov	dx, %s	; Get our address to target\n", pszAddress);
 	
 		fprintf(fp, "		call	WriteMemoryByte	; Go write the data!\n");
-		fprintf(fp, "		jmp	short WriteMacroExit%ld\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short WriteMacroExit%" PRIu32 "\n", dwGlobalLabel);
 	
-		fprintf(fp, "memoryWrite%ld:\n", dwGlobalLabel);
+		fprintf(fp, "memoryWrite%" PRIu32 ":\n", dwGlobalLabel);
 	
 		if (strcmp(pszValue, "[esi]") == 0)
 			fprintf(fp, "		mov	[ebp + e%s], al	; Store our direct value\n", pszAddress);
@@ -1643,7 +1649,7 @@ void WriteValueToMemory(UINT8 *pszAddress, UINT8 *pszValue)
 
 		fprintf(fp, "		mov	ax, [_z80af] ; Get our accumulator and flags\n");
 	
-		fprintf(fp, "WriteMacroExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "WriteMacroExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 
 		++dwGlobalLabel;
@@ -1677,23 +1683,23 @@ void WriteValueToMemory(UINT8 *pszAddress, UINT8 *pszValue)
 	}
 }
 
-void WriteWordToMemory(UINT8 *pszAddress, UINT8 *pszTarget)
+void WriteWordToMemory(INT8 *pszAddress, INT8 *pszTarget)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		fprintf(fp, "		mov	[cyclesRemaining], edi\n");
-		fprintf(fp, "		mov	edi, [_z80MemWrite]	; Point to the write array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80MemWrite]	; Point to the write array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of the list?\n");
-		fprintf(fp, "		je		memoryWrite%ld\n", dwGlobalLabel);
+		fprintf(fp, "		je		memoryWrite%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi]	; Are we smaller?\n", pszAddress);
-		fprintf(fp, "		jb		nextAddr%ld		; Yes, go to the next address\n", dwGlobalLabel);
+		fprintf(fp, "		jb		nextAddr%" PRIu32 "		; Yes, go to the next address\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi+4]	; Are we bigger?\n", pszAddress);
-		fprintf(fp, "		jbe	callRoutine%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 10h		; Next structure!\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 
 		fprintf(fp, "		push	ax		; Save this for later\n");
 
@@ -1728,9 +1734,9 @@ void WriteWordToMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 		fprintf(fp, "		pop	dx\n");
 		fprintf(fp, "		pop	ax	; Restore us!\n");
 
-		fprintf(fp, "		jmp	writeExit%ld\n\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	writeExit%" PRIu32 "\n\n", dwGlobalLabel);
 
-		fprintf(fp, "memoryWrite%ld:\n", dwGlobalLabel);
+		fprintf(fp, "memoryWrite%" PRIu32 ":\n", dwGlobalLabel);
 
 		if (strlen(pszTarget) != 2)
 		{
@@ -1751,7 +1757,7 @@ void WriteWordToMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 			}
 		}
 	
-		fprintf(fp, "writeExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "writeExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 	
 		dwGlobalLabel++;
@@ -1794,7 +1800,7 @@ void WriteWordToMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 	}
 }
 
-void WriteValueToIo(UINT8 *pszIoAddress, UINT8 *pszValue)
+void WriteValueToIo(INT8 *pszIoAddress, INT8 *pszValue)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -1806,18 +1812,18 @@ void WriteValueToIo(UINT8 *pszIoAddress, UINT8 *pszValue)
 		if (strcmp(pszValue, "[esi]") == 0)	// Immediate value?
 			fprintf(fp, "		inc	esi	; Increment our program counter\n");
 
-		fprintf(fp, "		mov	edi, [_z80IoWrite]	; Point to the I/O write array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80IoWrite]	; Point to the I/O write array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of our list?\n");
-		fprintf(fp, "		je	WriteMacroExit%ld	; Yes - ignore it!\n", dwGlobalLabel);
+		fprintf(fp, "		je	WriteMacroExit%" PRIu32 "	; Yes - ignore it!\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi]	; Are we smaller?\n", pszIoAddress);
-		fprintf(fp, "		jb	nextAddr%ld	; Yes... go to the next addr\n", dwGlobalLabel);
+		fprintf(fp, "		jb	nextAddr%" PRIu32 "	; Yes... go to the next addr\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi+2]	; Are we bigger?\n", pszIoAddress);
-		fprintf(fp, "		jbe	callRoutine%ld	; If not, go call it!\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "	; If not, go call it!\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 0ch		; Next structure, please\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 
 		// Save off our registers!
 
@@ -1826,7 +1832,7 @@ void WriteValueToIo(UINT8 *pszIoAddress, UINT8 *pszValue)
 
 		fprintf(fp, "		call	WriteIOByte	; Go write the data!\n");
 	
-		fprintf(fp, "WriteMacroExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "WriteMacroExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 	}
 	else
@@ -1853,23 +1859,23 @@ void WriteValueToIo(UINT8 *pszIoAddress, UINT8 *pszValue)
 	++dwGlobalLabel;
 }
 
-void ReadValueFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
+void ReadValueFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		fprintf(fp, "		mov	[cyclesRemaining], edi\n");
-		fprintf(fp, "		mov	edi, [_z80MemRead]	; Point to the read array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80MemRead]	; Point to the read array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of the list?\n");
-		fprintf(fp, "		je		memoryRead%ld\n", dwGlobalLabel);
+		fprintf(fp, "		je		memoryRead%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	e%s, [edi]	; Are we smaller?\n", pszAddress);
-		fprintf(fp, "		jb		nextAddr%ld		; Yes, go to the next address\n", dwGlobalLabel);
+		fprintf(fp, "		jb		nextAddr%" PRIu32 "		; Yes, go to the next address\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	e%s, [edi+4]	; Are we bigger?\n", pszAddress);
-		fprintf(fp, "		jbe	callRoutine%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 10h		; Next structure!\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 
 		if (strcmp(pszAddress, "dx") != 0)
 			fprintf(fp, "		mov	dx, %s	; Get our address\n", pszAddress);
@@ -1892,8 +1898,8 @@ void ReadValueFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 	
 		// Restore registers here...
 	
-		fprintf(fp, "		jmp	short readExit%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "memoryRead%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short readExit%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "memoryRead%" PRIu32 ":\n", dwGlobalLabel);
 	
 		if (pszTarget[0] == 'b' && pszTarget[1] == 'y' && pszTarget[2] == 't')
 		{
@@ -1905,7 +1911,7 @@ void ReadValueFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 		else
 			fprintf(fp, "		mov	%s, [ebp + e%s]	; Get our data\n\n", pszTarget, pszAddress);
 	
-		fprintf(fp, "readExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "readExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 	
 		dwGlobalLabel++;
@@ -1944,23 +1950,23 @@ void ReadValueFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 }
 
 
-void ReadWordFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
+void ReadWordFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		fprintf(fp, "		mov	[cyclesRemaining], edi\n");
-		fprintf(fp, "		mov	edi, [_z80MemRead]	; Point to the read array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80MemRead]	; Point to the read array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of the list?\n");
-		fprintf(fp, "		je		memoryRead%ld\n", dwGlobalLabel);
+		fprintf(fp, "		je		memoryRead%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi]	; Are we smaller?\n", pszAddress);
-		fprintf(fp, "		jb		nextAddr%ld		; Yes, go to the next address\n", dwGlobalLabel);
+		fprintf(fp, "		jb		nextAddr%" PRIu32 "		; Yes, go to the next address\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi+4]	; Are we bigger?\n", pszAddress);
-		fprintf(fp, "		jbe	callRoutine%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 10h		; Next structure!\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 
 		if (strcmp(pszAddress, "dx") != 0)
 			fprintf(fp, "		mov	dx, %s	; Get our address\n", pszAddress);
@@ -2000,9 +2006,9 @@ void ReadWordFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 			fprintf(fp, "		xchg	ah, al\n");
 		}
 	
-		fprintf(fp, "		jmp	readExit%ld\n\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	readExit%" PRIu32 "\n\n", dwGlobalLabel);
 	
-		fprintf(fp, "memoryRead%ld:\n", dwGlobalLabel);
+		fprintf(fp, "memoryRead%" PRIu32 ":\n", dwGlobalLabel);
 	
 		if (strlen(pszTarget) == 2)
 		{
@@ -2018,7 +2024,7 @@ void ReadWordFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 			fprintf(fp, "		mov	%s, dx\n", pszTarget);
 		}
 	
-		fprintf(fp, "readExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "readExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 	}
 	else
@@ -2060,23 +2066,23 @@ void ReadWordFromMemory(UINT8 *pszAddress, UINT8 *pszTarget)
 }
 
 
-void ReadValueFromIo(UINT8 *pszIoAddress, UINT8 *pszTarget)
+void ReadValueFromIo(INT8 *pszIoAddress, INT8 *pszTarget)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		fprintf(fp, "		mov	[cyclesRemaining], edi\n");
-		fprintf(fp, "		mov	edi, [_z80IoRead]	; Point to the read array\n\n", cpubasename);
-		fprintf(fp, "checkLoop%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		mov	edi, [_z80IoRead]	; Point to the read array\n\n");
+		fprintf(fp, "checkLoop%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	[edi], word 0ffffh ; End of the list?\n");
-		fprintf(fp, "		je		ioRead%ld\n", dwGlobalLabel);
+		fprintf(fp, "		je		ioRead%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi]	; Are we smaller?\n", pszIoAddress);
-		fprintf(fp, "		jb		nextAddr%ld		; Yes, go to the next address\n", dwGlobalLabel);
+		fprintf(fp, "		jb		nextAddr%" PRIu32 "		; Yes, go to the next address\n", dwGlobalLabel);
 		fprintf(fp, "		cmp	%s, [edi+2]	; Are we bigger?\n", pszIoAddress);
-		fprintf(fp, "		jbe	callRoutine%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "nextAddr%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jbe	callRoutine%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "nextAddr%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	edi, 0ch		; Next structure!\n");
-		fprintf(fp, "		jmp	short checkLoop%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "callRoutine%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short checkLoop%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "callRoutine%" PRIu32 ":\n", dwGlobalLabel);
 
 		if (strcmp(pszIoAddress, "dx") != 0)
 			fprintf(fp, "		mov	dx, %s	; Get our address\n", pszIoAddress);
@@ -2108,14 +2114,14 @@ void ReadValueFromIo(UINT8 *pszIoAddress, UINT8 *pszTarget)
 
 		// Restore registers here...
 
-		fprintf(fp, "		jmp	short readExit%ld\n\n", dwGlobalLabel);
-		fprintf(fp, "ioRead%ld:\n", dwGlobalLabel);
+		fprintf(fp, "		jmp	short readExit%" PRIu32 "\n\n", dwGlobalLabel);
+		fprintf(fp, "ioRead%" PRIu32 ":\n", dwGlobalLabel);
 	
 		if (strcmp(pszTarget, "*dl") == 0)
 			fprintf(fp, "		mov	dl, 0ffh	; An unreferenced read\n");
 		else
 			fprintf(fp, "		mov	%s, 0ffh	; An unreferenced read\n", pszTarget);
-		fprintf(fp, "readExit%ld:\n", dwGlobalLabel);
+		fprintf(fp, "readExit%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	edi, [cyclesRemaining]\n");
 	}
 	else
@@ -2572,7 +2578,7 @@ void MathOperation(UINT32 dwOrgOpcode)
 {
 	UINT8 bRegister;
 	UINT32 dwOpcode;
-	UINT8 tempstr[150];
+	INT8 tempstr[150];
 
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -2808,15 +2814,15 @@ void JpHandler(UINT32 dwOpcode)
 		else	// It's a conditional handler...
 		{
 			fprintf(fp, "		sahf		; Restore our flags\n");
-			fprintf(fp, "		j%s	takeJump%ld	; We're going to take a jump\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
+			fprintf(fp, "		j%s	takeJump%" PRIu32 "	; We're going to take a jump\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
 			fprintf(fp, "		add	esi, 2		; Skip past the address\n");
-			fprintf(fp, "		jmp	short nextInst%ld	 ; Go execute the next instruction\n", dwGlobalLabel);
-			fprintf(fp, "takeJump%ld:\n", dwGlobalLabel);
+			fprintf(fp, "		jmp	short nextInst%" PRIu32 "	 ; Go execute the next instruction\n", dwGlobalLabel);
+			fprintf(fp, "takeJump%" PRIu32 ":\n", dwGlobalLabel);
 	
 			fprintf(fp, "		mov	si, [esi]	; Get our new offset\n");
 			fprintf(fp, "		and	esi, 0ffffh	; Only the lower WORD is valid\n");
 			fprintf(fp, "		add	esi, ebp		; Our new address!\n");
-			fprintf(fp, "nextInst%ld:\n", dwGlobalLabel);
+			fprintf(fp, "nextInst%" PRIu32 ":\n", dwGlobalLabel);
 			++dwGlobalLabel;
 		}
 	
@@ -2942,8 +2948,6 @@ void DecRegister(UINT32 dwOpcode)
 
 void IncDecRegpair(UINT32 dwOpcode)
 {
-	UINT32 dwOpcode1 = 0;
-
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		ProcBegin(dwOpcode);
@@ -3020,7 +3024,7 @@ void LdRegReg(UINT32 dwOpcode)
 
 void MathOperationDirect(UINT32 dwOpcode)
 {
-	UINT8 tempstr[4];
+	INT8 tempstr[4];
 
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -3156,9 +3160,9 @@ void JrHandler(UINT32 dwOpcode)
 		if (dwOpcode != 0x18)
 		{
 			fprintf(fp, "		sahf\n");
-			fprintf(fp,     "		j%s	takeJump%ld\n", pbFlags[(dwOpcode >> 3) & 0x3], dwGlobalLabel);
-			fprintf(fp, "		jmp	short noJumpMan%ld\n", dwGlobalLabel);
-			fprintf(fp, "takeJump%ld:\n", dwGlobalLabel);
+			fprintf(fp,     "		j%s	takeJump%" PRIu32 "\n", pbFlags[(dwOpcode >> 3) & 0x3], dwGlobalLabel);
+			fprintf(fp, "		jmp	short noJumpMan%" PRIu32 "\n", dwGlobalLabel);
+			fprintf(fp, "takeJump%" PRIu32 ":\n", dwGlobalLabel);
 
 			if (FALSE == bNoTiming)
 			{
@@ -3179,7 +3183,7 @@ void JrHandler(UINT32 dwOpcode)
 		fprintf(fp, "		and	esi, 0ffffh	; Only the lower 16 bits\n");
 		fprintf(fp, "		add	esi, ebp\n");
 		fprintf(fp, "		xor	dh, dh\n");
-		fprintf(fp, "noJumpMan%ld:\n", dwGlobalLabel++);
+		fprintf(fp, "noJumpMan%" PRIu32 ":\n", dwGlobalLabel++);
 
 		FetchNextInstruction(dwOpcode);
 	
@@ -3229,10 +3233,10 @@ void CallHandler(UINT32 dwOpcode)
 		if (dwOpcode != 0xcd)
 		{
 			fprintf(fp, "		sahf		; Restore our flags\n");
-			fprintf(fp, "		j%s	takeJump%ld	; We're going call in this case\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
+			fprintf(fp, "		j%s	takeJump%" PRIu32 "	; We're going call in this case\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
 			fprintf(fp, "		add	esi, 2		; Skip past the address\n");
-			fprintf(fp, "		jmp	short noCallTaken%ld	 ; Go execute the next instruction\n", dwGlobalLabel);
-			fprintf(fp, "takeJump%ld:\n", dwGlobalLabel);
+			fprintf(fp, "		jmp	short noCallTaken%" PRIu32 "	 ; Go execute the next instruction\n", dwGlobalLabel);
+			fprintf(fp, "takeJump%" PRIu32 ":\n", dwGlobalLabel);
 	
 			fprintf(fp, "		sub	edi, 7\n");
 		}
@@ -3264,7 +3268,7 @@ void CallHandler(UINT32 dwOpcode)
 		}
 
 		if (dwOpcode != 0xcd)
-			fprintf(fp, "noCallTaken%ld:\n", dwGlobalLabel++);
+			fprintf(fp, "noCallTaken%" PRIu32 ":\n", dwGlobalLabel++);
 
 		fprintf(fp, "		xor	edx, edx\n");
 		FetchNextInstruction(dwOpcode);
@@ -3312,9 +3316,9 @@ void RetHandler(UINT32 dwOpcode)
 		if (dwOpcode != 0xc9)
 		{
 			fprintf(fp, "		sahf\n");
-			fprintf(fp, "		j%s	takeReturn%ld\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
-			fprintf(fp, "		jmp	short retNotTaken%ld\n", dwGlobalLabel);
-			fprintf(fp, "takeReturn%ld:\n", dwGlobalLabel);
+			fprintf(fp, "		j%s	takeReturn%" PRIu32 "\n", pbFlags[(dwOpcode >> 3) & 0x07], dwGlobalLabel);
+			fprintf(fp, "		jmp	short retNotTaken%" PRIu32 "\n", dwGlobalLabel);
+			fprintf(fp, "takeReturn%" PRIu32 ":\n", dwGlobalLabel);
 
 			if (FALSE == bNoTiming)
 			{
@@ -3342,7 +3346,7 @@ void RetHandler(UINT32 dwOpcode)
 		}
 
 		if (dwOpcode != 0xc9)
-			fprintf(fp, "retNotTaken%ld:\n", dwGlobalLabel++);
+			fprintf(fp, "retNotTaken%" PRIu32 ":\n", dwGlobalLabel++);
 
 		FetchNextInstruction(dwOpcode);
 	}
@@ -3389,7 +3393,7 @@ void RestartHandler(UINT32 dwOpcode)
 			fprintf(fp, "		mov	[_wordval], si	; Store our return address\n");
 			fprintf(fp, "		call	PushWord\n");
 			fprintf(fp, "		xor	esi, esi\n");
-			fprintf(fp, "		mov	si, %.4lxh\n", dwOpcode1);
+			fprintf(fp, "		mov	si, %.4" PRIx32 "h\n", dwOpcode1);
 			fprintf(fp, "		add	esi, ebp\n");
 		}
 		else 
@@ -3831,7 +3835,7 @@ void BITHandler(UINT32 dwOpcode)
 
 		fprintf(fp, "				cpu.z80F &= ~(Z80_FLAG_HALF_CARRY | Z80_FLAG_NEGATIVE | Z80_FLAG_ZERO);\n");
 		fprintf(fp, "				cpu.z80F |= (Z80_FLAG_HALF_CARRY);\n");
-		fprintf(fp, "				if (!(%s & 0x%.2lx))\n", pbMathRegC[op], bBitVal);
+		fprintf(fp, "				if (!(%s & 0x%.2" PRIx32 "))\n", pbMathRegC[op], bBitVal);
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					cpu.z80F |= Z80_FLAG_ZERO;\n");
 		fprintf(fp, "				}\n");
@@ -3977,7 +3981,7 @@ void RLCRRCRLRRSLASRASRLHandler(UINT32 dwOpcode)
 		{
 			fprintf(fp, "				cpu.z80F &= ~(Z80_FLAG_ZERO | Z80_FLAG_SIGN | Z80_FLAG_HALF_CARRY | Z80_FLAG_OVERFLOW_PARITY | Z80_FLAG_NEGATIVE | Z80_FLAG_CARRY);\n");
 			fprintf(fp, "				cpu.z80F |= (%s & Z80_FLAG_CARRY);\n", pbMathRegC[op]);
-			fprintf(fp, "				%s = (%s >> 1);\n", pbMathRegC[op], pbMathRegC[op], pbMathRegC[op]);
+			fprintf(fp, "				%s = (%s >> 1);\n", pbMathRegC[op], pbMathRegC[op]);
 			fprintf(fp, "				cpu.z80F |= bPostORFlags[%s];\n", pbMathRegC[op]);
 		}
 		else
@@ -4092,7 +4096,7 @@ void CPICPDCPIRCPDRHandler(UINT32 dwOpcode)
 
 		if (dwOpcode == 0xb1 || dwOpcode == 0xb9)
 		{
-			fprintf(fp, "cpRepeat%ld:\n", dwGlobalLabel);
+			fprintf(fp, "cpRepeat%" PRIu32 ":\n", dwGlobalLabel);
 			dwRepeatOb = dwGlobalLabel;
 			++dwGlobalLabel;
 		}
@@ -4109,9 +4113,9 @@ void CPICPDCPIRCPDRHandler(UINT32 dwOpcode)
 		fprintf(fp, "		lahf\n");
 		fprintf(fp, "		and	ah, 0fah	; No P/V or carry!\n");
 		fprintf(fp, "		dec	cx	; Dec BC\n");
-		fprintf(fp, "		jz	notBcZero%ld\n", dwGlobalLabel);
+		fprintf(fp, "		jz	notBcZero%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		or	ah, 04h	; P/V set when BC not zero\n");
-		fprintf(fp, "notBcZero%ld:\n", dwGlobalLabel);
+		fprintf(fp, "notBcZero%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		or	ah, 02h	; N Gets set when we do compares\n");
 		fprintf(fp, "		mov	dl, byte [_z80af]\n");
 		fprintf(fp, "		and	dl, 01h\n");
@@ -4127,21 +4131,21 @@ void CPICPDCPIRCPDRHandler(UINT32 dwOpcode)
 		if (dwOpcode == 0xb1 || dwOpcode == 0xb9)
 		{
 			fprintf(fp, "		sahf\n");
-			fprintf(fp, "		jz	BCDone%ld\n", dwRepeatOb);
-			fprintf(fp, "		jnp	BCDone%ld\n", dwRepeatOb);
+			fprintf(fp, "		jz	BCDone%" PRIu32 "\n", dwRepeatOb);
+			fprintf(fp, "		jnp	BCDone%" PRIu32 "\n", dwRepeatOb);
 
 			if (FALSE == bNoTiming)
 			{
 				fprintf(fp, "		sub	edi, dword 21\n");
-				fprintf(fp, "		js		BCDoneExit%ld\n", dwRepeatOb);
+				fprintf(fp, "		js		BCDoneExit%" PRIu32 "\n", dwRepeatOb);
 			}
 
-			fprintf(fp, "		jmp	cpRepeat%ld\n", dwRepeatOb);
+			fprintf(fp, "		jmp	cpRepeat%" PRIu32 "\n", dwRepeatOb);
 
-			fprintf(fp, "BCDoneExit%ld:\n", dwRepeatOb);
+			fprintf(fp, "BCDoneExit%" PRIu32 ":\n", dwRepeatOb);
 			fprintf(fp, "		sub	esi, 2	;	Back up to the instruction again\n");
 			fprintf(fp, "		jmp	noMoreExec\n\n");
-			fprintf(fp, "BCDone%ld:\n", dwRepeatOb);
+			fprintf(fp, "BCDone%" PRIu32 ":\n", dwRepeatOb);
 		}
 	
 		fprintf(fp, "		xor	edx, edx\n");
@@ -4211,7 +4215,7 @@ void INIRINDRINIINDHandler(UINT32 dwOpcode)
 		dwGlobalLabel++;
 
 		if (0xba == dwOpcode || 0xb2 == dwOpcode)
-			fprintf(fp, "loopIt%ld:\n", dwTempLabel);
+			fprintf(fp, "loopIt%" PRIu32 ":\n", dwTempLabel);
 
 		// Fetch what's at (C) and put it in (HL)
 
@@ -4239,31 +4243,31 @@ void INIRINDRINIINDHandler(UINT32 dwOpcode)
 	
 		if (0xba == dwOpcode || 0xb2 == dwOpcode)
 		{
-			fprintf(fp, "		jz	near finalExit%ld\n", dwTempLabel);
+			fprintf(fp, "		jz	near finalExit%" PRIu32 "\n", dwTempLabel);
 
 			// Otherwise, we need to loop again
 
 			if (FALSE == bNoTiming)
 			{
 				fprintf(fp, "		sub	edi, dword 21\n");
-				fprintf(fp, "		js		loopExit%ld\n", dwTempLabel);
+				fprintf(fp, "		js		loopExit%" PRIu32 "\n", dwTempLabel);
 			}
 
-			fprintf(fp, "		jmp	loopIt%ld\n\n", dwTempLabel);
-			fprintf(fp, "loopExit%ld:\n", dwTempLabel);
+			fprintf(fp, "		jmp	loopIt%" PRIu32 "\n\n", dwTempLabel);
+			fprintf(fp, "loopExit%" PRIu32 ":\n", dwTempLabel);
 			fprintf(fp, "		sub	esi, 2\n");
 			fprintf(fp, "		jmp	noMoreExec\n\n");
 		}
 	
 		// Now let's fix up the flags
 
-		fprintf(fp, "finalExit%ld:\n", dwTempLabel);	
-		fprintf(fp, "		jnz	clearFlag%ld\n", dwTempLabel);
+		fprintf(fp, "finalExit%" PRIu32 ":\n", dwTempLabel);	
+		fprintf(fp, "		jnz	clearFlag%" PRIu32 "\n", dwTempLabel);
 		fprintf(fp, "		or	ah, 040h	; Set the Zero flag!\n");
-		fprintf(fp, "		jmp	short continue%ld\n", dwTempLabel);
-		fprintf(fp, "clearFlag%ld:\n", dwTempLabel);
+		fprintf(fp, "		jmp	short continue%" PRIu32 "\n", dwTempLabel);
+		fprintf(fp, "clearFlag%" PRIu32 ":\n", dwTempLabel);
 		fprintf(fp, "		and	ah, 0bfh	; Clear the zero flag\n");
-		fprintf(fp, "continue%ld:\n", dwTempLabel);
+		fprintf(fp, "continue%" PRIu32 ":\n", dwTempLabel);
 		fprintf(fp, "		or	ah, 02h	; Set negative!\n");
 		fprintf(fp, "		xor	edx, edx\n");
 		FetchNextInstruction(dwOpcode);
@@ -4325,7 +4329,7 @@ void OTIROTDROUTIOUTDHandler(UINT32 dwOpcode)
 		dwGlobalLabel++;
 
 		if (0xbb == dwOpcode || 0xb3 == dwOpcode)
-			fprintf(fp, "loopIt%ld:\n", dwTempLabel);
+			fprintf(fp, "loopIt%" PRIu32 ":\n", dwTempLabel);
 
 		// Fetch what's at (HL) and put it in DL
 
@@ -4351,31 +4355,31 @@ void OTIROTDROUTIOUTDHandler(UINT32 dwOpcode)
 	
 		if (0xbb == dwOpcode || 0xb3 == dwOpcode)
 		{
-			fprintf(fp, "		jz	near finalExit%ld\n", dwTempLabel);
+			fprintf(fp, "		jz	near finalExit%" PRIu32 "\n", dwTempLabel);
 
 			// Otherwise, we need to loop again
 
 			if (FALSE == bNoTiming)
 			{
 				fprintf(fp, "		sub	edi, dword 21\n");
-				fprintf(fp, "		js		loopExit%ld\n", dwTempLabel);
+				fprintf(fp, "		js		loopExit%" PRIu32 "\n", dwTempLabel);
 			}
 
-			fprintf(fp, "		jmp	loopIt%ld\n\n", dwTempLabel);
-			fprintf(fp, "loopExit%ld:\n", dwTempLabel);
+			fprintf(fp, "		jmp	loopIt%" PRIu32 "\n\n", dwTempLabel);
+			fprintf(fp, "loopExit%" PRIu32 ":\n", dwTempLabel);
 			fprintf(fp, "		sub	esi, 2\n");
 			fprintf(fp, "		jmp	noMoreExec\n\n");
 		}
 	
 		// Now let's fix up the flags
 
-		fprintf(fp, "finalExit%ld:\n", dwTempLabel);	
-		fprintf(fp, "		jnz	clearFlag%ld\n", dwTempLabel);
+		fprintf(fp, "finalExit%" PRIu32 ":\n", dwTempLabel);	
+		fprintf(fp, "		jnz	clearFlag%" PRIu32 "\n", dwTempLabel);
 		fprintf(fp, "		or	ah, 040h	; Set the Zero flag!\n");
-		fprintf(fp, "		jmp	short continue%ld\n", dwTempLabel);
-		fprintf(fp, "clearFlag%ld:\n", dwTempLabel);
+		fprintf(fp, "		jmp	short continue%" PRIu32 "\n", dwTempLabel);
+		fprintf(fp, "clearFlag%" PRIu32 ":\n", dwTempLabel);
 		fprintf(fp, "		and	ah, 0bfh	; Clear the zero flag\n");
-		fprintf(fp, "continue%ld:\n", dwTempLabel);
+		fprintf(fp, "continue%" PRIu32 ":\n", dwTempLabel);
 		fprintf(fp, "		or	ah, 02h	; Set negative!\n");
 		fprintf(fp, "		xor	edx, edx\n");
 		FetchNextInstruction(dwOpcode);
@@ -4795,7 +4799,7 @@ void LDILDRLDIRLDDRHandler(UINT32 dwOpcode)
 		if (dwOpcode == 0xb0 || dwOpcode == 0xb8)
 		{
 			dwOrgGlobal = dwGlobalLabel;
-			fprintf(fp, "ldRepeat%ld:\n", dwGlobalLabel);
+			fprintf(fp, "ldRepeat%" PRIu32 ":\n", dwGlobalLabel);
 		}
 
 		ReadValueFromMemory("bx", "dl");	
@@ -4823,22 +4827,22 @@ void LDILDRLDIRLDDRHandler(UINT32 dwOpcode)
 		{
 			if (FALSE == bNoTiming)
 			{
-				fprintf(fp, "		jz	noMore%ld\n", dwGlobalLabel);
+				fprintf(fp, "		jz	noMore%" PRIu32 "\n", dwGlobalLabel);
 				fprintf(fp, "		sub	edi, dword 16	; 16 T-States per iteration\n");
-				fprintf(fp, "		js	noMore%ld\n", dwGlobalLabel);
+				fprintf(fp, "		js	noMore%" PRIu32 "\n", dwGlobalLabel);
 			}
 			else
 			{
-				fprintf(fp, "		jz	noMore%ld\n", dwGlobalLabel);
+				fprintf(fp, "		jz	noMore%" PRIu32 "\n", dwGlobalLabel);
 			}
 	
-			fprintf(fp, "		jmp	ldRepeat%ld ; Loop until we're done!\n", dwOrgGlobal);
-			fprintf(fp, "noMore%ld:\n", dwGlobalLabel);
+			fprintf(fp, "		jmp	ldRepeat%" PRIu32 " ; Loop until we're done!\n", dwOrgGlobal);
+			fprintf(fp, "noMore%" PRIu32 ":\n", dwGlobalLabel);
 		}
 	
 		fprintf(fp, "		and	ah, 0e9h ; Knock out H & N and P/V\n");
 		fprintf(fp, "		or		cx, cx	; Flag BC\n");
-		fprintf(fp, "		jz	atZero%ld ; We're done!\n", dwGlobalLabel);
+		fprintf(fp, "		jz	atZero%" PRIu32 " ; We're done!\n", dwGlobalLabel);
 	
 		if (dwOpcode == 0xb0 || dwOpcode == 0xb8)
 		{
@@ -4854,7 +4858,7 @@ void LDILDRLDIRLDDRHandler(UINT32 dwOpcode)
 			fprintf(fp, "		or	ah, 04h	; Non-zero - we're still going!\n");
 		}
 	
-		fprintf(fp, "atZero%ld:\n", dwGlobalLabel);
+		fprintf(fp, "atZero%" PRIu32 ":\n", dwGlobalLabel);
 		++dwGlobalLabel;
 	
 		fprintf(fp, "		xor	edx, edx	; Make sure we don't hose things\n");
@@ -5069,13 +5073,13 @@ void DDFDCBHandler(UINT32 dwOpcode)
 
 		fprintf(fp, "		mov	byte [_orgval], dl ; Store our value\n");
 		fprintf(fp, "		or	dl, dl\n");
-		fprintf(fp, "		js	notNeg%ld\n", dwGlobalLabel);
+		fprintf(fp, "		js	notNeg%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		mov	byte [_orgval + 1], 00h;\n");
 
-		fprintf(fp, " 		jmp	short jumpHandler%ld\n", dwGlobalLabel);
-		fprintf(fp, "notNeg%ld:\n", dwGlobalLabel);
+		fprintf(fp, " 		jmp	short jumpHandler%" PRIu32 "\n", dwGlobalLabel);
+		fprintf(fp, "notNeg%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		mov	byte [_orgval + 1], 0ffh;	It's negative\n");
-		fprintf(fp, "jumpHandler%ld:\n", dwGlobalLabel++);
+		fprintf(fp, "jumpHandler%" PRIu32 ":\n", dwGlobalLabel++);
 		fprintf(fp, "		shl	ebx, 16	; Save BX away\n");
 		fprintf(fp, "		mov	bx, [_z80%s]\n", mz80Index);
 		fprintf(fp, "		add	[_orgval], bx\n");
@@ -5100,7 +5104,7 @@ void DDFDCBHandler(UINT32 dwOpcode)
 
 void LoadIndexReg(UINT32 dwOpcode)
 {
-	UINT8 string[150];
+	INT8 string[150];
 
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -5188,7 +5192,7 @@ void LdIndexPtrReg(UINT32 dwOpcode)
 void UndocMathIndex(UINT32 dwOpcode)
 {
 	UINT32 dwOpcode1 = 0;
-	UINT8 *pbIndexReg = NULL;
+	INT8 *pbIndexReg = NULL;
 
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -5529,9 +5533,9 @@ void LdByteToIndex(UINT32 dwOpcode)
 		fprintf(fp, "		mov	di, dx	; Store it here for later\n");
 		fprintf(fp, "		xor	dh, dh\n");
 		fprintf(fp, "		or	dl, dl\n");
-		fprintf(fp, "		jns	noNegate%ld\n", dwGlobalLabel);
+		fprintf(fp, "		jns	noNegate%" PRIu32 "\n", dwGlobalLabel);
 		fprintf(fp, "		dec	dh\n");
-		fprintf(fp, "noNegate%ld:\n", dwGlobalLabel);
+		fprintf(fp, "noNegate%" PRIu32 ":\n", dwGlobalLabel);
 		fprintf(fp, "		add	dx, [_z80%s]	; Add in our index\n", mz80Index);
 		fprintf(fp, "		mov	[_orgval], dx	; Store our address to write to\n");
 		fprintf(fp, "		mov	dx, di\n");
@@ -5654,8 +5658,6 @@ void JPIXIYHandler(UINT32 dwOpcode)
 
 void IncDecIndexed(UINT32 dwOpcode)
 {
-	UINT8 szIndex[30];
-
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
 		ProcBegin(dwOpcode);
@@ -5854,7 +5856,7 @@ void UndocIndexToReg(UINT32 dwOpcode)
 		if ((dwOpcode & 0x07) == 5)
 			fprintf(fp, "	mov	dl, byte [_z80%s]\n", mz80Index);
 
-		fprintf(fp, "		mov   byte [_z80%s + %ld], %s\n", mz80Index, 1 - ((dwOpcode & 0x08) >> 3), pbLocalReg[dwOpcode & 0x07]);
+		fprintf(fp, "		mov   byte [_z80%s + %" PRIu32 "], %s\n", mz80Index, 1 - ((dwOpcode & 0x08) >> 3), pbLocalReg[dwOpcode & 0x07]);
 		fprintf(fp, "		xor	edx, edx\n");
 		FetchNextInstruction(dwOpcode);
 	}
@@ -5896,7 +5898,7 @@ void UndocRegToIndex(UINT32 dwOpcode)
 		if ((dwOpcode & 0x38) == 0x10 || (dwOpcode & 0x38) == 0x18)
 			fprintf(fp, "		mov	dx, [_z80de]	; Get a usable copy of DE here\n");
 
-		fprintf(fp, "		mov	%s, byte [_z80%s + %ld]\n", pbLocalReg[(dwOpcode >> 3) & 0x07], mz80Index, 1 - (dwOpcode & 1));
+		fprintf(fp, "		mov	%s, byte [_z80%s + %" PRIu32 "]\n", pbLocalReg[(dwOpcode >> 3) & 0x07], mz80Index, 1 - (dwOpcode & 1));
 
 		if ((dwOpcode & 0x38) == 0x10 || (dwOpcode & 0x38) == 0x18)
 			fprintf(fp, "		mov	[_z80de], dx	; Put it back!\n");
@@ -5941,10 +5943,9 @@ void LoadImmediate(UINT32 dwOpcode)
 
 void PushPopOperationsIndexed(UINT32 dwOpcode)
 {
-	UINT8 bRegPair;
-	UINT8 bRegBaseLsb[25];
-	UINT8 bRegBaseMsb[25];
-	UINT8 string[150];
+	INT8 bRegBaseLsb[25];
+	INT8 bRegBaseMsb[25];
+	INT8 string[150];
 
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -6180,7 +6181,7 @@ void ddcbBitWise(UINT32 dwOpcode)
 		assert(0);
 }
 
-GetTicksCode()
+void GetTicksCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -6226,7 +6227,7 @@ GetTicksCode()
 	}
 }
 
-ReleaseTimesliceCode()
+void ReleaseTimesliceCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -6262,7 +6263,7 @@ ReleaseTimesliceCode()
 	}
 }
 
-DataSegment()
+void DataSegment(void)
 {
 	UINT32 dwLoop = 0;
 	UINT8 bUsed[256];
@@ -7070,7 +7071,7 @@ DataSegment()
 	}
 }
 	
-CodeSegmentBegin()
+void CodeSegmentBegin(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -7095,15 +7096,14 @@ CodeSegmentBegin()
 	}
 }
 
-CodeSegmentEnd()
+void CodeSegmentEnd(void)
 {
 }
 
-ProgramEnd()
+void ProgramEnd(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
-		fprintf(fp, "		end\n");
 	}
 	else
 	if (MZ80_C == bWhat)
@@ -7115,7 +7115,7 @@ ProgramEnd()
 	}
 }
 
-EmitRegularInstructions()
+void EmitRegularInstructions(void)
 {
 	UINT32 dwLoop = 0;
 	UINT32 dwLoop2 = 0;
@@ -7184,7 +7184,7 @@ EmitRegularInstructions()
 
 			if (bTimingRegular[dwLoop])
 			{
-				fprintf(fp, "				sdwCyclesRemaining -= %ld;\n", bTimingRegular[dwLoop]);
+				fprintf(fp, "				sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingRegular[dwLoop]);
 			}
 
 			if (StandardOps[dwLoop2].Emitter)
@@ -7213,7 +7213,7 @@ EmitRegularInstructions()
 	}
 }
 
-EmitCBInstructions()
+void EmitCBInstructions(void)
 {
 	UINT32 dwLoop = 0;
 	UINT32 dwLoop2 = 0;
@@ -7257,7 +7257,7 @@ EmitCBInstructions()
 
 			if (bTimingCB[dwLoop])
 			{
-				fprintf(fp, "			sdwCyclesRemaining -= %ld;\n", bTimingCB[dwLoop]);
+				fprintf(fp, "			sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingCB[dwLoop]);
 			}
 
 			if (CBOps[dwLoop2].Emitter)
@@ -7283,7 +7283,7 @@ EmitCBInstructions()
 	}
 }
 
-EmitEDInstructions()
+void EmitEDInstructions(void)
 {
 	UINT32 dwLoop = 0;
 	UINT32 dwLoop2 = 0;
@@ -7327,7 +7327,7 @@ EmitEDInstructions()
 
 			if (bTimingED[dwLoop])
 			{
-				fprintf(fp, "			sdwCyclesRemaining -= %ld;\n", bTimingED[dwLoop]);
+				fprintf(fp, "			sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingED[dwLoop]);
 			}
 
 			if (EDOps[dwLoop2].Emitter)
@@ -7355,7 +7355,7 @@ EmitEDInstructions()
 	fprintf(fp, "\n");
 }
 
-EmitDDInstructions()
+void EmitDDInstructions(void)
 {
 	UINT32 dwLoop = 0;
 	UINT32 dwLoop2 = 0;
@@ -7418,7 +7418,7 @@ EmitDDInstructions()
 
 			if (bTimingDDFD[dwLoop])
 			{
-				fprintf(fp, "			sdwCyclesRemaining -= %ld;\n", bTimingDDFD[dwLoop]);
+				fprintf(fp, "			sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingDDFD[dwLoop]);
 			}
 
 			if (DDFDOps[dwLoop2].Emitter)
@@ -7472,7 +7472,7 @@ EmitDDInstructions()
 
 			if (bTimingXXCB[dwLoop])
 			{
-				fprintf(fp, "			sdwCyclesRemaining -= %ld;\n", bTimingXXCB[dwLoop]);
+				fprintf(fp, "			sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingXXCB[dwLoop]);
 			}
 
 			if (DDFDCBOps[dwLoop2].Emitter)
@@ -7498,7 +7498,7 @@ EmitDDInstructions()
 	}
 }
 
-EmitFDInstructions()
+void EmitFDInstructions(void)
 {
 	UINT32 dwLoop = 0;
 	UINT32 dwLoop2 = 0;
@@ -7542,7 +7542,7 @@ EmitFDInstructions()
 
 			if (bTimingDDFD[dwLoop])
 			{
-				fprintf(fp, "			sdwCyclesRemaining -= %ld;\n", bTimingDDFD[dwLoop]);
+				fprintf(fp, "			sdwCyclesRemaining -= %" PRIu32 ";\n", bTimingDDFD[dwLoop]);
 			}
 
 			if (DDFDOps[dwLoop2].Emitter)
@@ -7588,8 +7588,8 @@ void ReadMemoryByteHandler()
 		fprintf(fp, "		mov	[_z80hl], bx	; Save HL\n");
 		fprintf(fp, "		mov	[_z80bc], cx	; Save BC\n");
 
-		fprintf(fp, "		sub	esi, ebp	; Our program counter\n", cpubasename);
-		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n", cpubasename);
+		fprintf(fp, "		sub	esi, ebp	; Our program counter\n");
+		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n");
 
 		// Now adjust the proper timing
 
@@ -7615,8 +7615,8 @@ void ReadMemoryByteHandler()
 	
 		fprintf(fp, "		xor	ebx, ebx	; Zero our future HL\n");
 		fprintf(fp, "		xor	esi, esi	; Zero it!\n");
-		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n", cpubasename);
-		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n", cpubasename);
+		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n");
+		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n");
 		fprintf(fp, "		xor	ecx, ecx	; Zero our future BC\n");
 		fprintf(fp, "		add	esi, ebp	; Rebase it properly\n");
 	
@@ -7662,8 +7662,8 @@ void WriteMemoryByteHandler()
 		fprintf(fp, "		mov	[_z80hl], bx	; Save HL\n");
 		fprintf(fp, "		mov	[_z80bc], cx	; Save BX\n");
 	
-		fprintf(fp, "		sub	esi, ebp	; Our program counter\n", cpubasename);
-		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n", cpubasename);
+		fprintf(fp, "		sub	esi, ebp	; Our program counter\n");
+		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n");
 	
 		// Now adjust the proper timing
 	
@@ -7701,8 +7701,8 @@ void WriteMemoryByteHandler()
 		fprintf(fp, "		mov	cx, [_z80bc]	; Get BC back\n");
 		fprintf(fp, "		mov	ax, [_z80af]	; Get AF back\n");
 		fprintf(fp, "		xor	esi, esi	; Zero it!\n");
-		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n", cpubasename);
-		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n", cpubasename);
+		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n");
+		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n");
 		fprintf(fp, "		add	esi, ebp	; Rebase it properly\n");
 
 		fprintf(fp, "		ret\n\n");
@@ -7780,8 +7780,8 @@ void ReadIoHandler()
 		fprintf(fp, "		mov	[_z80hl], bx	; Save HL\n");
 		fprintf(fp, "		mov	[_z80bc], cx	; Save BC\n");
 
-		fprintf(fp, "		sub	esi, ebp	; Our program counter\n", cpubasename);
-		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n", cpubasename);
+		fprintf(fp, "		sub	esi, ebp	; Our program counter\n");
+		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n");
 
 		// Now adjust the proper timing
 
@@ -7808,8 +7808,8 @@ void ReadIoHandler()
 		fprintf(fp, "		xor	ebx, ebx	; Zero our future HL\n");
 		fprintf(fp, "		xor	ecx, ecx	; Zero our future BC\n");
 		fprintf(fp, "		xor	esi, esi	; Zero it!\n");
-		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n", cpubasename);
-		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n", cpubasename);
+		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n");
+		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n");
 		fprintf(fp, "		add	esi, ebp	; Rebase it properly\n");
 
 		fprintf(fp, "		mov	bx, [_z80hl]	; Get HL back\n");
@@ -7844,8 +7844,8 @@ void WriteIoHandler()
 		fprintf(fp, "		mov	[_z80hl], bx	; Save HL\n");
 		fprintf(fp, "		mov	[_z80bc], cx	; Save BX\n");
 
-		fprintf(fp, "		sub	esi, ebp	; Our program counter\n", cpubasename);
-		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n", cpubasename);
+		fprintf(fp, "		sub	esi, ebp	; Our program counter\n");
+		fprintf(fp, "		mov	[_z80pc], si	; Save our program counter\n");
 
 		// Now adjust the proper timing
 
@@ -7883,8 +7883,8 @@ void WriteIoHandler()
 		fprintf(fp, "		mov	cx, [_z80bc]	; Get BC back\n");
 		fprintf(fp, "		mov	ax, [_z80af]	; Get AF back\n");
 		fprintf(fp, "		xor	esi, esi	; Zero it!\n");
-		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n", cpubasename);
-		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n", cpubasename);
+		fprintf(fp, "		mov	si, [_z80pc]	; Get our program counter back\n");
+		fprintf(fp, "		mov	ebp, [_z80Base] ; Base pointer comes back\n");
 		fprintf(fp, "		add	esi, ebp	; Rebase it properly\n");
 
 		fprintf(fp, "		ret\n\n");
@@ -7899,7 +7899,7 @@ void WriteIoHandler()
 	}
 }
 
-ExecCode()
+void ExecCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8139,7 +8139,7 @@ ExecCode()
 	}
 }
 
-NmiCode()
+void NmiCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8241,7 +8241,7 @@ NmiCode()
 	}
 }
 
-IntCode()
+void IntCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8398,7 +8398,7 @@ IntCode()
 	}
 }
 
-ResetCode()
+void ResetCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8473,7 +8473,7 @@ ResetCode()
 	}
 }
 
-SetContextCode()
+void SetContextCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8526,7 +8526,7 @@ SetContextCode()
 	}
 }
 
-GetContextCode()
+void GetContextCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -8582,7 +8582,7 @@ GetContextCode()
 	}
 }
 
-GetContextSizeCode()
+void GetContextSizeCode(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
@@ -9378,7 +9378,7 @@ void DebuggerCode(void)
 }
 
 
-EmitCode()
+void EmitCode(void)
 {
 	CodeSegmentBegin();
 	EmitCBInstructions();
@@ -9436,11 +9436,11 @@ EmitCode()
 	CodeSegmentEnd();
 }
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	UINT32 dwLoop = 0;
+	int dwLoop = 0;
 
-	printf("MakeZ80 - V%s - Copyright 1996-2000 Neil Bradley (neil@synthcom.com)\n", VERSION);
+	printf("MakeZ80 - V%s - Copyright 1996-2000 Neil Bradley (neil@synthcom.com)\n", MZ80_VERSION);
 
 	if (argc < 2)
 	{
