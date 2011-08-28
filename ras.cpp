@@ -570,7 +570,7 @@ void md_vdp::draw_window(int line, int front)
 
 void md_vdp::draw_sprites(int line, int front)
 {
-  unsigned which;
+  unsigned int which;
   int tx, ty, x, y, xend, ysize, yoff, i;
   unsigned char *where, *sprite;
   // Sprites have to be in reverse order :P
@@ -580,7 +580,7 @@ void md_vdp::draw_sprites(int line, int front)
       // Get the first tile
       which = get_word(sprite + 4);
       // Only do it if it's on the right priority
-      if((which >> 15) == front)
+      if ((which >> 15) == (unsigned int)front)
 	{
 	  // Get the sprite's location
 	  y = get_word(sprite);

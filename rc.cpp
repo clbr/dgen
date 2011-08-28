@@ -429,7 +429,6 @@ void parse_rc(const char *file)
 	  return;
 	}
       fclose(rc);
-      fopen(file, "r");
       return;
     }
   while(fgets(line, 2047, rc))

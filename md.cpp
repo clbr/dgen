@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "memcpy.h"
 #include "md.h"
 
 // This is the 'static' StarScream/MZ80 multitasker
@@ -32,59 +33,114 @@ int md::star_mz80_off()
   return 0;
 }
 
-extern "C"
-{
-  unsigned root_readbyte(unsigned a)
-  { if (which) return which->misc_readbyte(a); else return 0x00; }
-  unsigned root_readword(unsigned a)
-  { if (which) return which->misc_readword(a); else return 0x0000; }
+extern "C" {
+	unsigned root_readbyte(unsigned a, unsigned d)
+	{
+		(void)d;
+		if (which)
+			return which->misc_readbyte(a);
+		return 0;
+	}
+
+	unsigned root_readword(unsigned a, unsigned d)
+	{
+		(void)d;
+		if (which)
+			return which->misc_readword(a);
+		return 0;
+	}
   
-  unsigned root_readlong(unsigned a)
-  {
-    return (root_readword(a)<<16)+root_readword(a+2);
-  }
+	unsigned root_readlong(unsigned a, unsigned d)
+	{
+		return ((root_readword(a, d) << 16) +
+			root_readword((a + 2), d));
+	}
   
-  void root_writebyte(unsigned a,unsigned d)
-  { if (which) which->misc_writebyte(a,d); }
-  void root_writeword(unsigned a,unsigned d)
-  { if (which) which->misc_writeword(a,d); }
+	unsigned root_writebyte(unsigned a, unsigned d)
+	{
+		if (which)
+			which->misc_writebyte(a, d);
+		return 0;
+	}
+
+	unsigned root_writeword(unsigned a, unsigned d)
+	{
+		if (which)
+			which->misc_writeword(a, d);
+		return 0;
+	}
   
-  void root_writelong(unsigned a,unsigned d)
-  {
-    root_writeword(a,(d>>16)&0xffff);
-    root_writeword(a+2,d&0xffff);
-  }
+	unsigned root_writelong(unsigned a, unsigned d)
+	{
+		root_writeword(a, ((d >> 16) & 0xffff));
+		root_writeword((a + 2), (d & 0xffff));
+		return 0;
+	}
 }
 
 #ifdef COMPILE_WITH_MUSA
 // Okay: a bit for MUSASHI
 extern "C"
 {
-  // read/write functions called by the CPU to access memory.
-  // while values used are 32 bits, only the appropriate number
-  // of bits are relevant (i.e. in write_memory_8, only the lower 8 bits
-  // of value should be written to memory).
-  // address will be a 24-bit value.
-  
-  /* Read from anywhere */
-  int  m68k_read_memory_8(int address)  { return root_readbyte(address); }
-  int  m68k_read_memory_16(int address) {
-    return root_readword(address);
-  }
-  int  m68k_read_memory_32(int address) { return root_readlong(address); }
-  
-  /* Read data immediately following the PC */
-  int  m68k_read_immediate_8(int address)  { return root_readbyte(address); }
-  int  m68k_read_immediate_16(int address) { return root_readword(address); }
-  int  m68k_read_immediate_32(int address) { return root_readlong(address); }
-  
-  /* Read an instruction (16-bit word immeditately after PC) */
-  int  m68k_read_instruction(int address)  { return root_readword(address);  }
-  
-  /* Write to anywhere */
-  void m68k_write_memory_8(int address, int value)  { root_writebyte(address,value);  }
-  void m68k_write_memory_16(int address, int value) { root_writeword(address,value);  }
-  void m68k_write_memory_32(int address, int value) { root_writelong(address,value);  }
+	// read/write functions called by the CPU to access memory.
+	// while values used are 32 bits, only the appropriate number
+	// of bits are relevant (i.e. in write_memory_8, only the lower 8 bits
+	// of value should be written to memory).
+	// address will be a 24-bit value.
+
+	/* Read from anywhere */
+	int m68k_read_memory_8(int address)
+	{
+		return root_readbyte(address, 0);
+	}
+
+	int m68k_read_memory_16(int address)
+	{
+		return root_readword(address, 0);
+	}
+
+	int m68k_read_memory_32(int address)
+	{
+		return root_readlong(address, 0);
+	}
+
+	/* Read data immediately following the PC */
+	int m68k_read_immediate_8(int address)
+	{
+		return root_readbyte(address, 0);
+	}
+
+	int m68k_read_immediate_16(int address)
+	{
+		return root_readword(address, 0);
+	}
+
+	int m68k_read_immediate_32(int address)
+	{
+		return root_readlong(address, 0);
+	}
+
+	/* Read an instruction (16-bit word immeditately after PC) */
+	int m68k_read_instruction(int address)
+	{
+		return root_readword(address, 0);
+	}
+
+	/* Write to anywhere */
+	void m68k_write_memory_8(int address, int value)
+	{
+		root_writebyte(address, value);
+	}
+
+	void m68k_write_memory_16(int address, int value)
+	{
+		root_writeword(address, value);
+	}
+
+	void m68k_write_memory_32(int address, int value)
+	{
+		root_writelong(address, value);
+	}
 }
 #endif
 
@@ -192,10 +248,10 @@ int md::memory_map()
       writebyte[j].lowaddr=   writeword[j].lowaddr=   save_start;
       readbyte[i].highaddr=   readword[i].highaddr=
       writebyte[j].highaddr=  writeword[j].highaddr=  save_start+save_len-1;
-      readbyte[i].memorycall= (void*)root_readbyte;
-      readword[j].memorycall= (void*)root_readword;
-      writebyte[i].memorycall=(void*)root_writebyte;
-      writeword[j].memorycall=(void*)root_writeword;
+      readbyte[i].memorycall = root_readbyte;
+      readword[j].memorycall = root_readword;
+      writebyte[i].memorycall = root_writebyte;
+      writeword[j].memorycall = root_writeword;
       readbyte[i].userdata=   readword[i].userdata=
       writebyte[j].userdata=  writeword[j].userdata=  NULL;
       i++; j++;
@@ -217,10 +273,10 @@ int md::memory_map()
   readbyte[i].highaddr=  readword[i].highaddr=
   writebyte[j].highaddr= writeword[j].highaddr=  0xfeffff;
 
-  readbyte[i].memorycall=(void *) root_readbyte;
-  readword[i].memorycall=(void *) root_readword;
-  writebyte[j].memorycall=(void *)root_writebyte;
-  writeword[j].memorycall=(void *)root_writeword;
+  readbyte[i].memorycall = root_readbyte;
+  readword[i].memorycall = root_readword;
+  writebyte[j].memorycall = root_writebyte;
+  writeword[j].memorycall = root_writeword;
 
   readbyte[i].userdata=  readword[i].userdata=
   writebyte[j].userdata= writeword[j].userdata=  NULL;
@@ -245,10 +301,15 @@ int md::memory_map()
    readbyte[i].highaddr =   readword[i].highaddr =
   writebyte[j].highaddr =  writeword[j].highaddr = 0xffffffff;
 
-   readbyte[i].memorycall=  readword[i].memorycall=
-  writebyte[j].memorycall= writeword[j].memorycall=
-   readbyte[i].userdata=    readword[i].userdata =
-  writebyte[j].userdata=   writeword[j].userdata = NULL;
+	readbyte[i].memorycall = 0;
+	readword[i].memorycall = 0;
+	writebyte[j].memorycall = 0;
+	writeword[j].memorycall = 0;
+	readbyte[i].userdata = 0;
+	readword[i].userdata = 0;
+	writebyte[j].userdata = 0;
+	writeword[j].userdata = 0;
+
   i++; j++;
 
   if (debug_log!=NULL)
@@ -537,13 +598,13 @@ int md::load(char *name)
   // Register name
   strncpy(romfilename,name,255);
   // Fill the header with ROM info (god this is ugly)
-  memcpy((void*)cart_head.system_name,  (void*)(temp + 0x100), 0x10);
-  memcpy((void*)cart_head.copyright,    (void*)(temp + 0x110), 0x10);
-  memcpy((void*)cart_head.domestic_name,(void*)(temp + 0x120), 0x30);
-  memcpy((void*)cart_head.overseas_name,(void*)(temp + 0x150), 0x30);
-  memcpy((void*)cart_head.product_no,   (void*)(temp + 0x180), 0x0e);
+  MEMCPY((void*)cart_head.system_name,  (void*)(temp + 0x100), 0x10);
+  MEMCPY((void*)cart_head.copyright,    (void*)(temp + 0x110), 0x10);
+  MEMCPY((void*)cart_head.domestic_name,(void*)(temp + 0x120), 0x30);
+  MEMCPY((void*)cart_head.overseas_name,(void*)(temp + 0x150), 0x30);
+  MEMCPY((void*)cart_head.product_no,   (void*)(temp + 0x180), 0x0e);
   cart_head.checksum = temp[0x18e]<<8 | temp[0x18f]; // ugly, but endian-neutral
-  memcpy((void*)cart_head.control_data, (void*)(temp + 0x190), 0x10);
+  MEMCPY((void*)cart_head.control_data, (void*)(temp + 0x190), 0x10);
   cart_head.rom_start  = temp[0x1a0]<<24 | temp[0x1a1]<<16 | temp[0x1a2]<<8 | temp[0x1a3];
   cart_head.rom_end    = temp[0x1a4]<<24 | temp[0x1a5]<<16 | temp[0x1a6]<<8 | temp[0x1a7];
   cart_head.ram_start  = temp[0x1a8]<<24 | temp[0x1a9]<<16 | temp[0x1aa]<<8 | temp[0x1ab];
@@ -552,8 +613,8 @@ int md::load(char *name)
   cart_head.save_flags = temp[0x1b2]<<8 | temp[0x1b3];
   cart_head.save_start = temp[0x1b4]<<24 | temp[0x1b5]<<16 | temp[0x1b6]<<8 | temp[0x1b7];
   cart_head.save_end   = temp[0x1b8]<<24 | temp[0x1b9]<<16 | temp[0x1ba]<<8 | temp[0x1bb];
-  memcpy((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
-  memcpy((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
+  MEMCPY((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
+  MEMCPY((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
   // Plug it into the memory map
   plug_in(temp,len); // md then deallocates it when it's done
 

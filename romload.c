@@ -22,7 +22,10 @@ static int load_bin_into(char *name,unsigned char *into)
   fseek(hand,0,SEEK_SET);
   if (into==NULL) return file_size;
 
-  fread(into,1,file_size,hand);
+	if (fread(into, file_size, 1, hand) != 1) {
+		fclose(hand);
+		return -1;
+	}
   fclose(hand);
   return 0;
 }
@@ -88,7 +91,12 @@ static int load_smd_into(char *name,unsigned char *into)
   {
     int j;
     // Deinterleave each chunk
-    fread(chunk_buf,1,16384,hand);
+	if (fread(chunk_buf, 16384, 1, hand) != 1) {
+		puts("load_smd: short read");
+		free(chunk_buf);
+		fclose(hand);
+		return -1;
+	}
     for (j=0;j<8192;j++)
       into[got_to+(j<<1)+1]=chunk_buf[j];
     for (j=0;j<8192;j++)
@@ -115,8 +123,11 @@ int load_rom_into(char *name,unsigned char *into)
 
   /* Open the file and get the first little shnippit of it so we can check
    * the magic numbers on it. */
-  if(!(romfile = fopen(name, "rb"))) return -1;
-  fread(magicbuf, 10, 1, romfile);
+  if (!(romfile = fopen(name, "rb"))) return -1;
+	if (fread(magicbuf, 10, 1, romfile) != 1) {
+		fclose(romfile);
+		return -1;
+	}
   fclose(romfile);
 
   /* Check for the magic on various gzip-supported compressions */

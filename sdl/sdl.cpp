@@ -15,6 +15,7 @@
 # include "ogl_fonts.h"
 #endif
 
+#include "memcpy.h"
 #include "md.h"
 #include "rc.h"
 #include "rc-vars.h"
@@ -552,14 +553,14 @@ void pd_graphics_update()
             {
 	      if(y_scale == 1)
 	        {
-	          memcpy(p, q, 320 * bytes_pixel);
+	          MEMCPY(p, q, 320 * bytes_pixel);
 	          p += screen->pitch;
 	        }
 	      else
 	        {
 	          for(j = 0; j < y_scale; ++j)
 	            {
-		      memcpy(p, q, 320 * bytes_pixel);
+		      MEMCPY(p, q, 320 * bytes_pixel);
 		      p += screen->pitch;
 		    }
 	        }
@@ -579,7 +580,7 @@ void pd_graphics_update()
 	              for(pp = p, j = 1; j < y_scale; ++j)
 		        {
 		          p += screen->pitch;
-		          memcpy(p, pp, xs);
+		          MEMCPY(p, pp, xs);
 		        }
 	          }
 	          break;
@@ -593,7 +594,7 @@ void pd_graphics_update()
 	              for(pp = (short*)p, j = 1; j < y_scale; ++j)
 		        {
 		          p += screen->pitch;
-		          memcpy(p, pp, xs*2);
+		          MEMCPY(p, pp, xs*2);
 		        }
 	          }
 	          break;
@@ -610,7 +611,7 @@ void pd_graphics_update()
 	              for(pp = (int*)p, j = 1; j < y_scale; ++j)
 		        {
 		          p += screen->pitch;
-		          memcpy(p, pp, xs*4);
+		          MEMCPY(p, pp, xs*4);
 		        }
 	          }
 	          break;
