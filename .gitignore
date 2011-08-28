@@ -9,11 +9,16 @@ autom4te.cache
 /config.status
 /musa/Makefile
 /musa/m68kmake
+/musa/m68kmake.done
 /musa/m68kopac.c
 /musa/m68kopdm.c
 /musa/m68kopnz.c
 /musa/m68kops.c
 /mz80/Makefile
+/mz80/makez80
+/mz80/mz80.asm
 /sdl/Makefile
 /sdl/pbm2df
 /star/Makefile
+/star/star
+/star/starcpu.asmu
