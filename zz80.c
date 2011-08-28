@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "memcpy.h"
 #include "mz80.h"
 UINT32 z80intAddr;
 UINT32 z80pc;
@@ -16833,14 +16834,14 @@ UINT32 mz80exec(UINT32 dwCycles)
 
 void mz80GetContext(void *pData)
 {
-	memcpy(pData, &cpu, sizeof(CONTEXTMZ80));
+	MEMCPY(pData, &cpu, sizeof(CONTEXTMZ80));
 }
 
 /* Set mz80's context */
 
 void mz80SetContext(void *pData)
 {
-	memcpy(&cpu, pData, sizeof(CONTEXTMZ80));
+	MEMCPY(&cpu, pData, sizeof(CONTEXTMZ80));
 }
 
 /* Get mz80's context size */
