@@ -166,27 +166,48 @@ extern "C" {
 }
 #endif
 
-UINT8 root_z80_read(UINT32 a,struct MemoryReadByte *huh)
+/*
+  In case the assembly version of MZ80 is used (HAVE_MZ80_ASM), prevent
+  GCC from optimizing sibling calls (-foptimize-sibling-calls, enabled
+  by default at -O2 and above). The ASM code doesn't expect this and
+  crashes otherwise.
+*/
+
+#ifdef HAVE_MZ80_ASM
+#define MZ80_NOSIBCALL(t, w) *((volatile t *)&(w))
+#else
+#define MZ80_NOSIBCALL(t, w) (w)
+#endif
+
+UINT8 root_z80_read(UINT32 a, struct MemoryReadByte *unused)
 {
-  (void)(huh);
-  if (which) return which->z80_read(a); return 0x00;
-}
-void root_z80_write(UINT32 a,UINT8 d,struct MemoryWriteByte *huh)
-{
-  (void)(huh);
-  if (which) which->z80_write(a,d);
-}
-UINT16 root_z80_port_read(UINT16 a, struct z80PortRead *huh)
-{
-  (void)(huh);
-  if (which) return which->z80_port_read(a); return 0x0000;
-}
-void root_z80_port_write(UINT16 a,UINT8 d, struct z80PortWrite *huh)
-{
-  (void)(huh);
-  if (which) which->z80_port_write(a,d);
+	(void)unused;
+	if (which)
+		return which->z80_read(MZ80_NOSIBCALL(UINT32, a));
+	return 0x00;
 }
 
+void root_z80_write(UINT32 a, UINT8 d, struct MemoryWriteByte *unused)
+{
+	(void)unused;
+	if (which)
+		which->z80_write(MZ80_NOSIBCALL(UINT32, a), d);
+}
+
+UINT16 root_z80_port_read(UINT16 a, struct z80PortRead *unused)
+{
+	(void)unused;
+	if (which)
+		return which->z80_port_read(MZ80_NOSIBCALL(UINT16, a));
+	return 0x0000;
+}
+
+void root_z80_port_write(UINT16 a, UINT8 d, struct z80PortWrite *unused)
+{
+	(void)unused;
+	if (which)
+		which->z80_port_write(MZ80_NOSIBCALL(UINT16, a), d);
+}
 
 extern FILE *debug_log;
 

@@ -235,6 +235,7 @@ if test "x$ASM" = xtrue; then
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
 		MZ80=true
+		AC_DEFINE(HAVE_MZ80_ASM)
 	fi
 fi
 
@@ -243,6 +244,7 @@ AC_MSG_CHECKING([whether MZ80 is available])
 if test -z "$MZ80"; then
 	AC_MSG_RESULT([no])
 	ZZ80=true
+	AC_DEFINE(HAVE_MZ80_C)
 else
 	AC_MSG_RESULT([yes])
 fi

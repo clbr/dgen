@@ -6480,6 +6480,8 @@ if test "x$ASM" = xtrue; then
 	if test -f mz80/makez80.c; then
 		CPUDIRS=mz80
 		MZ80=true
+		$as_echo "#define HAVE_MZ80_ASM 1" >>confdefs.h
+
 	fi
 fi
 
@@ -6489,6 +6491,8 @@ if test -z "$MZ80"; then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	ZZ80=true
+	$as_echo "#define HAVE_MZ80_C 1" >>confdefs.h
+
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
