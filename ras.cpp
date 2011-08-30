@@ -546,7 +546,7 @@ void md_vdp::draw_window(int line, int front)
       start = 24;
     }
   add = -2;
-  where = dest + (start * Bpp);
+  where = dest + (start * (int)Bpp);
 	for (x = -1; (x < w); ++x) {
 		if (!total_window) {
 			if (reg[17] & 0x80) {
@@ -615,7 +615,7 @@ void md_vdp::draw_sprites(int line, int front)
 	      // x flipped?
 	      if(which & 0x800)
 		{
-		  where = dest + (xend * Bpp);
+		  where = dest + (xend * (int)Bpp);
 		  for(tx = xend; tx >= x; tx -= 8)
 		    {
 		      if(tx > -8 && tx < 320)
@@ -624,7 +624,7 @@ void md_vdp::draw_sprites(int line, int front)
 		      where -= Bpp_times8;
 		    }
 	        } else {
-		  where = dest + (x * Bpp);
+		  where = dest + (x * (int)Bpp);
 		  for(tx = x; tx <= xend; tx += 8)
 		    {
 		      if(tx > -8 && tx < 320)

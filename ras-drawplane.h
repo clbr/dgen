@@ -67,7 +67,7 @@
   tile_line = tiles + xsize * yoff;
   scan = yscroll & 7;
 
-  where = dest + (xstart + (xscroll & 7)) * Bpp;
+  where = dest + (xstart + (xscroll & 7)) * (int)Bpp;
 
   for(x = -1; x < w; ++x)
     {
