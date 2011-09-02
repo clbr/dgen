@@ -1,17 +1,19 @@
 // This parses the RC file.
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <assert.h>
 
 #include "rc.h"
+#include "ckvp.h"
 #include "pd-defs.h"
 #include "md-phil.h"
-
-
 
 // CTV names
 const char *ctv_names[NUM_CTV] = { "off", "blur", "scanline", "interlace" };
@@ -401,62 +403,123 @@ struct rc_field {
   { NULL, NULL, NULL } // Terminator
 };
 
+/* Replace unprintable characters */
+static char *strclean(char *s)
+{
+	size_t i;
+
+	for (i = 0; (s[i] != '\0'); ++i)
+		if (!isprint(s[i]))
+			s[i] = '?';
+	return s;
+}
+
 /* Parse the rc file */
 void parse_rc(const char *file)
 {
-  FILE *rc;
-  char temp[1024] = "", line[2048] = "", field[1024] = "", value[1024] = "";
-  /* If the filename is NULL, use default of $HOME/.dgen/dgenrc */
-  if(!file)
-    {
-      strncat(temp, getenv("HOME"), 1023);
-      strncat(temp, "/.dgen/dgenrc", 1023 - strlen(temp));
-      file = temp;
-    }
-  /* Open the file. If it's "-", open standard input instead. */
-  rc = fopen(file, "r");
+	FILE *rc;
+	struct rc_field *rc_field = NULL;
+	long potential;
+	int overflow = 0;
+	size_t len;
+	size_t parse;
+	ckvp_t ckvp = CKVP_INIT;
+	char buf[1024];
 
-  if(!rc)
-    {
-      fprintf(stderr, "rc: Couldn't open rc file %s, trying to create\n", file);
-      strncat(field, getenv("HOME"), 1023);
-      strncat(field, "/.dgen", 1023 - strlen(field));
-      mkdir(field, 0777);	/* Create the .dgen directory */
-      rc = fopen(file, "w");
-      if(!rc)
-        {
-	  fprintf(stderr, "rc: Couldn't create rc file %s!\n", file);
-	  return;
+	if (file == NULL) {
+		file = "(stdin)";
+		rc = stdin;
 	}
-      fclose(rc);
-      return;
-    }
-  while(fgets(line, 2047, rc))
-    {
-      struct rc_field *s;
-      s = rc_fields;
-      /* If it starts with hash (#) or is blank, we have a comment */
-      if(*line == '#' || *line == '\0' || *line == '\n') continue;
-      /* Each line is in the format field=value */
-      sscanf(line, " %s = %s", field, value);
-      /* Check field against all supported fields */
-      do {
-	if(!strcasecmp(s->fieldname, field))
-	  {
-	    int potential;
-	    potential = (*(s->parser))(value);
-	    /* If we got a bad value, discard and warn user */
-	    if(potential == -1)
-	      fprintf(stderr, "rc: Invalid RC value for %s: %s\n", field, value);
-	    else
-	      *(s->variable) = potential;
-	    break;
-	  }
-	} while((++s)->fieldname);
-      // If we reached the end of the table, bad field, bad line
-      if(!s->fieldname) fprintf(stderr, "rc: Invalid RC line: %s", line);
-    }
-  fclose(rc);
-  return;
+	else {
+		rc = fopen(file, "rb");
+		/* We don't create files by default anymore. */
+		if (rc == NULL) {
+			if (errno != ENOENT)
+				fprintf(stderr, "rc: %s: %s\n",
+					file, strerror(errno));
+			return;
+		}
+	}
+read:
+	len = fread(buf, 1, sizeof(buf), rc);
+	/* Check for read errors first */
+	if ((len == 0) && (ferror(rc))) {
+		fprintf(stderr, "rc: %s: %s\n", file, strerror(errno));
+		if (rc != stdin)
+			fclose(rc);
+		return;
+	}
+	/* The goal is to make an extra pass with len == 0 when feof(rc) */
+	parse = 0;
+parse:
+	parse += ckvp_parse(&ckvp, (len - parse), &(buf[parse]));
+	switch (ckvp.state) {
+	case CKVP_NONE:
+		/* Nothing to do */
+		break;
+	case CKVP_OUT_FULL:
+		/*
+		  Buffer is full, field is probably too large. We don't want
+		  to report it more than once, so just store a flag for now.
+		*/
+		overflow = 1;
+		break;
+	case CKVP_OUT_KEY:
+		/* Got a key */
+		if (overflow) {
+			fprintf(stderr, "rc: %s:%u:%u: key field too large\n",
+				file, ckvp.line, ckvp.column);
+			rc_field = NULL;
+			overflow = 0;	
+			break;
+		}
+		/* Find the related rc_field in rc_fields */
+		assert(ckvp.out_size < sizeof(ckvp.out));
+		ckvp.out[(ckvp.out_size)] = '\0';
+		for (rc_field = rc_fields; (rc_field->fieldname != NULL);
+		     ++rc_field)
+			if (!strcasecmp(rc_field->fieldname, ckvp.out))
+				goto key_over;
+		fprintf(stderr, "rc: %s:%u:%u: unknown key `%s'\n",
+			file, ckvp.line, ckvp.column, strclean(ckvp.out));
+	key_over:
+		break;
+	case CKVP_OUT_VALUE:
+		/* Got a value */
+		if (overflow) {
+			fprintf(stderr, "rc: %s:%u:%u: value field too large\n",
+				file, ckvp.line, ckvp.column);
+			overflow = 0;
+			break;
+		}
+		assert(ckvp.out_size < sizeof(ckvp.out));
+		ckvp.out[(ckvp.out_size)] = '\0';
+		if ((rc_field == NULL) || (rc_field->fieldname == NULL))
+			break;
+		potential = rc_field->parser(ckvp.out);
+		/* If we got a bad value, discard and warn user */
+		if (potential == -1)
+			fprintf(stderr,
+				"rc: %s:%u:%u: invalid value for key"
+				" `%s': `%s'\n",
+				file, ckvp.line, ckvp.column,
+				rc_field->fieldname, strclean(ckvp.out));
+		else
+			*(rc_field->variable) = potential;
+		break;
+	case CKVP_ERROR:
+	default:
+		fprintf(stderr, "rc: %s:%u:%u: syntax error, aborting\n",
+			file, ckvp.line, ckvp.column);
+		goto end;
+	}
+	/* Not done with the current buffer? */
+	if (parse != len)
+		goto parse;
+	/* If len != 0, try to read once again */
+	if (len != 0)
+		goto read;
+end:
+	if (rc != stdin)
+		fclose(rc);	
 }
-

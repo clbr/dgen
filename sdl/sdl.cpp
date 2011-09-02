@@ -134,7 +134,7 @@ static void do_screenshot(void) {
 
   for(;;)
     { 
-      sprintf(fname, "shot%04d.bmp", n);
+      snprintf(fname, sizeof(fname), "shot%04d.bmp", n);
       if ((fp = fopen(fname, "r")) == NULL)
         break;
       else
@@ -152,7 +152,7 @@ static void do_screenshot(void) {
      pd_message("Screenshot failed!");
   else
     {
-      sprintf(msg, "Screenshot written to %s", fname);
+      snprintf(msg, sizeof(msg), "Screenshot written to %s", fname);
       pd_message(msg);
     }
 }

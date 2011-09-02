@@ -23,7 +23,8 @@ dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
 	       save.cpp graph.cpp myfm.cpp fm.c sn76496.c ras.cpp main.cpp \
 	       rc.h md-phil.h rc-vars.h md.h mz80.h fm.h decode.h mem.cpp \
 	       ras-drawplane.h pd.h driver.h sn76496.h \
-	       mz80.h starcpu.h m68k.h m68kconf.h
+	       mz80.h starcpu.h m68k.h m68kconf.h \
+	       ckvp.c ckvp.h
 
 dgen_LDADD = @SDL_LIBS@
 

@@ -15,6 +15,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
+#include <limits.h>
+#include <pwd.h>
 
 #define IS_MAIN_CPP
 #include "md.h"
@@ -71,11 +73,10 @@ FILE *debug_log = NULL;
 	  megad.one_frame((scr), (pal), &sndi); \
 	} else megad.one_frame((scr), (pal), NULL);
 
-// Directory to put savestates in
-static char saves[2048] = "";
-
-// Directory to put battery RAM in
-static char ramdir[2048] = "";
+// Base directory
+static char basedir[(PATH_MAX + 1)];
+static size_t basedir_len;
+static size_t basedir_space;
 
 // Temporary garbage can string :)
 static char temp[65536] = "";
@@ -141,20 +142,23 @@ static void help()
   exit(2);
 }
 
-// Create the .dgen directory structure in the user's home directory
-static void mk_dgendir()
+// Initialize base directory
+static void init_basedir()
 {
-  strcpy(temp, getenv("HOME"));
-  strcat(temp, "/.dgen");
-  mkdir(temp, 0777);
-  // Make save dir
-  strcpy(saves, temp);
-  strcat(saves, "/saves");
-  mkdir(saves, 0777);
-  // Make ram dir
-  strcpy(ramdir, temp);
-  strcat(ramdir, "/ram");
-  mkdir(ramdir, 0777);
+	size_t size;
+	struct passwd *pwd = getpwuid(geteuid());
+
+	basedir[0] = '\0';
+	basedir_len = 0;
+	basedir_space = 0;
+	if ((pwd == NULL) || (pwd->pw_dir == NULL))
+		return;
+	size = (size_t)snprintf(basedir, sizeof(basedir),
+				"%s/.dgen/", pwd->pw_dir);
+	if (size >= sizeof(basedir))
+		return;
+	basedir_len = size;
+	basedir_space = (sizeof(basedir) - size);
 }
 
 // Save/load states
@@ -163,38 +167,53 @@ static void mk_dgendir()
 int slot = 0;
 void md_save(md& megad)
 {
-  FILE *save = NULL;
-  sprintf(temp, "%s/%s.gs%d", saves, gst_name(megad.romfilename), slot);
-  if((save = fopen(temp, "wb")))
-    {
-      megad.export_gst(save);
-      fclose(save);
-      sprintf(temp, "Saved state to slot %d.", slot);
-      pd_message(temp);
-    }
-  else 
-    {
-      sprintf(temp, "Couldn't save state to slot %d!", slot);
-      pd_message(temp);
-    }
+	FILE *save;
+
+	mkdir(basedir, 0777);
+	if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
+			     "saves/%s.gs%d", gst_name(megad.romfilename),
+			     slot) >= basedir_space)
+		goto fail;
+	/* Make sure "saves" exists first */
+	basedir[(basedir_len + strlen("saves"))] = '\0';
+	mkdir(basedir, 0777);
+	basedir[(basedir_len + strlen("saves"))] = '/';
+	/* Try to create the file */
+	if ((save = fopen(basedir, "wb")) != NULL) {
+		megad.export_gst(save);
+		fclose(save);
+		snprintf(temp, sizeof(temp), "Saved state to slot %d.", slot);
+		pd_message(temp);
+		basedir[basedir_len] = '\0';
+		return;
+	}
+fail:
+	snprintf(temp, sizeof(temp), "Couldn't save state to slot %d!", slot);
+	pd_message(temp);
+	basedir[basedir_len] = '\0';
 }
 
 void md_load(md& megad)
 {
-  FILE *load = NULL;
-  sprintf(temp, "%s/%s.gs%d", saves, gst_name(megad.romfilename), slot);
-  if((load = fopen(temp, "rb")))
-    {
-      megad.import_gst(load);
-      fclose(load);
-      sprintf(temp, "Loaded state from slot %d.", slot);
-      pd_message(temp);
-    }
-  else
-    {
-      sprintf(temp, "Couldn't load state from slot %d!", slot);
-      pd_message(temp);
-    }
+	FILE *load;
+
+	if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
+			     "saves/%s.gs%d", gst_name(megad.romfilename),
+			     slot) >= basedir_space)
+		goto fail;
+	if ((load = fopen(basedir, "rb")) != NULL) {
+		megad.import_gst(load);
+		fclose(load);
+		snprintf(temp, sizeof(temp),
+			 "Loaded state from slot %d.", slot);
+		pd_message(temp);
+		basedir[basedir_len] = '\0';
+		return;
+	}
+fail:
+	snprintf(temp, sizeof(temp), "Couldn't load state from slot %d!", slot);
+	pd_message(temp);
+	basedir[basedir_len] = '\0';
 }
  
 // Load/save states from file
@@ -204,12 +223,24 @@ static void ram_save(md& megad)
 
 	if (!megad.has_save_ram())
 		return;
-	sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
-	if (((save = fopen(temp, "wb")) == NULL) ||
-	    (megad.put_save_ram(save)))
-		fprintf(stderr, "Couldn't save battery RAM to %s\n", temp);
+	mkdir(basedir, 0777);
+	if ((size_t)snprintf(&basedir[basedir_len], basedir_space, "ram/%s",
+			     gst_name(megad.romfilename)) >= basedir_space)
+		goto fail;
+	/* Make sure "ram" exists first */
+	basedir[(basedir_len + strlen("ram"))] = '\0';
+	mkdir(basedir, 0777);
+	basedir[(basedir_len + strlen("ram"))] = '/';
+	if (((save = fopen(basedir, "wb")) != NULL) &&
+	    (megad.put_save_ram(save) == 0)) {
+		basedir[basedir_len] = '\0';
+		return;
+	}
+	fprintf(stderr, "ram: couldn't save battery RAM to `%s'\n", basedir);
 	if (save)
 		fclose(save);
+fail:
+	basedir[basedir_len] = '\0';
 }
 
 static void ram_load(md& megad)
@@ -218,12 +249,19 @@ static void ram_load(md& megad)
 
 	if (!megad.has_save_ram())
 		return;
-	sprintf(temp, "%s/%s", ramdir, gst_name(megad.romfilename));
-	if (((load = fopen(temp, "rb")) == NULL) ||
-	    (megad.get_save_ram(load)))
-		fprintf(stderr, "Couldn't load battery RAM from %s\n", temp);
+	if ((size_t)snprintf(&basedir[basedir_len], basedir_space, "ram/%s",
+			     gst_name(megad.romfilename)) >= basedir_space)
+		goto fail;
+	if (((load = fopen(basedir, "rb")) != NULL) &&
+	    (megad.get_save_ram(load) == 0)) {
+		basedir[basedir_len] = '\0';
+		return;
+	}
+	fprintf(stderr, "ram: couldn't load battery RAM from `%s'\n", basedir);
 	if (load)
 		fclose(load);
+fail:
+	basedir[basedir_len] = '\0';
 }
 
 int main(int argc, char *argv[])
@@ -237,12 +275,16 @@ int main(int argc, char *argv[])
   int demo_record = 0, demo_play = 0, foo;
 
   // Parse the RC file
-  parse_rc(NULL);
-  pd_rc();
+  init_basedir();
+  if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
+		       "dgenrc") < basedir_space) {
+	  parse_rc(basedir);
+	  pd_rc();
+  }
+  basedir[basedir_len] = '\0';
 
   // Check all our options
-  strcpy(temp, "s:hvr:n:p:RPjd:D:");
-  strcat(temp, pd_options);
+  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:RPjd:D:", pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
     {
       switch(c)
@@ -394,8 +436,6 @@ int main(int argc, char *argv[])
   // Set PAL mode
   megad.pal = pal_mode;
   
-  // Make sure the .dgen hierarchy is setup
-  mk_dgendir();
   // Load up save RAM
   ram_load(megad);
   // If autoload is on, load save state 0
