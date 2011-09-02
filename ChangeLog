@@ -3,6 +3,25 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.25 <- v1.24
+ * Added 64 bits targets support, DGen can now run on those.
+ * Minor fix for joystick/joypad when sizeof(int) != sizeof(long).
+ * Fixed messy border issue (garbage on the right of the screen).
+ * OpenGL: worked around the vertical dark line between textures.
+ * OpenGL: the visible area now takes the entire window (except for the
+   status line). No more borders.
+ * OpenGL: the window can now be resized/rescaled at runtime.
+ * Fixed bug in which SDL-specific fields in dgenrc were not taken into
+   account when no command-line option was given.
+ * Replaced dgenrc parser with a better one. It breaks compatibility a
+   little with the previous version because special characters now need to
+   be escaped or put between quotation marks.
+ * Improved configure and Makefiles for proper SDL/OpenGL detection,
+   better dependencies in parallel builds, NASM's presence on x86 targets
+   which shouldn't be mandatory and various other things.
+ * Fixed many crashes.
+ * Removed many compilation warnings.
+
 v1.24 <- v1.23
  * Fixed compilation on GCC 4.
 
@@ -107,4 +126,3 @@ v1.17 <- v1.16
  - I also removed most of the messages dgen makes (except for errors), so that
    it is quieter. If you liked having all those messages, tell me and I'll put
    them back in. ;)
- 

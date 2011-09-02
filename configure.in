@@ -7,7 +7,7 @@ dnl We'll need machine type later
 AC_CANONICAL_SYSTEM
 machtype=$target_cpu
 
-AM_INIT_AUTOMAKE(dgen-sdl, 1.23)
+AM_INIT_AUTOMAKE(dgen-sdl, 1.25)
 
 dnl Before we check for cc and c++, check for the --with-extra-opt switch, so
 dnl we can add the optimizations.
