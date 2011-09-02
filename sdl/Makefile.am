@@ -19,3 +19,5 @@ dgenfont.cpp: pbm2df dgenfont.pbm
 # pd.a
 
 libpd_a_SOURCES = font.cpp dgenfont.cpp sdl.cpp font.h pd-defs.h ogl_fonts.h
+
+DISTCLEANFILES = $(BUILT_SOURCES)
