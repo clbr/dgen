@@ -66,7 +66,8 @@ static int x4tab_r[321], x4tab_g[321], x4tab_b[321]; // x*4 (RGBA)
 static GLuint dlist;
 // Is OpenGL mode enabled?
 static int opengl = 0;
-// Text
+// Text width is limited by the opengl texture size, hence 256.
+// One cannot write more than 256/7 (36) characters at once.
 static unsigned char message[5][256][4];
 static unsigned char m_clear[5][256][4];
 #endif // SDL_OPENGL_SUPPORT
@@ -291,7 +292,7 @@ static void init_textures()
       }
 
   // Clear Message Buffer
-  for (j=0;j<256;j++)
+  for (j = 0; ((size_t)j < (sizeof(m_clear[0]) / sizeof(m_clear[0][0]))); j++)
     for (i=0;i<5;i++)
       {
 	m_clear[i][j][R]=m_clear[i][j][G]=m_clear[i][j][B]=0;
@@ -939,8 +940,12 @@ int pd_handle_events(md &megad)
 	    }
 #endif
 	  else if(ksym == dgen_stop) {
-	    pd_message("* STOPPED * Press any key to continue.");
+	    pd_message("STOPPED - Press any key to continue.");
 	    SDL_PauseAudio(1); // Stop audio :)
+#ifdef SDL_OPENGL_SUPPORT
+	    if (opengl)
+			display(); // Otherwise the above message won't show up
+#endif
 #ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
 	    int fullscreen = 0;
 	    // Switch out of fullscreen mode (assuming this is supported)
@@ -978,6 +983,8 @@ int pd_handle_events(md &megad)
 		SDL_Surface *tmp;
 		char buf[64];
 
+		if (!opengl)
+			break;
 		tmp = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
 				       (SDL_HWPALETTE | SDL_HWSURFACE |
 					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
@@ -1046,119 +1053,228 @@ int pd_handle_events(md &megad)
 #ifdef SDL_OPENGL_SUPPORT
 static void ogl_write_text(const char *msg)
 {
-  int j, k, x;
-  unsigned char c, *p;
-  const char *q;
-  char draw;
+	unsigned int y;
+	unsigned int x = 0;
+	uint8_t *c;
 
-  for(q = msg, x = 0, draw = 1;
-      *q;
-      ++q, x += 7, draw = 1)
-    {
-      switch(*q)
-        {
-	case 'A': case 'a': p = font_a; break;
-	case 'B': case 'b': p = font_b; break;
-	case 'C': case 'c': p = font_c; break;
-	case 'D': case 'd': p = font_d; break;
-	case 'E': case 'e': p = font_e; break;
-	case 'F': case 'f': p = font_f; break;
-	case 'G': case 'g': p = font_g; break;
-	case 'H': case 'h': p = font_h; break;
-	case 'I': case 'i': p = font_i; break;
-	case 'J': case 'j': p = font_j; break;
-	case 'K': case 'k': p = font_k; break;
-	case 'L': case 'l': p = font_l; break;
-	case 'M': case 'm': p = font_m; break;
-	case 'N': case 'n': p = font_n; break;
-	case 'O': case 'o': p = font_o; break;
-	case 'P': case 'p': p = font_p; break;
-	case 'Q': case 'q': p = font_q; break;
-	case 'R': case 'r': p = font_r; break;
-	case 'S': case 's': p = font_s; break;
-	case 'T': case 't': p = font_t; break;
-	case 'U': case 'u': p = font_u; break;
-	case 'V': case 'v': p = font_v; break;
-	case 'W': case 'w': p = font_w; break;
-	case 'X': case 'x': p = font_x; break;
-	case 'Y': case 'y': p = font_y; break;
-	case 'Z': case 'z': p = font_z; break;
-	case '0':	    p = font_0; break;
-	case '1':	    p = font_1; break;
-	case '2':	    p = font_2; break;
-	case '3':	    p = font_3; break;
-	case '4':	    p = font_4; break;
-	case '5':	    p = font_5; break;
-	case '6':	    p = font_6; break;
-	case '7':	    p = font_7; break;
-	case '8':	    p = font_8; break;
-	case '9':	    p = font_9; break;
-	case '*':	    p = font_ast; break;
-	case '!':	    p = font_ex; break;
-	case '.':	    p = font_per; break;
-	case '"':	    p = font_quot; break;
-	case '\'':	    p = font_apos; break;
-	case ' ':	    draw = 0; break;
-	default:	    draw = 0; break;
-        }
-      if(draw)
-        for(j = 0; j < 5; ++j)
-	  for(k = 0; k < 5; ++k)
-	    {
-	      if(p[k+j*5]) c = 255; else c = 0;
-	      message[j][k+x][R] = message[j][k+x][G] = message[j][k+x][B] = c;
-	      message[j][k+x][A] = 255;
-	    }
-    }
+	while ((*msg != '\0') &&
+	       ((x + 7) < (sizeof(message[0]) / sizeof(message[0][0])))) {
+		switch (*msg) {
+		case 'A':
+		case 'a':
+			c = font_a;
+			break;
+		case 'B':
+		case 'b':
+			c = font_b;
+			break;
+		case 'C':
+		case 'c':
+			c = font_c;
+			break;
+		case 'D':
+		case 'd':
+			c = font_d;
+			break;
+		case 'E':
+		case 'e':
+			c = font_e;
+			break;
+		case 'F':
+		case 'f':
+			c = font_f;
+			break;
+		case 'G':
+		case 'g':
+			c = font_g;
+			break;
+		case 'H':
+		case 'h':
+			c = font_h;
+			break;
+		case 'I':
+		case 'i':
+			c = font_i;
+			break;
+		case 'J':
+		case 'j':
+			c = font_j;
+			break;
+		case 'K':
+		case 'k':
+			c = font_k;
+			break;
+		case 'L':
+		case 'l':
+			c = font_l;
+			break;
+		case 'M':
+		case 'm':
+			c = font_m;
+			break;
+		case 'N':
+		case 'n':
+			c = font_n;
+			break;
+		case 'O':
+		case 'o':
+			c = font_o;
+			break;
+		case 'P':
+		case 'p':
+			c = font_p;
+			break;
+		case 'Q':
+		case 'q':
+			c = font_q;
+			break;
+		case 'R':
+		case 'r':
+			c = font_r;
+			break;
+		case 'S':
+		case 's':
+			c = font_s;
+			break;
+		case 'T':
+		case 't':
+			c = font_t;
+			break;
+		case 'U':
+		case 'u':
+			c = font_u;
+			break;
+		case 'V':
+		case 'v':
+			c = font_v;
+			break;
+		case 'W':
+		case 'w':
+			c = font_w;
+			break;
+		case 'X':
+		case 'x':
+			c = font_x;
+			break;
+		case 'Y':
+		case 'y':
+			c = font_y;
+			break;
+		case 'Z':
+		case 'z':
+			c = font_z;
+			break;
+		case '0':
+			c = font_0;
+			break;
+		case '1':
+			c = font_1;
+			break;
+		case '2':
+			c = font_2;
+			break;
+		case '3':
+			c = font_3;
+			break;
+		case '4':
+			c = font_4;
+			break;
+		case '5':
+			c = font_5;
+			break;
+		case '6':
+			c = font_6;
+			break;
+		case '7':
+			c = font_7;
+			break;
+		case '8':
+			c = font_8;
+			break;
+		case '9':
+			c = font_9;
+			break;
+		case '*':
+			c = font_ast;
+			break;
+		case '!':
+			c = font_ex;
+			break;
+		case '.':
+			c = font_per;
+			break;
+		case '"':
+			c = font_quot;
+			break;
+		case '\'':
+			c = font_apos;
+			break;
+		case '-':
+			c = font_en;
+			break;
+		default:
+			c = font_sp;
+			break;
+		}
+
+		for (y = 0; (y < 5); ++y) {
+			unsigned int cx;
+
+			for (cx = 0; (cx < 5); ++cx) {
+			        uint8_t v = (c[((y * 5) + cx)] * 0xff);
+
+				message[y][(x + cx)][R] = v;
+				message[y][(x + cx)][G] = v;
+				message[y][(x + cx)][B] = v;
+				message[y][(x + cx)][A] = 0xff;
+			}
+		}
+		++msg;
+		x += 7;
+	}
 }
 #endif // SDL_OPENGL_SUPPORT
 
 // Write a message to the status bar
 void pd_message(const char *msg)
 {
-  pd_clear_message();
+	pd_clear_message();
 #ifdef SDL_OPENGL_SUPPORT
-  if(opengl)
-    {
+	if (opengl) {
 		ogl_write_text(msg);
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0,ysize, 256, 5,
-				GL_RGBA,GL_UNSIGNED_BYTE, message);
-    }
-  else
-    {
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
+				(sizeof(message[0]) / sizeof(message[0][0])),
+				5, GL_RGBA, GL_UNSIGNED_BYTE, message);
+		alarm(MESSAGE_LIFE);
+		return;
+	}
 #endif
-      font_text(screen, 0, ys, msg);
-      SDL_UpdateRect(screen, 0, ys, xs, 16);
-#ifdef SDL_OPENGL_SUPPORT
-    }
-#endif
-  // Clear message in 3 seconds
-  alarm(MESSAGE_LIFE);
+	font_text(screen, 0, ys, msg);
+	SDL_UpdateRect(screen, 0, ys, xs, 16);
+	// Clear message in 3 seconds
+	alarm(MESSAGE_LIFE);
 }
 
 inline void pd_clear_message()
 {
-  int i, j;
-  int *p = (int*)((char*)screen->pixels + (screen->pitch * ys));
+	size_t i;
+	uint8_t *p = ((uint8_t *)screen->pixels + (screen->pitch * ys));
+
 #ifdef SDL_OPENGL_SUPPORT
-  if(opengl)
-    {
-		memset(message, 0, (256 * 5 * 4));
+	if (opengl) {
+		memset(message, 0, sizeof(message));
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
-				GL_RGBA,GL_UNSIGNED_BYTE, m_clear);
-    }
-  else
-    {
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
+				(sizeof(m_clear[0]) / sizeof(m_clear[0][0])),
+				5, GL_RGBA, GL_UNSIGNED_BYTE, m_clear);
+		return;
+	}
 #endif
-      for(i = 0; i < 16; ++i, p += (screen->pitch >> 2))
-        for(j = 0; j < 80 * screen->format->BytesPerPixel; ++j)
-          p[j] = 0;
-      SDL_UpdateRect(screen, 0, ys, xs, 16);
-#ifdef SDL_OPENGL_SUPPORT
-    }
-#endif
+	/* Clear 16 lines after ys */
+	for (i = 0; (i < 16); ++i, p += screen->pitch)
+		memset(p, 0, screen->pitch);
+	SDL_UpdateRect(screen, 0, ys, xs, 16);
 }
 
 /* FIXME: Implement this
