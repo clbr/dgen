@@ -297,6 +297,7 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 		['A'] = 0xa, ['B'] = 0xb, ['C'] = 0xc, ['D'] = 0xd,
 		['E'] = 0xe, ['F'] = 0xf
 	};
+	size_t i;
 
 	assert(sizeof(unsigned int) >= 4);
 	assert(ckvp != NULL);
@@ -321,7 +322,7 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 			ckvp->state = CKVP_OUT_VALUE;
 		return 0;
 	}
-	for (size_t i = 0; (i < size); ++i) {
+	for (i = 0; (i < size); ++i) {
 		unsigned char c = in[i];
 		unsigned int newst;
 
