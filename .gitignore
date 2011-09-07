@@ -22,6 +22,7 @@ Makefile.in
 /musa/m68kopdm.c
 /musa/m68kopnz.c
 /musa/m68kops.c
+/musa/m68kops.h
 /mz80/makez80
 /mz80/mz80.asm
 /sdl/pbm2df
