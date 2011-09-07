@@ -20,14 +20,14 @@
  * http://kstenerud.cjb.net
  */
 
-
-
+/* 2011-09-08: use stdint.h and related types -- zamaz */
 
 #ifndef M68KCPU__HEADER
 #define M68KCPU__HEADER
 
 #include "m68k.h"
 #include <limits.h>
+#include <stdint.h>
 
 #if M68K_EMULATE_ADDRESS_ERROR
 #include <setjmp.h>
@@ -43,85 +43,30 @@
 #endif
 
 /* Data types used in this emulation core */
-#undef sint8
-#undef sint16
-#undef sint32
-#undef sint64
-#undef uint8
-#undef uint16
-#undef uint32
-#undef uint64
-#undef sint
-#undef uint
-
-#define sint8  signed   char			/* ASG: changed from char to signed char */
-#define sint16 signed   short
-#define sint32 signed   long
-#define uint8  unsigned char
-#define uint16 unsigned short
-#define uint32 unsigned long
-
+typedef int8_t sint8;
+typedef int16_t sint16;
+typedef int32_t sint32;
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
 /* signed and unsigned int must be at least 32 bits wide */
-#define sint   signed   int
-#define uint   unsigned int
-
+typedef int_least32_t sint;
+typedef uint_least32_t uint;
 
 #if M68K_USE_64_BIT
-#define sint64 signed   long long
-#define uint64 unsigned long long
+typedef int64_t sint64;
+typedef uint64_t uint64;
 #else
-#define sint64 sint32
-#define uint64 uint32
+typedef int32_t sint64;
+typedef uint64_t uint64;
 #endif /* M68K_USE_64_BIT */
 
-
-
-/* Allow for architectures that don't have 8-bit sizes */
-#if UCHAR_MAX == 0xff
-	#define MAKE_INT_8(A) (sint8)(A)
-#else
-	#undef  sint8
-	#define sint8  signed   int
-	#undef  uint8
-	#define uint8  unsigned int
-	INLINE sint MAKE_INT_8(uint value)
-	{
-		return (value & 0x80) ? value | ~0xff : value & 0xff;
-	}
-#endif /* UCHAR_MAX == 0xff */
-
-
-/* Allow for architectures that don't have 16-bit sizes */
-#if USHRT_MAX == 0xffff
-	#define MAKE_INT_16(A) (sint16)(A)
-#else
-	#undef  sint16
-	#define sint16 signed   int
-	#undef  uint16
-	#define uint16 unsigned int
-	INLINE sint MAKE_INT_16(uint value)
-	{
-		return (value & 0x8000) ? value | ~0xffff : value & 0xffff;
-	}
-#endif /* USHRT_MAX == 0xffff */
-
-
-/* Allow for architectures that don't have 32-bit sizes */
-#if ULONG_MAX == 0xffffffff
-	#define MAKE_INT_32(A) (sint32)(A)
-#else
-	#undef  sint32
-	#define sint32  signed   int
-	#undef  uint32
-	#define uint32  unsigned int
-	INLINE sint MAKE_INT_32(uint value)
-	{
-		return (value & 0x80000000) ? value | ~0xffffffff : value & 0xffffffff;
-	}
-#endif /* ULONG_MAX == 0xffffffff */
-
-
-
+#define MAKE_INT_8(A) (sint8)(A)
+#define MAKE_INT_16(A) (sint16)(A)
+#define MAKE_INT_32(A) (sint32)(A)
+#define MAKE_UINT_8(A) (uint8)(A)
+#define MAKE_UINT_16(A) (uint16)(A)
+#define MAKE_UINT_32(A) (uint32)(A)
 
 /* ======================================================================== */
 /* ============================ GENERAL DEFINES =========================== */
@@ -462,7 +407,7 @@
 	#define m68ki_use_program_space() m68ki_address_space = FUNCTION_CODE_USER_PROGRAM
 	#define m68ki_get_address_space() m68ki_address_space
 #else
-	#define m68ki_set_fc(A)
+	#define m68ki_set_fc(A) ((void)(A))
 	#define m68ki_use_data_space()
 	#define m68ki_use_program_space()
 	#define m68ki_get_address_space() FUNCTION_CODE_USER_DATA
@@ -1148,7 +1093,7 @@ INLINE uint m68ki_get_ea_ix(uint An)
 
 	/* Check if base displacement is present */
 	if(BIT_5(extension))                /* BD SIZE */
-		bd = BIT_4(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+		bd = BIT_4(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
 
 	/* If no indirect action, we are done */
 	if(!(extension&7))                  /* No Memory Indirect */
@@ -1156,7 +1101,7 @@ INLINE uint m68ki_get_ea_ix(uint An)
 
 	/* Check if outer displacement is present */
 	if(BIT_1(extension))                /* I/IS:  od */
-		od = BIT_0(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+		od = BIT_0(extension) ? m68ki_read_imm_32() : MAKE_UINT_16(m68ki_read_imm_16());
 
 	/* Postindex */
 	if(BIT_2(extension))                /* I/IS:  0 = preindex, 1 = postindex */

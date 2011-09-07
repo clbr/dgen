@@ -19,7 +19,7 @@
  * http://kstenerud.cjb.net
  */
 
-
+#include <limits.h>
 
 #ifndef M68KCONF__HEADER
 #define M68KCONF__HEADER
@@ -150,11 +150,15 @@
  */
 
 
-/* If on, the enulation core will use 64-bit integers to speed up some
+/* If on, the emulation core will use 64-bit integers to speed up some
  * operations.
-*/
+ * Unsigned long is usually a good indicator for this.
+ */
+#if ULONG_MAX > 0xffffffff
+#define M68K_USE_64_BIT  OPT_ON
+#else
 #define M68K_USE_64_BIT  OPT_OFF
-
+#endif
 
 /* Set to your compiler's static inline keyword to enable it, or
  * set it to blank to disable it.
@@ -162,7 +166,7 @@
  * NOTE: not enabling inline functions will SEVERELY slow down emulation.
  */
 #ifndef INLINE
-#define INLINE static __inline__
+#define INLINE static inline
 #endif /* INLINE */
 
 

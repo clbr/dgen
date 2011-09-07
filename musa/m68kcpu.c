@@ -60,7 +60,7 @@ char* m68ki_cpu_names[9] =
 #endif /* M68K_LOG_ENABLE */
 
 /* The CPU core */
-m68ki_cpu_core m68ki_cpu = {0};
+m68ki_cpu_core m68ki_cpu;
 
 #if M68K_EMULATE_ADDRESS_ERROR
 jmp_buf m68ki_address_error_trap;
