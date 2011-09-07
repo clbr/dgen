@@ -1,4 +1,4 @@
-# DGen/SDL v1.20+
+# DGen/SDL v1.25+
 # Automakefile for Musashi
 
 noinst_PROGRAMS = m68kmake
@@ -7,20 +7,17 @@ noinst_LIBRARIES = libmusa68.a
 
 m68kmake_SOURCES = m68kmake.c
 
-BUILT_SOURCES = m68kops.c m68kopac.c m68kopdm.c m68kopnz.c
+BUILT_SOURCES = m68kops.c m68kopac.c m68kopdm.c m68kopnz.c m68kops.h
 
-m68kmake.done: m68kmake
+$(BUILT_SOURCES): m68kmake
 	./m68kmake
-	: > $@
 
-$(BUILT_SOURCES): m68kmake.done
+EXTRA_libmusa68_a_SOURCES = m68k_in.c m68kmake.c
 
-EXTRA_libmusa68_a_SOURCES = m68k_in.c m68kmake.c m68kops.h
+libmusa68_a_SOURCES = m68kcpu.c m68kcpu.h m68k.h m68kconf.h $(BUILT_SOURCES)
 
-libmusa68_a_SOURCES = m68kcpu.c m68kcpu.h m68k.h m68kconf.h
+libmusa68_a_DEPENDENCIES = m68kmake $(BUILT_SOURCES)
 
-libmusa68_a_LIBADD = m68kops.o m68kopac.o m68kopdm.o m68kopnz.o
+DISTCLEANFILES = $(BUILT_SOURCES) m68kmake
 
-libmusa68_a_DEPENDENCIES = m68kmake $(BUILT_SOURCES:.c=.o)
-
-DISTCLEANFILES = $(BUILT_SOURCES) m68kmake m68kmake.done
+.NOTPARALLEL:
