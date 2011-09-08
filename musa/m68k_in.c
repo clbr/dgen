@@ -196,7 +196,7 @@ void m68ki_build_opcode_table(void)
 				for(k=0;k<NUM_CPU_TYPES;k++)
 					m68ki_cycles[k][instr] = ostruct->cycles[k];
 				if((instr & 0xf000) == 0xe000 && (!(instr & 0x20)))
-					m68ki_cycles[0][instr] = m68ki_cycles[1][instr] = ostruct->cycles[k] + ((((j-1)&7)+1)<<1);
+					m68ki_cycles[0][instr] = m68ki_cycles[1][instr] = ostruct->cycles[0] + ((((j-1)&7)+1)<<1);
 			}
 		}
 		ostruct++;
