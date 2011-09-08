@@ -154,7 +154,7 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
       if((vdp.reg[0] & 0x10) && (--hints < 0))
         {
 	  // Trigger hint
-	  m68k_assert_irq(4); m68k_clear_irq(4);
+	  m68k_set_irq(4);
 	  hints = vdp.reg[10];
 	  may_want_to_get_pic(bm, retpal, 1);
 	} else may_want_to_get_pic(bm, retpal, 0);
@@ -171,7 +171,8 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
   // Now we're in vblank, more special things happen :)
   // Blank everything, and trigger vint
   coo5 |= 0x8C;
-  if(vdp.reg[1] & 0x20) { m68k_assert_irq(6); m68k_clear_irq(6); }
+  if (vdp.reg[1] & 0x20)
+	  m68k_set_irq(6);
   if(z80_online) mz80int(0);
 
   // Run the course of vblank

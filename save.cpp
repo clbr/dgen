@@ -48,21 +48,25 @@ int md::import_gst(FILE *hand)
 #endif
 
 #ifdef COMPILE_WITH_MUSA
-  if (cpu_emu==1)
-  {
-    int i,t;
-    fseek(hand,0x80,SEEK_SET);
-    for (i=0;i<8;i++)
-    { fget(&t,4); m68k_poke_dr(i,t); }
-    for (i=0;i<8;i++)
-    { fget(&t,4); m68k_poke_ar(i,t); }
+	if (cpu_emu == 1) {
+		unsigned int i, t;
 
-    fseek(hand,0xc8,SEEK_SET);
-    fget(&t,4); m68k_poke_pc(t);
-
-    fseek(hand,0xd0,SEEK_SET);
-    fget(&t,4); m68k_poke_sr(t);
-  }
+		fseek(hand, 0x80, SEEK_SET);
+		for (i = M68K_REG_D0; (i <= M68K_REG_D7); ++i) {
+			fget(&t, 4);
+			m68k_set_reg((m68k_register_t)i, t);
+		}
+		for (i = M68K_REG_A0; (i <= M68K_REG_A7); ++i) {
+			fget(&t, 4);
+			m68k_set_reg((m68k_register_t)i, t);
+		}
+		fseek(hand, 0xc8, SEEK_SET);
+		fget(&t, 4);
+		m68k_set_reg(M68K_REG_PC, t);
+		fseek(hand, 0xd0, SEEK_SET);
+		fget(&t, 4);
+		m68k_set_reg(M68K_REG_SR, t);
+	}
 #endif
 
   fseek(hand,0xfa,SEEK_SET);
@@ -123,21 +127,25 @@ int md::export_gst(FILE *hand)
   }
 #endif
 #ifdef COMPILE_WITH_MUSA
-  if (cpu_emu==1)
-  {
-    int i,t;
-    fseek(hand,0x80,SEEK_SET);
-    for (i=0;i<8;i++)
-    { t=m68k_peek_dr(i); fput(&t,4);}
-    for (i=0;i<8;i++)
-    { t=m68k_peek_ar(i); fput(&t,4);}
+	if (cpu_emu == 1) {
+		unsigned int i, t;
 
-    fseek(hand,0xc8,SEEK_SET);
-    t=m68k_peek_pc(); fput(&t,4);
-
-    fseek(hand,0xd0,SEEK_SET);
-    t=m68k_peek_sr(); fput(&t,4);
-  }
+		fseek(hand, 0x80, SEEK_SET);
+		for (i = M68K_REG_D0; (i <= M68K_REG_D7); ++i) {
+			t = m68k_get_reg(NULL, (m68k_register_t)i);
+			fput(&t, 4);
+		}
+		for (i = M68K_REG_A0; (i <= M68K_REG_A7); ++i) {
+			t = m68k_get_reg(NULL, (m68k_register_t)i);
+			fput(&t, 4);
+		}
+		fseek(hand, 0xc8, SEEK_SET);
+		t = m68k_get_reg(NULL, M68K_REG_PC);
+		fput(&t, 4);
+		fseek(hand, 0xd0, SEEK_SET);
+		t = m68k_get_reg(NULL, M68K_REG_SR);
+		fput(&t, 4);
+	}
 #endif
 
   fseek(hand,0xfa,SEEK_SET);

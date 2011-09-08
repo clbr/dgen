@@ -89,55 +89,55 @@ extern "C"
 	// address will be a 24-bit value.
 
 	/* Read from anywhere */
-	int m68k_read_memory_8(int address)
+	unsigned int m68k_read_memory_8(unsigned int address)
 	{
 		return root_readbyte(address, 0);
 	}
 
-	int m68k_read_memory_16(int address)
+	unsigned int m68k_read_memory_16(unsigned int address)
 	{
 		return root_readword(address, 0);
 	}
 
-	int m68k_read_memory_32(int address)
+	unsigned int m68k_read_memory_32(unsigned int address)
 	{
 		return root_readlong(address, 0);
 	}
 
 	/* Read data immediately following the PC */
-	int m68k_read_immediate_8(int address)
+	unsigned int m68k_read_immediate_8(unsigned int address)
 	{
 		return root_readbyte(address, 0);
 	}
 
-	int m68k_read_immediate_16(int address)
+	unsigned int m68k_read_immediate_16(unsigned int address)
 	{
 		return root_readword(address, 0);
 	}
 
-	int m68k_read_immediate_32(int address)
+	unsigned int m68k_read_immediate_32(unsigned int address)
 	{
 		return root_readlong(address, 0);
 	}
 
 	/* Read an instruction (16-bit word immeditately after PC) */
-	int m68k_read_instruction(int address)
+	unsigned int m68k_read_instruction(unsigned int address)
 	{
 		return root_readword(address, 0);
 	}
 
 	/* Write to anywhere */
-	void m68k_write_memory_8(int address, int value)
+	void m68k_write_memory_8(unsigned int address, unsigned int value)
 	{
 		root_writebyte(address, value);
 	}
 
-	void m68k_write_memory_16(int address, int value)
+	void m68k_write_memory_16(unsigned int address, unsigned int value)
 	{
 		root_writeword(address, value);
 	}
 
-	void m68k_write_memory_32(int address, int value)
+	void m68k_write_memory_32(unsigned int address, unsigned int value)
 	{
 		root_writelong(address, value);
 	}
@@ -347,7 +347,7 @@ int md::reset()
   if (cpu_emu==0) s68000reset();
 #endif
 #ifdef COMPILE_WITH_MUSA
-  if (cpu_emu==1) m68k_pulse_reset(NULL);
+  if (cpu_emu==1) m68k_pulse_reset();
 #endif
 #ifdef COMPILE_WITH_M68KEM
   if (cpu_emu==2) m68000_reset(NULL);
@@ -499,7 +499,7 @@ md::md()
 #endif
 
 #ifdef COMPILE_WITH_MUSA
-   m68k_pulse_reset(NULL);
+   m68k_pulse_reset();
 #endif 
 
 #ifdef COMPILE_WITH_M68KEM
@@ -644,30 +644,33 @@ int md::load(char *name)
 
 int md::change_cpu_emu(int to)
 {
-  // Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
+	// Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
 #ifdef COMPILE_WITH_STAR
 #ifdef COMPILE_WITH_MUSA
-  if (cpu_emu==0 && to==1)
-  {
-    int i;
-    for (i=0;i<8;i++) m68k_poke_dr(i,cpu.dreg[i]);
-    for (i=0;i<8;i++) m68k_poke_ar(i,cpu.areg[i]);
-    m68k_poke_pc(cpu.pc);
-    m68k_poke_sr(cpu.sr);
-  }
-  if (cpu_emu==1 && to==0)
-  {
-    int i;
-    for (i=0;i<8;i++) cpu.dreg[i]=m68k_peek_dr(i);
-    for (i=0;i<8;i++) cpu.areg[i]=m68k_peek_ar(i);
-    cpu.pc=m68k_peek_pc();
-    cpu.sr=m68k_peek_sr();
-  }
-#endif
-#endif
+	if ((cpu_emu == 0) && (to == 1)) {
+		unsigned int i, j;
 
-  cpu_emu=to;
-  return 0;
+		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
+			m68k_set_reg((m68k_register_t)i, cpu.dreg[j]);
+		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
+			m68k_set_reg((m68k_register_t)i, cpu.areg[j]);
+		m68k_set_reg(M68K_REG_PC, cpu.pc);
+		m68k_set_reg(M68K_REG_SR, cpu.sr);
+	}
+	if ((cpu_emu == 1) && (to == 0)) {
+		unsigned int i, j;
+
+		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
+			cpu.dreg[j] = m68k_get_reg(NULL, (m68k_register_t)i);
+		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
+			cpu.areg[j] = m68k_get_reg(NULL, (m68k_register_t)i);
+		cpu.pc = m68k_get_reg(NULL, M68K_REG_PC);
+		cpu.sr = m68k_get_reg(NULL, M68K_REG_SR);
+	}
+#endif
+#endif
+	cpu_emu = to;
+	return 0;
 }
 
 int md::z80dump()
