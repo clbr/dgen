@@ -46,7 +46,17 @@
  *
  */ 
 
-/* 2011-08-28 - dgen-sdl: fix compilation issues */
+/*
+  DGen/SDL modifications to address compilation issues:
+
+  2011-08-28 - Rename VERSION to MZ80_VERSION.
+             - Some fprintf() calls had too many arguments.
+             - Use C99 uint*_t/int*_t for portability.
+  2011-09-11 - Replace assert(0) occurences with abort() as these checks
+               shouldn't go away when defining NDEBUG.
+             - Add default case to switch statement in IRHandler().
+             - Append -dgen to version number.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +65,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define	MZ80_VERSION "3.4"
+#define	MZ80_VERSION "3.4-dgen"
 
 #define TRUE            		0xff
 #define FALSE           		0x0
@@ -1232,7 +1242,7 @@ UINT32 Timing(UINT8 bWho, UINT32 dwOpcode)
 	if (TIMING_EXCEPT == bWho)
 		dwTiming = dwOpcode;
 	else
-		assert(0);
+		abort();
 
 	if (0 == dwTiming)
 	{	
@@ -1277,7 +1287,7 @@ void CBHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);	
+		abort();	
 	}
 }
 
@@ -1302,7 +1312,7 @@ void EDHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);	
+		abort();	
 	}
 }
 
@@ -1327,7 +1337,7 @@ void DDHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);	
+		abort();	
 	}
 }
 
@@ -1352,7 +1362,7 @@ void FDHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);	
+		abort();	
 	}
 }
 
@@ -1469,6 +1479,10 @@ void StandardHeader(void)
 		fprintf(fp, "#include <stdio.h>\n");
 		fprintf(fp, "#include <stdlib.h>\n");
 		fprintf(fp, "#include <string.h>\n");
+		fprintf(fp,
+			"#ifdef HAVE_MEMCPY_H\n"
+			"#include \"memcpy.h\"\n"
+			"#endif\n");
 		fprintf(fp, "#include \"mz80.h\"\n");
 
 		// HACK HACK
@@ -1480,7 +1494,7 @@ void StandardHeader(void)
 	{
 		// Whoops. Unknown emission type.
 
-		assert(0);
+		abort();
 	}
 
 	fprintf(fp, "\n\n");
@@ -1662,7 +1676,7 @@ void WriteValueToMemory(INT8 *pszAddress, INT8 *pszValue)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psMemWrite->lowAddr) && (%s <= psMemWrite->highAddr))\n", pszAddress, pszAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "						if (psMemWrite->memoryCall)\n");
 		fprintf(fp, "						{\n");
 		fprintf(fp, "							psMemWrite->memoryCall(%s, %s, psMemWrite);\n", pszAddress, pszValue);
@@ -1770,7 +1784,7 @@ void WriteWordToMemory(INT8 *pszAddress, INT8 *pszTarget)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psMemWrite->lowAddr) && (%s <= psMemWrite->highAddr))\n", pszAddress, pszAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 
 		fprintf(fp, "						if (psMemWrite->memoryCall)\n");
 		fprintf(fp, "						{\n");
@@ -1796,7 +1810,7 @@ void WriteWordToMemory(INT8 *pszAddress, INT8 *pszTarget)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -1843,7 +1857,7 @@ void WriteValueToIo(INT8 *pszIoAddress, INT8 *pszValue)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psIoWrite->lowIoAddr) && (%s <= psIoWrite->highIoAddr))\n", pszIoAddress, pszIoAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "						psIoWrite->IOCall(%s, %s, psIoWrite);\n", pszIoAddress, pszValue);
 		fprintf(fp, "						psIoWrite = NULL;\n");
 		fprintf(fp, "						break;\n");
@@ -1853,7 +1867,7 @@ void WriteValueToIo(INT8 *pszIoAddress, INT8 *pszValue)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}	
 	
 	++dwGlobalLabel;
@@ -1924,7 +1938,7 @@ void ReadValueFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psMemRead->lowAddr) && (%s <= psMemRead->highAddr))\n", pszAddress, pszAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "						if (psMemRead->memoryCall)\n");
 		fprintf(fp, "						{\n");
 		fprintf(fp, "							%s = psMemRead->memoryCall(%s, psMemRead);\n", pszTarget, pszAddress);
@@ -1945,7 +1959,7 @@ void ReadValueFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2035,7 +2049,7 @@ void ReadWordFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psMemRead->lowAddr) && (%s <= psMemRead->highAddr))\n", pszAddress, pszAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "						if (psMemRead->memoryCall)\n");
 		fprintf(fp, "						{\n");
 		fprintf(fp, "							%s = psMemRead->memoryCall(%s, psMemRead);\n", pszTarget, pszAddress);
@@ -2059,7 +2073,7 @@ void ReadWordFromMemory(INT8 *pszAddress, INT8 *pszTarget)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 
 	dwGlobalLabel++;
@@ -2132,7 +2146,7 @@ void ReadValueFromIo(INT8 *pszIoAddress, INT8 *pszTarget)
 		fprintf(fp, "				{\n");
 		fprintf(fp, "					if ((%s >= psIoRead->lowIoAddr) && (%s <= psIoRead->highIoAddr))\n", pszIoAddress, pszIoAddress);
 		fprintf(fp, "					{\n");
-		fprintf(fp, "						cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "						cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "						%s = psIoRead->IOCall(%s, psIoRead);\n", pszTarget, pszIoAddress);
 		fprintf(fp, "						psIoRead = NULL;\n");
 		fprintf(fp, "						break;\n");
@@ -2146,7 +2160,7 @@ void ReadValueFromIo(INT8 *pszIoAddress, INT8 *pszTarget)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 
 	dwGlobalLabel++;
@@ -2421,7 +2435,7 @@ void MiscHandler(UINT32 dwOpcode)
 			fprintf(fp, "				if (--cpu.z80B)\n");
 			fprintf(fp, "				{\n");
 			fprintf(fp, "					dwElapsedTicks += 5;	/* 5 More for jump taken */\n");
-			fprintf(fp, "					cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+			fprintf(fp, "					cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 			fprintf(fp, "					sdwAddr = (sdwAddr + (INT32) cpu.z80pc) & 0xffff;\n");
 			fprintf(fp, "					pbPC = cpu.z80Base + sdwAddr;	/* Normalize the address */\n");
 			fprintf(fp, "				}\n");
@@ -2482,7 +2496,7 @@ void MiscHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 	
 }
@@ -2528,7 +2542,7 @@ void LdRegPairImmediate(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2570,7 +2584,7 @@ void LdRegpairPtrByte(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2756,7 +2770,7 @@ void MathOperation(UINT32 dwOrgOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2795,7 +2809,7 @@ void RegIntoMemory(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2848,7 +2862,7 @@ void JpHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2882,7 +2896,7 @@ void LdRegImmediate(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2912,7 +2926,7 @@ void IncRegister(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2942,7 +2956,7 @@ void DecRegister(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -2970,7 +2984,7 @@ void IncDecRegpair(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3018,7 +3032,7 @@ void LdRegReg(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3138,7 +3152,7 @@ void MathOperationDirect(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3202,7 +3216,7 @@ void JrHandler(UINT32 dwOpcode)
 	if (MZ80_C == bWhat)
 	{
 		fprintf(fp, "				sdwAddr = (INT8) *pbPC++;	/* Get LSB first */\n");
-		fprintf(fp, "				cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "				cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "				sdwAddr = (sdwAddr + (INT32) cpu.z80pc) & 0xffff;\n");
 
 		if (0x18 != dwOpcode)
@@ -3220,7 +3234,7 @@ void JrHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3283,7 +3297,7 @@ void CallHandler(UINT32 dwOpcode)
 		{
 			fprintf(fp, "				if %s\n", pbFlagsC[(dwOpcode >> 3) & 0x07]);
 			fprintf(fp, "				{\n");
-			fprintf(fp, "					cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+			fprintf(fp, "					cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 			fprintf(fp, "					pbSP = (cpu.z80Base + cpu.z80sp - 1);	/* Normalize the stack pointer */\n");
 			fprintf(fp, "					*pbSP-- = cpu.z80pc >> 8;	/* MSB */\n");
 			fprintf(fp, "					*pbSP = (UINT8) cpu.z80pc;	/* LSB */\n");
@@ -3293,7 +3307,7 @@ void CallHandler(UINT32 dwOpcode)
 		}
 		else		// Just a regular call
 		{
-			fprintf(fp, "				cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+			fprintf(fp, "				cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 			fprintf(fp, "				pbSP = (cpu.z80Base + cpu.z80sp - 1);	/* Normalize the stack pointer */\n");
 			fprintf(fp, "				*pbSP-- = cpu.z80pc >> 8;	/* LSB */\n");
 			fprintf(fp, "				*pbSP = (UINT8) cpu.z80pc;	/* MSB */\n");
@@ -3303,7 +3317,7 @@ void CallHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3373,7 +3387,7 @@ void RetHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3413,7 +3427,7 @@ void RestartHandler(UINT32 dwOpcode)
 	else
 	if (MZ80_C == bWhat)
 	{
-		fprintf(fp, "				cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "				cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "				pbSP = (cpu.z80Base + cpu.z80sp - 1);	/* Normalize the stack pointer */\n");
 		fprintf(fp, "				*pbSP-- = cpu.z80pc >> 8;	/* LSB */\n");
 		fprintf(fp, "				*pbSP = (UINT8) cpu.z80pc;	/* MSB */\n");
@@ -3422,7 +3436,7 @@ void RestartHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3454,7 +3468,7 @@ void ToRegFromHl(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3500,7 +3514,7 @@ void AddRegpairOperations(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3554,7 +3568,7 @@ void PushPopOperations(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3593,7 +3607,7 @@ void RraRlaHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3624,7 +3638,7 @@ void LdByteRegpair(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3686,7 +3700,7 @@ void IncDecHLPtr(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3728,7 +3742,7 @@ void InOutHandler(UINT32 dwOpcode)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -3789,7 +3803,7 @@ void RESSETHandler(UINT32 dwOpcode)
 			WriteValueToMemory("cpu.z80HL", "bTemp");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void BITHandler(UINT32 dwOpcode)
@@ -3841,7 +3855,7 @@ void BITHandler(UINT32 dwOpcode)
 		fprintf(fp, "				}\n");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void RLCRRCRLRRSLASRASRLHandler(UINT32 dwOpcode)
@@ -3883,7 +3897,7 @@ void RLCRRCRLRRSLASRASRLHandler(UINT32 dwOpcode)
 		if ((dwOpcode & 0xf8) == 0x38)
 			fprintf(fp, "		shr	%s, 1\n", pbLocalReg[op]);
 		else
-			assert(0);
+			abort();
 	
 		fprintf(fp, "		lahf\n");
 
@@ -3993,7 +4007,7 @@ void RLCRRCRLRRSLASRASRLHandler(UINT32 dwOpcode)
 			WriteValueToMemory("cpu.z80HL", "bTemp");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 // ED Area
@@ -4033,7 +4047,7 @@ void RRDRLDHandler(UINT32 dwOpcode)
 			fprintf(fp, "		shr	ecx, 16	; Restore this\n");
 		}
 		else	// Whoops!
-			assert(0);
+			abort();
 
 		// This routine assumes that the new value to be placed at (HL) is in DL
 
@@ -4083,7 +4097,7 @@ void RRDRLDHandler(UINT32 dwOpcode)
 			InvalidInstructionC(2);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void CPICPDCPIRCPDRHandler(UINT32 dwOpcode)
@@ -4200,7 +4214,7 @@ void CPICPDCPIRCPDRHandler(UINT32 dwOpcode)
 		fprintf(fp, "				}\n");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void INIRINDRINIINDHandler(UINT32 dwOpcode)
@@ -4314,7 +4328,7 @@ void INIRINDRINIINDHandler(UINT32 dwOpcode)
 		fprintf(fp, "				}\n");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void OTIROTDROUTIOUTDHandler(UINT32 dwOpcode)
@@ -4424,7 +4438,7 @@ void OTIROTDROUTIOUTDHandler(UINT32 dwOpcode)
 		fprintf(fp, "				}\n");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void AdcSbcRegpair(UINT32 dwOpcode)
@@ -4511,7 +4525,7 @@ void AdcSbcRegpair(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void RetIRetNHandler(UINT32 dwOpcode)
@@ -4577,7 +4591,7 @@ void RetIRetNHandler(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void ExtendedOutHandler(UINT32 dwOpcode)
@@ -4607,7 +4621,7 @@ void ExtendedOutHandler(UINT32 dwOpcode)
 		WriteValueToIo("dwAddr", pbMathRegC[(dwOpcode >> 3) & 0x07]);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void ExtendedInHandler(UINT32 dwOpcode)
@@ -4660,7 +4674,7 @@ void ExtendedInHandler(UINT32 dwOpcode)
 		fprintf(fp, "				cpu.z80F |= bPostORFlags[%s];\n", pbMathRegC[(dwOpcode >> 3) & 0x07]);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void NegHandler(UINT32 dwOpcode)
@@ -4687,7 +4701,7 @@ void NegHandler(UINT32 dwOpcode)
 		fprintf(fp, "				cpu.z80A = 0 - cpu.z80A;\n");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void ExtendedRegIntoMemory(UINT32 dwOpcode)
@@ -4739,7 +4753,7 @@ void ExtendedRegIntoMemory(UINT32 dwOpcode)
 			WriteWordToMemory("dwTemp", "cpu.z80sp");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LdRegpair(UINT32 dwOpcode)
@@ -4785,7 +4799,7 @@ void LdRegpair(UINT32 dwOpcode)
 			ReadWordFromMemory("dwTemp", "cpu.z80sp");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LDILDRLDIRLDDRHandler(UINT32 dwOpcode)
@@ -4922,7 +4936,7 @@ void LDILDRLDIRLDDRHandler(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void IMHandler(UINT32 dwOpcode)
@@ -4961,7 +4975,7 @@ void IMHandler(UINT32 dwOpcode)
 			fprintf(fp, "				cpu.z80interruptMode = 2;\n");
 	}
 	else
-		assert(0);
+		abort();
 	
 }
 
@@ -4981,6 +4995,8 @@ void IRHandler(UINT32 dwOpcode)
 				dst = "[_z80i]"; src="al"; break;
 		   case 0x4F:  
 				dst = "[_z80r]"; src="al"; break;
+		default:
+			abort();
 	   }
 
 	   ProcBegin(dwOpcode);
@@ -5056,7 +5072,7 @@ void IRHandler(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 // DD/FD Area
@@ -5099,7 +5115,7 @@ void DDFDCBHandler(UINT32 dwOpcode)
 		fprintf(fp, "				DDFDCBHandler(%d);\n", dwData);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LoadIndexReg(UINT32 dwOpcode)
@@ -5127,7 +5143,7 @@ void LoadIndexReg(UINT32 dwOpcode)
 		ReadWordFromMemory("dwAddr", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void StoreIndexReg(UINT32 dwOpcode)
@@ -5159,7 +5175,7 @@ void StoreIndexReg(UINT32 dwOpcode)
 		WriteWordToMemory("dwAddr", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LdIndexPtrReg(UINT32 dwOpcode)
@@ -5186,7 +5202,7 @@ void LdIndexPtrReg(UINT32 dwOpcode)
 		WriteValueToMemory("sdwAddr", pbMathRegC[dwOpcode & 0x07]);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void UndocMathIndex(UINT32 dwOpcode)
@@ -5233,7 +5249,7 @@ void UndocMathIndex(UINT32 dwOpcode)
 		if (dwOpcode1 == 0xb8)
 			fprintf(fp, "		cmp	al, dl\n");
 		else
-			assert(0);
+			abort();
 
 		fprintf(fp, "		lahf		; Get flags back into AH\n");
 
@@ -5330,13 +5346,13 @@ void UndocMathIndex(UINT32 dwOpcode)
 		}
 		else
 		{
-			assert(0);
+			abort();
 		}
 
 		InvalidInstructionC(2);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void UndocLoadHalfIndexReg(UINT32 dwOpcode)
@@ -5364,7 +5380,7 @@ void UndocLoadHalfIndexReg(UINT32 dwOpcode)
 			fprintf(fp, "			%s = *pbPC++;\n", mz80IndexHalfHigh);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void UndocIncDecIndexReg(UINT32 dwOpcode)
@@ -5416,7 +5432,7 @@ void UndocIncDecIndexReg(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void ExIndexed(UINT32 dwOpcode)
@@ -5457,7 +5473,7 @@ void ExIndexed(UINT32 dwOpcode)
 		fprintf(fp, "				%s = dwAddr;\n", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void IncDecIndexReg(UINT32 dwOpcode)
@@ -5488,7 +5504,7 @@ void IncDecIndexReg(UINT32 dwOpcode)
 		fprintf(fp, "				%s &= 0xffff;\n", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LdRegIndexOffset(UINT32 dwOpcode)
@@ -5518,7 +5534,7 @@ void LdRegIndexOffset(UINT32 dwOpcode)
 		ReadValueFromMemory("sdwAddr", pbMathRegC[dwOpcode1]);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LdByteToIndex(UINT32 dwOpcode)
@@ -5557,7 +5573,7 @@ void LdByteToIndex(UINT32 dwOpcode)
 		WriteValueToMemory("sdwAddr", "*pbPC++");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 
@@ -5579,7 +5595,7 @@ void SPToIndex(UINT32 dwOpcode)
 		fprintf(fp, "				cpu.z80sp = %s;\n", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void AddIndexHandler(UINT32 dwOpcode)
@@ -5632,7 +5648,7 @@ void AddIndexHandler(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void JPIXIYHandler(UINT32 dwOpcode)
@@ -5653,7 +5669,7 @@ void JPIXIYHandler(UINT32 dwOpcode)
 		fprintf(fp, "				pbPC = cpu.z80Base + %s;\n", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void IncDecIndexed(UINT32 dwOpcode)
@@ -5719,7 +5735,7 @@ void IncDecIndexed(UINT32 dwOpcode)
 		WriteValueToMemory("dwAddr", "bTemp");
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void MathOperationIndexed(UINT32 dwOpcode)
@@ -5839,7 +5855,7 @@ void MathOperationIndexed(UINT32 dwOpcode)
 			InvalidInstructionC(2);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void UndocIndexToReg(UINT32 dwOpcode)
@@ -5886,7 +5902,7 @@ void UndocIndexToReg(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void UndocRegToIndex(UINT32 dwOpcode)
@@ -5915,7 +5931,7 @@ void UndocRegToIndex(UINT32 dwOpcode)
 			fprintf(fp, "			%s = %s;\n", pbLocalRegC[(dwOpcode >> 3) & 0x07], mz80IndexHalfHigh);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void LoadImmediate(UINT32 dwOpcode)
@@ -5938,7 +5954,7 @@ void LoadImmediate(UINT32 dwOpcode)
 		fprintf(fp, "		%s |= ((UINT32) *pbPC++ << 8);\n", mz80Index);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void PushPopOperationsIndexed(UINT32 dwOpcode)
@@ -5994,7 +6010,7 @@ void PushPopOperationsIndexed(UINT32 dwOpcode)
 		}
 	}
 	else
-		assert(0);
+		abort();
 }
 
 // DDFD XXCB Instructions
@@ -6178,7 +6194,7 @@ void ddcbBitWise(UINT32 dwOpcode)
 			InvalidInstructionC(4);
 	}
 	else
-		assert(0);
+		abort();
 }
 
 void GetTicksCode(void)
@@ -6223,7 +6239,7 @@ void GetTicksCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -6259,7 +6275,7 @@ void ReleaseTimesliceCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -6711,7 +6727,7 @@ void DataSegment(void)
 		fprintf(fp, "static UINT32 dwReturnCode; /* Return code from exec() */\n");
 		fprintf(fp, "static UINT32 dwOriginalCycles; /* How many cycles did we start with? */\n");
 		fprintf(fp, "static UINT32 dwElapsedTicks;	/* How many ticks did we elapse? */\n");
-		fprintf(fp, "static INT32 sdwAddr;		/* Temporary address storage */\n");
+		fprintf(fp, "static UINT32 sdwAddr;		/* Temporary address storage */\n");
 		fprintf(fp, "static UINT32 dwAddr;		/* Temporary stack address */\n");
 		fprintf(fp, "static UINT8 *pbAddAdcTable;	/* Pointer to add/adc flag table */\n");
 		fprintf(fp, "static UINT8 *pbSubSbcTable;	/* Pointer to sub/sbc flag table */\n");
@@ -7067,7 +7083,7 @@ void DataSegment(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 	
@@ -7084,7 +7100,7 @@ void CodeSegmentBegin(void)
 		fprintf(fp, "{\n");
 
 		fprintf(fp, "	pbPC -= dwCount; /* Invalid instruction - back up */\n");
-		fprintf(fp, "	dwReturnCode = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "	dwReturnCode = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 		fprintf(fp, "	dwOriginalCycles -= sdwCyclesRemaining;\n");
 		fprintf(fp, "	sdwCyclesRemaining = 0;\n");
 
@@ -7092,7 +7108,7 @@ void CodeSegmentBegin(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7111,7 +7127,7 @@ void ProgramEnd(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7202,14 +7218,14 @@ void EmitRegularInstructions(void)
 
 		fprintf(fp, "	dwElapsedTicks += (dwOriginalCycles - sdwCyclesRemaining);\n\n");
 
-		fprintf(fp, "	cpu.z80pc = (UINT32) pbPC - (UINT32) cpu.z80Base;\n");
+		fprintf(fp, "	cpu.z80pc = (UINTPTR) pbPC - (UINTPTR) cpu.z80Base;\n");
 
 		fprintf(fp, "	return(dwReturnCode); /* Indicate success */\n");
 		fprintf(fp, "}\n\n");
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7279,7 +7295,7 @@ void EmitCBInstructions(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7349,7 +7365,7 @@ void EmitEDInstructions(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 
 	fprintf(fp, "\n");
@@ -7494,7 +7510,7 @@ void EmitDDInstructions(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7564,7 +7580,7 @@ void EmitFDInstructions(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7640,7 +7656,7 @@ void ReadMemoryByteHandler()
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7721,7 +7737,7 @@ void WriteMemoryByteHandler()
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7825,7 +7841,7 @@ void ReadIoHandler()
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -7895,7 +7911,7 @@ void WriteIoHandler()
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8135,7 +8151,7 @@ void ExecCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8237,7 +8253,7 @@ void NmiCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8394,7 +8410,7 @@ void IntCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8469,7 +8485,7 @@ void ResetCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8522,7 +8538,7 @@ void SetContextCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8578,7 +8594,7 @@ void GetContextCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8614,7 +8630,7 @@ void GetContextSizeCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8746,7 +8762,7 @@ void InitCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
@@ -8781,7 +8797,7 @@ void ShutdownCode(void)
 	}
 	else
 	{
-		assert(0);
+		abort();
 	}
 }
 
