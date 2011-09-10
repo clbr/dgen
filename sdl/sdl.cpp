@@ -199,23 +199,29 @@ void pd_option(char c, const char *)
 		break;
 	case 'X':
 		x_scale = atoi(optarg);
+#ifdef SDL_OPENGL_SUPPORT
 		opengl = 0;
+#endif
 		break;
 	case 'Y':
 		y_scale = atoi(optarg);
+#ifdef SDL_OPENGL_SUPPORT
 		opengl = 0;
+#endif
 		break;
 	case 'S':
 		x_scale = y_scale = atoi(optarg);
+#ifdef SDL_OPENGL_SUPPORT
 		opengl = 0;
+#endif
 		break;
 #ifdef SDL_OPENGL_SUPPORT
 	case 'G':
 		sscanf(optarg, " %d x %d ", &xs, &ys);
 		opengl = 1;
 		break;
-	}
 #endif
+	}
 }
 
 #ifdef SDL_OPENGL_SUPPORT
