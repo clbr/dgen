@@ -934,7 +934,7 @@ int pd_handle_events(md &megad)
 	  else if(ksym == dgen_load) md_load(megad);
 // Added this CPU core hot swap.  Compile both Musashi and StarScream
 // in, and swap on the fly like DirectX DGen. [PKH]
-#if defined (COMPILE_WITH_MUSA) && (COMPILE_WITH_STAR)
+#if defined (WITH_MUSA) && (WITH_STAR)
 	  else if(ksym == dgen_cpu_toggle)
 	    {
 	      if(megad.cpu_emu) {

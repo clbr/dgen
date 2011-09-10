@@ -18,20 +18,24 @@ static md* which=0;
 
 int md::star_mz80_on()
 {
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   s68000SetContext(&cpu);
 #endif
+#ifdef WITH_MZ80
   mz80SetContext(&z80);
+#endif
   which=this;
   return 0;
 }
 int md::star_mz80_off()
 {
   which=0;
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   s68000GetContext(&cpu);
 #endif
+#ifdef WITH_MZ80
   mz80GetContext(&z80);
+#endif
   return 0;
 }
 
@@ -80,7 +84,7 @@ extern "C" {
 	}
 }
 
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
 // Okay: a bit for MUSASHI
 extern "C"
 {
@@ -147,7 +151,7 @@ extern "C"
 #endif
 
 // The same thing for 68KEM
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
 extern "C" {
   int cpu_readmem24(int address) { return root_readbyte(address); }
   int cpu_readmem24_word(int address) { return root_readword(address); }
@@ -168,14 +172,16 @@ extern "C" {
 }
 #endif
 
+#ifdef WITH_MZ80
+
 /*
-  In case the assembly version of MZ80 is used (HAVE_MZ80_ASM), prevent
+  In case the assembly version of MZ80 is used (WITH_X86_MZ80), prevent
   GCC from optimizing sibling calls (-foptimize-sibling-calls, enabled
   by default at -O2 and above). The ASM code doesn't expect this and
   crashes otherwise.
 */
 
-#ifdef HAVE_MZ80_ASM
+#ifdef WITH_X86_MZ80
 #define MZ80_NOSIBCALL(t, w) *((volatile t *)&(w))
 #else
 #define MZ80_NOSIBCALL(t, w) (w)
@@ -211,6 +217,8 @@ void root_z80_port_write(UINT16 a, UINT8 d, struct z80PortWrite *unused)
 		which->z80_port_write(MZ80_NOSIBCALL(UINT16, a), d);
 }
 
+#endif // WITH_MZ80
+
 extern FILE *debug_log;
 
 extern "C"
@@ -218,7 +226,7 @@ extern "C"
   int mega_dacout=0,mega_dacen=0;
 }
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
 int md::memory_map()
 {
   int i=0,j=0;
@@ -345,17 +353,19 @@ int md::memory_map()
 int md::reset()
 {
   star_mz80_on();
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   if (cpu_emu==0) s68000reset();
 #endif
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
   if (cpu_emu==1) m68k_pulse_reset();
 #endif
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
   if (cpu_emu==2) m68000_reset(NULL);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
+#ifdef WITH_MZ80
   mz80reset();
+#endif
 
   // zero = natural state of select line?
 
@@ -384,6 +394,8 @@ int md::reset()
   return 0;
 }
 
+#ifdef WITH_MZ80
+
 static struct MemoryReadByte mem_read[] = {
 	{ 0x2000, 0xffff, root_z80_read, NULL },
 	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
@@ -404,10 +416,13 @@ static struct z80PortWrite io_write[] = {
 	{ (UINT16)-1, (UINT16)-1, NULL, NULL }
 };
 
+#endif // WITH_MZ80
+
 int md::z80_init()
 {
   // Set up the z80
   star_mz80_on();
+#ifdef WITH_MZ80
   mz80reset();
   // Modify the default context
   mz80GetContext(&z80);
@@ -421,6 +436,7 @@ int md::z80_init()
 
   mz80SetContext(&z80);
   mz80reset();
+#endif
   star_mz80_off();
   return 0;
 }
@@ -438,13 +454,15 @@ md::md()
   memset(&fm_reg,0,sizeof(fm_reg));
   memset(&ras_fm_ticker,0,sizeof(ras_fm_ticker));
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   fetch=NULL;
   readbyte=readword=writebyte=writeword=NULL;
   memset(&cpu,0,sizeof(cpu));
 #endif
 
+#ifdef WITH_MZ80
   memset(&z80,0,sizeof(z80));
+#endif
   romfilename[0]=0;
   country_ver=0xff0; layer_sel = 0xff;
 
@@ -467,14 +485,14 @@ md::md()
 
   star_mz80_on();  // VERY IMPORTANT - Must call before using stars/mz80!!
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   if (s68000init()!=0) { printf ("s68000init failed!\n"); return; }
 #endif
 
   star_mz80_off(); // VERY IMPORTANT - Must call after using stars/mz80!!
 
   cpu_emu=-1; // Do we have a cpu emu?
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
 // Dave: Rich said doing point star stuff is done after s68000init
 // in Asgard68000, so just in case...
   fetch= new STARSCREAM_PROGRAMREGION[6]; if (!fetch)     return;
@@ -492,24 +510,26 @@ md::md()
   cpu.s_writeword = cpu.u_writeword = writeword;
   cpu_emu=0; // zero=starscream, one=musashi, two=68kem
 #else
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
   cpu_emu=1; // zero=starscream, one=musash, two=68kemi
 #endif
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
   cpu_emu=2; // zero=starscream, one=musash, two=68kemi
 #endif
 #endif
 
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
    m68k_pulse_reset();
 #endif 
 
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
   m68000_reset(NULL);
 #endif
 
   z80_init();
+#ifdef WITH_MZ80
   mz80init();
+#endif
 
   reset(); // reset megadrive
 
@@ -525,7 +545,7 @@ md::~md()
   free(mem);
   rom=mem=ram=z80ram=NULL;
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   if (fetch)     delete[] fetch;
   if (readbyte)  delete[] readbyte;
   if (readword)  delete[] readword;
@@ -585,7 +605,7 @@ int md::plug_in(unsigned char *cart,int len)
       save_start = save_len = 0;
       saveram = NULL;
     }
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   memory_map(); // Update memory map to include this cartridge
 #endif
   reset(); // Reset megadrive
@@ -596,7 +616,7 @@ int md::unplug()
 {
   if (rom==NULL) return 1; if (romlen<=0) return 1;
   free(rom); free(saveram); romlen = save_start = save_len = 0;
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
 #endif
   memset(romfilename,0,sizeof(romfilename));
@@ -647,8 +667,8 @@ int md::load(char *name)
 int md::change_cpu_emu(int to)
 {
 	// Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
-#ifdef COMPILE_WITH_STAR
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_STAR
+#ifdef WITH_MUSA
 	if ((cpu_emu == 0) && (to == 1)) {
 		unsigned int i, j;
 

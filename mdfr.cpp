@@ -13,7 +13,7 @@
 
 int split_screen=0;
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
 void md::run_to_odo_star(int odo_to)
 {
   int odo_start = s68000readOdometer();
@@ -21,14 +21,14 @@ void md::run_to_odo_star(int odo_to)
 }
 #endif
 
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
 void md::run_to_odo_musa(int odo_to)
 {
   odo += m68k_execute(odo_to - odo);
 }
 #endif
 
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
 void md::run_to_odo_m68kem(int odo_to)
 {
   odo += m68000_execute(odo_to - odo);
@@ -40,8 +40,10 @@ void md::run_to_odo_z80(int odo_to)
   if(z80_online)
     {
       odo_to >>= 1;
+#ifdef WITH_MZ80
       int odo_start = mz80GetElapsedTicks(0);
       mz80exec(odo_to - odo_start);
+#endif
     }
 }
 
@@ -58,7 +60,7 @@ void md::run_to_odo_z80(int odo_to)
 
 #define scanlength (pal? (7189547/50/0x138) : (8000000/60/0x106))
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
 int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
 {
   int hints, odom = 0;
@@ -127,9 +129,9 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   return 0;
 }
-#endif // COMPILE_WITH_STAR
+#endif // WITH_STAR
 
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
 int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
 {
   int hints, odom = 0;
@@ -138,7 +140,9 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Clear odos
   odo = 0;
+#ifdef WITH_MZ80
   mz80GetElapsedTicks(1);
+#endif
 
   // Raster zero causes special things to happen :)
   coo4 = 0x37; // Init status register
@@ -175,7 +179,9 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
   coo5 |= 0x8C;
   if (vdp.reg[1] & 0x20)
 	  m68k_set_irq(6);
+#ifdef WITH_MZ80
   if(z80_online) mz80int(0);
+#endif
 
   // Run the course of vblank
   for(; ras < LINES_PER_FRAME; ++ras)
@@ -197,10 +203,10 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   return 0;
 }
-#endif // COMPILE_WITH_MUSA
+#endif // WITH_MUSA
 
 // FIXME: I'm not going to do this until I figure out 68kem better
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
 int md::one_frame_m68kem(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
 {}
 #endif
@@ -212,13 +218,13 @@ int md::one_frame(
   ++frame;
   switch(cpu_emu)
     {
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
       case 0: return one_frame_star(bm, retpal, sndi);
 #endif
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
       case 1: return one_frame_musa(bm, retpal, sndi);
 #endif
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
       case 2: return one_frame_m68kem(bm, retpal, sndi);
 #endif
       // Something's screwy here...
@@ -230,10 +236,10 @@ int md::calculate_hcoord()
 {
   int x=0,hcoord;
   // c00009 is the H counter (I believe it's (h-coord>>1)&0xff)
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
   if (cpu_emu==0) x = s68000readOdometer() - (ras * scanlength);
 #endif
-#if defined(COMPILE_WITH_MUSA) || defined(COMPILE_WITH_M68KEM)
+#if defined(WITH_MUSA) || defined(WITH_M68KEM)
   if (cpu_emu==1) x = odo - (ras * scanlength);
 #endif
 

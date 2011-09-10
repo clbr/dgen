@@ -8,13 +8,13 @@
 // You needn't worry about changing the #defines at the beginning of this
 // header anymore, you can simply edit Makefile.config
 
-#ifdef COMPILE_WITH_STAR
+#ifdef WITH_STAR
 #ifndef __STARCPU_H__
-#include "starcpu.h"
+#include "star/starcpu.h"
 #endif
 #endif
 
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
 #ifndef M68000__HEADER
 extern "C" {
 #include "m68000.h"
@@ -22,17 +22,19 @@ extern "C" {
 #endif
 #endif
 	
-#ifdef COMPILE_WITH_MUSA
+#ifdef WITH_MUSA
 #ifndef M68K__HEADER
 extern "C"
 {
-#include "m68k.h"
+#include "musa/m68k.h"
 }
 #endif
 #endif
 
+#ifdef WITH_MZ80
 #ifndef	_MZ80_H_
-#include "mz80.h"
+#include "mz80/mz80.h"
+#endif
 #endif
 
 //#define BUILD_YM2612
@@ -124,7 +126,7 @@ public:
   void draw_scanline(struct bmap *bits, int line);
 };
 
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
 // Make sure this gets C linkage
 extern "C" void cpu_setOPbase24(int pc);
 #endif
@@ -132,7 +134,7 @@ extern "C" void cpu_setOPbase24(int pc);
 class md
 {
 private:
-#ifdef COMPILE_WITH_M68KEM
+#ifdef WITH_M68KEM
   // Yuck - had to use friend function :(
   friend void cpu_setOPbase24(int pc);
 #endif
@@ -146,8 +148,10 @@ private:
 public:
   md_vdp vdp;
 private:
+#ifdef WITH_MZ80
   struct mz80context z80;
-#ifdef COMPILE_WITH_STAR
+#endif
+#ifdef WITH_STAR
   struct S68000CONTEXT cpu;
   STARSCREAM_PROGRAMREGION *fetch;
   STARSCREAM_DATAREGION    *readbyte,*readword,*writebyte,*writeword;
@@ -264,7 +268,9 @@ public:
 
   int cpu_emu;// OK to read it but call change_cpu_emu to change it
   int change_cpu_emu(int to);
+#ifdef WITH_MZ80
   mz80context&   z80_context() {return z80;}
+#endif
   int load(FILE *hand,char *desc);
   int save(FILE *hand,char *desc);
   int import_gst(FILE *hand);

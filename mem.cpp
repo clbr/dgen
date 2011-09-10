@@ -254,8 +254,10 @@ void md::misc_writebyte(unsigned a,unsigned d)
   if (a==0xa11101) return;
   if (a==0xa11200)
   {
+#ifdef WITH_MZ80
     if (d==0)
       mz80reset();
+#endif
     return;
   }
   if (a==0xa11201) return;
