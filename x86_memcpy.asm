@@ -3,11 +3,11 @@ section .text
 ;extern "C" int asm_memcpy
 ;  (unsigned char *dest, unsigned char *src, int len);
 
-global _asm_memcpy
+global asm_memcpy
 
 times ($$-$) & 3 db 0
 
-_asm_memcpy:
+asm_memcpy:
 
 pushad			; save registers
 mov edi,[esp+36]	; get 1st argument

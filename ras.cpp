@@ -88,44 +88,45 @@ static inline int get_word(unsigned char *where)
 
 #ifdef ASM_TILES
 extern "C" {
-  void _asm_tiles_init(unsigned char *vram,
-  		       unsigned char *reg,
-		       unsigned *highpal);
+
+void asm_tiles_init(unsigned char *vram,
+		    unsigned char *reg,
+		    unsigned *highpal);
   
-  void _drawtile1(int which, int line, unsigned char *where);
-  void _drawtile1_solid(int which, int line, unsigned char *where);
-  void _drawtile2(int which, int line, unsigned char *where);
-  void _drawtile2_solid(int which, int line, unsigned char *where);
-  void _drawtile3(int which, int line, unsigned char *where);
-  void _drawtile3_solid(int which, int line, unsigned char *where);
-  void _drawtile4(int which, int line, unsigned char *where);
-  void _drawtile4_solid(int which, int line, unsigned char *where);
+void drawtile1(int which, int line, unsigned char *where);
+void drawtile1_solid(int which, int line, unsigned char *where);
+void drawtile2(int which, int line, unsigned char *where);
+void drawtile2_solid(int which, int line, unsigned char *where);
+void drawtile3(int which, int line, unsigned char *where);
+void drawtile3_solid(int which, int line, unsigned char *where);
+void drawtile4(int which, int line, unsigned char *where);
+void drawtile4_solid(int which, int line, unsigned char *where);
 }
 
 // Pass off these calls to assembler counterparts
 inline void md_vdp::draw_tile1_solid(int which, int line, unsigned char *where)
-  { _drawtile1_solid(which, line, where); }
+  { drawtile1_solid(which, line, where); }
 
 inline void md_vdp::draw_tile1(int which, int line, unsigned char *where)
-  { _drawtile1(which, line, where); }
+  { drawtile1(which, line, where); }
 
 inline void md_vdp::draw_tile2_solid(int which, int line, unsigned char *where)
-  { _drawtile2_solid(which, line, where); }
+  { drawtile2_solid(which, line, where); }
 
 inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
-  { _drawtile2(which, line, where); }
+  { drawtile2(which, line, where); }
 
 inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
-  { _drawtile3_solid(which, line, where); }
+  { drawtile3_solid(which, line, where); }
 
 inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
-  { _drawtile3(which, line, where); }
+  { drawtile3(which, line, where); }
 
 inline void md_vdp::draw_tile4_solid(int which, int line, unsigned char *where)
-  { _drawtile4_solid(which, line, where); }
+  { drawtile4_solid(which, line, where); }
 
 inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
-  { _drawtile4(which, line, where); }
+  { drawtile4(which, line, where); }
 
 #else // ASM_TILES
 
@@ -693,7 +694,7 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
       else		       Bpp = 4;
       Bpp_times8 = Bpp << 3; // used for tile blitting
 #ifdef ASM_TILES
-      _asm_tiles_init(vram, reg, highpal); // pass these values to the asm tiles
+      asm_tiles_init(vram, reg, highpal); // pass these values to the asm tiles
 #endif
     }
 

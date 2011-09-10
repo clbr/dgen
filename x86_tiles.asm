@@ -14,15 +14,15 @@ section .text
 ;%define cache_align times ($$-$) & 7 nop	; Align to 8-byte boundary
 %define cache_align times ($$-$) & 31 nop	; Align to 32-byte boundary
 
-global __asm_tiles_init
-global __drawtile1_solid
-global __drawtile1
-global __drawtile2_solid
-global __drawtile2
-global __drawtile3_solid
-global __drawtile3
-global __drawtile4_solid
-global __drawtile4
+global asm_tiles_init
+global drawtile1_solid
+global drawtile1
+global drawtile2_solid
+global drawtile2
+global drawtile3_solid
+global drawtile3
+global drawtile4_solid
+global drawtile4
 
 ; Neat utility macro
 %macro triple_xor 2
@@ -151,7 +151,7 @@ global __drawtile4
 
 	cache_align
 
-__asm_tiles_init:
+asm_tiles_init:
 
 	push eax
 	push ebx
@@ -184,7 +184,7 @@ __asm_tiles_init:
 
 	cache_align
 
-__drawtile1_solid:
+drawtile1_solid:
 
 	pushad
 	mov ebp, esp
@@ -292,7 +292,7 @@ __drawtile1_solid:
 
 ; ----------------------------------------
 
-__drawtile1:
+drawtile1:
 
 	pushad
 	mov ebp, esp
@@ -405,7 +405,7 @@ __drawtile1:
 
 	cache_align
 
-__drawtile2_solid:
+drawtile2_solid:
 
 	pushad
 	mov ebp, esp
@@ -522,7 +522,7 @@ __drawtile2_solid:
 
 	cache_align
 
-__drawtile2:
+drawtile2:
 
 	pushad
 	mov ebp, esp
@@ -629,7 +629,7 @@ __drawtile2:
 
 ; ----------------------------------------
 
-__drawtile3_solid:
+drawtile3_solid:
 
 	pushad
 	mov ebp, esp
@@ -745,7 +745,7 @@ __drawtile3_solid:
 
 ; ----------------------------------------
 
-__drawtile3:
+drawtile3:
 
 	pushad
 	mov ebp, esp
@@ -856,7 +856,7 @@ __drawtile3:
 
 ; ----------------------------------------
 
-__drawtile4_solid:
+drawtile4_solid:
 
 	pushad
 	mov ebp, esp
@@ -972,7 +972,7 @@ __drawtile4_solid:
 
 ; ----------------------------------------
 
-__drawtile4:
+drawtile4:
 
 	pushad
 	mov ebp, esp

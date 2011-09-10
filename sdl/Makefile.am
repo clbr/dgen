@@ -1,23 +1,32 @@
-# DGen/SDL v1.20+
-# SDL Interface
+# DGen/SDL v1.26+
+# SDL interface
 
-EXTRA_DIST = dgenfont.pbm chartfont.c
+CC_FOR_BUILD=@CC_FOR_BUILD@
+CFLAGS_FOR_BUILD=@CFLAGS_FOR_BUILD@
+OBJEXT_FOR_BUILD=@OBJEXT_FOR_BUILD@
+EXEEXT_FOR_BUILD=@EXEEXT_FOR_BUILD@
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/musa -I$(top_srcdir)/star
+AM_CPPFLAGS = -I$(top_srcdir) @SDL_CFLAGS@
 
-noinst_PROGRAMS = pbm2df
+SUFFIXES = .pbm
 
-noinst_LIBRARIES = libpd.a
+.pbm.cpp:
+	./$(PBM2DF) $< $@
 
-# built sources
+PBM2DF = pbm2df$(EXEEXT_FOR_BUILD)
+DIR = $(top_srcdir)/sdl
+
+$(PBM2DF): $(DIR)/pbm2df.c $(DIR)/dgenfont.pbm
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) -o $@ $(DIR)/pbm2df.c
 
 BUILT_SOURCES = dgenfont.cpp
 
-dgenfont.cpp: pbm2df dgenfont.pbm
-	./pbm2df dgenfont.pbm dgenfont.cpp
+$(BUILT_SOURCES): $(PBM2DF)
 
-# pd.a
+noinst_LIBRARIES = libpd.a
+libpd_a_SOURCES = font.cpp sdl.cpp font.h pd-defs.h ogl_fonts.h $(BUILT_SOURCES)
+libpd_a_DEPENDENCIES = $(PBM2DF)
 
-libpd_a_SOURCES = font.cpp dgenfont.cpp sdl.cpp font.h pd-defs.h ogl_fonts.h
+DISTCLEANFILES = $(BUILT_SOURCES) $(PBM2DF)
 
-DISTCLEANFILES = $(BUILT_SOURCES)
+.NOTPARALLEL:

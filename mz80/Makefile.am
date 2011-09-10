@@ -1,34 +1,39 @@
-# DGen/SDL v1.20+
+# DGen/SDL v1.26+
 # Automakefile for mz80
 
-INCLUDES =
-SUFFIXES =
-
 include $(top_srcdir)/Makefile.asm.am
-# Since the chop_ script flakes on mz80, we use mz80's builtin facility
-if NO_USCORE
- plain = -l
+
+CC_FOR_BUILD=@CC_FOR_BUILD@
+CFLAGS_FOR_BUILD=@CFLAGS_FOR_BUILD@
+OBJEXT_FOR_BUILD=@OBJEXT_FOR_BUILD@
+EXEEXT_FOR_BUILD=@EXEEXT_FOR_BUILD@
+
+AM_CPPFLAGS = -I$(top_srcdir)
+
+MAKEZ80 = makez80$(EXEEXT_FOR_BUILD)
+DIR = $(top_srcdir)/mz80
+
+$(MAKEZ80): $(DIR)/makez80.c
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) -o $@ $<
+
+if WITH_X86_MZ80
+BUILT_SOURCES = x86-mz80.asm
+MAKEZ80_ARGS = -l -s -x86
 else
- plain =
+BUILT_SOURCES = mz80.c
+MAKEZ80_ARGS = -l -s -c
 endif
 
-INCLUDES += -I..
+$(BUILT_SOURCES): $(MAKEZ80)
+	./$(MAKEZ80) $(BUILT_SOURCES) $(MAKEZ80_ARGS)
+
+noinst_LIBRARIES = libmz80.a
+libmz80_a_SOURCES = mz80.h $(BUILT_SOURCES)
+libmz80_a_DEPENDENCIES = $(MAKEZ80)
+EXTRA_libmz80_a_SOURCES = makez80.c
 
 EXTRA_DIST = mz80.txt
 
-noinst_LIBRARIES = libmz80.a
+DISTCLEANFILES = x86-mz80.asm mz80.c $(MAKEZ80)
 
-noinst_PROGRAMS = makez80
-
-mz80.asm: makez80
-	./makez80 $(plain) -s -x86 mz80.asm
-
-libmz80_a_SOURCES =
-
-libmz80_a_LIBADD = mz80.o
-
-libmz80_a_DEPENDENCIES = mz80.o
-
-EXTRA_libmz80_a_SOURCES = makez80.c
-
-DISTCLEANFILES = mz80.asm makez80
+.NOTPARALLEL:

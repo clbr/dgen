@@ -1,68 +1,88 @@
-# DGen/SDL v1.20+
-
-SUFFIXES =
-INCLUDES =
+# DGen/SDL v1.26+
 
 include $(top_srcdir)/Makefile.asm.am
 
-DIST_SUBDIRS = star musa mz80 sdl
-SUBDIRS = @CPUDIRS@ @INTERFACE@
+DIST_SUBDIRS = musa mz80 sdl star
 
-INCLUDES += -I$(top_srcdir)/musa -I$(top_srcdir)/star \
-	-I$(top_srcdir)/@INTERFACE@
+# SDL
+SUBDIRS = sdl
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/sdl
+dgen_DEPENDENCIES = sdl/libpd.a
+dgen_LDADD = sdl/libpd.a
+
+# Musashi
+if WITH_MUSA
+SUBDIRS += musa
+dgen_DEPENDENCIES += musa/libmusa68.a
+dgen_LDADD += musa/libmusa68.a
+endif
+
+# MZ80
+if WITH_MZ80
+SUBDIRS += mz80
+dgen_DEPENDENCIES += mz80/libmz80.a
+dgen_LDADD += mz80/libmz80.a
+endif
+
+# StarScream
+if WITH_STAR
+SUBDIRS += star
+dgen_DEPENDENCIES += star/libstarcpu.a
+dgen_LDADD += star/libstarcpu.a
+endif
 
 bin_PROGRAMS = dgen tobin
 
 man_MANS = dgen.1 dgenrc.5 tobin.1
 
-EXTRA_DIST = sample.dgenrc $(man_MANS) Makefile.asm.am
+EXTRA_DIST = sample.dgenrc
 
 # dgen
+dgen_SOURCES =		\
+	rc.h		\
+	rc-vars.h	\
+	rc.cpp		\
+	romload.c	\
+	md.h		\
+	md.cpp		\
+	md-joe.cpp	\
+	mdfr.cpp	\
+	decode.h	\
+	decode.c	\
+	vdp.cpp		\
+	save.cpp	\
+	graph.cpp	\
+	fm.h		\
+	fm.c		\
+	myfm.cpp	\
+	sn76496.h	\
+	sn76496.c	\
+	ras-drawplane.h	\
+	ras.cpp		\
+	main.cpp	\
+	mem.cpp		\
+	pd.h		\
+	driver.h	\
+	ckvp.c		\
+	ckvp.h		\
+	md-phil.h	\
+	md-phil.cpp
 
-dgen_SOURCES = rc.cpp romload.c md.cpp mdfr.cpp md-joe.cpp decode.c vdp.cpp \
-	       save.cpp graph.cpp myfm.cpp fm.c sn76496.c ras.cpp main.cpp \
-	       rc.h md-phil.h rc-vars.h md.h mz80.h fm.h decode.h mem.cpp \
-	       ras-drawplane.h pd.h driver.h sn76496.h \
-	       mz80.h starcpu.h m68k.h m68kconf.h \
-	       ckvp.c ckvp.h
-
-dgen_LDADD = @SDL_LIBS@
-
-dgen_DEPENDENCIES = @INTERFACE@/libpd.a
-
-if JOYSTICK
-dgen_SOURCES += md-phil.cpp
+if WITH_X86_TILES
+dgen_SOURCES += x86_tiles.asm
 endif
 
-# MUSASHI M680x0 CPU emulator
-if MUSA
-dgen_DEPENDENCIES += musa/libmusa68.a
+if WITH_X86_CTV
+dgen_SOURCES += x86_ctv.asm
 endif
 
-# StarScream M680x0 CPU emulator
-if STAR
-dgen_DEPENDENCIES += star/libstarcpu.a
-endif
-
-# Multi-Z80 sound chip emulator (C version)
-if ZZ80
-dgen_SOURCES += zz80.c
-endif
-
-# Multi-Z80 sound chip emulator (assembly version)
-if MZ80
-dgen_DEPENDENCIES += mz80/libmz80.a
-endif
-
-if ASM
-dgen_SOURCES += asm_tiles.asmu ctv.asmu
-if MMX
-dgen_SOURCES += mmx_memcpy.asmu
+if WITH_X86_ASM
+if WITH_X86_MMX
+dgen_SOURCES += x86_mmx_memcpy.asm
 else
-dgen_SOURCES += asm_memcpy.asmu
+dgen_SOURCES += x86_memcpy.asm
 endif
 endif
 
-dgen_LDADD += $(dgen_DEPENDENCIES)
-
+# tobin
 tobin_SOURCES = tobin.c romload.c

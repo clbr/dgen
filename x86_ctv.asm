@@ -5,10 +5,10 @@ section .text
 ;extern "C" int blur_bitmap_16
 ;  (unsigned char *dest,int len);
 
-global _blur_bitmap_16
-global _test_ctv
+global blur_bitmap_16
+global test_ctv
 times ($$-$) & 3 db 0
-_blur_bitmap_16:
+blur_bitmap_16:
 push edi ; point to screen
 push edx ; temporary for unwrapping
 push ecx ; count
@@ -64,9 +64,9 @@ section .text
 ;extern "C" int blur_bitmap_15
 ;  (unsigned char *dest,int len);
 
-global _blur_bitmap_15
+global blur_bitmap_15
 times ($$-$) & 3 db 0
-_blur_bitmap_15:
+blur_bitmap_15:
 push edi ; point to screen
 push edx ; temporary for unwrapping
 push ecx ; count
@@ -123,7 +123,7 @@ section .text
 
 global _test_ctv
 times ($$-$) & 3 db 0
-_test_ctv:
+test_ctv:
 push edi ; point to screen
 push edx ; temporary for unwrapping
 push ecx ; count
