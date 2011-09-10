@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
+#endif
 #include "md.h"
 
 int split_screen=0;
@@ -303,7 +305,7 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
       sndi->l[i] += cur_dac;
     }
   // Copy mono signal to center channel
-  MEMCPY(sndi->r, sndi->l, len * sizeof(short));
+  memcpy(sndi->r, sndi->l, len * sizeof(short));
 
   // Add in the stereo FM buffer
   FMSAMPLE *buf[2];

@@ -15,19 +15,17 @@
 
 BEGIN_C_DECL
 
-#if defined(MMX_MEMCPY)
+#if defined(WITH_X86_MMX)
 
-#define MEMCPY(a, b, c) mmx_memcpy(a, b, c)
+#undef memcpy
+#define memcpy(a, b, c) mmx_memcpy(a, b, c)
 extern void mmx_memcpy(void *, void *, size_t);
 
-#elif defined(ASM_MEMCPY)
+#elif defined(WITH_X86_ASM)
 
-#define MEMCPY(a, b, c) asm_memcpy(a, b, c)
+#undef memcpy
+#define memcpy(a, b, c) asm_memcpy(a, b, c)
 extern void asm_memcpy(void *, void *, size_t);
-
-#else
-
-#define MEMCPY(a, b, c) memcpy(a, b, c)
 
 #endif 
 

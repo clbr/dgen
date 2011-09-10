@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
+#endif
 #include "md.h"
 
 // This is the 'static' StarScream/MZ80 multitasker
@@ -619,13 +621,13 @@ int md::load(char *name)
   // Register name
   strncpy(romfilename,name,255);
   // Fill the header with ROM info (god this is ugly)
-  MEMCPY((void*)cart_head.system_name,  (void*)(temp + 0x100), 0x10);
-  MEMCPY((void*)cart_head.copyright,    (void*)(temp + 0x110), 0x10);
-  MEMCPY((void*)cart_head.domestic_name,(void*)(temp + 0x120), 0x30);
-  MEMCPY((void*)cart_head.overseas_name,(void*)(temp + 0x150), 0x30);
-  MEMCPY((void*)cart_head.product_no,   (void*)(temp + 0x180), 0x0e);
+  memcpy((void*)cart_head.system_name,  (void*)(temp + 0x100), 0x10);
+  memcpy((void*)cart_head.copyright,    (void*)(temp + 0x110), 0x10);
+  memcpy((void*)cart_head.domestic_name,(void*)(temp + 0x120), 0x30);
+  memcpy((void*)cart_head.overseas_name,(void*)(temp + 0x150), 0x30);
+  memcpy((void*)cart_head.product_no,   (void*)(temp + 0x180), 0x0e);
   cart_head.checksum = temp[0x18e]<<8 | temp[0x18f]; // ugly, but endian-neutral
-  MEMCPY((void*)cart_head.control_data, (void*)(temp + 0x190), 0x10);
+  memcpy((void*)cart_head.control_data, (void*)(temp + 0x190), 0x10);
   cart_head.rom_start  = temp[0x1a0]<<24 | temp[0x1a1]<<16 | temp[0x1a2]<<8 | temp[0x1a3];
   cart_head.rom_end    = temp[0x1a4]<<24 | temp[0x1a5]<<16 | temp[0x1a6]<<8 | temp[0x1a7];
   cart_head.ram_start  = temp[0x1a8]<<24 | temp[0x1a9]<<16 | temp[0x1aa]<<8 | temp[0x1ab];
@@ -634,8 +636,8 @@ int md::load(char *name)
   cart_head.save_flags = temp[0x1b2]<<8 | temp[0x1b3];
   cart_head.save_start = temp[0x1b4]<<24 | temp[0x1b5]<<16 | temp[0x1b6]<<8 | temp[0x1b7];
   cart_head.save_end   = temp[0x1b8]<<24 | temp[0x1b9]<<16 | temp[0x1ba]<<8 | temp[0x1bb];
-  MEMCPY((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
-  MEMCPY((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
+  memcpy((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
+  memcpy((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
   // Plug it into the memory map
   plug_in(temp,len); // md then deallocates it when it's done
 
