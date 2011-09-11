@@ -10,7 +10,7 @@
 #include <SDL.h>
 #include <SDL_audio.h>
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 # include <GL/gl.h>
 # include "ogl_fonts.h"
 #endif
@@ -25,7 +25,7 @@
 #include "pd-defs.h"
 #include "font.h"
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 // Defines for RGBA
 # define R 0
 # define G 1
@@ -72,7 +72,7 @@ static int opengl = 0;
 // One cannot write more than 256/7 (36) characters at once.
 static unsigned char message[5][256][4];
 static unsigned char m_clear[5][256][4];
-#endif // SDL_OPENGL_SUPPORT
+#endif // WITH_OPENGL
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
 extern int slot;
@@ -87,7 +87,7 @@ struct bmap mdscr;
 unsigned char *mdpal = NULL;
 struct sndinfo sndi;
 const char *pd_options = "fX:Y:S:"
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   "G:"
 #endif
   ;
@@ -129,7 +129,7 @@ static void do_screenshot(void) {
   int x;
   FILE *fp;
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(opengl)
     {
       pd_message("Screenshot not supported in OpenGL mode");
@@ -170,7 +170,7 @@ void pd_help()
   "    -X scale        Scale the screen in the X direction.\n"
   "    -Y scale        Scale the screen in the Y direction.\n"
   "    -S scale        Scale the screen by the same amount in both directions.\n"
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   "    -G XxY          Use OpenGL mode, with width X and height Y.\n"
 #endif
   );
@@ -183,7 +183,7 @@ void pd_rc()
 	// command-line options
 	fullscreen = dgen_fullscreen;
 	x_scale = y_scale = dgen_scale;
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	opengl = dgen_opengl;
 	if (opengl) {
 		xs = dgen_opengl_width;
@@ -201,23 +201,23 @@ void pd_option(char c, const char *)
 		break;
 	case 'X':
 		x_scale = atoi(optarg);
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 		opengl = 0;
 #endif
 		break;
 	case 'Y':
 		y_scale = atoi(optarg);
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 		opengl = 0;
 #endif
 		break;
 	case 'S':
 		x_scale = y_scale = atoi(optarg);
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 		opengl = 0;
 #endif
 		break;
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	case 'G':
 		sscanf(optarg, " %d x %d ", &xs, &ys);
 		opengl = 1;
@@ -226,7 +226,7 @@ void pd_option(char c, const char *)
 	}
 }
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 static void maketex(GLuint *id, void *buffer, int width)
 {
 	glGenTextures(1, id);
@@ -331,7 +331,7 @@ static void display()
   glCallList(dlist);
   SDL_GL_SwapBuffers();
 }
-#endif // SDL_OPENGL_SUPPORT
+#endif // WITH_OPENGL
 
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal)
@@ -352,14 +352,14 @@ int pd_graphics_init(int want_sound, int want_pal)
   ysize = (want_pal? 240 : 224);
 
   // Set screen size vars
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(!opengl)
 #endif
     xs = 320*x_scale, ys = ysize*y_scale;
 
   // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
   // for the message bar.
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	if (opengl) {
 		compute_tex_lower(ysize);
 		screen = SDL_SetVideoMode(xs, ys, 0,
@@ -391,12 +391,12 @@ int pd_graphics_init(int want_sound, int want_pal)
   // Hide the cursor
   SDL_ShowCursor(0);
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(opengl)
     init_textures();
 #endif
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(!opengl)
 #endif
     // If we're in 8 bit mode, set color 0xff to white for the text,
@@ -421,7 +421,7 @@ int pd_graphics_init(int want_sound, int want_pal)
   SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
 
   // Set up the MegaDrive screen
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(opengl)
     bytes_pixel = 4;
   else
@@ -429,7 +429,7 @@ int pd_graphics_init(int want_sound, int want_pal)
     bytes_pixel = screen->format->BytesPerPixel;
   mdscr.w = 320 + 16;
   mdscr.h = ysize + 16;
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(opengl)
     mdscr.bpp = 32;
   else
@@ -462,13 +462,13 @@ void pd_graphics_palette_update()
       colors[i].g = mdpal[(i << 2)+1];
       colors[i].b = mdpal[(i << 2)+2];
     }
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(!opengl)
 #endif
     SDL_SetColors(screen, colors, 0, 64);
 }
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 void update_textures() 
 {
 	glBindTexture(GL_TEXTURE_2D,texture[0]);
@@ -496,7 +496,7 @@ void pd_graphics_update()
   int i, j, k;
   unsigned char *p = NULL;
   unsigned char *q;
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   int x, xb;
 #endif
   
@@ -512,7 +512,7 @@ void pd_graphics_update()
       pd_clear_message();
     }
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(!opengl)
 #endif
     p = (unsigned char*)screen->pixels;
@@ -524,7 +524,7 @@ void pd_graphics_update()
 
   for(i = 0; i < ysize; ++i)
     {
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
       if(opengl)
 	{
 		// Copy, converting from BGRA to RGBA
@@ -541,7 +541,7 @@ void pd_graphics_update()
 	}
       else
         {
-#endif // SDL_OPENGL_SUPPORT
+#endif // WITH_OPENGL
 #ifdef WITH_X86_CTV
           if(dgen_craptv) switch(dgen_craptv)
             {
@@ -633,7 +633,7 @@ void pd_graphics_update()
 	        }
 	      p += screen->pitch;
 	    }
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
         }
 #endif
       q += mdscr.pitch;
@@ -641,7 +641,7 @@ void pd_graphics_update()
   // Unlock when you're done!
   if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
   // Update the screen
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
   if(opengl)
     update_textures();
   else
@@ -956,7 +956,7 @@ int pd_handle_events(md &megad)
 	  else if(ksym == dgen_stop) {
 	    pd_message("STOPPED - Press any key to continue.");
 	    SDL_PauseAudio(1); // Stop audio :)
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	    if (opengl)
 			display(); // Otherwise the above message won't show up
 #endif
@@ -991,7 +991,7 @@ int pd_handle_events(md &megad)
             do_screenshot();
           }
 	  break;
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	case SDL_VIDEORESIZE:
 	{
 		SDL_Surface *tmp;
@@ -1064,7 +1064,7 @@ int pd_handle_events(md &megad)
   return 1;
 }
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 static void ogl_write_text(const char *msg)
 {
 	unsigned int y;
@@ -1247,13 +1247,13 @@ static void ogl_write_text(const char *msg)
 		x += 7;
 	}
 }
-#endif // SDL_OPENGL_SUPPORT
+#endif // WITH_OPENGL
 
 // Write a message to the status bar
 void pd_message(const char *msg)
 {
 	pd_clear_message();
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	if (opengl) {
 		ogl_write_text(msg);
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -1279,7 +1279,7 @@ inline void pd_clear_message()
 	size_t i;
 	uint8_t *p = ((uint8_t *)screen->pixels + (screen->pitch * ys));
 
-#ifdef SDL_OPENGL_SUPPORT
+#ifdef WITH_OPENGL
 	if (opengl) {
 		memset(message, 0, sizeof(message));
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
