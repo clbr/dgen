@@ -315,9 +315,9 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
 
   // Add in the stereo FM buffer
   FMSAMPLE *buf[2];
-  buf[0] = (FMSAMPLE*) sndi->l;
-  buf[1] = (FMSAMPLE*) sndi->r;
-  YM2612UpdateOne(0, (void**)buf, len);
+  buf[0] = (FMSAMPLE *)sndi->l;
+  buf[1] = (FMSAMPLE *)sndi->r;
+  YM2612UpdateOne(0, buf, len);
 
   // Clear the dac for next frame
   dac_clear();

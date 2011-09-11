@@ -1406,7 +1406,7 @@ static void OPNWriteReg(FM_OPN *OPN, int r, int v)
 static YM2203 *FM2203=NULL; /* array of YM2203's */
 
 /* ---------- update one of chip ----------- */
-void YM2203UpdateOne(int num, void *buffer, int length)
+void YM2203UpdateOne(int num, FMSAMPLE *buffer, int length)
 {
     YM2203 *F2203 = &(FM2203[num]);
     FM_OPN *OPN =   &(FM2203[num].OPN);
@@ -1642,7 +1642,7 @@ int YM2203TimerOver(int n,int c)
 static YM2612 *FM2612=NULL; /* array of YM2612's */
 
 /* ---------- update one of chip ----------- */
-void YM2612UpdateOne(int num, void **buffer, int length)
+void YM2612UpdateOne(int num, FMSAMPLE *buffer[2], int length)
 {
     YM2612 *F2612 = &(FM2612[num]);
     FM_OPN *OPN   = &(FM2612[num].OPN);
@@ -1652,8 +1652,8 @@ void YM2612UpdateOne(int num, void **buffer, int length)
     int dacout  = F2612->dacout;
 
     /* set bufer */
-    bufL = (FMSAMPLE *)buffer[0];
-    bufR = (FMSAMPLE *)buffer[1];
+    bufL = buffer[0];
+    bufR = buffer[1];
 
     if( (void *)F2612 != cur_chip ){
         cur_chip = (void *)F2612;

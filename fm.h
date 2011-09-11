@@ -97,7 +97,7 @@ void YM2203Shutdown(void);
 */
 void YM2203ResetChip(int num);
 
-void YM2203UpdateOne(int num, void *buffer, int length);
+void YM2203UpdateOne(int num, FMSAMPLE *buffer, int length);
 
 /*
 ** return : InterruptLevel
@@ -121,7 +121,7 @@ int YM2612Init(int num, int baseclock, int rate,
                FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler);
 void YM2612Shutdown(void);
 void YM2612ResetChip(int num);
-void YM2612UpdateOne(int num, void **buffer, int length);
+void YM2612UpdateOne(int num, FMSAMPLE *buffer[2], int length);
 int YM2612Write(int n, int a,int v);
 unsigned char YM2612Read(int n,int a);
 int YM2612TimerOver(int n, int c );
