@@ -114,11 +114,13 @@ extern long js_map_button[2][16];
 // Number of seconds to sustain messages
 #define MESSAGE_LIFE 3
 
+#ifndef __MINGW32__
 // Catch SIGALRM
 static void sigalrm_handler(int)
 {
   sigalrm_happened = 1;
 }
+#endif
 
 // Screenshots, thanks to Allan Noe <psyclone42@geocities.com>
 static void do_screenshot(void) {
@@ -378,9 +380,11 @@ int pd_graphics_init(int want_sound, int want_pal)
 			SDL_GetError());
 		return 0;
     }
+#ifndef __MINGW32__
   // We don't need setuid priveledges anymore
   if(getuid() != geteuid())
     setuid(getuid());
+#endif
 
   // Set the titlebar
   SDL_WM_SetCaption("DGen "VER, "dgen");
@@ -440,7 +444,9 @@ int pd_graphics_init(int want_sound, int want_pal)
     }
 
   // Set SIGALRM handler (used to clear messages after 3 seconds)
+#ifndef __MINGW32__
   signal(SIGALRM, sigalrm_handler);
+#endif
 
   // And that's it! :D
   return 1;
@@ -1254,14 +1260,18 @@ void pd_message(const char *msg)
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
 				(sizeof(message[0]) / sizeof(message[0][0])),
 				5, GL_RGBA, GL_UNSIGNED_BYTE, message);
+#ifndef __MINGW32__
 		alarm(MESSAGE_LIFE);
+#endif
 		return;
 	}
 #endif
 	font_text(screen, 0, ys, msg);
 	SDL_UpdateRect(screen, 0, ys, xs, 16);
 	// Clear message in 3 seconds
+#ifndef __MINGW32__
 	alarm(MESSAGE_LIFE);
+#endif
 }
 
 inline void pd_clear_message()

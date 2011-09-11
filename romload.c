@@ -147,7 +147,9 @@ int load_rom_into(char *name,unsigned char *into)
       /* Recurse with the new file */
       len = load_rom_into(temp2, into);
       remove(temp2);
+#ifndef __MINGW32__
       sync();
+#endif
       return len;
     }
   /* Do bzip2 also */
@@ -164,7 +166,9 @@ int load_rom_into(char *name,unsigned char *into)
       /* Recurse with the uncompressed file */
       len = load_rom_into(temp2, into);
       remove(temp2);
+#ifndef __MINGW32__
       sync();
+#endif
       return len;
   }
   /* Next check for SMD magic */

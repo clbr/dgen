@@ -1,5 +1,9 @@
 // This parses the RC file.
 
+#ifdef __MINGW32__
+#undef __STRICT_ANSI__
+#endif
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +13,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <assert.h>
+#include <strings.h>
 
 #include "rc.h"
 #include "ckvp.h"

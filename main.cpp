@@ -9,14 +9,20 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#ifndef __MINGW32__
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
+#include <pwd.h>
+#else
+#include <winsock2.h>
+#define mkdir(a, b) mkdir(a)
+#endif
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
-#include <pwd.h>
+
 
 #define IS_MAIN_CPP
 #include "md.h"
@@ -145,6 +151,7 @@ static void help()
 // Initialize base directory
 static void init_basedir()
 {
+#ifndef __MINGW32__
 	size_t size;
 	struct passwd *pwd = getpwuid(geteuid());
 
@@ -159,6 +166,7 @@ static void init_basedir()
 		return;
 	basedir_len = size;
 	basedir_space = (sizeof(basedir) - size);
+#endif
 }
 
 // Save/load states
@@ -306,7 +314,7 @@ int main(int argc, char *argv[])
 	  // Game Genie patches
 	  patches = optarg;
 	  break;
-#ifndef __BEOS__
+#if !defined(__BEOS__) && !defined(__MINGW32__)
 	case 'R':
 	  // Try to set realtime priority
 	  if(geteuid()) {

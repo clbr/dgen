@@ -1,7 +1,9 @@
 // Ripped Snes9X joystick code and made it Genesis friendly, with a few
 // slight modifications. [PKH]
 
+#ifdef LINUX_JOYSTICK_SUPPORT
 #include <sys/ioctl.h>
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
