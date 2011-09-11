@@ -86,7 +86,7 @@ static inline int get_word(unsigned char *where)
 #  define SHIFT7 (24)
 #endif // WORDS_BIGENDIAN
 
-#ifdef ASM_TILES
+#ifdef WITH_X86_TILES
 extern "C" {
 
 void asm_tiles_init(unsigned char *vram,
@@ -128,7 +128,7 @@ inline void md_vdp::draw_tile4_solid(int which, int line, unsigned char *where)
 inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
   { drawtile4(which, line, where); }
 
-#else // ASM_TILES
+#else // WITH_X86_TILES
 
 // Blit tile solidly, for 1 byte-per-pixel
 inline void md_vdp::draw_tile1_solid(int which, int line, unsigned char *where)
@@ -517,7 +517,7 @@ inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
       if(tile & PIXEL7) *(wwhere+7) = pal[((tile & PIXEL7)>>SHIFT7)];
     }
 } 
-#endif // ASM_TILES
+#endif // WITH_X86_TILES
 
 // Draw the window (front or back)
 void md_vdp::draw_window(int line, int front)
@@ -693,7 +693,7 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
       else if(bits->bpp <= 24) Bpp = 3;
       else		       Bpp = 4;
       Bpp_times8 = Bpp << 3; // used for tile blitting
-#ifdef ASM_TILES
+#ifdef WITH_X86_TILES
       asm_tiles_init(vram, reg, highpal); // pass these values to the asm tiles
 #endif
     }
