@@ -6,7 +6,19 @@
 ** how to compile.
 */
 
-#define STAR_VERSION "0.26a"
+/*
+  DGen/SDL modifications to address compilation issues:
+
+  2008-08-20 - Remove default label at end of block in selective_usereg().
+  2011-08-21 - Add default label back followed by a break statement.
+             - Remove emit() call in suffixes().
+  2011-09-11 - In maskaddress(), emit additional globals without underscores
+               in their names. It should be up to NASM to prefix them as
+               necessary.
+             - Append -dgen to version number.
+*/
+
+#define STAR_VERSION "0.26a-dgen"
 
 /***************************************************************************/
 /*
@@ -242,8 +254,10 @@ static void maskaddress(char *reg) {
 static void begin_source_proc(char *fname) {
 	emit("global _%s%s\n", sourcename, fname);
 	emit("global %s%s_\n", sourcename, fname);
+	emit("global %s%s\n", sourcename, fname);
 	emit("_%s%s:\n", sourcename, fname);
 	emit("%s%s_:\n", sourcename, fname);
+	emit("%s%s:\n", sourcename, fname);
 }
 
 /* Generate variables */
