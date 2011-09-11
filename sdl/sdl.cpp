@@ -490,7 +490,7 @@ void update_textures()
 // Anyway, feel free to use it in your implementation. :)
 void pd_graphics_update()
 {
-#ifdef ASM_CTV
+#ifdef WITH_X86_CTV
   static int f = 0;
 #endif
   int i, j, k;
@@ -542,7 +542,7 @@ void pd_graphics_update()
       else
         {
 #endif // SDL_OPENGL_SUPPORT
-#ifdef ASM_CTV
+#ifdef WITH_X86_CTV
           if(dgen_craptv) switch(dgen_craptv)
             {
 	    // Blur, by Dave
@@ -563,7 +563,7 @@ void pd_graphics_update()
 	    default:
 	      break;
 	    }
-#endif // ASM_CTV
+#endif // WITH_X86_CTV
           if(x_scale == 1)
             {
 	      if(y_scale == 1)
