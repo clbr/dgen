@@ -106,7 +106,7 @@ static Uint8 *playbuf = NULL;
 // Messages
 static volatile int sigalrm_happened = 0;
 
-#ifdef SDL_JOYSTICK_SUPPORT
+#ifdef WITH_SDL_JOYSTICK
 // Extern joystick stuff
 extern long js_map_button[2][16];
 #endif
@@ -805,7 +805,7 @@ int pd_handle_events(md &megad)
 
   // If there's any chance your implementation might run under Linux, add these
   // next four lines for joystick handling.
-#ifdef LINUX_JOYSTICK_SUPPORT
+#ifdef WITH_LINUX_JOYSTICK
   if(dgen_joystick)
     megad.read_joysticks();
 #endif
@@ -814,7 +814,7 @@ int pd_handle_events(md &megad)
     {
       switch(event.type)
 	{
-#if SDL_JOYSTICK_SUPPORT
+#ifdef WITH_SDL_JOYSTICK
        case SDL_JOYAXISMOTION:
          // x-axis
          if(event.jaxis.axis == 0)
@@ -865,7 +865,7 @@ int pd_handle_events(md &megad)
          megad.pad[event.jbutton.which] |= js_map_button[event.jbutton.which]
                                                         [event.jbutton.button];
          break;
-#endif // SDL_JOYSTICK_SUPPORT
+#endif // WITH_SDL_JOYSTICK
 	case SDL_KEYDOWN:
 	  ksym = event.key.keysym.sym;
 	  // Check for modifiers

@@ -403,6 +403,7 @@ AC_ARG_WITH(
 
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
+AS_IF([test "x$USE_JOYSTICK" != x], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])

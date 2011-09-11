@@ -139,7 +139,7 @@ static void help()
   "    -d DEMONAME     Record a demo of the game you are playing.\n"
   "    -D DEMONAME     Play back a previously recorded demo.\n"
   "    -s SLOT         Load the saved state from the given slot at startup.\n"
-#ifdef JOYSTICK_SUPPORT
+#ifdef WITH_JOYSTICK
   "    -j              Use joystick if detected.\n"
 #endif
   );
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
 	  // PAL mode
 	  pal_mode = 1;
 	  break;
-#ifdef JOYSTICK_SUPPORT
+#ifdef WITH_JOYSTICK
 	case 'j':
 	  // Phil's joystick code
 	  dgen_joystick = 1;
@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
     }
   // Set untouched pads
   megad.pad[0] = megad.pad[1] = 0xF303F;
-#ifdef JOYSTICK_SUPPORT
+#ifdef WITH_JOYSTICK
   if(dgen_joystick)
     megad.init_joysticks();
 #endif

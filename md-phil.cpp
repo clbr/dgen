@@ -1,7 +1,7 @@
 // Ripped Snes9X joystick code and made it Genesis friendly, with a few
 // slight modifications. [PKH]
 
-#ifdef LINUX_JOYSTICK_SUPPORT
+#ifdef WITH_LINUX_JOYSTICK
 #include <sys/ioctl.h>
 #endif
 #include <fcntl.h>
@@ -31,7 +31,7 @@
 
 extern int js_map_button [2][16];
 
-#ifdef LINUX_JOYSTICK_SUPPORT
+#ifdef WITH_LINUX_JOYSTICK
 #include <linux/joystick.h>
 
 int joypads[2] = {0};
@@ -159,7 +159,7 @@ void md::read_joysticks()
 #endif // JSIOCGVERSION
 }
 
-#elif defined(SDL_JOYSTICK_SUPPORT)
+#elif defined(WITH_SDL_JOYSTICK)
 #include <SDL.h>
 #include <SDL_joystick.h>
 
