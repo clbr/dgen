@@ -516,11 +516,9 @@ void pd_graphics_update()
   if(!opengl)
 #endif
     p = (unsigned char*)screen->pixels;
-  // 2692 = 336 * 8 + 4. 336 should be the width of mdscr, so we move 8 pixels
-  // down and 4 to the right to skip the messy border.
-  // The previous version shifted by 8 pixels to the right instead of 4
-  // (total 2696). Looks better now.
-  q = (unsigned char *)mdscr.data + 2692 * bytes_pixel;
+  // Use the same formula as draw_scanline() in ras.cpp to avoid the messy
+  // border once and for all. This one works with any supported depth.
+  q = ((unsigned char *)mdscr.data + ((mdscr.pitch * 8) + 16));
 
   for(i = 0; i < ysize; ++i)
     {
