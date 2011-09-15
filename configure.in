@@ -50,9 +50,6 @@ AS_IF(
 	[AC_MSG_RESULT([$CC_FOR_BUILD])]
 	[AC_MSG_CHECKING([for suffix of host object files])]
 	[
-	output="AS_MESSAGE_LOG_FD"
-	output="${output:+&${output}}"
-	: "${output:=/dev/null}"
 {
 	# Sane values by default.
 	OBJEXT_FOR_BUILD=o
@@ -84,7 +81,7 @@ EOF
 	done &&
 	EXT_SUCCESS=1
 	rm -f conftest*
-} 1>${output} 2>&1
+} 1>&AS_MESSAGE_LOG_FD 2>&1
 	]
 	[AS_IF(
 		[test "x$EXT_SUCCESS" = x1],
@@ -324,9 +321,6 @@ AS_IF(
 		USE_X86_MMX=$USE_X86_ASM
 		[AC_MSG_RESULT([$USE_X86_ASM (untested)])],
 		[
-		output="AS_MESSAGE_LOG_FD"
-		output="${output:+&${output}}"
-		: "${output:=/dev/null}"
 {
 	cat <<EOF > conftest.asm &&
 bits 32
@@ -343,7 +337,7 @@ EOF
 	USE_X86_MMX=yes ||
 	USE_X86_MMX=no
 	rm -f conftest*
-} 1>${output} 2>&1
+} 1>&AS_MESSAGE_LOG_FD 2>&1
 		]
 		[AC_MSG_RESULT([$USE_X86_MMX])]
 	)]
