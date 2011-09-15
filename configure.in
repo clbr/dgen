@@ -13,7 +13,8 @@ dnl We'll need machine type later.
 AC_CANONICAL_SYSTEM
 
 dnl Initialize Automake.
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([silent-rules])
+AM_SILENT_RULES([yes])
 
 dnl Check for standard programs.
 AC_PROG_CC
