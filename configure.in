@@ -147,7 +147,7 @@ AC_ARG_ENABLE(
 AS_IF(
 	[test "x$USE_OPENGL" != xno],
 	[AC_CHECK_HEADER(
-		[GL/gl.h],
+		[SDL_opengl.h],
 		[AC_SEARCH_LIBS(
 			[glEnd],
 			[GL opengl32 opengl64],

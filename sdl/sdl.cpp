@@ -11,7 +11,7 @@
 #include <SDL_audio.h>
 
 #ifdef WITH_OPENGL
-# include <GL/gl.h>
+# include <SDL_opengl.h>
 # include "ogl_fonts.h"
 #endif
 
