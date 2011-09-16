@@ -244,6 +244,8 @@ static void makedlist()
   dlist=glGenLists(1);
   glNewList(dlist,GL_COMPILE);
 
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   glEnable(GL_TEXTURE_2D);
 
   glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -317,7 +319,7 @@ static void init_textures()
   // Disable depth buffer
   glDisable(GL_DEPTH_TEST);
 
-  glClearColor(1.0,1.0,1.0,1.0);
+  glClearColor(0.0, 0.0, 0.0, 0.0);
   glShadeModel(GL_FLAT);
 
   maketex(&texture[0], mybuffer, 256);
@@ -351,6 +353,14 @@ int pd_graphics_init(int want_sound, int want_pal)
     }
   ysize = (want_pal? 240 : 224);
 
+  // Ignore events besides quit and keyboard, this must be done before calling
+  // SDL_SetVideoMode(), otherwise we may lose the first resize event.
+  SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
+  SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
+  SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
+  SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
+  SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
+
   // Set screen size vars
 #ifdef WITH_OPENGL
   if(!opengl)
@@ -361,7 +371,6 @@ int pd_graphics_init(int want_sound, int want_pal)
   // for the message bar.
 #ifdef WITH_OPENGL
 	if (opengl) {
-		compute_tex_lower(ysize);
 		screen = SDL_SetVideoMode(xs, ys, 0,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
@@ -392,12 +401,11 @@ int pd_graphics_init(int want_sound, int want_pal)
   SDL_ShowCursor(0);
 
 #ifdef WITH_OPENGL
-  if(opengl)
-    init_textures();
-#endif
-
-#ifdef WITH_OPENGL
-  if(!opengl)
+	if (opengl) {
+		compute_tex_lower(ysize);
+		init_textures();
+	}
+	else
 #endif
     // If we're in 8 bit mode, set color 0xff to white for the text,
     // and make a palette buffer
@@ -413,13 +421,6 @@ int pd_graphics_init(int want_sound, int want_pal)
 	  }
       }
   
-  // Ignore events besides quit and keyboard
-  SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
-  SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
-
   // Set up the MegaDrive screen
 #ifdef WITH_OPENGL
   if(opengl)
@@ -994,6 +995,8 @@ int pd_handle_events(md &megad)
 	{
 		SDL_Surface *tmp;
 		char buf[64];
+		unsigned int w;
+		unsigned int h;
 
 		if (!opengl)
 			break;
@@ -1001,18 +1004,43 @@ int pd_handle_events(md &megad)
 				       (SDL_HWPALETTE | SDL_HWSURFACE |
 					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
 					SDL_RESIZABLE));
-		buf[0] = '\0';
+		if (dgen_opengl_aspect) {
+			// We're asked to keep the original aspect ratio, so
+			// calculate the maximum usable size considering this.
+			w = ((event.resize.h * dgen_opengl_width) /
+			     dgen_opengl_height);
+			h = ((event.resize.w * dgen_opengl_height) /
+			     dgen_opengl_width);
+			if (w >= (unsigned int)event.resize.w) {
+				w = event.resize.w;
+				if (h == 0)
+					++h;
+			}
+			else {
+				h = event.resize.h;
+				if (w == 0)
+					++w;
+			}
+		}
+		else {
+			// Free aspect ratio.
+			w = event.resize.w;
+			h = event.resize.h;
+		}
 		if (tmp == NULL)
 			snprintf(buf, sizeof(buf),
 				 "Failed to resize video to %dx%d.",
 				 event.resize.w, event.resize.h);
 		else {
+			unsigned int x = ((event.resize.w - w) / 2);
+			unsigned int y = ((event.resize.h - h) / 2);
+
 			screen = tmp;
-			glViewport(0, 0, event.resize.w, event.resize.h);
+			glViewport(x, y, w, h);
 			init_textures();
 			snprintf(buf, sizeof(buf),
 				 "Video resized to %dx%d.",
-				 event.resize.w, event.resize.h);
+				 w, h);
 		}
 		pd_message(buf);
 		break;

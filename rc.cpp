@@ -370,6 +370,7 @@ struct rc_field {
   { "bool_fullscreen", boolean, &dgen_fullscreen },
   { "int_scale", number, &dgen_scale },
   { "bool_opengl", boolean, &dgen_opengl },
+  { "bool_opengl_aspect", boolean, &dgen_opengl_aspect },
   { "int_opengl_width", number, &dgen_opengl_width },
   { "int_opengl_height", number, &dgen_opengl_height },
   { "bool_joystick", boolean, &dgen_joystick },
