@@ -79,9 +79,6 @@ extern int slot;
 void md_save(md &megad);
 void md_load(md &megad);
 
-// Temp space
-static char temp[256];
-
 // Define externed variables
 struct bmap mdscr;
 unsigned char *mdpal = NULL;
@@ -121,6 +118,141 @@ static void sigalrm_handler(int)
   sigalrm_happened = 1;
 }
 #endif
+
+#ifdef WITH_CTV
+// Portable versions of Crap TV filters, for all depths except 8 bpp.
+
+static void gen_blur_bitmap_32(uint8_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint8_t old[4];
+	uint8_t tmp[4];
+
+	memcpy(old, line, sizeof(old));
+	i = 0;
+	while (i < (size * 4)) {
+		unsigned int j;
+
+		memcpy(tmp, &(line[i]), sizeof(tmp));
+		for (j = 0; (j < 3); ++j, ++i)
+			line[i] = ((line[i] + old[j]) >> 1);
+		memcpy(old, tmp, sizeof(old));
+		++i;
+	}
+}
+
+static void gen_blur_bitmap_24(uint8_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint8_t old[3];
+	uint8_t tmp[3];
+
+	memcpy(old, line, sizeof(old));
+	i = 0;
+	while (i < (size * 3)) {
+		unsigned int j;
+
+		memcpy(tmp, &(line[i]), sizeof(tmp));
+		for (j = 0; (j < 3); ++j, ++i)
+			line[i] = ((line[i] + old[j]) >> 1);
+		memcpy(old, tmp, sizeof(old));
+	}
+}
+
+static void gen_blur_bitmap_16(uint16_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint16_t old;
+	uint16_t tmp;
+
+	old = line[0];
+	for (i = 0; (i < size); ++i) {
+		tmp = line[i];
+		line[i] = ((((tmp & 0xf800) + (old & 0xf800)) >> 1) |
+			   (((tmp & 0x07e0) + (old & 0x07e0)) >> 1) |
+			   (((tmp & 0x001f) + (old & 0x001f)) >> 1));
+		old = tmp;
+	}
+}
+
+static void gen_blur_bitmap_15(uint16_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint16_t old;
+	uint16_t tmp;
+
+	old = line[0];
+	for (i = 0; (i < size); ++i) {
+		tmp = line[i];
+		line[i] = ((((tmp & 0x7c00) + (old & 0x7c00)) >> 1) |
+			   (((tmp & 0x03e0) + (old & 0x03e0)) >> 1) |
+			   (((tmp & 0x001f) + (old & 0x001f)) >> 1));
+		old = tmp;
+	}
+}
+
+static void gen_test_ctv_32(uint8_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint8_t old[4];
+	uint8_t tmp[4];
+
+	memcpy(old, line, sizeof(old));
+	i = 0;
+	while (i < (size * 4)) {
+		unsigned int j;
+
+		memcpy(tmp, &(line[i]), sizeof(tmp));
+		for (j = 0; (j < 3); ++j, ++i)
+			line[i] >>= 1;
+		memcpy(old, tmp, sizeof(old));
+		++i;
+	}
+}
+
+static void gen_test_ctv_24(uint8_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+	uint8_t old[3];
+	uint8_t tmp[3];
+
+	memcpy(old, line, sizeof(old));
+	i = 0;
+	while (i < (size * 3)) {
+		unsigned int j;
+
+		memcpy(tmp, &(line[i]), sizeof(tmp));
+		for (j = 0; (j < 3); ++j, ++i)
+			line[i] >>= 1;
+		memcpy(old, tmp, sizeof(old));
+	}
+}
+
+static void gen_test_ctv_16(uint16_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+
+	for (i = 0; (i < size); ++i)
+		line[i] = ((line[i] >> 1) & 0x7bef);
+}
+
+static void gen_test_ctv_15(uint16_t line[])
+{
+	const unsigned int size = 320;
+	unsigned int i;
+
+	for (i = 0; (i < size); ++i)
+		line[i] = ((line[i] >> 1) & 0x3def);
+}
+
+#endif // WITH_CTV
 
 // Screenshots, thanks to Allan Noe <psyclone42@geocities.com>
 static void do_screenshot(void) {
@@ -491,7 +623,7 @@ void update_textures()
 // Anyway, feel free to use it in your implementation. :)
 void pd_graphics_update()
 {
-#ifdef WITH_X86_CTV
+#ifdef WITH_CTV
   static int f = 0;
 #endif
   int i, j, k;
@@ -499,6 +631,11 @@ void pd_graphics_update()
   unsigned char *q;
 #ifdef WITH_OPENGL
   int x, xb;
+#endif
+
+#ifdef WITH_CTV
+  // Frame number, even or odd?
+  ++f;
 #endif
   
   // If you need to do any sort of locking before writing to the buffer, do so
@@ -541,28 +678,77 @@ void pd_graphics_update()
       else
         {
 #endif // WITH_OPENGL
+#ifdef WITH_CTV
+	switch (dgen_craptv) {
+	case CTV_BLUR:
+		switch (mdscr.bpp) {
+		case 32:
+			gen_blur_bitmap_32(q);
+			break;
+		case 24:
+			gen_blur_bitmap_24(q);
+			break;
 #ifdef WITH_X86_CTV
-          if(dgen_craptv) switch(dgen_craptv)
-            {
-	    // Blur, by Dave
-	    case CTV_BLUR:
-	      if(mdscr.bpp == 16) blur_bitmap_16(q, 319);
-	      else if(mdscr.bpp == 15) blur_bitmap_15(q, 319);
-	      break;
-	    // Scanline, by Phil
-	    case CTV_SCANLINE:
-	      if((i & 1) && (mdscr.bpp == 16 || mdscr.bpp == 15))
-	        test_ctv(q, 320);
-	      break;
-	    // Interlace, a hacked form of Scanline by me :)
-	    case CTV_INTERLACE:
-	      if((i & 1) ^ (++f & 1) && (mdscr.bpp == 16 || mdscr.bpp == 15))
-	        test_ctv(q, 320);
-	      break;
-	    default:
-	      break;
-	    }
-#endif // WITH_X86_CTV
+		case 16:
+			// Blur, by Dave
+			blur_bitmap_16(q, 319);
+			(void)gen_blur_bitmap_16;
+			break;
+		case 15:
+			blur_bitmap_15(q, 319);
+			(void)gen_blur_bitmap_15;
+			break;
+#else
+		case 16:
+			gen_blur_bitmap_16((uint16_t *)q);
+			break;
+		case 15:
+			gen_blur_bitmap_15((uint16_t *)q);
+			break;
+#endif
+		default:
+			break;
+		}
+		break;
+	case CTV_SCANLINE:
+		if ((i & 1) == 0) {
+			break;
+		case CTV_INTERLACE:
+			// Swap scanlines in every frame.
+			if ((f & 1) ^ (i & 1))
+				break;
+		}
+		switch (mdscr.bpp) {
+		case 32:
+			gen_test_ctv_32(q);
+			break;
+		case 24:
+			gen_test_ctv_24(q);
+			break;
+#ifdef WITH_X86_CTV
+		case 16:
+		case 15:
+			// Scanline, by Phil
+			test_ctv(q, 320);
+			(void)gen_test_ctv_16;
+			(void)gen_test_ctv_15;
+			break;
+#else
+		case 16:
+			gen_test_ctv_16((uint16_t *)q);
+			break;
+		case 15:
+			gen_test_ctv_15((uint16_t *)q);
+			break;
+#endif
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+#endif // WITH_CTV
           if(x_scale == 1)
             {
 	      if(y_scale == 1)
@@ -920,12 +1106,28 @@ int pd_handle_events(md &megad)
 //	      pd_message(split_screen? "Split screen enabled." : 
 //				       "Split screen disabled.");
 //	    }
+#ifdef WITH_CTV
 	  else if(ksym == dgen_craptv_toggle)
 	    {
-		  dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
-		  sprintf(temp, "Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
-		  pd_message(temp);
+		    char temp[256];
+
+		    if (mdscr.bpp == 8)
+			    snprintf(temp, sizeof(temp),
+				     "Crap TV mode unavailable in 8 bpp.");
+#ifdef WITH_OPENGL
+		    else if (opengl)
+			    snprintf(temp, sizeof(temp),
+				     "Crap TV mode unavailable in OpenGL.");
+#endif
+		    else {
+			    dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
+			    snprintf(temp, sizeof(temp),
+				     "Crap TV mode \"%s\".",
+				     ctv_names[dgen_craptv]);
+		    }
+		    pd_message(temp);
 	    }
+#endif // WITH_CTV
 	  else if(ksym == dgen_reset)
 	    { megad.reset(); pd_message("Genesis reset."); }
 	  else if(ksym == dgen_slot_0)

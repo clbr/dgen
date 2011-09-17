@@ -280,6 +280,14 @@ AS_IF(
 	)]
 )
 
+dnl Crap TV filters support
+AC_ARG_ENABLE(
+	[ctv],
+	[AC_HELP_STRING([--disable-ctv], [disable Crap TV filters])],
+	[USE_CTV=$enableval],
+	[USE_CTV=yes]
+)
+
 dnl x86-specific ASM options.
 AC_ARG_ENABLE(
 	[x86-mmx],
@@ -295,9 +303,18 @@ AC_ARG_ENABLE(
 )
 AC_ARG_ENABLE(
 	[x86-ctv],
-	[AC_HELP_STRING([--enable-x86-ctv], [enable Crap TV filters])],
-	[USE_X86_CTV=$enableval],
-	[USE_X86_CTV=$USE_X86_ASM]
+	[AC_HELP_STRING([--enable-x86-ctv], [enable ASM Crap TV filters])],
+	dnl Disable this if --disable-ctv is given.
+	[AS_IF(
+		[test "x$USE_CTV" != xno],
+		[USE_X86_CTV=$enableval],
+		[USE_X86_CTV=no]
+	)],
+	[AS_IF(
+		[test "x$USE_CTV" != xno],
+		[USE_X86_CTV=$USE_X86_ASM],
+		[USE_X86_CTV=no]
+	)]
 )
 AC_ARG_ENABLE(
 	[x86-tiles],
@@ -410,6 +427,7 @@ AS_IF(
 	[AC_DEFINE([WITH_X86_ASM])]
 	[AC_DEFINE([HAVE_MEMCPY_H])]
 )
+AS_IF([test "x$USE_CTV" = xyes], [AC_DEFINE([WITH_CTV])])
 AS_IF([test "x$USE_X86_MZ80" = xyes], [AC_DEFINE([WITH_X86_MZ80])])
 AS_IF([test "x$USE_X86_MMX" = xyes], [AC_DEFINE([WITH_X86_MMX])])
 AS_IF([test "x$USE_X86_CTV" = xyes], [AC_DEFINE([WITH_X86_CTV])])
@@ -445,6 +463,7 @@ AC_MSG_NOTICE([
 Front-end
   OpenGL: $USE_OPENGL
   Joystick: $USE_JOYSTICK
+  Crap TV filters: $USE_CTV
 
 CPU cores
   Musashi M68K: $WITH_MUSA
