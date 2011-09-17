@@ -25,7 +25,10 @@ int pd_graphics_init(int want_sound, int want_pal);
 // This updats the palette, if necessary.
 void pd_graphics_palette_update();
 // This updates the screen, with the mdscr bitmap.
-void pd_graphics_update();
+// "dirty" is nonzero if the bitmap was modified since the previous call,
+// this can be used to avoid unnecessary redraws.
+// Return the number of screen updates for statistics.
+int pd_graphics_update(int dirty);
 
 // This is the struct sndinfo, also setup by your implementation.
 // Note that the buffers pointed to in this struct should ALWAYS be 16-bit

@@ -472,7 +472,9 @@ int main(int argc, char *argv[])
   while(running)
     {
       int frames_todo;
+      int dirty;
       frames_todo = 1;
+      dirty = 0;
 
       // Measure how many frames to do this round
       if(!dgen_sound && dgen_frameskip)
@@ -520,10 +522,10 @@ int main(int argc, char *argv[])
 	      pd_graphics_palette_update();
 	      pal_dirty = 0;
 	    }
+	  dirty = 1;
 	}
       // Update screen
-      pd_graphics_update();
-      ++f;
+      f += pd_graphics_update(dirty);
 
       // Sleep a bit
 #ifdef __BEOS__
