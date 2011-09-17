@@ -613,8 +613,21 @@ void pd_graphics_update()
 	          }
 	          break;
 	        case 3:
-	          /* FIXME */
-	          break;
+		{
+			uint8_t *pp = (uint8_t *)p;
+			uint8_t *qq = (uint8_t *)q;
+
+			for (j = 0; (j < 320); ++j, qq += 3)
+				for (k = 0; (k < x_scale); ++k, pp += 3)
+					memcpy(pp, qq, 3);
+			if (y_scale == 1)
+				break;
+			for (pp = (uint8_t *)p, j = 1; (j < y_scale); ++j) {
+				p += screen->pitch;
+				memcpy(p, pp, xs * 3);
+			}
+			break;
+		}
 	        case 4:
 	          {
 	            int *pp = (int*)p, *qq = (int*)q;

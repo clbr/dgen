@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "md.h"
 
 // This is marked each time the palette is updated. Handy for the 8bpp
@@ -293,10 +294,11 @@ inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
 
 inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
 {
-  unsigned tile; 
-  unsigned char *pal;
+  unsigned tile, temp, *pal;
+  uint8_t *wwhere = (uint8_t *)where;
 
-  pal = ((unsigned char*)highpal) + (which >> 7 & 0xc0); // Determine 16-color palette
+  pal = highpal + (which >> 9 & 0x30); // Determine which 16-color palette
+  temp = *pal; *pal = highpal[reg[7]&0x3f]; // Get background color
 
   if(which & 0x1000) // y flipped
     line ^= 7; // take from the bottom, instead of the top
@@ -306,67 +308,37 @@ inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
   else
     tile = *(unsigned*)(vram + ((which&0x7ff) << 5) + (line << 2));
 
-  // Blit the tile (this is UGLY! Do you know of a better way? :P)
-  if(which & 0x800)
+  // Blit the tile!
+  if(which & 0x800) // x flipped
     {
-      *(where   ) = pal[((tile & 0x0f000000)>>22)+1];
-      *(where+1 ) = pal[((tile & 0x0f000000)>>22)+2];
-      *(where+2 ) = pal[((tile & 0x0f000000)>>22)  ];
-      *(where+3 ) = pal[((tile & 0xf0000000)>>26)+1];
-      *(where+4 ) = pal[((tile & 0xf0000000)>>26)+2];
-      *(where+5 ) = pal[((tile & 0xf0000000)>>26)  ];
-      *(where+6 ) = pal[((tile & 0x000f0000)>>14)+1];
-      *(where+7 ) = pal[((tile & 0x000f0000)>>14)+2];
-      *(where+8 ) = pal[((tile & 0x000f0000)>>14)  ];
-      *(where+9 ) = pal[((tile & 0x00f00000)>>18)+1];
-      *(where+10) = pal[((tile & 0x00f00000)>>18)+2];
-      *(where+11) = pal[((tile & 0x00f00000)>>18)  ];
-      *(where+12) = pal[((tile & 0x00000f00)>> 6)+1];
-      *(where+13) = pal[((tile & 0x00000f00)>> 6)+2];
-      *(where+14) = pal[((tile & 0x00000f00)>> 6)  ];
-      *(where+15) = pal[((tile & 0x0000f000)>>10)+1];
-      *(where+16) = pal[((tile & 0x0000f000)>>10)+2];
-      *(where+17) = pal[((tile & 0x0000f000)>>10)  ];
-      *(where+18) = pal[((tile & 0x0000000f)<< 2)+1];
-      *(where+19) = pal[((tile & 0x0000000f)<< 2)+2];
-      *(where+20) = pal[((tile & 0x0000000f)<< 2)  ];
-      *(where+21) = pal[((tile & 0x000000f0)>> 2)+1];
-      *(where+22) = pal[((tile & 0x000000f0)>> 2)+2];
-      *(where+23) = pal[((tile & 0x000000f0)>> 2)  ];
+      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
+      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
     } else {
-      *(where   ) = pal[((tile & 0x000000f0)>> 2)+1];
-      *(where+ 1) = pal[((tile & 0x000000f0)>> 2)+2];
-      *(where+ 2) = pal[((tile & 0x000000f0)>> 2)  ];
-      *(where+ 3) = pal[((tile & 0x0000000f)<< 2)+1];
-      *(where+ 4) = pal[((tile & 0x0000000f)<< 2)+2];
-      *(where+ 5) = pal[((tile & 0x0000000f)<< 2)  ];
-      *(where+ 6) = pal[((tile & 0x0000f000)>>10)+1];
-      *(where+ 7) = pal[((tile & 0x0000f000)>>10)+2];
-      *(where+ 8) = pal[((tile & 0x0000f000)>>10)  ];
-      *(where+ 9) = pal[((tile & 0x00000f00)>> 6)+1];
-      *(where+10) = pal[((tile & 0x00000f00)>> 6)+2];
-      *(where+11) = pal[((tile & 0x00000f00)>> 6)  ];
-      *(where+12) = pal[((tile & 0x00f00000)>>18)+1];
-      *(where+13) = pal[((tile & 0x00f00000)>>18)+2];
-      *(where+14) = pal[((tile & 0x00f00000)>>18)  ];
-      *(where+15) = pal[((tile & 0x000f0000)>>14)+1];
-      *(where+16) = pal[((tile & 0x000f0000)>>14)+2];
-      *(where+17) = pal[((tile & 0x000f0000)>>14)  ];
-      *(where+18) = pal[((tile & 0xf0000000)>>26)+1];
-      *(where+19) = pal[((tile & 0xf0000000)>>26)+2];
-      *(where+20) = pal[((tile & 0xf0000000)>>26)  ];
-      *(where+21) = pal[((tile & 0x0f000000)>>22)+1];
-      *(where+22) = pal[((tile & 0x0f000000)>>22)+2];
-      *(where+23) = pal[((tile & 0x0f000000)>>22)  ];
+      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
+      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
     }
+  // Restore the original color
+  *pal = temp;
 }
 
 inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
 {
-  unsigned tile; 
-  unsigned char *pal;
+  unsigned tile, *pal;
+  uint8_t *wwhere = (uint8_t *)where;
 
-  pal = ((unsigned char*)highpal) + (which >> 7 & 0xc0); // Determine 16-color palette
+  pal = highpal + (which >> 9 & 0x30); // Determine which 16-color palette
 
   if(which & 0x1000) // y flipped
     line ^= 7; // take from the bottom, instead of the top
@@ -378,60 +350,42 @@ inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
   // If it's empty, why waste the time?
   if(!tile) return;
 
-  // Blit the tile (this is UGLY! Do you know of a better way? :P)
-  if(which & 0x800)
+  // Blit the tile!
+  if(which & 0x800) // x flipped
     {
-      // The numbers are a little wierd, because of little endian. *gag*
-      // <SARCASM>Thanks Intel!</SARCASM>
-      if(tile & 0x0f000000) { *(where   ) = pal[((tile & 0x0f000000)>>22)+1];
-      			      *(where+1 ) = pal[((tile & 0x0f000000)>>22)+2];
-      			      *(where+2 ) = pal[((tile & 0x0f000000)>>22)  ]; }
-      if(tile & 0xf0000000) { *(where+3 ) = pal[((tile & 0xf0000000)>>26)+1];
-      			      *(where+4 ) = pal[((tile & 0xf0000000)>>26)+2];
-      			      *(where+5 ) = pal[((tile & 0xf0000000)>>26)  ]; }
-      if(tile & 0x000f0000) { *(where+6 ) = pal[((tile & 0x000f0000)>>14)+1];
-      			      *(where+7 ) = pal[((tile & 0x000f0000)>>14)+2];
-      			      *(where+8 ) = pal[((tile & 0x000f0000)>>14)  ]; }
-      if(tile & 0x00f00000) { *(where+9 ) = pal[((tile & 0x00f00000)>>18)+1];
-      			      *(where+10) = pal[((tile & 0x00f00000)>>18)+2];
-      			      *(where+11) = pal[((tile & 0x00f00000)>>18)  ]; }
-      if(tile & 0x00000f00) { *(where+12) = pal[((tile & 0x00000f00)>> 6)+1];
-      			      *(where+13) = pal[((tile & 0x00000f00)>> 6)+2];
-      			      *(where+14) = pal[((tile & 0x00000f00)>> 6)  ]; }
-      if(tile & 0x0000f000) { *(where+15) = pal[((tile & 0x0000f000)>>10)+1];
-      			      *(where+16) = pal[((tile & 0x0000f000)>>10)+2];
-      			      *(where+17) = pal[((tile & 0x0000f000)>>10)  ]; }
-      if(tile & 0x0000000f) { *(where+18) = pal[((tile & 0x0000000f)<< 2)+1];
-      			      *(where+19) = pal[((tile & 0x0000000f)<< 2)+2];
-      			      *(where+20) = pal[((tile & 0x0000000f)<< 2)  ]; }
-      if(tile & 0x000000f0) { *(where+21) = pal[((tile & 0x000000f0)>> 2)+1];
-      			      *(where+22) = pal[((tile & 0x000000f0)>> 2)+2];
-      			      *(where+23) = pal[((tile & 0x000000f0)>> 2)  ]; }
+      if (tile & PIXEL7)
+	      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
+      if(tile & PIXEL6)
+	      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+      if(tile & PIXEL5)
+	      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+      if(tile & PIXEL4)
+	      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+      if(tile & PIXEL3)
+	      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+      if(tile & PIXEL2)
+	      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+      if(tile & PIXEL1)
+	      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+      if(tile & PIXEL0)
+	      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
     } else {
-      if(tile & 0x000000f0) { *(where   ) = pal[((tile & 0x000000f0)>> 2)+1];
-      			      *(where+ 1) = pal[((tile & 0x000000f0)>> 2)+2];
-      			      *(where+ 2) = pal[((tile & 0x000000f0)>> 2)  ]; }
-      if(tile & 0x0000000f) { *(where+ 3) = pal[((tile & 0x0000000f)<< 2)+1];
-      			      *(where+ 4) = pal[((tile & 0x0000000f)<< 2)+2];
-      			      *(where+ 5) = pal[((tile & 0x0000000f)<< 2)  ]; }
-      if(tile & 0x0000f000) { *(where+ 6) = pal[((tile & 0x0000f000)>>10)+1];
-      			      *(where+ 7) = pal[((tile & 0x0000f000)>>10)+2];
-      			      *(where+ 8) = pal[((tile & 0x0000f000)>>10)  ]; }
-      if(tile & 0x00000f00) { *(where+ 9) = pal[((tile & 0x00000f00)>> 6)+1];
-      			      *(where+10) = pal[((tile & 0x00000f00)>> 6)+2];
-      			      *(where+11) = pal[((tile & 0x00000f00)>> 6)  ]; }
-      if(tile & 0x00f00000) { *(where+12) = pal[((tile & 0x00f00000)>>18)+1];
-      			      *(where+13) = pal[((tile & 0x00f00000)>>18)+2];
-      			      *(where+14) = pal[((tile & 0x00f00000)>>18)  ]; }
-      if(tile & 0x000f0000) { *(where+15) = pal[((tile & 0x000f0000)>>14)+1];
-      			      *(where+16) = pal[((tile & 0x000f0000)>>14)+2];
-      			      *(where+17) = pal[((tile & 0x000f0000)>>14)  ]; }
-      if(tile & 0xf0000000) { *(where+18) = pal[((tile & 0xf0000000)>>26)+1];
-      			      *(where+19) = pal[((tile & 0xf0000000)>>26)+2];
-      			      *(where+20) = pal[((tile & 0xf0000000)>>26)  ]; }
-      if(tile & 0x0f000000) { *(where+21) = pal[((tile & 0x0f000000)>>22)+1];
-      			      *(where+22) = pal[((tile & 0x0f000000)>>22)+2];
-      			      *(where+23) = pal[((tile & 0x0f000000)>>22)  ]; }
+      if(tile & PIXEL0)
+	      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
+      if(tile & PIXEL1)
+	      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+      if(tile & PIXEL2)
+	      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+      if(tile & PIXEL3)
+	      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+      if(tile & PIXEL4)
+	      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+      if(tile & PIXEL5)
+	      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+      if(tile & PIXEL6)
+	      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+      if(tile & PIXEL7)
+	      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
     }
 }
 
