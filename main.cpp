@@ -51,33 +51,36 @@ int sound_is_okay = 0;
 FILE *debug_log = NULL;
 
 // Do a demo frame, if active
-#define DO_DEMO							\
-	if (demo_record) {					\
-		foo = htonl(megad.pad[0]);			\
-		fwrite(&foo, sizeof(foo), 1, demo);		\
-		foo = htonl(megad.pad[1]);			\
-		fwrite(&foo, sizeof(foo), 1, demo);		\
-	}							\
-	if (demo_play) {					\
-		size_t i;					\
-								\
-		i = fread(&foo, sizeof(foo), 1, demo);		\
-		megad.pad[0] = ntohl(foo);			\
-		i += fread(&foo, sizeof(foo), 1, demo);		\
-		megad.pad[1] = ntohl(foo);			\
-		if (feof(demo))	{				\
-			pd_message("Demo finished.");		\
-			demo_play = 0;				\
-		}						\
-	}
+enum demo_status {
+	DEMO_OFF,
+	DEMO_RECORD,
+	DEMO_PLAY
+};
 
-// Convenience, so I don't have to type this constantly
-#define DO_FRAME(scr, pal) \
-	running = pd_handle_events(megad); \
-	DO_DEMO \
-	if (dgen_sound) { \
-	  megad.one_frame((scr), (pal), &sndi); \
-	} else megad.one_frame((scr), (pal), NULL);
+static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
+{
+	size_t i;
+	uint32_t pad[2];
+
+	switch (*status) {
+	case DEMO_OFF:
+		break;
+	case DEMO_RECORD:
+		pad[0] = htonl(megad.pad[0]);
+		pad[1] = htonl(megad.pad[1]);
+		fwrite(&pad, sizeof(pad), 1, demo);
+		break;
+	case DEMO_PLAY:
+		i = fread(&pad, sizeof(pad), 1, demo);
+		megad.pad[0] = ntohl(pad[0]);
+		megad.pad[1] = ntohl(pad[1]);
+		if (feof(demo)) {
+			pd_message("Demo finished.");
+			*status = DEMO_OFF;
+		}
+		break;
+	}
+}
 
 // Base directory
 static char basedir[(PATH_MAX + 1)];
@@ -280,7 +283,7 @@ int main(int argc, char *argv[])
   char *patches = NULL, *rom = NULL;
   struct timeval oldclk, newclk, startclk, endclk;
   FILE *demo = NULL;
-  int demo_record = 0, demo_play = 0, foo;
+  enum demo_status demo_status = DEMO_OFF;
 
   // Parse the RC file
   init_basedir();
@@ -347,7 +350,7 @@ int main(int argc, char *argv[])
 	      fprintf(stderr, "main: Can't record demo file %s!\n", optarg);
 	      break;
 	    }
-	  demo_record = 1;
+	  demo_status = DEMO_RECORD;
 	  break;
 	case 'D':
 	  // Play demo
@@ -361,7 +364,7 @@ int main(int argc, char *argv[])
 	      fprintf(stderr, "main: Can't play demo file %s!\n", optarg);
 	      break;
 	    }
-	  demo_play = 1;
+	  demo_status = DEMO_PLAY;
 	  break;
 	case '?': // Bad option!
 	case 'h': // A cry for help :)
@@ -469,71 +472,68 @@ int main(int argc, char *argv[])
   if(dgen_show_carthead) pd_show_carthead(megad);
 
   // Go around, and around, and around, and around... ;)
-  while(running)
-    {
-      int frames_todo;
-      int dirty;
-      frames_todo = 1;
-      dirty = 0;
+	while (running) {
+		int frames_todo;
 
-      // Measure how many frames to do this round
-      if(!dgen_sound && dgen_frameskip)
-        {
-	  gettimeofday(&newclk, NULL);
-	  if(newclk.tv_usec < oldclk.tv_usec)
-	    usec += 1000000 + newclk.tv_usec - oldclk.tv_usec;
-	  else
-	    usec += newclk.tv_usec - oldclk.tv_usec;
-	  frames_todo = usec / USEC_FRAME;
-	  usec %= USEC_FRAME;
-	  oldclk = newclk;
-	  // We don't want to skip too many frames - this isn't Unreal ;)
-	  if(frames_todo > 8) frames_todo = 8;
-	  // Skip these frames
-	  for(;frames_todo > 1; --frames_todo)
-	    {
-	      DO_DEMO
-	      megad.one_frame(NULL, NULL, NULL);
-	    }
-	} else if(dgen_sound) {
-	  // We can use the sound buffer for timing, instead of the above loop
-	  // If we are already caught up, wait for the read pointer to advance
-	  while((rp = pd_sound_rp()) == wp);
-	  while(wp != rp)
-	    {
-	      pd_sound_write(wp);
-	      ++wp; wp &= dgen_soundsegs;
-	      // Skip a frame to keep the sound going, until we hit the read
-	      // point.
-	      if(wp != rp)
-	        {
-		  DO_DEMO
-	          megad.one_frame(NULL, NULL, &sndi);
+		running = pd_handle_events(megad);
+
+		if (dgen_frameskip == 0)
+			goto do_not_skip;
+
+		// Measure how many frames to do this round
+		gettimeofday(&newclk, NULL);
+		if (newclk.tv_usec < oldclk.tv_usec)
+			usec += (1000000 + newclk.tv_usec - oldclk.tv_usec);
+		else
+			usec += (newclk.tv_usec - oldclk.tv_usec);
+		frames_todo = usec / USEC_FRAME;
+		usec %= USEC_FRAME;
+		oldclk = newclk;
+
+		if (frames_todo) {
+			while (frames_todo > 1) {
+				do_demo(megad, demo, &demo_status);
+				if (dgen_sound) {
+					// Skip these frames while keeping the
+					// sound going to avoid reverberation.
+					if ((rp = pd_sound_rp()) != wp) {
+						pd_sound_write(wp);
+						++wp;
+						wp &= dgen_soundsegs;
+					}
+					megad.one_frame(NULL, NULL, &sndi);
+				}
+				else
+					megad.one_frame(NULL, NULL, NULL);
+				--frames_todo;
+			}
+		do_not_skip:
+			do_demo(megad, demo, &demo_status);
+			if (dgen_sound) {
+				if ((rp = pd_sound_rp()) != wp) {
+					pd_sound_write(wp);
+					++wp;
+					wp &= dgen_soundsegs;
+				}
+				megad.one_frame(&mdscr, mdpal, &sndi);
+			}
+			else
+				megad.one_frame(&mdscr, mdpal, NULL);
+			if ((mdpal) && (pal_dirty)) {
+				pd_graphics_palette_update();
+				pal_dirty = 0;
+			}
+			f += pd_graphics_update(1);
 		}
-	    }
-	}
-      // If there are frames to do, do them! :)
-      if(frames_todo)
-        {
-	  DO_FRAME(&mdscr, mdpal);
-	  // Update palette
-	  if(mdpal && pal_dirty)
-	    {
-	      pd_graphics_palette_update();
-	      pal_dirty = 0;
-	    }
-	  dirty = 1;
-	}
-      // Update screen
-      f += pd_graphics_update(dirty);
-
-      // Sleep a bit
+		if (dgen_nice) {
 #ifdef __BEOS__
-      if(dgen_nice) snooze(dgen_nice);
+			snooze(dgen_nice);
 #else
-      if(dgen_nice) usleep(dgen_nice);
+			usleep(dgen_nice);
 #endif
-    }
+		}
+	}
+
   // Print fps
   gettimeofday(&endclk, NULL);
   if (endclk.tv_sec - startclk.tv_sec)

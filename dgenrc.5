@@ -143,8 +143,8 @@ fields true, you can exit DGen, and automatically start a game where you left
 off when you start it again.
 .It bool_frameskip [true]
 Automatically skip frames, when it is necessary to maintain proper emulation
-speed. This has no effect if sound is enabled, as the sound loop skips frames
-automatically to maintain constant sound speed.
+speed. You may want to disable sound or set int_nice to a nonzero
+value when setting this to false.
 .It bool_fullscreen [false]
 Run in fullscreen mode, if it is available.
 .It int_scale [1]
