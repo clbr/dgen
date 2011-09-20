@@ -7,13 +7,14 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "system.h"
 
 static int load_bin_into(char *name,unsigned char *into)
 {
   FILE *hand=NULL;
   int file_size=0;
 
-  hand=fopen(name,"rb");
+  hand = dgen_fopen("roms", name, DGEN_READ);
   if (hand==NULL)
     return -1;
 
@@ -62,7 +63,7 @@ static int load_smd_into(char *name,unsigned char *into)
   unsigned char *chunk_buf=NULL;
   int got_to=0,i;
 
-  hand=fopen(name,"rb");
+  hand = dgen_fopen("roms", name, DGEN_READ);
   if (hand==NULL)
     return -1;
 
@@ -123,7 +124,8 @@ int load_rom_into(char *name,unsigned char *into)
 
   /* Open the file and get the first little shnippit of it so we can check
    * the magic numbers on it. */
-  if (!(romfile = fopen(name, "rb"))) return -1;
+	if (!(romfile = dgen_fopen("roms", name, DGEN_READ)))
+		return -1;
 	if (fread(magicbuf, 10, 1, romfile) != 1) {
 		fclose(romfile);
 		return -1;

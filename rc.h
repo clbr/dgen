@@ -1,6 +1,8 @@
 // DGen/SDL v1.23+
-#ifndef __SVGALIB_RC_H__
-#define __SVGALIB_RC_H__
+#ifndef RC_H_
+#define RC_H_
+
+#include <stdio.h>
 
 // Define the different craptv types
 #define NUM_CTV 4 // Include CTV_OFF
@@ -19,6 +21,6 @@
 extern const char *ctv_names[];
 
 // Provide a prototype to the parse_rc function in rc.cpp
-void parse_rc(const char *file);
+extern void parse_rc(FILE *file, const char *name);
 
-#endif // __SVGALIB_RC_H__
+#endif // RC_H_

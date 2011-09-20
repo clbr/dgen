@@ -66,7 +66,8 @@ dgen_SOURCES =		\
 	ckvp.c		\
 	ckvp.h		\
 	md-phil.h	\
-	md-phil.cpp
+	md-phil.cpp	\
+	system.c
 
 if WITH_X86_TILES
 dgen_SOURCES += x86_tiles.asm
@@ -85,4 +86,4 @@ endif
 endif
 
 # tobin
-tobin_SOURCES = tobin.c romload.c
+tobin_SOURCES = tobin.c romload.c system.c

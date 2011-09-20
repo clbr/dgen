@@ -24,6 +24,7 @@
 #include "pd.h"
 #include "pd-defs.h"
 #include "font.h"
+#include "system.h"
 
 #ifdef WITH_OPENGL
 // Defines for RGBA
@@ -272,7 +273,7 @@ static void do_screenshot(void) {
   for(;;)
     { 
       snprintf(fname, sizeof(fname), "shot%04d.bmp", n);
-      if ((fp = fopen(fname, "r")) == NULL)
+      if ((fp = dgen_fopen("screenshots", fname, DGEN_READ)) == NULL)
         break;
       else
 	fclose(fp);
@@ -283,6 +284,7 @@ static void do_screenshot(void) {
 	}
      }
  
+  /* XXX FIXME -- fname isn't relative to DGen's directory */
   x = SDL_SaveBMP(screen, fname);
 
   if(x)

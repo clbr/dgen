@@ -421,9 +421,8 @@ static char *strclean(char *s)
 }
 
 /* Parse the rc file */
-void parse_rc(const char *file)
+void parse_rc(FILE *file, const char *name)
 {
-	FILE *rc;
 	struct rc_field *rc_field = NULL;
 	long potential;
 	int overflow = 0;
@@ -432,30 +431,16 @@ void parse_rc(const char *file)
 	ckvp_t ckvp = CKVP_INIT;
 	char buf[1024];
 
-	if (file == NULL) {
-		file = "(stdin)";
-		rc = stdin;
-	}
-	else {
-		rc = fopen(file, "rb");
-		/* We don't create files by default anymore. */
-		if (rc == NULL) {
-			if (errno != ENOENT)
-				fprintf(stderr, "rc: %s: %s\n",
-					file, strerror(errno));
-			return;
-		}
-	}
+	if ((file == NULL) || (name == NULL))
+		return;
 read:
-	len = fread(buf, 1, sizeof(buf), rc);
+	len = fread(buf, 1, sizeof(buf), file);
 	/* Check for read errors first */
-	if ((len == 0) && (ferror(rc))) {
-		fprintf(stderr, "rc: %s: %s\n", file, strerror(errno));
-		if (rc != stdin)
-			fclose(rc);
+	if ((len == 0) && (ferror(file))) {
+		fprintf(stderr, "rc: %s: %s\n", name, strerror(errno));
 		return;
 	}
-	/* The goal is to make an extra pass with len == 0 when feof(rc) */
+	/* The goal is to make an extra pass with len == 0 when feof(file) */
 	parse = 0;
 parse:
 	parse += ckvp_parse(&ckvp, (len - parse), &(buf[parse]));
@@ -474,7 +459,7 @@ parse:
 		/* Got a key */
 		if (overflow) {
 			fprintf(stderr, "rc: %s:%u:%u: key field too large\n",
-				file, ckvp.line, ckvp.column);
+				name, ckvp.line, ckvp.column);
 			rc_field = NULL;
 			overflow = 0;	
 			break;
@@ -487,14 +472,14 @@ parse:
 			if (!strcasecmp(rc_field->fieldname, ckvp.out))
 				goto key_over;
 		fprintf(stderr, "rc: %s:%u:%u: unknown key `%s'\n",
-			file, ckvp.line, ckvp.column, strclean(ckvp.out));
+			name, ckvp.line, ckvp.column, strclean(ckvp.out));
 	key_over:
 		break;
 	case CKVP_OUT_VALUE:
 		/* Got a value */
 		if (overflow) {
 			fprintf(stderr, "rc: %s:%u:%u: value field too large\n",
-				file, ckvp.line, ckvp.column);
+				name, ckvp.line, ckvp.column);
 			overflow = 0;
 			break;
 		}
@@ -508,7 +493,7 @@ parse:
 			fprintf(stderr,
 				"rc: %s:%u:%u: invalid value for key"
 				" `%s': `%s'\n",
-				file, ckvp.line, ckvp.column,
+				name, ckvp.line, ckvp.column,
 				rc_field->fieldname, strclean(ckvp.out));
 		else
 			*(rc_field->variable) = potential;
@@ -516,8 +501,8 @@ parse:
 	case CKVP_ERROR:
 	default:
 		fprintf(stderr, "rc: %s:%u:%u: syntax error, aborting\n",
-			file, ckvp.line, ckvp.column);
-		goto end;
+			name, ckvp.line, ckvp.column);
+		return;
 	}
 	/* Not done with the current buffer? */
 	if (parse != len)
@@ -525,7 +510,4 @@ parse:
 	/* If len != 0, try to read once again */
 	if (len != 0)
 		goto read;
-end:
-	if (rc != stdin)
-		fclose(rc);	
 }

@@ -8,6 +8,7 @@
 #include "memcpy.h"
 #endif
 #include "md.h"
+#include "system.h"
 
 // This is the 'static' StarScream/MZ80 multitasker
 // which detects which megadrive is active (by which star_mz80_on() has been called
@@ -698,7 +699,7 @@ int md::change_cpu_emu(int to)
 int md::z80dump()
 {
   FILE *hand;
-  hand=fopen("dgz80ram","wb");
+  hand = dgen_fopen(NULL, "dgz80ram", DGEN_WRITE);
   if (hand!=NULL)
   { fwrite(z80ram,1,0x10000,hand); fclose(hand); }
   return 0;

@@ -13,18 +13,17 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
-#include <pwd.h>
 #else
 #include <winsock2.h>
-#define mkdir(a, b) mkdir(a)
 #endif
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
-
+#include <errno.h>
 
 #define IS_MAIN_CPP
+#include "system.h"
 #include "md.h"
 #include "pd.h"
 #include "pd-defs.h"
@@ -81,11 +80,6 @@ static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
 		break;
 	}
 }
-
-// Base directory
-static char basedir[(PATH_MAX + 1)];
-static size_t basedir_len;
-static size_t basedir_space;
 
 // Temporary garbage can string :)
 static char temp[65536] = "";
@@ -151,27 +145,6 @@ static void help()
   exit(2);
 }
 
-// Initialize base directory
-static void init_basedir()
-{
-#ifndef __MINGW32__
-	size_t size;
-	struct passwd *pwd = getpwuid(geteuid());
-
-	basedir[0] = '\0';
-	basedir_len = 0;
-	basedir_space = 0;
-	if ((pwd == NULL) || (pwd->pw_dir == NULL))
-		return;
-	size = (size_t)snprintf(basedir, sizeof(basedir),
-				"%s/.dgen/", pwd->pw_dir);
-	if (size >= sizeof(basedir))
-		return;
-	basedir_len = size;
-	basedir_space = (sizeof(basedir) - size);
-#endif
-}
-
 // Save/load states
 // It is externed from your implementation to change the current slot
 // (I know this is a hack :)
@@ -179,100 +152,84 @@ int slot = 0;
 void md_save(md& megad)
 {
 	FILE *save;
+	char file[64];
 
-	mkdir(basedir, 0777);
-	if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
-			     "saves/%s.gs%d", gst_name(megad.romfilename),
-			     slot) >= basedir_space)
-		goto fail;
-	/* Make sure "saves" exists first */
-	basedir[(basedir_len + strlen("saves"))] = '\0';
-	mkdir(basedir, 0777);
-	basedir[(basedir_len + strlen("saves"))] = '/';
-	/* Try to create the file */
-	if ((save = fopen(basedir, "wb")) != NULL) {
-		megad.export_gst(save);
-		fclose(save);
-		snprintf(temp, sizeof(temp), "Saved state to slot %d.", slot);
+	if (((size_t)snprintf(file,
+			      sizeof(file),
+			      "%s.gs%d",
+			      gst_name(megad.romfilename),
+			      slot) >= sizeof(file)) ||
+	    ((save = dgen_fopen("saves", file, DGEN_WRITE)) == NULL)) {
+		snprintf(temp, sizeof(temp),
+			 "Couldn't save state to slot %d!", slot);
 		pd_message(temp);
-		basedir[basedir_len] = '\0';
 		return;
 	}
-fail:
-	snprintf(temp, sizeof(temp), "Couldn't save state to slot %d!", slot);
+	megad.export_gst(save);
+	fclose(save);
+	snprintf(temp, sizeof(temp), "Saved state to slot %d.", slot);
 	pd_message(temp);
-	basedir[basedir_len] = '\0';
 }
 
 void md_load(md& megad)
 {
 	FILE *load;
+	char file[64];
 
-	if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
-			     "saves/%s.gs%d", gst_name(megad.romfilename),
-			     slot) >= basedir_space)
-		goto fail;
-	if ((load = fopen(basedir, "rb")) != NULL) {
-		megad.import_gst(load);
-		fclose(load);
+	if (((size_t)snprintf(file,
+			      sizeof(file),
+			      "%s.gs%d",
+			      gst_name(megad.romfilename),
+			      slot) >= sizeof(file)) ||
+	    ((load = dgen_fopen("saves", file, DGEN_READ)) == NULL)) {
 		snprintf(temp, sizeof(temp),
-			 "Loaded state from slot %d.", slot);
+			 "Couldn't load state from slot %d!", slot);
 		pd_message(temp);
-		basedir[basedir_len] = '\0';
 		return;
 	}
-fail:
-	snprintf(temp, sizeof(temp), "Couldn't load state from slot %d!", slot);
+	megad.import_gst(load);
+	fclose(load);
+	snprintf(temp, sizeof(temp), "Loaded state from slot %d.", slot);
 	pd_message(temp);
-	basedir[basedir_len] = '\0';
 }
  
 // Load/save states from file
 static void ram_save(md& megad)
 {
 	FILE *save;
+	int ret;
 
 	if (!megad.has_save_ram())
 		return;
-	mkdir(basedir, 0777);
-	if ((size_t)snprintf(&basedir[basedir_len], basedir_space, "ram/%s",
-			     gst_name(megad.romfilename)) >= basedir_space)
+	save = dgen_fopen("ram", gst_name(megad.romfilename), DGEN_WRITE);
+	if (save == NULL)
 		goto fail;
-	/* Make sure "ram" exists first */
-	basedir[(basedir_len + strlen("ram"))] = '\0';
-	mkdir(basedir, 0777);
-	basedir[(basedir_len + strlen("ram"))] = '/';
-	if (((save = fopen(basedir, "wb")) != NULL) &&
-	    (megad.put_save_ram(save) == 0)) {
-		basedir[basedir_len] = '\0';
+	ret = megad.put_save_ram(save);
+	fclose(save);
+	if (ret == 0)
 		return;
-	}
-	fprintf(stderr, "ram: couldn't save battery RAM to `%s'\n", basedir);
-	if (save)
-		fclose(save);
 fail:
-	basedir[basedir_len] = '\0';
+	fprintf(stderr, "Couldn't save battery RAM to `%s'\n",
+		gst_name(megad.romfilename));
 }
 
 static void ram_load(md& megad)
 {
 	FILE *load;
+	int ret;
 
 	if (!megad.has_save_ram())
 		return;
-	if ((size_t)snprintf(&basedir[basedir_len], basedir_space, "ram/%s",
-			     gst_name(megad.romfilename)) >= basedir_space)
+	load = dgen_fopen("ram", gst_name(megad.romfilename), DGEN_READ);
+	if (load == NULL)
 		goto fail;
-	if (((load = fopen(basedir, "rb")) != NULL) &&
-	    (megad.get_save_ram(load) == 0)) {
-		basedir[basedir_len] = '\0';
+	ret = megad.get_save_ram(load);
+	fclose(load);
+	if (ret == 0)
 		return;
-	}
-	fprintf(stderr, "ram: couldn't load battery RAM from `%s'\n", basedir);
-	if (load)
-		fclose(load);
 fail:
-	basedir[basedir_len] = '\0';
+	fprintf(stderr, "Couldn't load battery RAM from `%s'\n",
+		gst_name(megad.romfilename));
 }
 
 int main(int argc, char *argv[])
@@ -282,17 +239,27 @@ int main(int argc, char *argv[])
   uint64_t f = 0;
   char *patches = NULL, *rom = NULL;
   struct timeval oldclk, newclk, startclk, endclk;
-  FILE *demo = NULL;
+  FILE *file = NULL;
   enum demo_status demo_status = DEMO_OFF;
 
-  // Parse the RC file
-  init_basedir();
-  if ((size_t)snprintf(&basedir[basedir_len], basedir_space,
-		       "dgenrc") < basedir_space) {
-	  parse_rc(basedir);
-	  pd_rc();
-  }
-  basedir[basedir_len] = '\0';
+	// Parse the RC file
+	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
+		parse_rc(file, DGEN_RC);
+		fclose(file);
+		file = NULL;
+		pd_rc();
+	}
+	else if (errno == ENOENT) {
+		if ((file = dgen_fopen_rc(DGEN_APPEND)) != NULL) {
+			fprintf(file,
+				"# DGen " VER " configuration file.\n"
+				"# See dgenrc(5) for more information.\n");
+			fclose(file);
+			file = NULL;
+		}
+	}
+	else
+		fprintf(stderr, "rc: %s: %s\n", DGEN_RC, strerror(errno));
 
   // Check all our options
   snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:RPjd:D:", pd_options);
@@ -305,9 +272,20 @@ int main(int argc, char *argv[])
 	  printf("DGen/SDL version "VER"\n");
 	  return 0;
 	case 'r':
-	  // Parse another RC file
-	  parse_rc(optarg);
-	  pd_rc();
+	  // Parse another RC file or stdin
+	  if ((strcmp(optarg, "-") == 0) ||
+	      ((file = dgen_fopen(NULL, optarg, DGEN_READ)) != NULL)) {
+	    if (file == NULL)
+	      parse_rc(stdin, "(stdin)");
+	    else {
+	      parse_rc(file, optarg);
+	      fclose(file);
+	      file = NULL;
+	    }
+	    pd_rc();
+	  }
+	  else
+	    fprintf(stderr, "rc: %s: %s\n", optarg, strerror(errno));
 	  break;
 	case 'n':
 	  // Sleep for n microseconds
@@ -340,12 +318,12 @@ int main(int argc, char *argv[])
 #endif
 	case 'd':
 	  // Record demo
-	  if(demo)
+	  if(file)
 	    {
 	      fprintf(stderr,"main: Can't record and play at the same time!\n");
 	      break;
 	    }
-	  if(!(demo = fopen(optarg, "wb")))
+	  if(!(file = dgen_fopen("demos", optarg, DGEN_WRITE)))
 	    {
 	      fprintf(stderr, "main: Can't record demo file %s!\n", optarg);
 	      break;
@@ -354,12 +332,12 @@ int main(int argc, char *argv[])
 	  break;
 	case 'D':
 	  // Play demo
-	  if(demo)
+	  if(file)
 	    {
 	      fprintf(stderr,"main: Can't record and play at the same time!\n");
 	      break;
 	    }
-	  if(!(demo = fopen(optarg, "rb")))
+	  if(!(file = dgen_fopen("demos", optarg, DGEN_READ)))
 	    {
 	      fprintf(stderr, "main: Can't play demo file %s!\n", optarg);
 	      break;
@@ -492,7 +470,7 @@ int main(int argc, char *argv[])
 
 		if (frames_todo) {
 			while (frames_todo > 1) {
-				do_demo(megad, demo, &demo_status);
+				do_demo(megad, file, &demo_status);
 				if (dgen_sound) {
 					// Skip these frames while keeping the
 					// sound going to avoid reverberation.
@@ -508,7 +486,7 @@ int main(int argc, char *argv[])
 				--frames_todo;
 			}
 		do_not_skip:
-			do_demo(megad, demo, &demo_status);
+			do_demo(megad, file, &demo_status);
 			if (dgen_sound) {
 				if ((rp = pd_sound_rp()) != wp) {
 					pd_sound_write(wp);
@@ -541,7 +519,7 @@ int main(int argc, char *argv[])
 		 (unsigned)(f / (endclk.tv_sec - startclk.tv_sec)), (pal_mode? 50 : 60));
   
   // Cleanup
-  if(demo) fclose(demo);
+  if(file) fclose(file);
   ram_save(megad);
   if(dgen_autosave) { slot = 0; md_save(megad); }
   megad.unplug();
