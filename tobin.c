@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   load_rom_into(argv[1], rom);
 
   // Write it to disk
-  if(!(out = fopen(argv[2], "w")))
+  if(!(out = fopen(argv[2], "wb")))
     { fprintf(stderr, "Couldn't write destination rom %s!\n", argv[2]); 
       return 1; }
   fwrite(rom, 1, size, out);
