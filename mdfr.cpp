@@ -59,11 +59,13 @@ void md::run_to_odo_z80(int odo_to)
                      VBLANK_LINE_PAL : VBLANK_LINE_NTSC)
 
 #define scanlength (pal? (7189547/50/0x138) : (8000000/60/0x106))
+#define scanlength_z80 (7189547/50/0x138)
 
 #ifdef WITH_STAR
 int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
 {
   int hints, odom = 0;
+  int odom_z80 = 0;
 
   star_mz80_on(); // VERY IMPORTANT! Must call before using star/mz80
 
@@ -97,11 +99,12 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
       run_to_odo_star(odom + (scanlength * 36/209));
       // Do hdisplay now
       odom += scanlength;
+      odom_z80 += scanlength_z80;
       coo5 &= ~4;
       run_to_odo_star(odom);
 
       // Do Z80
-      run_to_odo_z80(odom);
+      run_to_odo_z80(odom_z80);
     }
   // Now we're in vblank, more special things happen :)
   // Blank everything, and trigger vint
@@ -117,8 +120,9 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
       // No interrupts happen in vblank
 
       odom += scanlength;
+      odom_z80 += scanlength_z80;
       run_to_odo_star(odom);
-      run_to_odo_z80(odom);
+      run_to_odo_z80(odom_z80);
     }
 
   // Fill the sound buffers
@@ -135,6 +139,7 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
 {
   int hints, odom = 0;
+  int odom_z80 = 0;
 
   star_mz80_on(); // VERY IMPORTANT! Must call before using star/mz80
 
@@ -168,11 +173,12 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
       run_to_odo_musa(odom + (scanlength * 36/209));
       // Do hdisplay now
       odom += scanlength;
+      odom_z80 += scanlength_z80;
       coo5 &= ~4;
       run_to_odo_musa(odom);
 
       // Do Z80
-      run_to_odo_z80(odom);
+      run_to_odo_z80(odom_z80);
     }
   // Now we're in vblank, more special things happen :)
   // Blank everything, and trigger vint
@@ -191,8 +197,9 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
       // No interrupts happen in vblank :)
 
       odom += scanlength;
+      odom_z80 += scanlength_z80;
       run_to_odo_musa(odom);
-      run_to_odo_z80(odom);
+      run_to_odo_z80(odom_z80);
     }
 
   // Fill the sound buffers
