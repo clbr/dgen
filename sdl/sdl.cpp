@@ -2,6 +2,7 @@
 // SDL interface
 // OpenGL code added by Andre Duarte de Souza <asouza@olinux.com.br>
 
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,13 +97,32 @@ static SDL_Surface *screen = NULL;
 static SDL_Color colors[64];
 static int ysize = 0, fullscreen = 0, bytes_pixel = 0, pal_mode = 0;
 static int x_scale = 1, y_scale = 1, xs, ys;
+
 // Sound
-static SDL_AudioSpec spec;
-static int snd_rate, snd_segs, snd_16bit, snd_buf;
-static volatile int snd_read = 0;
-static Uint8 *playbuf = NULL;
+static struct {
+	unsigned int rate; // samples rate
+	unsigned int is_16:1; // 1 for 16 bit mode
+	unsigned int samples; // number of samples required by the callback
+	unsigned int size; // buffer size, in bytes
+	volatile unsigned int read; // current read position (bytes)
+	volatile unsigned int write; // current write position (bytes)
+	union {
+		uint8_t *volatile u8;
+		int16_t *volatile i16;
+	} buf; // data
+} sound;
+
 // Messages
 static volatile int sigalrm_happened = 0;
+
+// Elapsed time in microseconds
+unsigned long pd_usecs(void)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	return (unsigned long)((tv.tv_sec * 1000000) + tv.tv_usec);
+}
 
 #ifdef WITH_SDL_JOYSTICK
 // Extern joystick stuff
@@ -855,81 +875,98 @@ int pd_graphics_update(int dirty)
 }
   
 // Callback for sound
-static void _snd_callback(void*, Uint8 *stream, int len)
+static void snd_callback(void *, Uint8 *stream, int len)
 {
-  int i;
-  // Slurp off the play buffer
-  for(i = 0; i < len; ++i)
-    {
-      if(snd_read == snd_buf) snd_read = 0;
-      stream[i] = playbuf[snd_read++];
-    }
+	int i;
+
+	// Slurp off the play buffer
+	for (i = 0; (i < len); ++i) {
+		if (sound.read == sound.write) {
+			// Not enough data, fill remaining space with silence.
+			memset(&stream[i], 0, (len - i));
+			break;
+		}
+		stream[i] = sound.buf.u8[(sound.read++)];
+		if (sound.read == sound.size)
+			sound.read = 0;
+	}
 }
 
 // Initialize the sound
-int pd_sound_init(long &format, long &freq, long &segs)
+int pd_sound_init(long &format, long &freq, unsigned int &samples)
 {
-  SDL_AudioSpec wanted;
+	SDL_AudioSpec wanted;
+	SDL_AudioSpec spec;
 
-  // Set the desired format
-  wanted.freq = freq;
-  wanted.format = format;
-  wanted.channels = 2;
-  wanted.samples = 512;
-  wanted.callback = _snd_callback;
-  wanted.userdata = NULL;
+	// Set the desired format
+	wanted.freq = freq;
+	wanted.format = format;
+	wanted.channels = 2;
+	wanted.samples = 512;
+	wanted.callback = snd_callback;
+	wanted.userdata = NULL;
 
-  // Open audio, and get the real spec
-  if(SDL_OpenAudio(&wanted, &spec) < 0)
-    {
-      fprintf(stderr, "sdl: Couldn't open audio: %s!\n", SDL_GetError());
-      return 0;
-    }
-  // Check everything
-  if(spec.channels != 2)
-    {
-      fprintf(stderr, "sdl: Couldn't get stereo audio format!\n");
-      goto snd_error;
-    }
-  if(spec.format == PD_SND_16)
-    snd_16bit = 1, format = PD_SND_16;
-  else if(spec.format == PD_SND_8)
-    snd_16bit = 0, format = PD_SND_8;
-  else
-    {
-      fprintf(stderr, "sdl: Couldn't get a supported audio format!\n");
-      goto snd_error;
-    }
-  // Set things as they really are
-  snd_rate = freq = spec.freq;
-  sndi.len = spec.freq / (pal_mode? 50 : 60);
-  if(segs <= 4) segs = snd_segs = 4;
-  else if(segs <= 8) segs = snd_segs = 8;
-  else if(segs <= 16) segs = snd_segs = 16;
-  else segs = snd_segs = 32;
+	// Open audio, and get the real spec
+	if (SDL_OpenAudio(&wanted, &spec) < 0) {
+		fprintf(stderr,
+			"sdl: couldn't open audio: %s\n",
+			SDL_GetError());
+		return 0;
+	}
 
-  // Calculate buffer size
-  snd_buf = sndi.len * snd_segs * (snd_16bit? 4 : 2);
-  --snd_segs;
-  // Allocate play buffer
-  if(!(sndi.l = (signed short*) malloc(sndi.len * sizeof(signed short))) ||
-     !(sndi.r = (signed short*) malloc(sndi.len * sizeof(signed short))) ||
-     !(playbuf = (Uint8*)malloc(snd_buf)))
-    {
-      fprintf(stderr, "sdl: Couldn't allocate sound buffers!\n");
-      goto snd_error;
-    }
+	// Check everything
+	if (spec.channels != 2) {
+		fprintf(stderr, "sdl: couldn't get stereo audio format.\n");
+		goto snd_error;
+	}
+	switch (spec.format) {
+	case PD_SND_16:
+		sound.is_16 = 1;
+		format = PD_SND_16;
+		break;
+	case PD_SND_8:
+		sound.is_16 = 0;
+		format = PD_SND_8;
+		break;
+	default:
+		fprintf(stderr,
+			"sdl: couldn't get a supported audio format.\n");
+		goto snd_error;
+	}
 
-  // It's all good!
-  return 1;
+	// Set things as they really are
+	sound.rate = freq = spec.freq;
+	sndi.len = (spec.freq / ((pal_mode) ? 50 : 60));
+	sound.samples = spec.samples;
+	samples += sound.samples;
+
+	// Calculate buffer size (sample size = (channels * (bits / 8))).
+	sound.size = (samples * ((sound.is_16) ? 4 : 2));
+	sound.read = 0;
+	sound.write = 0;
+
+	// Allocate zero-filled play buffers.
+	sndi.l = (int16_t *)calloc(2, (sndi.len * sizeof(sndi.l[0])));
+	sndi.r = &sndi.l[sndi.len];
+
+	sound.buf.i16 = (int16_t *)calloc(1, sound.size);
+	if ((sndi.l == NULL) || (sound.buf.i16 == NULL)) {
+		fprintf(stderr, "sdl: couldn't allocate sound buffers.\n");
+		goto snd_error;
+	}
+
+	// It's all good!
+	return 1;
 
 snd_error:
-  // Oops! Something bad happened, cleanup.
-  SDL_CloseAudio();
-  if(sndi.l) free((void*)sndi.l);
-  if(sndi.r) free((void*)sndi.r);
-  if(playbuf) free((void*)playbuf);
-  return 0;
+	// Oops! Something bad happened, cleanup.
+	SDL_CloseAudio();
+	free((void *)sndi.l);
+	sndi.l = NULL;
+	sndi.r = NULL;
+	free((void *)sound.buf.i16);
+	memset(&sound, 0, sizeof(sound));
+	return 0;
 }
 
 // Start/stop audio processing
@@ -943,35 +980,54 @@ void pd_sound_pause()
   SDL_PauseAudio(1);
 }
 
-// Return segment we're currently playing from
-int pd_sound_rp()
+// Return samples read/write indices in the buffer.
+unsigned int pd_sound_rp()
 {
-  return (snd_read / (sndi.len << (1+snd_16bit))) & snd_segs;
+	unsigned int ret;
+
+	SDL_LockAudio();
+	ret = sound.read;
+	SDL_UnlockAudio();
+	return (ret >> (1 << sound.is_16));
 }
 
-// Write contents of sndi to playbuf
-void pd_sound_write(int seg)
+unsigned int pd_sound_wp()
 {
-  int i;
-  signed short *w =
-    (signed short*)(playbuf + seg * (sndi.len << (1+snd_16bit)));
+	return (sound.write >> (1 << sound.is_16));
+}
 
-  // Thanks Daniel Wislocki for this much improved audio loop :)
-  if(!snd_16bit)
-    {
-      SDL_LockAudio();
-      for(i = 0; i < sndi.len; ++i)
-	*w++ = ((sndi.l[i] & 0xFF00) + 0x8000) | ((sndi.r[i] >> 8) + 0x80);
-      SDL_UnlockAudio();
-    } else {
-      SDL_LockAudio();
-      for(i = 0; i < sndi.len; ++i)
-	{
-	  *w++ = sndi.l[i];
-	  *w++ = sndi.r[i];
-	}
-      SDL_UnlockAudio();
-    }
+// Write contents of sndi to sound.buf
+void pd_sound_write()
+{
+	unsigned int i;
+
+	SDL_LockAudio();
+	if (sound.is_16)
+		for (i = 0; (i < (unsigned int)sndi.len); ++i) {
+			int16_t tmp[2] = { sndi.l[i], sndi.r[i] };
+
+			if (sound.read == sound.write)
+				sound.read = sound.write;
+			memcpy(&sound.buf.u8[sound.write], tmp, sizeof(tmp));
+			sound.write += sizeof(tmp);
+			if (sound.write == sound.size)
+				sound.write = 0;
+		}
+	else
+		for (i = 0; (i < (unsigned int)sndi.len); ++i) {
+			uint8_t tmp[2] = {
+				((sndi.l[i] >> 8) | 0x80),
+				((sndi.r[i] >> 8) | 0x80)
+			};
+
+			if (sound.read == sound.write)
+				sound.read = sound.write;
+			memcpy(&sound.buf.u8[sound.write], tmp, sizeof(tmp));
+			sound.write += sizeof(tmp);
+			if (sound.write == sound.size)
+				sound.write = 0;
+		}
+	SDL_UnlockAudio();
 }
 
 // This is a small event loop to handle stuff when we're stopped.
@@ -1552,14 +1608,21 @@ void pd_show_carthead(md&)
 /* Clean up this awful mess :) */
 void pd_quit()
 {
-  if(mdscr.data) free((void*)mdscr.data);
-  if(playbuf)
-    {
-      SDL_CloseAudio();
-      free((void*)playbuf);
-    }
-  if(sndi.l) free((void*)sndi.l);
-  if(sndi.r) free((void*)sndi.r);
-  if(mdpal) free((void*)mdpal);
-  SDL_Quit();
+	if (mdscr.data) {
+		free((void*)mdscr.data);
+		mdscr.data = NULL;
+	}
+	if (sound.buf.i16 != NULL) {
+		SDL_CloseAudio();
+		free((void *)sound.buf.i16);
+		memset(&sound, 0, sizeof(sound));
+	}
+	free((void*)sndi.l);
+	sndi.l = NULL;
+	sndi.r = NULL;
+	if (mdpal) {
+		free((void*)mdpal);
+		mdpal = NULL;
+	}
+	SDL_Quit();
 }

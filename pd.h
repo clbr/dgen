@@ -10,6 +10,8 @@
 // Your platform implementation needs to define all these functions and
 // variables!
 
+// Return the number of microseconds elapsed since an unspecified time.
+unsigned long pd_usecs(void);
 // This is the struct bmap setup by your implementation.
 // It should be 336x240 (or 336x256 in PAL mode), in 8, 12, 15, 16, 24 or 32
 // bits-per-pixel.
@@ -34,23 +36,23 @@ int pd_graphics_update(int dirty);
 // Note that the buffers pointed to in this struct should ALWAYS be 16-bit
 // signed format, regardless of the actual audio format.
 extern struct sndinfo sndi;
-// Initialize sound, with the given format, frequency, and number of segments.
-// It should keep segs frames' worth of sound buffered.
+// Initialize sound, with the given format, frequency, and number of samples.
+// It should keep samples' worth of sound buffered.
 // The parameters should all be modified to reflect the actual characteristics.
 // This is always called after pd_graphics_init, so you can count on graphics
 // stuff being initialized. :)
 // It should return 1 on successful setup, or 0 if something wrong happened.
-int pd_sound_init(long &format, long &freq, long &segs);
+int pd_sound_init(long &format, long &freq, unsigned int &samples);
 // Sound, if any, should be paused at first. Sound should start when this
 // function is called.
 void pd_sound_start();
 // Likewise, sound should pause if this function is called.
 void pd_sound_pause();
-// This should return which sound segment is currently being played from
-int pd_sound_rp();
-// And this function is called to commit the sound buffers to be played, into
-// one of the playback buffer segments.
-void pd_sound_write(int seg);
+// This should return samples read/write indices in the buffer.
+unsigned int pd_sound_rp();
+unsigned int pd_sound_wp();
+// And this function is called to commit the sound buffers to be played.
+void pd_sound_write();
 
 // Register platform-specific rc variables
 void pd_rc();

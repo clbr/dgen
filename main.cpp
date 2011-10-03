@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #ifndef __MINGW32__
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -234,13 +233,13 @@ fail:
 
 int main(int argc, char *argv[])
 {
-  int c = 0, pal_mode = 0, running = 1, usec = 0,
-      wp = 0, rp = 0, start_slot = -1;
-  uint64_t f = 0;
+  int c = 0, pal_mode = 0, running = 1, usec = 0, start_slot = -1;
+  unsigned long f = 0;
   char *patches = NULL, *rom = NULL;
-  struct timeval oldclk, newclk, startclk, endclk;
+  unsigned long oldclk, newclk, startclk;
   FILE *file = NULL;
   enum demo_status demo_status = DEMO_OFF;
+  unsigned int samples;
 
 	// Parse the RC file
 	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
@@ -377,7 +376,10 @@ int main(int argc, char *argv[])
   if(dgen_sound)
     {
       dgen_16bit = dgen_16bit? PD_SND_16 : PD_SND_8;
-      dgen_sound = pd_sound_init(dgen_16bit, dgen_soundrate, dgen_soundsegs);
+      if (dgen_soundsegs < 0)
+	      dgen_soundsegs = 0;
+      samples = (dgen_soundsegs * (dgen_soundrate / ((pal_mode) ? 50 : 60)));
+      dgen_sound = pd_sound_init(dgen_16bit, dgen_soundrate, samples);
     }
   // If sound fared OK, start up the sound chips
   if(dgen_sound)
@@ -388,8 +390,6 @@ int main(int argc, char *argv[])
       else
 	sound_is_okay = 1;
     }
-  // Decrement the sound seg count. This makes it a nice AND mask :)
-  --dgen_soundsegs;
 
   rom = argv[optind];
 
@@ -441,16 +441,18 @@ int main(int argc, char *argv[])
     }
 
   // Start the timing refs
-  gettimeofday(&oldclk, NULL);
-  gettimeofday(&startclk, NULL);
+  startclk = pd_usecs();
+  oldclk = startclk;
+
   // Start audio
   if(dgen_sound) pd_sound_start();
 
   // Show cartridge header
   if(dgen_show_carthead) pd_show_carthead(megad);
 
-  // Go around, and around, and around, and around... ;)
+	// Go around, and around, and around, and around... ;)
 	while (running) {
+		const unsigned int usec_frame = USEC_FRAME;
 		int frames_todo;
 
 		running = pd_handle_events(megad);
@@ -458,42 +460,32 @@ int main(int argc, char *argv[])
 		if (dgen_frameskip == 0)
 			goto do_not_skip;
 
-		// Measure how many frames to do this round
-		gettimeofday(&newclk, NULL);
-		if (newclk.tv_usec < oldclk.tv_usec)
-			usec += (1000000 + newclk.tv_usec - oldclk.tv_usec);
-		else
-			usec += (newclk.tv_usec - oldclk.tv_usec);
-		frames_todo = usec / USEC_FRAME;
-		usec %= USEC_FRAME;
+		// Measure how many frames to do this round.
+		newclk = pd_usecs();
+		usec += ((newclk - oldclk) & 0x3fffff); // no more than 4 secs
+		frames_todo = (usec / usec_frame);
+		usec %= usec_frame;
 		oldclk = newclk;
 
-		if (frames_todo) {
-			while (frames_todo > 1) {
+		// Draw frames, if any.
+		if (frames_todo != 0) {
+			while (frames_todo != 1) {
 				do_demo(megad, file, &demo_status);
 				if (dgen_sound) {
-					// Skip these frames while keeping the
-					// sound going to avoid reverberation.
-					if ((rp = pd_sound_rp()) != wp) {
-						pd_sound_write(wp);
-						++wp;
-						wp &= dgen_soundsegs;
-					}
+					// Skip this frame, keep sound going.
 					megad.one_frame(NULL, NULL, &sndi);
+					pd_sound_write();
 				}
 				else
 					megad.one_frame(NULL, NULL, NULL);
 				--frames_todo;
 			}
+			--frames_todo;
 		do_not_skip:
 			do_demo(megad, file, &demo_status);
 			if (dgen_sound) {
-				if ((rp = pd_sound_rp()) != wp) {
-					pd_sound_write(wp);
-					++wp;
-					wp &= dgen_soundsegs;
-				}
 				megad.one_frame(&mdscr, mdpal, &sndi);
+				pd_sound_write();
 			}
 			else
 				megad.one_frame(&mdscr, mdpal, NULL);
@@ -512,11 +504,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-  // Print fps
-  gettimeofday(&endclk, NULL);
-  if (endclk.tv_sec - startclk.tv_sec)
-	  printf("%d frames per second (optimal %d)\n",
-		 (unsigned)(f / (endclk.tv_sec - startclk.tv_sec)), (pal_mode? 50 : 60));
+	// Print fps
+	startclk = (pd_usecs() - startclk);
+	if (startclk != 0)
+		printf("%lu frames per second (optimal %d)\n",
+		       ((f * 1000000) / startclk), (pal_mode ? 50 : 60));
   
   // Cleanup
   if(file) fclose(file);

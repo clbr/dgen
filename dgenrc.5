@@ -1,4 +1,4 @@
-.Dd February 21, 2001
+.Dd October 08, 2011
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -78,9 +78,8 @@ Sound frequency to play at, in hertz (Hz).
 Use 16-bit sound. If this is false, sound will be condensed to 8-bit (which
 causes a speed penalty).
 .It int_soundsegs [8]
-Number of sound segments to use for sound buffering. Choosing a lower value will
-lower the sound latency, but may cause performance to hiccup if set too low.
-Should be a power of two from 4 to 32.
+Number of sound segments to use for sound buffering. Lower values guarantee
+low latency. Increment this only if the sound becomes choppy.
 .El
 .Sh VIDEO
 .Bl -tag -width xxxx
