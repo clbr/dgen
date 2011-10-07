@@ -49,7 +49,10 @@ md_vdp::md_vdp()
 
 md_vdp::~md_vdp()
 {
-	delete [] mem;
+	if (mem)
+		delete [] mem;
+	if (highpal)
+		delete [] highpal;
 	mem = vram = cram = vsram = NULL;
 	ok = 0;
 }
