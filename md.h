@@ -276,7 +276,7 @@ public:
   int import_gst(FILE *hand);
   int export_gst(FILE *hand);
 
-  char romfilename[256]; // If known
+  char romname[256];
 
   int get_screen_info(struct dgen_sinfo *si)
   { return vdp.get_screen_info(si); }

@@ -37,6 +37,8 @@ SYSTEM_H_BEGIN_
 extern FILE *dgen_fopen(const char *subdir, const char *file,
 			unsigned int mode);
 
+extern char *dgen_basename(char *path);
+
 SYSTEM_H_END_
 
 #endif /* SYSTEM_H_ */

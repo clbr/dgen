@@ -83,37 +83,6 @@ static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
 // Temporary garbage can string :)
 static char temp[65536] = "";
 
-// Get the basename from the ROM filename
-// An equivalent perl one-liner would be perl -pe 's@.*/([^.]*?)\..*@\1@' :)
-/* Modified: 20-11-1999 Dylan_G@bigfoot.com
-	Made very much less evil. */
-static char *gst_name(char *fn)
-{
-    char buf[1024]; /* strtok modifies its arguments */
-    char *p = NULL, *p1 = NULL;
-
-    memset(buf, 0, sizeof(buf));
-    strncpy(buf, fn, sizeof(buf));
-    if(strchr(buf, '.'))
-    { /* Need to strip extension */
-    	p = strtok(buf, ".");
-    }
-    
-    if(strchr(buf, '/'))
-    { /* Need to strip /path/name */
-        p = strtok(buf, "/");
-	/* We have to walk through until we hit NULL, then use N-1 pointer :-). */
-	while(p != NULL)
-    {
-	    p1 = p;
-	    p = strtok(NULL, "/");
-	}
-    }
-    /* Fix in case there is no / in the filename */
-    if(p) p1 = p;
-    return(p1);
-}
-
 // Show help and exit with code 2
 static void help()
 {
@@ -156,7 +125,7 @@ void md_save(md& megad)
 	if (((size_t)snprintf(file,
 			      sizeof(file),
 			      "%s.gs%d",
-			      gst_name(megad.romfilename),
+			      megad.romname,
 			      slot) >= sizeof(file)) ||
 	    ((save = dgen_fopen("saves", file, DGEN_WRITE)) == NULL)) {
 		snprintf(temp, sizeof(temp),
@@ -178,7 +147,7 @@ void md_load(md& megad)
 	if (((size_t)snprintf(file,
 			      sizeof(file),
 			      "%s.gs%d",
-			      gst_name(megad.romfilename),
+			      megad.romname,
 			      slot) >= sizeof(file)) ||
 	    ((load = dgen_fopen("saves", file, DGEN_READ)) == NULL)) {
 		snprintf(temp, sizeof(temp),
@@ -200,7 +169,7 @@ static void ram_save(md& megad)
 
 	if (!megad.has_save_ram())
 		return;
-	save = dgen_fopen("ram", gst_name(megad.romfilename), DGEN_WRITE);
+	save = dgen_fopen("ram", megad.romname, DGEN_WRITE);
 	if (save == NULL)
 		goto fail;
 	ret = megad.put_save_ram(save);
@@ -208,8 +177,7 @@ static void ram_save(md& megad)
 	if (ret == 0)
 		return;
 fail:
-	fprintf(stderr, "Couldn't save battery RAM to `%s'\n",
-		gst_name(megad.romfilename));
+	fprintf(stderr, "Couldn't save battery RAM to `%s'\n", megad.romname);
 }
 
 static void ram_load(md& megad)
@@ -219,7 +187,7 @@ static void ram_load(md& megad)
 
 	if (!megad.has_save_ram())
 		return;
-	load = dgen_fopen("ram", gst_name(megad.romfilename), DGEN_READ);
+	load = dgen_fopen("ram", megad.romname, DGEN_READ);
 	if (load == NULL)
 		goto fail;
 	ret = megad.get_save_ram(load);
@@ -228,7 +196,7 @@ static void ram_load(md& megad)
 		return;
 fail:
 	fprintf(stderr, "Couldn't load battery RAM from `%s'\n",
-		gst_name(megad.romfilename));
+		megad.romname);
 }
 
 int main(int argc, char *argv[])

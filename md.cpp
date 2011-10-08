@@ -464,10 +464,9 @@ md::md()
 #ifdef WITH_MZ80
   memset(&z80,0,sizeof(z80));
 #endif
-  romfilename[0]=0;
   country_ver=0xff0; layer_sel = 0xff;
 
-  memset(romfilename,0,sizeof(romfilename));
+  memset(romname, 0, sizeof(romname));
 
   ok=0;
   if (!vdp.okay()) return;
@@ -540,7 +539,6 @@ md::md()
 
 md::~md()
 {
-  romfilename[0]=0;
   if (rom!=NULL) unplug();
 
   free(mem);
@@ -620,7 +618,7 @@ int md::unplug()
 #ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
 #endif
-  memset(romfilename,0,sizeof(romfilename));
+  memset(romname, 0, sizeof(romname));
   reset();
 
   return 0;
@@ -632,6 +630,7 @@ int md::load(char *name)
 {
   // Convenience function - calls romload.c functions
   unsigned char *temp=NULL; int len=0;
+  char *b_name = dgen_basename(name);
   if (name==NULL) return 1;
  
   len=load_rom_into(name,NULL);
@@ -640,7 +639,22 @@ int md::load(char *name)
   if (temp==NULL) return 1;
   load_rom_into(name,temp);
   // Register name
-  strncpy(romfilename,name,255);
+
+	romname[0] = '\0';
+	if ((b_name != NULL) && (b_name[0] != '\0')) {
+		unsigned int i;
+
+		snprintf(romname, sizeof(romname), "%s", b_name);
+		for (i = 0; (romname[i] != '\0'); ++i)
+			if (romname[i] == '.') {
+				memset(&(romname[i]), 0,
+				       (sizeof(romname) - i));
+				break;
+			}
+	}
+	if (romname[0] == '\0')
+		snprintf(romname, sizeof(romname), "%s", "unknown");
+
   // Fill the header with ROM info (god this is ugly)
   memcpy((void*)cart_head.system_name,  (void*)(temp + 0x100), 0x10);
   memcpy((void*)cart_head.copyright,    (void*)(temp + 0x110), 0x10);

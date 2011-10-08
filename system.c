@@ -109,3 +109,17 @@ error:
 	errno = EACCES;
 	return NULL;
 }
+
+/*
+  Return the base name in path, like basename() but without allocating anything
+  nor modifying the argument.
+*/
+
+char *dgen_basename(char *path)
+{
+	char *tmp;
+
+	while ((tmp = strpbrk(path, DGEN_DIRSEP DGEN_DIRSEP_ALT)) != NULL)
+		path = (tmp + 1);
+	return path;
+}
