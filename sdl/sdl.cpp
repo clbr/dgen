@@ -27,13 +27,6 @@
 #include "system.h"
 
 #ifdef WITH_OPENGL
-// Defines for RGBA
-# define R 0
-# define G 1
-# define B 2
-# define A 3
-// Constant alpha value
-# define Alpha 255
 // Width and height of screen
 # define XRES xs
 # define YRES ys
@@ -59,12 +52,10 @@ static void compute_tex_lower(int h)
 }
 
 // Framebuffer textures
-static unsigned char mybuffer[256][256][4];
-static unsigned char mybufferb[256][64][4];
+static uint16_t mybuffer[256][256];
+static uint16_t mybufferb[256][64];
 // Textures (one 256x256 and on 64x256 => 320x256)
 static GLuint texture[2];
-// xtabs for faster buffer access
-static int x4tab_r[321], x4tab_g[321], x4tab_b[321]; // x*4 (RGBA)
 // Display list
 static GLuint dlist;
 // Is OpenGL mode enabled?
@@ -73,8 +64,8 @@ static int xs = dgen_opengl_width;
 static int ys = dgen_opengl_height;
 // Text width is limited by the opengl texture size, hence 256.
 // One cannot write more than 256/7 (36) characters at once.
-static unsigned char message[5][256][4];
-static unsigned char m_clear[5][256][4];
+static uint16_t message[5][256];
+static uint16_t m_clear[5][256];
 #else
 static int xs = 0;
 static int ys = 0;
@@ -390,8 +381,8 @@ static void maketex(GLuint *id, void *buffer, int width)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, 256, 0, GL_RGBA,
-		     GL_UNSIGNED_BYTE, buffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, 256, 0, GL_RGB,
+		     GL_UNSIGNED_SHORT_5_6_5, buffer);
 }
 
 static void makedlist()
@@ -440,31 +431,13 @@ static void makedlist()
 
 static void init_textures()
 {
-  int i,j;
+	// Clear buffers.
+	memset(mybuffer, 0, sizeof(mybuffer));
+	memset(mybufferb, 0, sizeof(mybufferb));
 
-  // First, the x tables (for a little faster access)
-  for (i=0;i<321;i++)
-    {
-      x4tab_r[i]=(i*4)+2;
-      x4tab_g[i]=(i*4)+1;
-      x4tab_b[i]=i*4;
-    }
-
-  // Constant Alpha
-  for (j=0;j<256;j++)
-    for (i=0;i<320;i++)
-      {
-	if (i<256) mybuffer[j][i][A]=Alpha;
-	else mybufferb[j][i-256][A]=Alpha;
-      }
-
-  // Clear Message Buffer
-  for (j = 0; ((size_t)j < (sizeof(m_clear[0]) / sizeof(m_clear[0][0]))); j++)
-    for (i=0;i<5;i++)
-      {
-	m_clear[i][j][R]=m_clear[i][j][G]=m_clear[i][j][B]=0;
-	m_clear[i][j][A]=255;
-      }
+	// Clear message buffers.
+	memset(message, 0, sizeof(message));
+	memset(m_clear, 0, sizeof(m_clear));
 
   // Disable dithering
   glDisable(GL_DITHER);
@@ -587,7 +560,7 @@ int pd_graphics_init(int want_sound, int want_pal)
   mdscr.h = ysize + 16;
 #ifdef WITH_OPENGL
   if(opengl)
-    mdscr.bpp = 32;
+    mdscr.bpp = 16;
   else
 #endif
     mdscr.bpp = screen->format->BitsPerPixel;
@@ -624,11 +597,11 @@ void update_textures()
 {
 	glBindTexture(GL_TEXTURE_2D,texture[0]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
-			GL_RGBA,GL_UNSIGNED_BYTE, mybuffer);
+			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mybuffer);
 
 	glBindTexture(GL_TEXTURE_2D,texture[1]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, ysize,
-			GL_RGBA,GL_UNSIGNED_BYTE, mybufferb);
+			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mybufferb);
 
 	display();
 }
@@ -647,9 +620,6 @@ void pd_graphics_update()
   int i, j, k;
   unsigned char *p = NULL;
   unsigned char *q;
-#ifdef WITH_OPENGL
-  int x, xb;
-#endif
 
 #ifdef WITH_CTV
   // Frame number, even or odd?
@@ -677,19 +647,11 @@ void pd_graphics_update()
   for(i = 0; i < ysize; ++i)
     {
 #ifdef WITH_OPENGL
-      if(opengl)
-	{
-		// Copy, converting from BGRA to RGBA
-		for (x = 0; (x < 256); ++x) {
-			mybuffer[i][x][R] = *(q + x4tab_r[x]);
-			mybuffer[i][x][G] = *(q + x4tab_g[x]);
-			mybuffer[i][x][B] = *(q + x4tab_b[x]);
-		}
-		for (xb = 0; (xb < 64); ++xb, ++x) {
-			mybufferb[i][xb][R] = *(q + x4tab_r[x]);
-			mybufferb[i][xb][G] = *(q + x4tab_g[x]);
-			mybufferb[i][xb][B] = *(q + x4tab_b[x]);
-		}
+	if (opengl) {
+		memcpy(mybuffer[i], q, sizeof(mybuffer[i]));
+		memcpy(mybufferb[i],
+		       &(q[sizeof(mybuffer[i])]),
+		       sizeof(mybufferb[i]));
 	}
       else
         {
@@ -1530,14 +1492,9 @@ static void ogl_write_text(const char *msg)
 		for (y = 0; (y < 5); ++y) {
 			unsigned int cx;
 
-			for (cx = 0; (cx < 5); ++cx) {
-			        uint8_t v = (c[((y * 5) + cx)] * 0xff);
-
-				message[y][(x + cx)][R] = v;
-				message[y][(x + cx)][G] = v;
-				message[y][(x + cx)][B] = v;
-				message[y][(x + cx)][A] = 0xff;
-			}
+			for (cx = 0; (cx < 5); ++cx)
+				message[y][(x + cx)] =
+					(c[((y * 5) + cx)] * 0xffff);
 		}
 		++msg;
 		x += 7;
@@ -1557,7 +1514,7 @@ void pd_message(const char *msg)
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
 				(sizeof(message[0]) / sizeof(message[0][0])),
-				5, GL_RGBA, GL_UNSIGNED_BYTE, message);
+				5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, message);
 		return;
 	}
 #endif
@@ -1577,7 +1534,7 @@ inline void pd_clear_message()
 		glBindTexture(GL_TEXTURE_2D, texture[0]);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
 				(sizeof(m_clear[0]) / sizeof(m_clear[0][0])),
-				5, GL_RGBA, GL_UNSIGNED_BYTE, m_clear);
+				5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, m_clear);
 		return;
 	}
 #endif
