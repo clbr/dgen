@@ -643,7 +643,7 @@ void update_textures()
 // point to your favorite raw framebuffer. ;) But planar buffers are a 
 // completely different deal...
 // Anyway, feel free to use it in your implementation. :)
-int pd_graphics_update(int dirty)
+void pd_graphics_update()
 {
 #ifdef WITH_CTV
   static int f = 0;
@@ -654,10 +654,6 @@ int pd_graphics_update(int dirty)
 #ifdef WITH_OPENGL
   int x, xb;
 #endif
-
-  // Check whether we need to redraw.
-  if (dirty == 0)
-	  return 0;
 
 #ifdef WITH_CTV
   // Frame number, even or odd?
@@ -871,7 +867,6 @@ int pd_graphics_update(int dirty)
   else
 #endif
     SDL_UpdateRect(screen, 0, 0, xs, ys);
-  return 1;
 }
   
 // Callback for sound

@@ -493,7 +493,8 @@ int main(int argc, char *argv[])
 				pd_graphics_palette_update();
 				pal_dirty = 0;
 			}
-			f += pd_graphics_update(1);
+			pd_graphics_update();
+			++f;
 		}
 		if (dgen_nice) {
 #ifdef __BEOS__
