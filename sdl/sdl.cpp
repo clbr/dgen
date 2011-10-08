@@ -68,11 +68,16 @@ static int x4tab_r[321], x4tab_g[321], x4tab_b[321]; // x*4 (RGBA)
 // Display list
 static GLuint dlist;
 // Is OpenGL mode enabled?
-static int opengl = 0;
+static int opengl = dgen_opengl;
+static int xs = dgen_opengl_width;
+static int ys = dgen_opengl_height;
 // Text width is limited by the opengl texture size, hence 256.
 // One cannot write more than 256/7 (36) characters at once.
 static unsigned char message[5][256][4];
 static unsigned char m_clear[5][256][4];
+#else
+static int xs = 0;
+static int ys = 0;
 #endif // WITH_OPENGL
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
@@ -94,8 +99,10 @@ const char *pd_options = "fX:Y:S:"
 // Graphics
 static SDL_Surface *screen = NULL;
 static SDL_Color colors[64];
-static int ysize = 0, fullscreen = 0, bytes_pixel = 0, pal_mode = 0;
-static int x_scale = 1, y_scale = 1, xs, ys;
+static int ysize = 0, bytes_pixel = 0, pal_mode = 0;
+static int fullscreen = dgen_fullscreen;
+static int x_scale = dgen_scale;
+static int y_scale = dgen_scale;
 
 // Sound
 static struct {
