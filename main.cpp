@@ -506,10 +506,10 @@ int main(int argc, char *argv[])
 	}
 
 	// Print fps
-	startclk = (pd_usecs() - startclk);
+	startclk = ((pd_usecs() - startclk) / 1000000);
 	if (startclk != 0)
 		printf("%lu frames per second (optimal %d)\n",
-		       ((f * 1000000) / startclk), (pal_mode ? 50 : 60));
+		       (f / startclk), (pal_mode ? 50 : 60));
   
   // Cleanup
   if(file) fclose(file);
