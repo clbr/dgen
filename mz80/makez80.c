@@ -47,7 +47,7 @@
  */ 
 
 /*
-  DGen/SDL modifications to address compilation issues:
+  DGen/SDL modifications for compilation issues and bugfixes:
 
   2011-08-28 - Rename VERSION to MZ80_VERSION.
              - Some fprintf() calls had too many arguments.
@@ -56,6 +56,7 @@
                shouldn't go away when defining NDEBUG.
              - Add default case to switch statement in IRHandler().
              - Append -dgen to version number.
+  2011-10-08 - Fix segfault on reset in the C version.
 */
 
 #include <stdio.h>
@@ -8477,7 +8478,7 @@ void ResetCode(void)
 		fprintf(fp, "	cpu.z80IX = 0xffff; /* Yes, this is intentional */\n");
 		fprintf(fp, "	cpu.z80IY = 0xffff; /* Yes, this is intentional */\n");
 		fprintf(fp, "	cpu.z80pc = 0;\n");
-		fprintf(fp, "	cpu.z80sp = 0;\n");
+		fprintf(fp, "	cpu.z80sp = 0xffff; /* Prevent segfault on reset */\n");
 		fprintf(fp, "	cpu.z80interruptMode = 0;\n");
 		fprintf(fp, "	cpu.z80intAddr = 0x38;\n");
 		fprintf(fp, "	cpu.z80nmiAddr = 0x66;\n");
