@@ -14,7 +14,7 @@ static int load_bin_into(char *name,unsigned char *into)
   FILE *hand=NULL;
   int file_size=0;
 
-  hand = dgen_fopen("roms", name, DGEN_READ);
+  hand = dgen_fopen("roms", name, (DGEN_READ | DGEN_CURRENT));
   if (hand==NULL)
     return -1;
 
@@ -63,7 +63,7 @@ static int load_smd_into(char *name,unsigned char *into)
   unsigned char *chunk_buf=NULL;
   int got_to=0,i;
 
-  hand = dgen_fopen("roms", name, DGEN_READ);
+  hand = dgen_fopen("roms", name, (DGEN_READ | DGEN_CURRENT));
   if (hand==NULL)
     return -1;
 
@@ -124,7 +124,7 @@ int load_rom_into(char *name,unsigned char *into)
 
   /* Open the file and get the first little shnippit of it so we can check
    * the magic numbers on it. */
-	if (!(romfile = dgen_fopen("roms", name, DGEN_READ)))
+  if (!(romfile = dgen_fopen("roms", name, (DGEN_READ | DGEN_CURRENT))))
 		return -1;
 	if (fread(magicbuf, 10, 1, romfile) != 1) {
 		fclose(romfile);

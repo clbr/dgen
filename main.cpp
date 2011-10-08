@@ -273,7 +273,8 @@ int main(int argc, char *argv[])
 	case 'r':
 	  // Parse another RC file or stdin
 	  if ((strcmp(optarg, "-") == 0) ||
-	      ((file = dgen_fopen(NULL, optarg, DGEN_READ)) != NULL)) {
+	      ((file = dgen_fopen(NULL, optarg,
+				  (DGEN_READ | DGEN_CURRENT))) != NULL)) {
 	    if (file == NULL)
 	      parse_rc(stdin, "(stdin)");
 	    else {
@@ -336,7 +337,7 @@ int main(int argc, char *argv[])
 	      fprintf(stderr,"main: Can't record and play at the same time!\n");
 	      break;
 	    }
-	  if(!(file = dgen_fopen("demos", optarg, DGEN_READ)))
+	  if(!(file = dgen_fopen("demos", optarg, (DGEN_READ | DGEN_CURRENT))))
 	    {
 	      fprintf(stderr, "main: Can't play demo file %s!\n", optarg);
 	      break;

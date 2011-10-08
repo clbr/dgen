@@ -28,15 +28,14 @@ SYSTEM_H_BEGIN_
 #define DGEN_DIRSEP_ALT "/"
 #endif
 
-enum dgen_mode {
-	DGEN_READ = 0x1,
-	DGEN_WRITE = 0x2,
-	DGEN_APPEND = 0x4
-};
+#define DGEN_READ 0x1
+#define DGEN_WRITE 0x2
+#define DGEN_APPEND 0x4
+#define DGEN_CURRENT 0x8
 
 #define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, (mode))
 extern FILE *dgen_fopen(const char *subdir, const char *file,
-			enum dgen_mode mode);
+			unsigned int mode);
 
 SYSTEM_H_END_
 
