@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include <SDL.h>
 #include <SDL_audio.h>
 
@@ -113,7 +112,10 @@ static struct {
 } sound;
 
 // Messages
-static volatile int sigalrm_happened = 0;
+static struct {
+	unsigned int displayed:1; // whether message is currently displayed
+	unsigned long since; // since this number of microseconds
+} info;
 
 // Elapsed time in microseconds
 unsigned long pd_usecs(void)
@@ -129,16 +131,8 @@ unsigned long pd_usecs(void)
 extern long js_map_button[2][16];
 #endif
 
-// Number of seconds to sustain messages
-#define MESSAGE_LIFE 3
-
-#ifndef __MINGW32__
-// Catch SIGALRM
-static void sigalrm_handler(int)
-{
-  sigalrm_happened = 1;
-}
-#endif
+// Number of microseconds to sustain messages
+#define MESSAGE_LIFE 3000000
 
 #ifdef WITH_CTV
 // Portable versions of Crap TV filters, for all depths except 8 bpp.
@@ -598,11 +592,6 @@ int pd_graphics_init(int want_sound, int want_pal)
       return 0;
     }
 
-  // Set SIGALRM handler (used to clear messages after 3 seconds)
-#ifndef __MINGW32__
-  signal(SIGALRM, sigalrm_handler);
-#endif
-
   // And that's it! :D
   return 1;
 }
@@ -665,12 +654,10 @@ void pd_graphics_update()
   if(SDL_MUSTLOCK(screen))
     SDL_LockSurface(screen);
   
-  // If SIGALRM was tripped, clear message
-  if(sigalrm_happened)
-    {
-      sigalrm_happened = 0;
-      pd_clear_message();
-    }
+	// Check whether the message must be cleared.
+	if ((info.displayed) &&
+	    ((pd_usecs() - info.since) >= MESSAGE_LIFE))
+		pd_clear_message();
 
 #ifdef WITH_OPENGL
   if(!opengl)
@@ -1552,6 +1539,8 @@ static void ogl_write_text(const char *msg)
 void pd_message(const char *msg)
 {
 	pd_clear_message();
+	info.displayed = 1;
+	info.since = pd_usecs();
 #ifdef WITH_OPENGL
 	if (opengl) {
 		ogl_write_text(msg);
@@ -1559,18 +1548,11 @@ void pd_message(const char *msg)
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
 				(sizeof(message[0]) / sizeof(message[0][0])),
 				5, GL_RGBA, GL_UNSIGNED_BYTE, message);
-#ifndef __MINGW32__
-		alarm(MESSAGE_LIFE);
-#endif
 		return;
 	}
 #endif
 	font_text(screen, 0, ys, msg);
 	SDL_UpdateRect(screen, 0, ys, xs, 16);
-	// Clear message in 3 seconds
-#ifndef __MINGW32__
-	alarm(MESSAGE_LIFE);
-#endif
 }
 
 inline void pd_clear_message()
@@ -1578,6 +1560,7 @@ inline void pd_clear_message()
 	size_t i;
 	uint8_t *p = ((uint8_t *)screen->pixels + (screen->pitch * ys));
 
+	info.displayed = 0;
 #ifdef WITH_OPENGL
 	if (opengl) {
 		memset(message, 0, sizeof(message));
