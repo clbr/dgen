@@ -80,6 +80,12 @@ causes a speed penalty).
 .It int_soundsegs [8]
 Number of sound segments to use for sound buffering. Lower values guarantee
 low latency. Increment this only if the sound becomes choppy.
+.It int_soundsamples [0]
+Size of the system sound buffer, in samples (samples are the sound unit, sound
+rate is how many of them are played every second). Specifying 0 automatically
+choses the safest value. If you experience sound issues int_soundsegs is
+unable to solve, try to change this. Increasing it will cause noticeable audio
+lag (it is unfortunately often required on slower machines).
 .El
 .Sh VIDEO
 .Bl -tag -width xxxx

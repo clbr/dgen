@@ -891,7 +891,7 @@ int pd_sound_init(long &format, long &freq, unsigned int &samples)
 	wanted.freq = freq;
 	wanted.format = format;
 	wanted.channels = 2;
-	wanted.samples = 512;
+	wanted.samples = dgen_soundsamples;
 	wanted.callback = snd_callback;
 	wanted.userdata = NULL;
 
@@ -933,6 +933,9 @@ int pd_sound_init(long &format, long &freq, unsigned int &samples)
 	sound.size = (samples * ((sound.is_16) ? 4 : 2));
 	sound.read = 0;
 	sound.write = 0;
+
+	fprintf(stderr, "sound: %uHz, %d samples, buffer: %u bytes\n",
+		sound.rate, spec.samples, sound.size);
 
 	// Allocate zero-filled play buffers.
 	sndi.l = (int16_t *)calloc(2, (sndi.len * sizeof(sndi.l[0])));

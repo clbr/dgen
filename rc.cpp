@@ -366,6 +366,7 @@ struct rc_field {
   { "int_soundrate", number, &dgen_soundrate },
   { "bool_16bit", boolean, &dgen_16bit },
   { "int_soundsegs", number, &dgen_soundsegs },
+  { "int_soundsamples", number, &dgen_soundsamples },
   { "int_nice", number, &dgen_nice },
   { "bool_fullscreen", boolean, &dgen_fullscreen },
   { "int_scale", number, &dgen_scale },
