@@ -598,6 +598,9 @@ int pd_graphics_init(int want_sound, int want_pal)
 			SDL_GetError());
 		return 0;
     }
+  fprintf(stderr, "video: %dx%d, %d bpp (%d Bpp)\n",
+	  screen->w, screen->h,
+	  screen->format->BitsPerPixel, screen->format->BytesPerPixel);
 #ifndef __MINGW32__
   // We don't need setuid priveledges anymore
   if(getuid() != geteuid())
