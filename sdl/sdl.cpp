@@ -730,16 +730,6 @@ void pd_graphics_update()
 
   for(i = 0; i < ysize; ++i)
     {
-#ifdef WITH_OPENGL
-	if (opengl) {
-		memcpy(mybuffer[i], q, sizeof(mybuffer[i]));
-		memcpy(mybufferb[i],
-		       &(q[sizeof(mybuffer[i])]),
-		       sizeof(mybufferb[i]));
-	}
-      else
-        {
-#endif // WITH_OPENGL
 #ifdef WITH_CTV
 	switch (dgen_craptv) {
 	case CTV_BLUR:
@@ -811,6 +801,17 @@ void pd_graphics_update()
 		break;
 	}
 #endif // WITH_CTV
+
+#ifdef WITH_OPENGL
+	if (opengl) {
+		memcpy(mybuffer[i], q, sizeof(mybuffer[i]));
+		memcpy(mybufferb[i],
+		       &(q[sizeof(mybuffer[i])]),
+		       sizeof(mybufferb[i]));
+	}
+	else {
+#endif // WITH_OPENGL
+
           if(x_scale == 1)
             {
 	      if(y_scale == 1)
@@ -1228,11 +1229,6 @@ int pd_handle_events(md &megad)
 		    if (mdscr.bpp == 8)
 			    snprintf(temp, sizeof(temp),
 				     "Crap TV mode unavailable in 8 bpp.");
-#ifdef WITH_OPENGL
-		    else if (opengl)
-			    snprintf(temp, sizeof(temp),
-				     "Crap TV mode unavailable in OpenGL.");
-#endif
 		    else {
 			    dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
 			    snprintf(temp, sizeof(temp),
