@@ -273,7 +273,11 @@ static void do_screenshot(void)
 {
 	static unsigned int n = 0;
 	FILE *fp;
+#ifdef HAVE_FTELLO
 	off_t pos;
+#else
+	long pos;
+#endif
 	union {
 		uint8_t *u8;
 		uint16_t *u16;
@@ -305,7 +309,12 @@ retry:
 		return;
 	}
 	fseek(fp, 0, SEEK_END);
-	if (((pos = ftello(fp)) == (off_t)-1) || (pos != (off_t)0)) {
+#ifdef HAVE_FTELLO
+	pos = ftello(fp);
+#else
+	pos = ftell(fp);
+#endif
+	if (((off_t)pos == (off_t)-1) || ((off_t)pos != (off_t)0)) {
 		fclose(fp);
 		n = ((n + 1) % 1000000);
 		goto retry;
