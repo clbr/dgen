@@ -66,6 +66,8 @@ static int ys = dgen_opengl_height;
 // One cannot write more than 256/7 (36) characters at once.
 static uint16_t message[5][256];
 static uint16_t m_clear[5][256];
+static void init_textures();
+void update_textures();
 #else
 static int xs = 0;
 static int ys = 0;
@@ -389,6 +391,62 @@ retry:
 	fclose(fp);
 }
 
+static int do_videoresize(unsigned int width, unsigned int height)
+{
+	SDL_Surface *tmp;
+
+#ifdef WITH_OPENGL
+	if (opengl) {
+		unsigned int w;
+		unsigned int h;
+		unsigned int x;
+		unsigned int y;
+
+		tmp = SDL_SetVideoMode(width, height, 0,
+				       (SDL_HWPALETTE | SDL_HWSURFACE |
+					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
+					SDL_RESIZABLE));
+		if (tmp == NULL)
+			return -1;
+		if (dgen_opengl_aspect) {
+			// We're asked to keep the original aspect ratio, so
+			// calculate the maximum usable size considering this.
+			w = ((height * dgen_opengl_width) /
+			     dgen_opengl_height);
+			h = ((width * dgen_opengl_height) /
+			     dgen_opengl_width);
+			if (w >= width) {
+				w = width;
+				if (h == 0)
+					++h;
+			}
+			else {
+				h = height;
+				if (w == 0)
+					++w;
+			}
+		}
+		else {
+			// Free aspect ratio.
+			w = width;
+			h = height;
+		}
+		x = ((width - w) / 2);
+		y = ((height - h) / 2);
+		glViewport(x, y, w, h);
+		init_textures();
+		update_textures();
+		screen = tmp;
+		return 0;
+	}
+#else
+	(void)tmp;
+	(void)width;
+	(void)height;
+#endif
+	return -1;
+}
+
 // Document the -f switch
 void pd_help()
 {
@@ -518,14 +576,6 @@ static void makedlist()
 
 static void init_textures()
 {
-	// Clear buffers.
-	memset(mybuffer, 0, sizeof(mybuffer));
-	memset(mybufferb, 0, sizeof(mybufferb));
-
-	// Clear message buffers.
-	memset(message, 0, sizeof(message));
-	memset(m_clear, 0, sizeof(m_clear));
-
   // Disable dithering
   glDisable(GL_DITHER);
   // Disable anti-aliasing
@@ -1105,6 +1155,21 @@ static int stop_events(md &)
 			break;
 		case SDL_QUIT:
 			return 0;
+		case SDL_VIDEORESIZE:
+			do_videoresize(event.resize.w, event.resize.h);
+#if WITH_OPENGL
+			if (opengl) {
+				pd_message("STOPPED.");
+				display();
+			}
+#endif
+			break;
+		case SDL_VIDEOEXPOSE:
+#if WITH_OPENGL
+			if (opengl)
+				display();
+#endif
+			break;
 		}
 	}
 	// SDL_WaitEvent only returns zero on error :(
@@ -1321,62 +1386,21 @@ int pd_handle_events(md &megad)
             do_screenshot();
           }
 	  break;
-#ifdef WITH_OPENGL
 	case SDL_VIDEORESIZE:
 	{
-		SDL_Surface *tmp;
 		char buf[64];
-		unsigned int w;
-		unsigned int h;
 
-		if (!opengl)
-			break;
-		tmp = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
-				       (SDL_HWPALETTE | SDL_HWSURFACE |
-					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
-					SDL_RESIZABLE));
-		if (dgen_opengl_aspect) {
-			// We're asked to keep the original aspect ratio, so
-			// calculate the maximum usable size considering this.
-			w = ((event.resize.h * dgen_opengl_width) /
-			     dgen_opengl_height);
-			h = ((event.resize.w * dgen_opengl_height) /
-			     dgen_opengl_width);
-			if (w >= (unsigned int)event.resize.w) {
-				w = event.resize.w;
-				if (h == 0)
-					++h;
-			}
-			else {
-				h = event.resize.h;
-				if (w == 0)
-					++w;
-			}
-		}
-		else {
-			// Free aspect ratio.
-			w = event.resize.w;
-			h = event.resize.h;
-		}
-		if (tmp == NULL)
+		if (do_videoresize(event.resize.w, event.resize.h) == -1)
 			snprintf(buf, sizeof(buf),
-				 "Failed to resize video to %dx%d.",
+				 "Failed to resize video to %dx%d",
 				 event.resize.w, event.resize.h);
-		else {
-			unsigned int x = ((event.resize.w - w) / 2);
-			unsigned int y = ((event.resize.h - h) / 2);
-
-			screen = tmp;
-			glViewport(x, y, w, h);
-			init_textures();
+		else
 			snprintf(buf, sizeof(buf),
 				 "Video resized to %dx%d.",
-				 w, h);
-		}
+				 event.resize.w, event.resize.h);
 		pd_message(buf);
 		break;
 	}
-#endif
 	case SDL_KEYUP:
 	  ksym = event.key.keysym.sym;
 	  // Check for modifiers
