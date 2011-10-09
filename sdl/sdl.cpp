@@ -402,10 +402,11 @@ static int do_videoresize(unsigned int width, unsigned int height)
 		unsigned int x;
 		unsigned int y;
 
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		tmp = SDL_SetVideoMode(width, height, 0,
 				       (SDL_HWPALETTE | SDL_HWSURFACE |
-					SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
-					SDL_RESIZABLE));
+					SDL_OPENGL | SDL_RESIZABLE |
+					(fullscreen ? SDL_FULLSCREEN : 0)));
 		if (tmp == NULL)
 			return -1;
 		if (dgen_opengl_aspect) {
@@ -636,18 +637,18 @@ int pd_graphics_init(int want_sound, int want_pal)
   // for the message bar.
 #ifdef WITH_OPENGL
 	if (opengl) {
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		screen = SDL_SetVideoMode(xs, ys, 0,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
-					   SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
-					   (fullscreen ?
-					    SDL_FULLSCREEN :
-					    SDL_RESIZABLE)));
+					   SDL_OPENGL | SDL_RESIZABLE |
+					   (fullscreen ? SDL_FULLSCREEN : 0)));
 	}
-  else
+	else
 #endif
-    screen = SDL_SetVideoMode(xs, ys + 16, 0,
-      fullscreen? (SDL_HWPALETTE | SDL_HWSURFACE | SDL_FULLSCREEN) :
-		  (SDL_HWPALETTE | SDL_HWSURFACE));
+		screen = SDL_SetVideoMode(xs, (ys + 16), 0,
+					  (SDL_HWPALETTE | SDL_HWSURFACE |
+					   SDL_DOUBLEBUF |
+					   (fullscreen ? SDL_FULLSCREEN : 0)));
   if(!screen)
     {
 		fprintf(stderr, "sdl: Unable to set video mode: %s\n",
