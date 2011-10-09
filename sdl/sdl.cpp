@@ -1068,28 +1068,41 @@ void pd_sound_write()
 	SDL_UnlockAudio();
 }
 
-// This is a small event loop to handle stuff when we're stopped.
-static int stop_events(md &/*megad*/)
-{
-  SDL_Event event;
+static int stopped = 0;
 
-  // We still check key events, but we can wait for them
-  while(SDL_WaitEvent(&event))
-    {
-      switch(event.type)
-        {
-	case SDL_KEYDOWN:
-	  // We can still quit :)
-	  if(event.key.keysym.sym == dgen_quit) return 0;
-	  else return 1;
-	case SDL_QUIT:
-	  return 0;
-	default: break;
+// Tells whether DGen stopped intentionally so emulation can resume without
+// skipping frames.
+int pd_stopped()
+{
+	int ret = stopped;
+
+	stopped = 0;
+	return ret;
+}
+
+// This is a small event loop to handle stuff when we're stopped.
+static int stop_events(md &)
+{
+	SDL_Event event;
+
+	stopped = 1;
+	// We still check key events, but we can wait for them
+	while (SDL_WaitEvent(&event)) {
+		switch (event.type) {
+		case SDL_KEYDOWN:
+			// We can still quit :)
+			if (event.key.keysym.sym == dgen_quit)
+				return 0;
+			if (event.key.keysym.sym == dgen_stop)
+				return 1;
+			break;
+		case SDL_QUIT:
+			return 0;
+		}
 	}
-    }
-  // SDL_WaitEvent only returns zero on error :(
-  fprintf(stderr, "sdl: SDL_WaitEvent broke: %s!", SDL_GetError());
-  return 1;
+	// SDL_WaitEvent only returns zero on error :(
+	fprintf(stderr, "sdl: SDL_WaitEvent broke: %s!", SDL_GetError());
+	return 1;
 }
 
 // The massive event handler!
@@ -1269,7 +1282,7 @@ int pd_handle_events(md &megad)
 	    }
 #endif
 	  else if(ksym == dgen_stop) {
-	    pd_message("STOPPED - Press any key to continue.");
+	    pd_message("STOPPED.");
 	    SDL_PauseAudio(1); // Stop audio :)
 #ifdef WITH_OPENGL
 	    if (opengl)

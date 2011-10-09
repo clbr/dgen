@@ -426,6 +426,14 @@ int main(int argc, char *argv[])
 
 		running = pd_handle_events(megad);
 
+		if (pd_stopped()) {
+			unsigned long tmp = pd_usecs();
+
+			// Fixes the FPS counter.
+			startclk += (tmp - oldclk);
+			oldclk = tmp;
+		}
+
 		if (dgen_frameskip == 0)
 			goto do_not_skip;
 

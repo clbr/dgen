@@ -67,6 +67,10 @@ void pd_help();
 // accordingly. It returns 1 to continue playing the game, or 0 to quit.
 int pd_handle_events(md &megad);
 
+// Tells whether DGen stopped intentionally so emulation can resume without
+// skipping frames.
+int pd_stopped();
+
 // These are called to display and clear game messages.
 void pd_message(const char *msg);
 void pd_clear_message();
