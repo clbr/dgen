@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <limits.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 #define SYSTEM_H_BEGIN_ extern "C" {
@@ -38,6 +39,25 @@ extern FILE *dgen_fopen(const char *subdir, const char *file,
 			unsigned int mode);
 
 extern char *dgen_basename(char *path);
+
+static inline uint16_t h2le16(uint16_t v)
+{
+#ifdef WORDS_BIGENDIAN
+	return ((v >> 8) | (v << 8));
+#else
+	return v;
+#endif
+}
+
+static inline uint32_t h2le32(uint32_t v)
+{
+#ifdef WORDS_BIGENDIAN
+	return (((v & 0xff000000) >> 24) | ((v & 0x00ff0000) >>  8) |
+		((v & 0x0000ff00) <<  8) | ((v & 0x000000ff) << 24));
+#else
+	return v;
+#endif
+}
 
 SYSTEM_H_END_
 

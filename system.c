@@ -22,7 +22,7 @@ static const char *fopen_mode(unsigned int mode)
 	const char *fmode;
 
 	if (mode & DGEN_APPEND)
-		fmode = "a+b";
+		fmode = "ab";
 	else if (mode & DGEN_WRITE)
 		fmode = "w+b";
 	else if (mode & DGEN_READ)

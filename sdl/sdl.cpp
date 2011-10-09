@@ -267,45 +267,126 @@ static void gen_test_ctv_15(uint16_t line[])
 
 #endif // WITH_CTV
 
-// Screenshots, thanks to Allan Noe <psyclone42@geocities.com>
-static void do_screenshot(void) {
-  char fname[20], msg[80];
-  static int n = 0;
-  int x;
-  FILE *fp;
+static void do_screenshot(void)
+{
+	static unsigned int n = 0;
+	FILE *fp;
+	off_t pos;
+	union {
+		uint8_t *u8;
+		uint16_t *u16;
+		uint32_t *u32;
+	} line = {
+		(mdscr.data + ((mdscr.pitch * 8) + 16))
+	};
+	char name[64];
+	char msg[256];
 
-#ifdef WITH_OPENGL
-  if(opengl)
-    {
-      pd_message("Screenshot not supported in OpenGL mode");
-      return;
-    }
-#endif
-
-  for(;;)
-    { 
-      snprintf(fname, sizeof(fname), "shot%04d.bmp", n);
-      if ((fp = dgen_fopen("screenshots", fname, DGEN_READ)) == NULL)
-        break;
-      else
-	fclose(fp);
-      if (++n > 9999)
-        {
-	  pd_message("No more screenshot filenames!");
-	  return;
+	switch (mdscr.bpp) {
+	case 15:
+	case 16:
+	case 24:
+	case 32:
+		break;
+	default:
+		snprintf(msg, sizeof(msg),
+			 "Screenshots unsupported in %d bpp.", mdscr.bpp);
+		pd_message(msg);
+		return;
 	}
-     }
- 
-  /* XXX FIXME -- fname isn't relative to DGen's directory */
-  x = SDL_SaveBMP(screen, fname);
+retry:
+	snprintf(name, sizeof(name), "shot%06u.tga", n);
+	fp = dgen_fopen("screenshots", name, DGEN_APPEND);
+	if (fp == NULL) {
+		snprintf(msg, sizeof(msg), "Can't open %s", name);
+		pd_message(msg);
+		return;
+	}
+	fseek(fp, 0, SEEK_END);
+	if (((pos = ftello(fp)) == (off_t)-1) || (pos != (off_t)0)) {
+		fclose(fp);
+		n = ((n + 1) % 1000000);
+		goto retry;
+	}
+	// Header
+	{
+		uint8_t tmp[(3 + 5)] = {
+			0x00, // length of the image ID field
+			0x00, // whether a color map is included
+			0x02 // image type: uncompressed, true-color image
+			// 5 bytes of color map specification
+		};
 
-  if(x)
-     pd_message("Screenshot failed!");
-  else
-    {
-      snprintf(msg, sizeof(msg), "Screenshot written to %s", fname);
-      pd_message(msg);
-    }
+		fwrite(tmp, sizeof(tmp), 1, fp);
+	}
+	{
+		uint16_t tmp[4] = {
+			0, // x-origin
+			0, // y-origin
+			h2le16(320), // width
+			h2le16(ysize) // height
+		};
+
+		fwrite(tmp, sizeof(tmp), 1, fp);
+	}
+	{
+		uint8_t tmp[2] = {
+			24, // always output 24 bits per pixel
+			(1 << 5) // top-left origin
+		};
+
+		fwrite(tmp, sizeof(tmp), 1, fp);
+	}
+	// Data
+	switch (mdscr.bpp) {
+		unsigned int y;
+		unsigned int x;
+		uint8_t out[320][3]; // 24 bpp
+
+	case 15:
+		for (y = 0; (y < (unsigned int)ysize); ++y) {
+			for (x = 0; (x < 320); ++x) {
+				uint16_t v = line.u16[x];
+
+				out[x][0] = ((v << 3) & 0xf8);
+				out[x][1] = ((v >> 2) & 0xf8);
+				out[x][2] = ((v >> 7) & 0xf8);
+			}
+			fwrite(out, sizeof(out), 1, fp);
+			line.u8 += mdscr.pitch;
+		}
+		break;
+	case 16:
+		for (y = 0; (y < (unsigned int)ysize); ++y) {
+			for (x = 0; (x < 320); ++x) {
+				uint16_t v = line.u16[x];
+
+				out[x][0] = ((v << 3) & 0xf8);
+				out[x][1] = ((v >> 3) & 0xfc);
+				out[x][2] = ((v >> 8) & 0xf8);
+			}
+			fwrite(out, sizeof(out), 1, fp);
+			line.u8 += mdscr.pitch;
+		}
+		break;
+	case 24:
+		for (y = 0; (y < (unsigned int)ysize); ++y) {
+			fwrite(line.u8, sizeof(out), 1, fp);
+			line.u8 += mdscr.pitch;
+		}
+		break;
+	case 32:
+		for (y = 0; (y < (unsigned int)ysize); ++y) {
+			for (x = 0; (x < 320); ++x)
+				memcpy(&(out[x]), &(line.u32[x]), 3);
+			fwrite(out, sizeof(out), 1, fp);
+			line.u8 += mdscr.pitch;
+		}
+		break;
+	}
+	snprintf(msg, sizeof(msg), "Screenshot written to %s", name);
+	pd_message(msg);
+	fclose(fp);
 }
 
 // Document the -f switch
