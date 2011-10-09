@@ -1,4 +1,4 @@
-.Dd October 08, 2011
+.Dd October 09, 2011
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -97,6 +97,8 @@ The width of the OpenGL window to use.
 The height of the OpenGL window to use.
 .It bool_opengl_ratio [true]
 Retain original aspect ratio when resizing OpenGL window.
+.It bool_opengl_linear [true]
+If true, use GL_LINEAR for textures filtering, otherwise, use GL_NEAREST.
 .It bool_fullscreen [false]
 Try to run fullscreen, if possible.
 .It int_scale [1]

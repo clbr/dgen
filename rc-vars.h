@@ -85,5 +85,6 @@ RCVAR(dgen_opengl, 1);
 RCVAR(dgen_opengl_aspect, 1);
 RCVAR(dgen_opengl_width, 640);
 RCVAR(dgen_opengl_height, 480);
+RCVAR(dgen_opengl_linear, 1);
 
 #endif // __RC_VARS_H__

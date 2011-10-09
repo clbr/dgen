@@ -456,12 +456,18 @@ void pd_option(char c, const char *)
 #ifdef WITH_OPENGL
 static void maketex(GLuint *id, void *buffer, int width)
 {
+	GLint param;
+
+	if (dgen_opengl_linear)
+		param = GL_LINEAR;
+	else
+		param = GL_NEAREST;
 	glGenTextures(1, id);
 	glBindTexture(GL_TEXTURE_2D, *id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, 256, 0, GL_RGB,
 		     GL_UNSIGNED_SHORT_5_6_5, buffer);
 }
