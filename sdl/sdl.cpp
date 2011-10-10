@@ -389,14 +389,32 @@ retry:
 		break;
 	case 24:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
+#ifdef WORDS_BIGENDIAN
+			for (x = 0; (x < 320); ++x) {
+				uint8_t *rgb = &(line.u8[(x * 3)]);
+
+				out[x][0] = rgb[2];
+				out[x][1] = rgb[1];
+				out[x][2] = rgb[0];
+			}				
+			fwrite(out, sizeof(out), 1, fp);
+#else
 			fwrite(line.u8, sizeof(out), 1, fp);
+#endif
 			line.u8 += mdscr.pitch;
 		}
 		break;
 	case 32:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < 320); ++x)
+			for (x = 0; (x < 320); ++x) {
+#ifdef WORDS_BIGENDIAN
+				uint32_t rgb = h2le32(line.u32[x]);
+
+				memcpy(&(out[x]), &rgb, 3);
+#else
 				memcpy(&(out[x]), &(line.u32[x]), 3);
+#endif
+			}
 			fwrite(out, sizeof(out), 1, fp);
 			line.u8 += mdscr.pitch;
 		}
