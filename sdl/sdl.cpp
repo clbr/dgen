@@ -52,8 +52,13 @@ static void compute_tex_lower(int h)
 }
 
 // Framebuffer textures
-static uint16_t mybuffer[256][256];
-static uint16_t mybufferb[256][64];
+static union {
+	uint16_t u16[2][256][256];
+	uint32_t u32[2][256][256];
+} texbuf;
+static int texbuf_32bit = dgen_opengl_32bit;
+static int texbuf_swap = dgen_opengl_swap;
+
 // Textures (one 256x256 and on 64x256 => 320x256)
 static GLuint texture[2];
 // Display list
@@ -62,12 +67,14 @@ static GLuint dlist;
 static int opengl = dgen_opengl;
 static int xs = dgen_opengl_width;
 static int ys = dgen_opengl_height;
-// Text width is limited by the opengl texture size, hence 256.
-// One cannot write more than 256/7 (36) characters at once.
-static uint16_t message[5][256];
-static uint16_t m_clear[5][256];
+
+static union {
+	uint16_t u16[2][5][256];
+	uint32_t u32[2][5][256];
+} texmsgbuf;
+
 static void init_textures();
-void update_textures();
+static void update_textures();
 #else
 static int xs = 0;
 static int ys = 0;
@@ -411,6 +418,10 @@ static int do_videoresize(unsigned int width, unsigned int height)
 		unsigned int x;
 		unsigned int y;
 
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		tmp = SDL_SetVideoMode(width, height, 0,
 				       (SDL_HWPALETTE | SDL_HWSURFACE |
@@ -480,6 +491,8 @@ void pd_rc()
 	x_scale = y_scale = dgen_scale;
 #ifdef WITH_OPENGL
 	opengl = dgen_opengl;
+	texbuf_32bit = dgen_opengl_32bit;
+	texbuf_swap = dgen_opengl_swap;
 	if (opengl) {
 		xs = dgen_opengl_width;
 		ys = dgen_opengl_height;
@@ -522,7 +535,7 @@ void pd_option(char c, const char *)
 }
 
 #ifdef WITH_OPENGL
-static void maketex(GLuint *id, void *buffer, int width)
+static void maketex(unsigned int id)
 {
 	GLint param;
 
@@ -530,14 +543,18 @@ static void maketex(GLuint *id, void *buffer, int width)
 		param = GL_LINEAR;
 	else
 		param = GL_NEAREST;
-	glGenTextures(1, id);
-	glBindTexture(GL_TEXTURE_2D, *id);
+	glGenTextures(1, &(texture[id]));
+	glBindTexture(GL_TEXTURE_2D, texture[id]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, 256, 0, GL_RGB,
-		     GL_UNSIGNED_SHORT_5_6_5, buffer);
+	if (texbuf_32bit == 0)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB,
+			     GL_UNSIGNED_SHORT_5_6_5, texbuf.u16[id]);
+	else
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA,
+			     GL_UNSIGNED_INT_8_8_8_8, texbuf.u32[id]);
 }
 
 static void makedlist()
@@ -574,9 +591,9 @@ static void makedlist()
 	glTexCoord2f(0.0, 0.0);
 	glVertex2f(tex_end, 1.0); // upper left
 	glTexCoord2f(1.0, 0.0);
-	glVertex2f(1.0, 1.0); // upper right
+	glVertex2f((1.0 + (tex_end * 2)), 1.0); // upper right
 	glTexCoord2f(1.0, 1.0);
-	glVertex2f(1.0, -tex_lower); // lower right
+	glVertex2f((1.0 + (tex_end * 2)), -tex_lower); // lower right
 	glEnd();
 
   glDisable(GL_TEXTURE_2D);
@@ -597,8 +614,8 @@ static void init_textures()
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glShadeModel(GL_FLAT);
 
-  maketex(&texture[0], mybuffer, 256);
-  maketex(&texture[1], mybufferb, 64);
+	maketex(0);
+	maketex(1);
 
   makedlist();
 }
@@ -646,6 +663,10 @@ int pd_graphics_init(int want_sound, int want_pal)
   // for the message bar.
 #ifdef WITH_OPENGL
 	if (opengl) {
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		screen = SDL_SetVideoMode(xs, ys, 0,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
@@ -743,16 +764,44 @@ void pd_graphics_palette_update()
 }
 
 #ifdef WITH_OPENGL
-void update_textures() 
+static inline void update_textures_16() 
 {
-	glBindTexture(GL_TEXTURE_2D,texture[0]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mybuffer);
+	unsigned int i;
 
-	glBindTexture(GL_TEXTURE_2D,texture[1]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, ysize,
-			GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mybufferb);
+	if (texbuf_swap) {
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+		glPixelStorei(GL_PACK_ROW_LENGTH, 2);
+	}
+	for (i = 0; (i != 2); ++i) {
+		glBindTexture(GL_TEXTURE_2D, texture[i]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
+				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+				texbuf.u16[i]);
+	}
+}
 
+static inline void update_textures_32()
+{
+	unsigned int i;
+
+	if (texbuf_swap) {
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+		glPixelStorei(GL_PACK_ROW_LENGTH, 4);
+	}
+	for (i = 0; (i != 2); ++i) {
+		glBindTexture(GL_TEXTURE_2D, texture[i]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
+				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+				texbuf.u32[i]);
+	}
+}
+
+static void update_textures()
+{
+	if (texbuf_32bit == 0)
+		update_textures_16();
+	else
+		update_textures_32();
 	display();
 }
 #endif
@@ -870,10 +919,25 @@ void pd_graphics_update()
 
 #ifdef WITH_OPENGL
 	if (opengl) {
-		memcpy(mybuffer[i], q, sizeof(mybuffer[i]));
-		memcpy(mybufferb[i],
-		       &(q[sizeof(mybuffer[i])]),
-		       sizeof(mybufferb[i]));
+		if (texbuf_32bit == 0) {
+			memcpy(texbuf.u16[0][i], q, sizeof(texbuf.u16[0][i]));
+			memcpy(texbuf.u16[1][i],
+			       &(q[sizeof(texbuf.u16[0][i])]),
+			       (sizeof(texbuf.u16[0][i][0]) * 64));
+		}
+		else {
+			unsigned int k;
+			uint16_t *line = (uint16_t *)q;
+
+			for (k = 0; (k < 320); ++k) {
+				uint32_t v = line[k];
+
+				v = (((v & 0xf800) << 16) |
+				     ((v & 0x07e0) << 13) |
+				     ((v & 0x001f) << 11));
+				texbuf.u32[(k / 256)][i][(k % 256)] = v;
+			}
+		}
 	}
 	else {
 #endif // WITH_OPENGL
@@ -1456,183 +1520,88 @@ int pd_handle_events(md &megad)
 }
 
 #ifdef WITH_OPENGL
+
+static inline void update_message_16()
+{
+	unsigned int i;
+
+	if (texbuf_swap) {
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+		glPixelStorei(GL_PACK_ROW_LENGTH, 2);
+	}
+	for (i = 0; (i != 2); ++i) {
+		glBindTexture(GL_TEXTURE_2D, texture[i]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
+				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+				texmsgbuf.u16[i]);
+	}
+}
+
+static inline void update_message_32()
+{
+	unsigned int i;
+
+	if (texbuf_swap) {
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+		glPixelStorei(GL_PACK_ROW_LENGTH, 4);
+	}
+	for (i = 0; (i != 2); ++i) {
+		glBindTexture(GL_TEXTURE_2D, texture[i]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
+				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+				texmsgbuf.u32[i]);
+	}
+}
+
+static void update_message()
+{
+	if (texbuf_32bit == 0)
+		update_message_16();
+	else
+		update_message_32();
+	display();
+}
+
 static void ogl_write_text(const char *msg)
 {
-	unsigned int y;
 	unsigned int x = 0;
-	uint8_t *c;
+	union {
+		uint16_t (*u16)[2][5][256];
+		uint32_t (*u32)[2][5][256];
+	} buf;
 
-	while ((*msg != '\0') &&
-	       ((x + 7) < (sizeof(message[0]) / sizeof(message[0][0])))) {
-		switch (*msg) {
-		case 'A':
-		case 'a':
-			c = font_a;
-			break;
-		case 'B':
-		case 'b':
-			c = font_b;
-			break;
-		case 'C':
-		case 'c':
-			c = font_c;
-			break;
-		case 'D':
-		case 'd':
-			c = font_d;
-			break;
-		case 'E':
-		case 'e':
-			c = font_e;
-			break;
-		case 'F':
-		case 'f':
-			c = font_f;
-			break;
-		case 'G':
-		case 'g':
-			c = font_g;
-			break;
-		case 'H':
-		case 'h':
-			c = font_h;
-			break;
-		case 'I':
-		case 'i':
-			c = font_i;
-			break;
-		case 'J':
-		case 'j':
-			c = font_j;
-			break;
-		case 'K':
-		case 'k':
-			c = font_k;
-			break;
-		case 'L':
-		case 'l':
-			c = font_l;
-			break;
-		case 'M':
-		case 'm':
-			c = font_m;
-			break;
-		case 'N':
-		case 'n':
-			c = font_n;
-			break;
-		case 'O':
-		case 'o':
-			c = font_o;
-			break;
-		case 'P':
-		case 'p':
-			c = font_p;
-			break;
-		case 'Q':
-		case 'q':
-			c = font_q;
-			break;
-		case 'R':
-		case 'r':
-			c = font_r;
-			break;
-		case 'S':
-		case 's':
-			c = font_s;
-			break;
-		case 'T':
-		case 't':
-			c = font_t;
-			break;
-		case 'U':
-		case 'u':
-			c = font_u;
-			break;
-		case 'V':
-		case 'v':
-			c = font_v;
-			break;
-		case 'W':
-		case 'w':
-			c = font_w;
-			break;
-		case 'X':
-		case 'x':
-			c = font_x;
-			break;
-		case 'Y':
-		case 'y':
-			c = font_y;
-			break;
-		case 'Z':
-		case 'z':
-			c = font_z;
-			break;
-		case '0':
-			c = font_0;
-			break;
-		case '1':
-			c = font_1;
-			break;
-		case '2':
-			c = font_2;
-			break;
-		case '3':
-			c = font_3;
-			break;
-		case '4':
-			c = font_4;
-			break;
-		case '5':
-			c = font_5;
-			break;
-		case '6':
-			c = font_6;
-			break;
-		case '7':
-			c = font_7;
-			break;
-		case '8':
-			c = font_8;
-			break;
-		case '9':
-			c = font_9;
-			break;
-		case '*':
-			c = font_ast;
-			break;
-		case '!':
-			c = font_ex;
-			break;
-		case '.':
-			c = font_per;
-			break;
-		case '"':
-			c = font_quot;
-			break;
-		case '\'':
-			c = font_apos;
-			break;
-		case '-':
-			c = font_en;
-			break;
-		default:
-			c = font_sp;
-			break;
-		}
+	if (texbuf_32bit == 0)
+		buf.u16 = &texmsgbuf.u16;
+	else
+		buf.u32 = &texmsgbuf.u32;
+	while ((*msg != '\0') && ((x + 5) <= 320)) {
+		unsigned int y;
+		unsigned char (*c)[5][5] =
+			&ogl_font_5x5[((unsigned char)*msg)];
 
 		for (y = 0; (y < 5); ++y) {
 			unsigned int cx;
 
-			for (cx = 0; (cx < 5); ++cx)
-				message[y][(x + cx)] =
-					(c[((y * 5) + cx)] * 0xffff);
+			for (cx = 0; (cx < 5); ++cx) {
+				if ((*c)[y][cx]) {
+					unsigned int off = ((x + cx) % 256);
+					unsigned int idx = ((x + cx) / 256);
+
+					if (texbuf_32bit == 0)
+						(*buf.u16)[idx][y][off] =
+							0xffff;
+					else
+						(*buf.u32)[idx][y][off] =
+							0xffffffff;
+				}
+			}
 		}
 		++msg;
 		x += 7;
 	}
+	update_message();
 }
+
 #endif // WITH_OPENGL
 
 // Write a message to the status bar
@@ -1644,10 +1613,6 @@ void pd_message(const char *msg)
 #ifdef WITH_OPENGL
 	if (opengl) {
 		ogl_write_text(msg);
-		glBindTexture(GL_TEXTURE_2D, texture[0]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
-				(sizeof(message[0]) / sizeof(message[0][0])),
-				5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, message);
 		return;
 	}
 #endif
@@ -1655,7 +1620,7 @@ void pd_message(const char *msg)
 	SDL_UpdateRect(screen, 0, ys, xs, 16);
 }
 
-inline void pd_clear_message()
+void pd_clear_message()
 {
 	size_t i;
 	uint8_t *p = ((uint8_t *)screen->pixels + (screen->pitch * ys));
@@ -1663,11 +1628,8 @@ inline void pd_clear_message()
 	info.displayed = 0;
 #ifdef WITH_OPENGL
 	if (opengl) {
-		memset(message, 0, sizeof(message));
-		glBindTexture(GL_TEXTURE_2D, texture[0]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize,
-				(sizeof(m_clear[0]) / sizeof(m_clear[0][0])),
-				5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, m_clear);
+		memset(&texmsgbuf, 0, sizeof(texmsgbuf));
+		update_message();
 		return;
 	}
 #endif

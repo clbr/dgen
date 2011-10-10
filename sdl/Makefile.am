@@ -24,7 +24,14 @@ BUILT_SOURCES = dgenfont.cpp
 $(BUILT_SOURCES): $(PBM2DF)
 
 noinst_LIBRARIES = libpd.a
-libpd_a_SOURCES = font.cpp sdl.cpp font.h pd-defs.h ogl_fonts.h $(BUILT_SOURCES)
+libpd_a_SOURCES =	\
+	font.cpp	\
+	sdl.cpp		\
+	font.h		\
+	pd-defs.h	\
+	ogl_fonts.c	\
+	ogl_fonts.h	\
+	$(BUILT_SOURCES)
 libpd_a_DEPENDENCIES = $(PBM2DF)
 
 DISTCLEANFILES = $(BUILT_SOURCES) $(PBM2DF)

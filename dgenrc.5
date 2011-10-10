@@ -98,7 +98,13 @@ The height of the OpenGL window to use.
 .It bool_opengl_ratio [true]
 Retain original aspect ratio when resizing OpenGL window.
 .It bool_opengl_linear [true]
-If true, use GL_LINEAR for textures filtering, otherwise, use GL_NEAREST.
+Use GL_LINEAR for textures filtering instead of GL_NEAREST.
+.It bool_opengl_32bit [false]
+Use 32 bit textures. The only reason you may want to try this option is if
+somehow 16 bit textures don't work properly.
+.It bool_opengl_swap [false]
+Swap textures endianness. Sometimes useful when video output is located on a
+different system.
 .It bool_fullscreen [false]
 Try to run fullscreen, if possible.
 .It int_scale [1]
