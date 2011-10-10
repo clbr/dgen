@@ -370,6 +370,7 @@ struct rc_field {
   { "int_nice", number, &dgen_nice },
   { "bool_fullscreen", boolean, &dgen_fullscreen },
   { "int_scale", number, &dgen_scale },
+  { "int_depth", number, &dgen_depth },
   { "bool_opengl", boolean, &dgen_opengl },
   { "bool_opengl_aspect", boolean, &dgen_opengl_aspect },
   { "int_opengl_width", number, &dgen_opengl_width },

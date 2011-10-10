@@ -654,6 +654,20 @@ static void display()
 int pd_graphics_init(int want_sound, int want_pal)
 {
   SDL_Color color;
+	int depth = dgen_depth;
+
+	switch (depth) {
+	case 0:
+	case 8:
+	case 15:
+	case 16:
+	case 24:
+	case 32:
+		break;
+	default:
+		fprintf(stderr, "sdl: invalid color depth (%d)\n", depth);
+		return 0;
+	}
 
   pal_mode = want_pal;
 
@@ -698,7 +712,7 @@ int pd_graphics_init(int want_sound, int want_pal)
 	}
 	else
 #endif
-		screen = SDL_SetVideoMode(xs, (ys + 16), 0,
+		screen = SDL_SetVideoMode(xs, (ys + 16), depth,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_DOUBLEBUF |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));

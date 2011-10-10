@@ -81,6 +81,7 @@ RCVAR(dgen_joystick, 0);
 
 RCVAR(dgen_fullscreen, 0);
 RCVAR(dgen_scale, 1);
+RCVAR(dgen_depth, 0);
 RCVAR(dgen_opengl, 1);
 RCVAR(dgen_opengl_aspect, 1);
 RCVAR(dgen_opengl_width, 640);

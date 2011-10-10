@@ -89,6 +89,9 @@ lag (it is unfortunately often required on slower machines).
 .El
 .Sh VIDEO
 .Bl -tag -width xxxx
+.It int_depth [0]
+Color depth (bits per pixel). Allowed values are 0 (automatic), 8, 15, 16, 24
+and 32. Ignored in OpenGL mode.
 .It bool_opengl [true]
 Use the OpenGL renderer, if it is available.
 .It int_opengl_width [640]
