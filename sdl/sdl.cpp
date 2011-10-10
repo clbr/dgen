@@ -124,6 +124,9 @@ static struct {
 	unsigned long since; // since this number of microseconds
 } info;
 
+// Stopped flag used by pd_stopped()
+static int stopped = 0;
+
 // Elapsed time in microseconds
 unsigned long pd_usecs(void)
 {
@@ -307,6 +310,8 @@ static void do_screenshot(void)
 		pd_message(msg);
 		return;
 	}
+	// Make take a long time, let the main loop know about it.
+	stopped = 1;
 retry:
 	snprintf(name, sizeof(name), "shot%06u.tga", n);
 	fp = dgen_fopen("screenshots", name, DGEN_APPEND);
@@ -1216,8 +1221,6 @@ void pd_sound_write()
 		}
 	SDL_UnlockAudio();
 }
-
-static int stopped = 0;
 
 // Tells whether DGen stopped intentionally so emulation can resume without
 // skipping frames.
