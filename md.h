@@ -89,7 +89,6 @@ private:
   void draw_tile1_solid(int which, int line, unsigned char *where);
   void draw_tile2(int which, int line, unsigned char *where);
   void draw_tile2_solid(int which, int line, unsigned char *where);
-/* FIXME: do 3 bytes/pixel */
   void draw_tile3(int which, int line, unsigned char *where);
   void draw_tile3_solid(int which, int line, unsigned char *where);
   void draw_tile4(int which, int line, unsigned char *where);

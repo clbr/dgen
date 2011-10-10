@@ -659,8 +659,15 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
       // What color depth are we?
       switch(bits->bpp)
         {
-	case 32:
 	case 24:
+#ifdef WORDS_BIGENDIAN
+		for (i = 0; (i < 128); i += 2)
+			*ptr++ = (((cram[(i + 1)] & 0x0e) << 28) |
+				  ((cram[(i + 1)] & 0xe0) << 16) |
+				  ((cram[i] & 0x0e) << 12));
+		break;
+#endif
+	case 32:
 	  for(i = 0; i < 128; i += 2)
 	    *ptr++ = ((cram[i+1]&0x0e) << 20) |
 	    	     ((cram[i+1]&0xe0) << 8 ) |
