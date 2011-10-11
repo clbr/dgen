@@ -33,15 +33,6 @@
 #include <OS.h>
 #endif
 
-// Ideal usec/frame for 60Hz
-#define USEC_FRAME_NTSC 16667 // 1000000/60
-
-// Ideal usec/frame for 50Hz
-#define USEC_FRAME_PAL 20000 // 1000000/50
-
-// Neat little macro to pick which one of the above :)
-#define USEC_FRAME (pal_mode? USEC_FRAME_PAL : USEC_FRAME_NTSC)
-
 // Defined in ras.cpp, and set to true if the Genesis palette's changed.
 extern int pal_dirty;
 
@@ -101,6 +92,7 @@ static void help()
   "                    interrupt. dgen definitely needs root priviledges for\n"
   "                    this.\n"
   "    -P              Use PAL mode (50Hz) instead of normal NTSC (60Hz).\n"
+  "    -H HZ           Use a custom frame rate.\n"
   "    -d DEMONAME     Record a demo of the game you are playing.\n"
   "    -D DEMONAME     Play back a previously recorded demo.\n"
   "    -s SLOT         Load the saved state from the given slot at startup.\n"
@@ -208,6 +200,7 @@ int main(int argc, char *argv[])
   FILE *file = NULL;
   enum demo_status demo_status = DEMO_OFF;
   unsigned int samples;
+  unsigned int hz = 60;
 
 	// Parse the RC file
 	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
@@ -229,7 +222,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "rc: %s: %s\n", DGEN_RC, strerror(errno));
 
   // Check all our options
-  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:RPjd:D:", pd_options);
+  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:RPH:jd:D:", pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
     {
       switch(c)
@@ -275,9 +268,19 @@ int main(int argc, char *argv[])
 	  break;
 #endif
 	case 'P':
-	  // PAL mode
-	  pal_mode = 1;
-	  break;
+		// PAL mode
+		hz = 50;
+		pal_mode = 1;
+		break;
+	case 'H':
+		// Custom frame rate
+		hz = atoi(optarg);
+		if ((hz <= 0) || (hz > 1000)) {
+			fprintf(stderr, "main: invalid frame rate (%d).\n",
+				hz);
+			hz = (pal_mode ? 50 : 60);
+		}
+		break;
 #ifdef WITH_JOYSTICK
 	case 'j':
 	  // Phil's joystick code
@@ -337,7 +340,7 @@ int main(int argc, char *argv[])
     help();
 
   // Initialize the platform-dependent stuff.
-  if(!pd_graphics_init(dgen_sound, pal_mode))
+  if (!pd_graphics_init(dgen_sound, pal_mode, hz))
     {
       fprintf(stderr, "main: Couldn't initialize graphics!\n");
       return 1;
@@ -347,7 +350,7 @@ int main(int argc, char *argv[])
       dgen_16bit = dgen_16bit? PD_SND_16 : PD_SND_8;
       if (dgen_soundsegs < 0)
 	      dgen_soundsegs = 0;
-      samples = (dgen_soundsegs * (dgen_soundrate / ((pal_mode) ? 50 : 60)));
+      samples = (dgen_soundsegs * (dgen_soundrate / hz));
       dgen_sound = pd_sound_init(dgen_16bit, dgen_soundrate, samples);
     }
   // If sound fared OK, start up the sound chips
@@ -421,7 +424,7 @@ int main(int argc, char *argv[])
 
 	// Go around, and around, and around, and around... ;)
 	while (running) {
-		const unsigned int usec_frame = USEC_FRAME;
+		const unsigned int usec_frame = (1000000 / hz);
 		int frames_todo;
 
 		running = pd_handle_events(megad);
@@ -486,7 +489,7 @@ int main(int argc, char *argv[])
 	startclk = ((pd_usecs() - startclk) / 1000000);
 	if (startclk != 0)
 		printf("%lu frames per second (optimal %d)\n",
-		       (f / startclk), (pal_mode ? 50 : 60));
+		       (f / startclk), hz);
   
   // Cleanup
   if(file) fclose(file);

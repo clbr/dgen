@@ -100,6 +100,7 @@ const char *pd_options = "fX:Y:S:"
 static SDL_Surface *screen = NULL;
 static SDL_Color colors[64];
 static int ysize = 0, bytes_pixel = 0, pal_mode = 0;
+static unsigned int video_hz = 60;
 static int fullscreen = dgen_fullscreen;
 static int x_scale = dgen_scale;
 static int y_scale = dgen_scale;
@@ -651,7 +652,7 @@ static void display()
 #endif // WITH_OPENGL
 
 // Initialize SDL, and the graphics
-int pd_graphics_init(int want_sound, int want_pal)
+int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
   SDL_Color color;
 	int depth = dgen_depth;
@@ -668,6 +669,12 @@ int pd_graphics_init(int want_sound, int want_pal)
 		fprintf(stderr, "sdl: invalid color depth (%d)\n", depth);
 		return 0;
 	}
+
+	if ((hz <= 0) || (hz > 1000)) {
+		fprintf(stderr, "sdl: invalid frame rate (%d)\n", hz);
+		return 0;
+	}
+	video_hz = hz;
 
   pal_mode = want_pal;
 
@@ -722,9 +729,10 @@ int pd_graphics_init(int want_sound, int want_pal)
 			SDL_GetError());
 		return 0;
     }
-  fprintf(stderr, "video: %dx%d, %d bpp (%d Bpp)\n",
+  fprintf(stderr, "video: %dx%d, %d bpp (%d Bpp), %uHz\n",
 	  screen->w, screen->h,
-	  screen->format->BitsPerPixel, screen->format->BytesPerPixel);
+	  screen->format->BitsPerPixel, screen->format->BytesPerPixel,
+	  video_hz);
 #ifndef __MINGW32__
   // We don't need setuid priveledges anymore
   if(getuid() != geteuid())
@@ -1139,7 +1147,7 @@ int pd_sound_init(long &format, long &freq, unsigned int &samples)
 
 	// Set things as they really are
 	sound.rate = freq = spec.freq;
-	sndi.len = (spec.freq / ((pal_mode) ? 50 : 60));
+	sndi.len = (spec.freq / video_hz);
 	sound.samples = spec.samples;
 	samples += sound.samples;
 
