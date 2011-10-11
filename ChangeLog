@@ -3,6 +3,43 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.26 <- v1.25
+ * Upgraded Musashi from 2.0 to 3.3.1. This version solves various emulation
+   problems.
+ * Reworked autoconf and automake scripts to improve readability and
+   portability.
+ * Added support for MinGW. DGen can now run in Windows.
+ * Fixed messy border again, this time for all video color depths.
+ * OpenGL: added bool_opengl_aspect to keep the original aspect ratio during
+   resizing. This option is enabled by default.
+ * Added support for 24 bpp (3 Bpp) mode.
+ * Made Crap TV filters available for all architectures, color depths and
+   OpenGL.
+ * OpenGL: fixed GL_LINEAR support so it can be used again instead of
+   GL_NEAREST, one can switch between them with bool_opengl_linear
+   (enabled by default).
+ * Refactored the main loop and SDL code for a smooth frame rate with an
+   improved sound synchronization.
+ * Made a wrapper to open and create files relative to user's home directory
+   in a system-independant manner.
+ * Fixed Z80 speed in NTSC mode, sound effects were abnormally high pitched.
+ * Improved FPS counter.
+ * Removed SIGALRM for improved portability.
+ * OpenGL: now enabled by default when available.
+ * MZ80: fixed segfault on reset.
+ * OpenGL: use 16 bpp mode internally instead of 32, allow textures to be 16
+   (default) or 32 bit with bool_opengl_32bit.
+ * OpenGL: added bool_opengl_swap to byte-swap colors when the host computer
+   endianness is not the same as the ouptut (possible with X11 sessions).
+ * Screenshots are now generated from the internal video buffer as TARGA files
+   so they are available in all modes (OpenGL or not) and depths (except 8 bpp,
+   as usual). Their output directory is ~/.dgen/screenshots.
+ * OpenGL: the message bar now spans both textures.
+ * Improved stopped mode to be less easily unstopped and to avoid dropping
+   frames. Also, it now accepts resizes and refreshes.
+ * Added the -H option to tweak emulation speed. Can be used to run 50Hz games
+   at 60Hz.
+
 v1.25 <- v1.24
  * Added 64 bits targets support, DGen can now run on those.
  * Minor fix for joystick/joypad when sizeof(int) != sizeof(long).
