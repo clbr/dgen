@@ -71,7 +71,9 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Clear odos
   s68000tripOdometer();
+#ifdef WITH_MZ80
   mz80GetElapsedTicks(1);
+#endif
 
   // Raster zero causes special things to happen :)
   coo4 = 0x37; // Init status register
@@ -110,7 +112,9 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
   // Blank everything, and trigger vint
   coo5 |= 0x8C;
   if(vdp.reg[1] & 0x20) s68000interrupt(6, -1);
+#ifdef WITH_MZ80
   if(z80_online) mz80int(0);
+#endif
 
   // Run the course of vblank
   for(; ras < LINES_PER_FRAME; ++ras)
