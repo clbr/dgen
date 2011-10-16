@@ -509,13 +509,12 @@ md::md()
   cpu.s_writebyte = cpu.u_writebyte = writebyte;
   cpu.s_writeword = cpu.u_writeword = writeword;
   cpu_emu=0; // zero=starscream, one=musashi, two=68kem
-#else
+#endif
 #ifdef WITH_MUSA
-  cpu_emu=1; // zero=starscream, one=musash, two=68kemi
+  cpu_emu=1; // zero=starscream, one=musashi, two=68kemi
 #endif
 #ifdef WITH_M68KEM
-  cpu_emu=2; // zero=starscream, one=musash, two=68kemi
-#endif
+  cpu_emu=2; // zero=starscream, one=musashi, two=68kemi
 #endif
 
 #ifdef WITH_MUSA
