@@ -1402,13 +1402,6 @@ int pd_handle_events(md &megad)
 	  else if(ksym == pad2_start) megad.pad[1] &= ~0x2000;
 
 	  else if(ksym == dgen_quit) return 0;
-// Split screen is unnecessary with new renderer.
-//	  else if(ksym == dgen_splitscreen_toggle)
-//	    {
-//	      split_screen = !split_screen;
-//	      pd_message(split_screen? "Split screen enabled." : 
-//				       "Split screen disabled.");
-//	    }
 #ifdef WITH_CTV
 	  else if(ksym == dgen_craptv_toggle)
 	    {

@@ -42,7 +42,6 @@ RCVAR(pad2_start, PDK_KP_ENTER);
 
 RCVAR(dgen_fix_checksum, PDK_F1);
 RCVAR(dgen_quit, PDK_ESCAPE);
-RCVAR(dgen_splitscreen_toggle, PDK_F4);
 RCVAR(dgen_craptv_toggle, PDK_F5);
 RCVAR(dgen_screenshot, PDK_F12);
 RCVAR(dgen_reset, PDK_TAB);
@@ -63,7 +62,6 @@ RCVAR(dgen_slot_9, PDK_9);
 RCVAR(dgen_save, PDK_F2);
 RCVAR(dgen_load, PDK_F3);
 
-RCVAR(dgen_splitscreen_startup, 0);
 RCVAR(dgen_autoload, 0);
 RCVAR(dgen_autosave, 0);
 RCVAR(dgen_frameskip, 1);

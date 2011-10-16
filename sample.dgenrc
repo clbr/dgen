@@ -56,8 +56,7 @@ key_fix_checksum = f1
 
 # Quit dgen
 key_quit = escape
-# Toggle split screen and crap-tv
-key_splitscreen_toggle = f4
+# Toggle crap-tv
 key_craptv_toggle = f5
 # Screenshot
 key_screenshot = f12
@@ -88,8 +87,6 @@ key_slot_9 = 9
 key_save = f2
 key_load = f3
 
-# This sets whether split-screen and crap-tv should be enabled on startup.
-bool_splitscreen_startup = no
 # There are now multiple CTV effects to try. Pick your favorite:
 #  off       - No CTV
 #  blur      - Blur bitmap (this is the CTV from older versions)
@@ -117,16 +114,26 @@ int_soundrate = 22050
 # Leave this true for 16-bit sound, but if you're unfortunate enough to have
 # an old 8-bit card make it false.
 bool_16bit = yes
-# Number of sound segments for buffering.  Lower values yield faster
-# speed, and less latency in controls and sound, but at the cost of CPU
-# Values can be 4, 8, 16, or 32 (frames)
+# Number of sound segments to use for sound buffering. Lower values guarantee
+# low latency. Increment this only if the sound becomes choppy.
 int_soundsegs = 8
+# Size of the system sound buffer, in samples (samples are the sound unit,
+# sound rate is how many of them are played every second).  Specifying 0
+# automatically choses the safest value. If you experience sound issues
+# int_soundsegs is unable to solve, try to change this. Increasing it will
+# cause noticeable audio lag (it is unfortunately often required on slower
+# machines).
+int_soundsamples = 0
 
 # This is how many microseconds DGen should sleep every frame. Even little
 # amounts can decrease CPU overhead significantly, and the default of 20
 # doesn't hurt performance terribly. Of course, set it to 0 if you don't
 # mind DGen eating all your CPU (like me ;)
 int_nice = 0
+
+# Color depth (bits per pixel). Allowed values are 0 (automatic), 8, 15, 16,
+# 24 and 32. Ignored in OpenGL mode.
+int_depth = 0
 
 # Run fullscreen?
 bool_fullscreen = no
@@ -139,10 +146,24 @@ int_scale = 1
 bool_joystick = no
 
 # Use OpenGL mode?
-bool_opengl = no
+bool_opengl = yes
 # Set these to the resolution you want to run OpenGL mode in.
 int_opengl_width = 640
 int_opengl_height = 480
+
+# Retain original aspect ratio when resizing OpenGL window.
+bool_opengl_ratio = true
+
+# Use GL_LINEAR for textures filtering instead of GL_NEAREST.
+bool_opengl_linear = true
+
+# Use 32 bit textures. The only reason you may want to try this option is if
+# somehow 16 bit textures don't work properly.
+bool_opengl_32bit = false
+
+# Swap textures endianness. Sometimes useful when video output is located on a
+# different system.
+bool_opengl_swap = false
 
 # These are the joypad mappings for both controllers.  Defaults are
 # tailored for Gravis GamePad Pros. (10 button)  Configure the variables:
