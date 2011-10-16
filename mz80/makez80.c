@@ -8408,6 +8408,10 @@ void IntCode(void)
 
 		fprintf(fp, "	return(0);\n");
 		fprintf(fp, "}\n\n");
+		fprintf(fp, "void %sClearPendingInterrupt(void)\n", cpubasename);
+		fprintf(fp, "{\n");
+		fprintf(fp, "	cpu.z80intPending = 0;\n");
+		fprintf(fp, "}\n\n");
 	}
 	else
 	{
