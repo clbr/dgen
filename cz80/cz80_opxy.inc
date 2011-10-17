@@ -126,7 +126,7 @@ switch (Opcode)
         goto OP_LOAD_mNN_A;
 
     {
-        u32 adr;
+        uintptr_t adr;
 
     OPXY(0x46): // LD   B,(IX+o)
     OPXY(0x56): // LD   D,(IX+o)
@@ -396,7 +396,7 @@ switch (Opcode)
 
     OPXY(0xa6): // AND  (IX+o)
     {
-        u32 val;
+        uintptr_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -428,7 +428,7 @@ switch (Opcode)
 
     OPXY(0xae): // XOR  (IX+o)
     {
-        u32 val;
+        uintptr_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -460,7 +460,7 @@ switch (Opcode)
 
     OPXY(0xb6): // OR   (IX+o)
     {
-        u32 val;
+        uintptr_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -690,13 +690,13 @@ switch (Opcode)
 
     OPXY(0xcb): // XYCB PREFIXE
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         adr = data->W + FETCH_BYTE_S;
         Opcode = FETCH_BYTE;
-        #include "cz80_opXYCB.inc"
+        #include "cz80_opxycb.inc"
     }
 
     OPXY(0xed): // ED PREFIXE

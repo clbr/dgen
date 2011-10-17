@@ -97,7 +97,7 @@ OP_LD_R_imm:
     OP(0x66):   // LD   H,(HL)
     OP(0x6e):   // LD   L,(HL)
     OP(0x7e):   // LD   A,(HL)
-OP_LD_R_mHL:
+/* OP_LD_R_mHL: */
         PRE_IO
         READ_BYTE(zHL, zR8((Opcode >> 3) & 7))
         POST_IO
@@ -110,21 +110,21 @@ OP_LD_R_mHL:
     OP(0x74):   // LD   (HL),H
     OP(0x75):   // LD   (HL),L
     OP(0x77):   // LD   (HL),A
-OP_LD_mHL_R:
+/* OP_LD_mHL_R: */
         PRE_IO
         WRITE_BYTE(zHL, zR8(Opcode & 7))
         POST_IO
         RET(7)
 
     OP(0x36):   // LD (HL), #imm
-OP_LD_mHL_imm:
+/* OP_LD_mHL_imm: */
         PRE_IO
         WRITE_BYTE(zHL, FETCH_BYTE)
         POST_IO
         RET(10)
 
     {
-        u32 adr;
+        uintptr_t adr;
     
     OP(0x0a):   // LD   A,(BC)
 OP_LOAD_A_mBC:
@@ -193,7 +193,7 @@ OP_LD_SP_xx:
         RET(6)
 
     {
-        u32 adr;
+        uintptr_t adr;
 
     OP(0x2a):   // LD   HL,(nn)
 OP_LD_xx_mNN:
@@ -217,7 +217,7 @@ OP_LD_mNN_xx:
     OP(0xf1):   // POP  AF
 OP_POP_AF:
     {
-        u32 res;
+        uintptr_t res;
 
         PRE_IO
         POP_16(res)
@@ -261,7 +261,7 @@ OP_PUSH:
     // EXCHANGE & BLOCK TRANSFERT / SEARCH
 
     {
-        u32 tmp;
+        uintptr_t tmp;
 
     OP(0x08):   // EX   AF,AF'
 OP_EX_AF_AF2:
@@ -293,8 +293,8 @@ OP_EXX:
 
     OP(0xe3):   // EX   HL,(SP)
     {
-        u32 adr;
-        u32 tmp;
+        uintptr_t adr;
+        uintptr_t tmp;
         
 OP_EX_xx_mSP:
         PRE_IO
@@ -321,8 +321,8 @@ OP_INC_R:
         RET(4)
 
     {
-        u32 adr;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t res;
         
 OP_INC_mIx:
         adr = data->W + FETCH_BYTE_S;
@@ -355,8 +355,8 @@ OP_DEC_R:
         RET(4)
 
     {
-        u32 adr;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t res;
 
 OP_DEC_mIx:
         adr = data->W + FETCH_BYTE_S;
@@ -377,8 +377,8 @@ OP_DEC_m:
     }
 
     {
-        u32 val;
-        u32 res;
+        uintptr_t val;
+        uintptr_t res;
 
     // ADD
 
@@ -396,7 +396,7 @@ OP_ADD_imm:
         goto OP_ADD;
 
     OP(0x86):   // ADD  A,(HL)
-OP_ADD_mHL:
+/* OP_ADD_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -447,7 +447,7 @@ OP_ADC_imm:
         goto OP_ADC;
 
     OP(0x8e):   // ADC  A,(HL)
-OP_ADC_mHL:
+/* OP_ADC_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -498,7 +498,7 @@ OP_SUB_imm:
         goto OP_SUB;
 
     OP(0x96):   // SUB  (HL)
-OP_SUB_mHL:
+/* OP_SUB_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -549,7 +549,7 @@ OP_SBC_imm:
         goto OP_SBC;
 
     OP(0x9e):   // SBC  A,(HL)
-OP_SBC_mHL:
+/* OP_SBC_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -600,7 +600,7 @@ OP_CP_imm:
         goto OP_CP;
 
     OP(0xbe):   // CP   (HL)
-OP_CP_mHL:
+/* OP_CP_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -646,10 +646,10 @@ OP_CP:
     // AND
 
     {
-        u32 val;
+        uintptr_t val;
 
     OP(0xa6):   // AND  (HL)
-OP_AND_mHL:
+/* OP_AND_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -692,7 +692,7 @@ OP_AND_A:
     // XOR
 
     OP(0xae):   // XOR  (HL)
-OP_XOR_mHL:
+/* OP_XOR_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -738,7 +738,7 @@ OP_XOR_A:
     // OR
 
     OP(0xb6):   // OR   (HL)
-OP_OR_mHL:
+/* OP_OR_mHL: */
         PRE_IO
         READ_BYTE(zHL, val)
         POST_IO
@@ -785,8 +785,8 @@ OP_OR_A:
     OP(0x27):   // DAA
 OP_DAA:
     {
-        u8 _F;
-        u8 cf, nf, hf, lo, hi, diff;
+        uint8_t _F;
+        uint8_t cf, nf, hf, lo, hi, diff;
         
         _F = zF;
         cf = _F & CZ80_CF;
@@ -927,8 +927,8 @@ OP_DEC_SP:
     // ADD16
 
     {
-        u32 src;
-        u32 res;
+        uintptr_t src;
+        uintptr_t res;
 
     OP(0x39):   // ADD  xx,SP
 OP_ADD16_xx_SP:
@@ -968,8 +968,8 @@ OP_ADD16:
     // ROTATE
 
     {
-        u8 A;
-        u8 F;
+        uint8_t A;
+        uint8_t F;
         
     OP(0x07):   // RLCA
 OP_RLCA:
@@ -1060,7 +1060,7 @@ OP_JP_NZ:
         RET(10);
 
     {
-        u32 newPC;
+        uintptr_t newPC;
 
     OP(0xc3):   // JP   nn
 OP_JP:
@@ -1110,7 +1110,7 @@ OP_DJNZ:
     OP(0x18):   // JR   n
 OP_JR:
     {
-        u32 adr;
+        uintptr_t adr;
 
         adr = FETCH_BYTE_S;
         // no rebase needed here...
@@ -1171,8 +1171,8 @@ OP_CALL_NZ:
     OP(0xcd):   // CALL nn
 OP_CALL:
     {
-        u32 oldRPC;
-        u32 newPC;
+        uintptr_t oldRPC;
+        uintptr_t newPC;
 
         PRE_IO
         FETCH_WORD(newPC);
@@ -1229,7 +1229,7 @@ OP_RET_COND:
     OP(0xc9):   // RET
 OP_RET:
     {
-        u32 newPC;
+        uintptr_t newPC;
 
         PRE_IO
         POP_16(newPC);
@@ -1249,8 +1249,8 @@ OP_RET:
     OP(0xff):   // RST  7
 OP_RST:
     {
-        u32 src;
-        u32 newPC;
+        uintptr_t src;
+        uintptr_t newPC;
 
         src = zRealPC;
         PUSH_16(src);
@@ -1262,7 +1262,7 @@ OP_RST:
     // INPUT & OUTPUT
 
     {
-        u32 adr;
+        uintptr_t adr;
         
     OP(0xd3):   // OUT  (n),A
 OP_OUT_mN_A:
@@ -1280,15 +1280,15 @@ OP_IN_A_mN:
     // PREFIXE
     
     OP(0xcb):   // CB PREFIXE (BIT & SHIFT INSTRUCTIONS)
-CB_PREFIXE:
+/* CB_PREFIXE: */
         Opcode = FETCH_BYTE;
-        #include "cz80_opCB.inc"
+        #include "cz80_opcb.inc"
 
     OP(0xed):   // ED PREFIXE
 ED_PREFIXE:
         CCnt -= 4;
         Opcode = FETCH_BYTE;
-        #include "cz80_opED.inc"
+        #include "cz80_oped.inc"
 
     OP(0xdd):   // DD PREFIXE (IX)
 DD_PREFIXE:
@@ -1302,7 +1302,7 @@ FD_PREFIXE:
 XY_PREFIXE:
         CCnt -= 4;
         Opcode = FETCH_BYTE;
-        #include "cz80_opXY.inc"
+        #include "cz80_opxy.inc"
 
 #if CZ80_USE_JUMPTABLE
 #else

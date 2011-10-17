@@ -22,24 +22,24 @@
 #endif
 
 #define GET_BYTE                \
-    (*(u8*)PC)
+    (*(uint8_t*)PC)
 
 #define GET_BYTE_S              \
-    (*(s8*)PC)
+    (*(int8_t*)PC)
 
 #if CZ80_LITTLE_ENDIAN
 #define GET_WORD                \
-    ((*(u8*)(PC + 0)) | ((*(u8*)(PC + 1)) << 8))
+    ((*(uint8_t*)(PC + 0)) | ((*(uint8_t*)(PC + 1)) << 8))
 #else
 #define GET_WORD                \
-    ((*(u8*)(PC + 1)) | ((*(u8*)(PC + 0)) << 8))
+    ((*(uint8_t*)(PC + 1)) | ((*(uint8_t*)(PC + 0)) << 8))
 #endif
 
 #define FETCH_BYTE              \
-    (*(u8*)PC++)
+    (*(uint8_t*)PC++)
 
 #define FETCH_BYTE_S            \
-    (*(s8*)PC++)
+    (*(int8_t*)PC++)
 
 #define FETCH_WORD(A)           \
     A = GET_WORD;               \
@@ -56,7 +56,7 @@
 #endif
 
 #define SET_PC(A)               \
-    CPU->BasePC = (u32) CPU->Fetch[(A) >> CZ80_FETCH_SFT];  \
+    CPU->BasePC = (uintptr_t) CPU->Fetch[(A) >> CZ80_FETCH_SFT];  \
     PC = (A) + CPU->BasePC;
 
 #define PRE_IO                  \
@@ -80,7 +80,7 @@
 #endif
 
 #define READSX_BYTE(A, D)               \
-    D = (s32)(s8)CPU->Read_Byte(A);
+    D = (intptr_t)(int8_t)CPU->Read_Byte(A);
 
 #define WRITE_BYTE(A, D)                \
     CPU->Write_Byte(A, D);
@@ -100,7 +100,7 @@
 
 #define PUSH_16(A)              \
     {                           \
-        u32 sp;                 \
+        uintptr_t sp;                 \
                                 \
         zSP -= 2;               \
         sp = zSP;               \
@@ -109,7 +109,7 @@
 
 #define POP_16(A)           \
     {                       \
-        u32 sp;             \
+        uintptr_t sp;             \
                             \
         sp = zSP;           \
         READ_WORD(sp, A)    \
@@ -125,7 +125,7 @@
 #define CHECK_INT                                           \
     if (CPU->Status & (zIFF1 | CZ80_HAS_NMI))               \
     {                                                       \
-        u32 newPC;                                          \
+        uintptr_t newPC;                                          \
                                                             \
         if (CPU->Status & CZ80_HAS_NMI)                     \
         {                                                   \
@@ -143,7 +143,7 @@
             if (zIM == 1) newPC = 0x38;                     \
             else                                            \
             {                                               \
-                u32 adr;                                    \
+                uintptr_t adr;                                    \
                                                                     \
                 Opcode = CPU->Interrupt_Ack(CPU->IntVect) & 0xFF;   \
                 if (zIM == 0) goto Cz80_Exec;                       \
@@ -155,7 +155,7 @@
         }                                                   \
                                                             \
         {                                                   \
-            u32 src = zRealPC;                              \
+            uintptr_t src = zRealPC;                              \
                                                             \
             PUSH_16(src)                                    \
             SET_PC(newPC)                                   \

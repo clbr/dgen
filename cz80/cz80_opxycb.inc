@@ -163,7 +163,7 @@ switch (Opcode)
 #if CZ80_EXACT
         PRE_IO
         READ_BYTE(adr, src)
-        res = (u8)(((s8)(src)) >> 1);
+        res = (uint8_t)(((int8_t)(src)) >> 1);
         zR8(Opcode & 7) = res;
         zF = SZXYP[res] | (src & CZ80_CF);
         WRITE_BYTE(adr, res)
@@ -174,7 +174,7 @@ switch (Opcode)
     OPXYCB(0x2e):   // SRA  (Ix+d)
         PRE_IO
         READ_BYTE(adr, src)
-        res = (u8)(((s8)(src)) >> 1);
+        res = (uint8_t)(((int8_t)(src)) >> 1);
         zF = SZXYP[res] | (src & CZ80_CF);
         WRITE_BYTE(adr, res)
         POST_IO
@@ -310,7 +310,7 @@ switch (Opcode)
     OPXYCB(0x76):   // BIT  6,(Ix+d)
     OPXYCB(0x7e):   // BIT  7,(Ix+d)
     {
-        u32 bitm;
+        uintptr_t bitm;
         
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);
@@ -404,7 +404,7 @@ switch (Opcode)
     OPXYCB(0xb6):   // RES  6,(Ix+d)
     OPXYCB(0xbe):   // RES  7,(Ix+d)
     {
-        u32 bitm;
+        uintptr_t bitm;
 
         PRE_IO
         bitm = ~(1 << ((Opcode >> 3) & 7));
@@ -498,7 +498,7 @@ switch (Opcode)
     OPXYCB(0xf6):   // SET  6,(Ix+d)
     OPXYCB(0xfe):   // SET  7,(Ix+d)
     {
-        u32 bitm;
+        uintptr_t bitm;
 
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);

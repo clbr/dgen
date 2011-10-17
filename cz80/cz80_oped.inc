@@ -239,7 +239,7 @@ switch (Opcode)
 
     OPED(0x57): // LD   A,I
     {
-        u8 F;
+        uint8_t F;
 
         zA = zI;
         F = zF & CZ80_CF;
@@ -252,7 +252,7 @@ switch (Opcode)
 
     OPED(0x5f): // LD   A,R
     {
-        u8 F;
+        uint8_t F;
 
         zA = zR2 + ((zR + ((CPU->CycleToDo - CCnt) / 4)) & 0x7F);
         F = zF & CZ80_CF;
@@ -272,8 +272,8 @@ switch (Opcode)
     OPED(0x74): // NEG
     OPED(0x7c): // NEG
     {
-        u32 val;
-        u32 res;
+        uintptr_t val;
+        uintptr_t res;
 
         val = zA;
         res = 0 - val;
@@ -288,8 +288,8 @@ switch (Opcode)
 
     OPED(0x67): // RRD  (HL)
     {
-        u32 adr;
-        u8 src;
+        uintptr_t adr;
+        uint8_t src;
 
         PRE_IO
         adr = zHL;
@@ -303,8 +303,8 @@ switch (Opcode)
 
     OPED(0x6f): // RLD  (HL)
     {
-        u32 adr;
-        u8 src;
+        uintptr_t adr;
+        uint8_t src;
 
         PRE_IO
         adr = zHL;
@@ -318,8 +318,8 @@ switch (Opcode)
 
 
     {
-        u32 src;
-        u32 res;
+        uintptr_t src;
+        uintptr_t res;
 
     OPED(0x7a): // ADC  HL,SP
         src = zSP;
@@ -371,7 +371,7 @@ OP_SBC_HL:
 
 
     {
-        u32 res;
+        uintptr_t res;
 
     OPED(0x40): // IN   B,(C)
     OPED(0x48): // IN   C,(C)
@@ -395,7 +395,7 @@ OP_SBC_HL:
 
 
     {
-        u32 src;
+        uintptr_t src;
 
     OPED(0x71): // OUT  (C),0
         src = 0;
@@ -416,7 +416,7 @@ OP_OUT_mBC:
     }
 
     {
-        u32 newPC;
+        uintptr_t newPC;
 
     OPED(0x4d): // RETI
     OPED(0x5d): // RETI
@@ -457,8 +457,8 @@ OP_OUT_mBC:
 
 
     {
-        u8 val;
-        u8 F;
+        uint8_t val;
+        uint8_t F;
 
     OPED(0xa8): // LDD
         PRE_IO
@@ -486,8 +486,8 @@ OP_LDX:
     }
 
     {
-        u8 val;
-        u8 F;
+        uint8_t val;
+        uint8_t F;
 
     OPED(0xb8): // LDDR
         do
@@ -538,9 +538,9 @@ OP_LDXR:
 
 
     {
-        u8 val;
-        u8 res;
-        u8 F;
+        uint8_t val;
+        uint8_t res;
+        uint8_t F;
 
     OPED(0xa9): // CPD
         PRE_IO
@@ -569,9 +569,9 @@ OP_CPX:
     }
 
     {
-        u32 val;
-        u32 res;
-        u8 F;
+        uintptr_t val;
+        uintptr_t res;
+        uint8_t F;
 
     OPED(0xb9): // CPDR
         do
@@ -624,9 +624,9 @@ OP_CPXR:
 
 
     {
-        u8 val;
+        uint8_t val;
 #if CZ80_EXACT
-        u8 F;
+        uint8_t F;
 #endif
 
     OPED(0xaa): // IND
@@ -668,9 +668,9 @@ OP_INX:
     }
 
     {
-        u8 val;
+        uint8_t val;
 #if CZ80_EXACT
-        u8 F;
+        uint8_t F;
 #endif
 
     OPED(0xba): // INDR
@@ -735,9 +735,9 @@ OP_INXR:
 
 
     {
-        u8 val;
+        uint8_t val;
 #if CZ80_EXACT
-        u8 F;
+        uint8_t F;
 #endif
 
     OPED(0xab): // OUTD
@@ -766,9 +766,9 @@ OP_OUTX:
 
 
     {
-        u8 val;
+        uint8_t val;
 #if CZ80_EXACT
-        u8 F;
+        uint8_t F;
 #endif
 
     OPED(0xbb): // OUTDR

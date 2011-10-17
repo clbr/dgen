@@ -6,7 +6,7 @@
 /*                                                                              */
 /********************************************************************************/
 
-s32 FASTCALL Cz80_Exec(cz80_struc *cpu, s32 cycles)
+intptr_t FASTCALL Cz80_Exec(cz80_struc *cpu, intptr_t cycles)
 {
 #if CZ80_USE_JUMPTABLE
     #include "cz80jmp.inc"
@@ -14,20 +14,20 @@ s32 FASTCALL Cz80_Exec(cz80_struc *cpu, s32 cycles)
 
 #if 0
     register cz80_struc *CPU asm ("edi");
-    register u32 PC asm ("ebx");
-    register s32 CCnt asm ("esi");
-//    register u32 Opcode asm ("eax");
-    register u32 Opcode;
+    register uintptr_t PC asm ("ebx");
+    register intptr_t CCnt asm ("esi");
+//    register uintptr_t Opcode asm ("eax");
+    register uintptr_t Opcode;
 #elif 0
     register cz80_struc *CPU;
-    register u32 PC;
-    register s32 CCnt;
-    register u32 Opcode;
+    register uintptr_t PC;
+    register intptr_t CCnt;
+    register uintptr_t Opcode;
 #else
     cz80_struc *CPU;
-    u32 PC;
-    s32 CCnt;
-    u32 Opcode;
+    uintptr_t PC;
+    intptr_t CCnt;
+    uintptr_t Opcode;
 #endif
 
     CPU = cpu;

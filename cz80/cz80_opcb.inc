@@ -21,7 +21,7 @@ switch (Opcode)
     OPCB(0x05): // RLC  L
     OPCB(0x07): // RLC  A
     {
-        u8 src = zR8(Opcode);
+        uint8_t src = zR8(Opcode);
         
         zR8(Opcode) = (src << 1) | (src >> 7);
         zF = SZXYP[zR8(Opcode)] | (src >> 7);
@@ -30,9 +30,9 @@ switch (Opcode)
 
     OPCB(0x06): // RLC  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -53,7 +53,7 @@ switch (Opcode)
     OPCB(0x0d): // RRC  L
     OPCB(0x0f): // RRC  A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = (src >> 1) | (src << 7);
         zF = SZXYP[zR8(Opcode & 7)] | (src & CZ80_CF);
@@ -62,9 +62,9 @@ switch (Opcode)
 
     OPCB(0x0e): // RRC  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -85,7 +85,7 @@ switch (Opcode)
     OPCB(0x15): // RL   L
     OPCB(0x17): // RL   A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = (src << 1) | (zF & CZ80_CF);
         zF = SZXYP[zR8(Opcode & 7)] | (src >> 7);
@@ -94,9 +94,9 @@ switch (Opcode)
 
     OPCB(0x16): // RL   (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -117,7 +117,7 @@ switch (Opcode)
     OPCB(0x1d): // RR   L
     OPCB(0x1f): // RR   A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = (src >> 1) | (zF << 7);
         zF = SZXYP[zR8(Opcode & 7)] | (src & CZ80_CF);
@@ -126,9 +126,9 @@ switch (Opcode)
 
     OPCB(0x1e): // RR   (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -149,7 +149,7 @@ switch (Opcode)
     OPCB(0x25): // SLA  L
     OPCB(0x27): // SLA  A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = src << 1;
         zF = SZXYP[zR8(Opcode & 7)] | (src >> 7);
@@ -158,9 +158,9 @@ switch (Opcode)
 
     OPCB(0x26): // SLA  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -181,7 +181,7 @@ switch (Opcode)
     OPCB(0x2d): // SRA  L
     OPCB(0x2f): // SRA  A
     {
-        s8 src = zR8(Opcode & 7);
+        int8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = src >> 1;
         zF = SZXYP[zR8(Opcode & 7)] | (src & CZ80_CF);
@@ -190,14 +190,14 @@ switch (Opcode)
 
     OPCB(0x2e): // SRA  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
         READ_BYTE(adr, src)
-        res = (u8)(((s8)(src)) >> 1);
+        res = (uint8_t)(((int8_t)(src)) >> 1);
         zF = SZXYP[res] | (src & CZ80_CF);
         WRITE_BYTE(adr, res)
         POST_IO
@@ -213,7 +213,7 @@ switch (Opcode)
     OPCB(0x35): // SLL  L
     OPCB(0x37): // SLL  A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = (src << 1) | 1;
         zF = SZXYP[zR8(Opcode & 7)] | (src >> 7);
@@ -222,9 +222,9 @@ switch (Opcode)
 
     OPCB(0x36): // SLL  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -245,7 +245,7 @@ switch (Opcode)
     OPCB(0x3d): // SRL  L
     OPCB(0x3f): // SRL  A
     {
-        u8 src = zR8(Opcode & 7);
+        uint8_t src = zR8(Opcode & 7);
 
         zR8(Opcode & 7) = src >> 1;
         zF = SZXYP[zR8(Opcode & 7)] | (src & CZ80_CF);
@@ -254,9 +254,9 @@ switch (Opcode)
 
     OPCB(0x3e): // SRL  (HL)
     {
-        u32 adr;
-        u32 src;
-        u32 res;
+        uintptr_t adr;
+        uintptr_t src;
+        uintptr_t res;
 
         PRE_IO
         adr = zHL;
@@ -347,8 +347,8 @@ switch (Opcode)
     OPCB(0x76): // BIT  6,(HL)
     OPCB(0x7e): // BIT  7,(HL)
     {
-        u32 src;
-        u32 bitm;
+        uintptr_t src;
+        uintptr_t bitm;
 
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);
@@ -436,9 +436,9 @@ switch (Opcode)
     OPCB(0xb6): // RES  6,(HL)
     OPCB(0xbe): // RES  7,(HL)
     {
-        u32 adr;
-        u32 res;
-        u32 bitm;
+        uintptr_t adr;
+        uintptr_t res;
+        uintptr_t bitm;
 
         PRE_IO
         adr = zHL;
@@ -528,9 +528,9 @@ switch (Opcode)
     OPCB(0xf6): // SET  6,(HL)
     OPCB(0xfe): // SET  7,(HL)
     {
-        u32 adr;
-        u32 res;
-        u32 bitm;
+        uintptr_t adr;
+        uintptr_t res;
+        uintptr_t bitm;
 
         PRE_IO
         adr = zHL;
