@@ -417,6 +417,16 @@ AC_ARG_WITH(
 	[WITH_MZ80=yes]
 )
 
+AC_ARG_WITH(
+	[cz80],
+	[AS_HELP_STRING(
+		[--with-cz80],
+		[include CZ80 CPU core [default=yes]]
+	)],
+	[WITH_CZ80=$withval],
+	[WITH_CZ80=yes]
+)
+
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_JOYSTICK" != x], [AC_DEFINE([WITH_JOYSTICK])])
@@ -425,6 +435,7 @@ AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
 AS_IF([test "x$WITH_STAR" = xyes], [AC_DEFINE([WITH_STAR])])
 AS_IF([test "x$WITH_MZ80" = xyes], [AC_DEFINE([WITH_MZ80])])
+AS_IF([test "x$WITH_CZ80" = xyes], [AC_DEFINE([WITH_CZ80])])
 AS_IF([test "x$USE_ASM" = xyes], [AC_DEFINE([WITH_ASM])])
 AS_IF(
 	[test "x$USE_X86_ASM" = xyes],
@@ -440,6 +451,7 @@ AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 AM_CONDITIONAL([WITH_MUSA], [test "x$WITH_MUSA" = xyes])
 AM_CONDITIONAL([WITH_STAR], [test "x$WITH_STAR" = xyes])
 AM_CONDITIONAL([WITH_MZ80], [test "x$WITH_MZ80" = xyes])
+AM_CONDITIONAL([WITH_CZ80], [test "x$WITH_CZ80" = xyes])
 AM_CONDITIONAL([WITH_X86_ASM], [test "x$USE_X86_ASM" = xyes])
 AM_CONDITIONAL([WITH_X86_MZ80], [test "x$USE_X86_MZ80" = xyes])
 AM_CONDITIONAL([WITH_X86_MMX], [test "x$USE_X86_MMX" = xyes])
@@ -473,6 +485,7 @@ CPU cores
   Musashi M68K: $WITH_MUSA
   StarScream: $WITH_STAR
   MZ80: $WITH_MZ80
+  CZ80: $WITH_CZ80
 
 ASM support ($USE_ASM)
   x86 ASM

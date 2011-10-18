@@ -69,6 +69,12 @@ dgen_SOURCES =		\
 	md-phil.cpp	\
 	system.c
 
+# CZ80
+if WITH_CZ80
+AM_CPPFLAGS += -I$(top_srcdir)/cz80
+dgen_SOURCES += cz80/cz80.c
+endif
+
 if WITH_X86_TILES
 dgen_SOURCES += x86_tiles.asm
 endif
