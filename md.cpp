@@ -220,6 +220,36 @@ void root_z80_port_write(UINT16 a, UINT8 d, struct z80PortWrite *unused)
 
 #endif // WITH_MZ80
 
+#ifdef WITH_CZ80
+
+static uintptr_t cz80_memread(uintptr_t a)
+{
+	if (which)
+		return which->z80_read(a);
+	return 0;
+}
+
+static void cz80_memwrite(uintptr_t a, uintptr_t d)
+{
+	if (which)
+		which->z80_write(a, d);
+}
+
+static uintptr_t cz80_ioread(uintptr_t a)
+{
+	if (which)
+		return which->z80_port_read(a);
+	return 0;
+}
+
+static void cz80_iowrite(uintptr_t a, uintptr_t d)
+{
+	if (which)
+		which->z80_port_write(a, d);
+}
+
+#endif // WITH_CZ80
+
 extern FILE *debug_log;
 
 extern "C"
@@ -367,6 +397,9 @@ int md::reset()
 #ifdef WITH_MZ80
   mz80reset();
 #endif
+#ifdef WITH_CZ80
+  Cz80_Reset(&cz80);
+#endif
 
   // zero = natural state of select line?
 
@@ -437,6 +470,16 @@ int md::z80_init()
 
   mz80SetContext(&z80);
   mz80reset();
+  z80_core = MZ80_CORE;
+#endif
+#ifdef WITH_CZ80
+  Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (uintptr_t)z80ram);
+  Cz80_Set_ReadB(&cz80, cz80_memread);
+  Cz80_Set_WriteB(&cz80, cz80_memwrite);
+  Cz80_Set_INPort(&cz80, cz80_ioread);
+  Cz80_Set_OUTPort(&cz80, cz80_iowrite);
+  Cz80_Reset(&cz80);
+  z80_core = CZ80_CORE;
 #endif
   star_mz80_off();
   return 0;
@@ -464,6 +507,10 @@ md::md()
 #ifdef WITH_MZ80
   memset(&z80,0,sizeof(z80));
 #endif
+#ifdef WITH_CZ80
+  Cz80_Init(&cz80);
+#endif
+
   country_ver=0xff0; layer_sel = 0xff;
 
   memset(romname, 0, sizeof(romname));

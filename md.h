@@ -37,6 +37,10 @@ extern "C"
 #endif
 #endif
 
+#ifdef WITH_CZ80
+#include "cz80/cz80.h"
+#endif
+
 //#define BUILD_YM2612
 extern "C" {
 #include "fm.h"
@@ -149,6 +153,16 @@ public:
 private:
 #ifdef WITH_MZ80
   struct mz80context z80;
+#endif
+#ifdef WITH_CZ80
+  cz80_struc cz80;
+  int cz80_cycles;
+#endif
+#if defined(WITH_MZ80) || defined(WITH_CZ80)
+  enum {
+	  MZ80_CORE = 0x1,
+	  CZ80_CORE = 0x2
+  } z80_core;
 #endif
 #ifdef WITH_STAR
   struct S68000CONTEXT cpu;

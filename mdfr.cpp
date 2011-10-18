@@ -37,14 +37,17 @@ void md::run_to_odo_m68kem(int odo_to)
 
 void md::run_to_odo_z80(int odo_to)
 {
-  if(z80_online)
-    {
-      odo_to >>= 1;
+	if (!z80_online)
+		return;
+	odo_to >>= 1;
 #ifdef WITH_MZ80
-      int odo_start = mz80GetElapsedTicks(0);
-      mz80exec(odo_to - odo_start);
+	if (z80_core == MZ80_CORE)
+		mz80exec(odo_to - mz80GetElapsedTicks(0));
 #endif
-    }
+#ifdef WITH_CZ80
+	if (z80_core == CZ80_CORE)
+		cz80_cycles += Cz80_Exec(&cz80, (odo_to - cz80_cycles));
+#endif
 }
 
 #define LINES_PER_FRAME_NTSC 0x106 // Number of scanlines in NTSC (w/ vblank)
@@ -71,8 +74,14 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Clear odos
   s68000tripOdometer();
+
 #ifdef WITH_MZ80
-  mz80GetElapsedTicks(1);
+	if (z80_core == MZ80_CORE)
+		mz80GetElapsedTicks(1);
+#endif
+#ifdef WITH_CZ80
+	if (z80_core == CZ80_CORE)
+		cz80_cycles = 0;
 #endif
 
   // Raster zero causes special things to happen :)
@@ -112,8 +121,18 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
   // Blank everything, and trigger vint
   coo5 |= 0x8C;
   if(vdp.reg[1] & 0x20) s68000interrupt(6, -1);
+
+#if defined(WITH_MZ80) || defined(WITH_CZ80)
+	if (z80_online) {
 #ifdef WITH_MZ80
-  if(z80_online) mz80int(0);
+		if (z80_core == MZ80_CORE)
+			mz80int(0);
+#endif
+#ifdef WITH_CZ80
+		if (z80_core == CZ80_CORE)
+			Cz80_Set_IRQ(&cz80, 0);
+#endif
+	}
 #endif
 
   // Run the course of vblank
@@ -149,8 +168,14 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Clear odos
   odo = 0;
+
 #ifdef WITH_MZ80
-  mz80GetElapsedTicks(1);
+	if (z80_core == MZ80_CORE)
+		mz80GetElapsedTicks(1);
+#endif
+#ifdef WITH_CZ80
+	if (z80_core == CZ80_CORE)
+		cz80_cycles = 0;
 #endif
 
   // Raster zero causes special things to happen :)
@@ -189,8 +214,18 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
   coo5 |= 0x8C;
   if (vdp.reg[1] & 0x20)
 	  m68k_set_irq(6);
+
+#if defined(WITH_MZ80) || defined(WITH_CZ80)
+	if (z80_online) {
 #ifdef WITH_MZ80
-  if(z80_online) mz80int(0);
+		if (z80_core == MZ80_CORE)
+			mz80int(0);
+#endif
+#ifdef WITH_CZ80
+		if (z80_core == CZ80_CORE)
+			Cz80_Set_IRQ(&cz80, 0);
+#endif
+	}
 #endif
 
   // Run the course of vblank
