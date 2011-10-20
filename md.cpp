@@ -9,6 +9,7 @@
 #endif
 #include "md.h"
 #include "system.h"
+#include "rc-vars.h"
 
 // This is the 'static' StarScream/MZ80 multitasker
 // which detects which megadrive is active (by which star_mz80_on() has been called
@@ -385,13 +386,13 @@ int md::reset()
 {
   star_mz80_on();
 #ifdef WITH_STAR
-  if (cpu_emu==0) s68000reset();
+  if (cpu_emu == CPU_EMU_STAR) s68000reset();
 #endif
 #ifdef WITH_MUSA
-  if (cpu_emu==1) m68k_pulse_reset();
+  if (cpu_emu == CPU_EMU_MUSA) m68k_pulse_reset();
 #endif
 #ifdef WITH_M68KEM
-  if (cpu_emu==2) m68000_reset(NULL);
+  if (cpu_emu == CPU_EMU_M68KEM) m68000_reset(NULL);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 #ifdef WITH_MZ80
@@ -470,7 +471,6 @@ int md::z80_init()
 
   mz80SetContext(&z80);
   mz80reset();
-  z80_core = MZ80_CORE;
 #endif
 #ifdef WITH_CZ80
   Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (void *)z80ram);
@@ -479,7 +479,6 @@ int md::z80_init()
   Cz80_Set_INPort(&cz80, cz80_ioread);
   Cz80_Set_OUTPort(&cz80, cz80_iowrite);
   Cz80_Reset(&cz80);
-  z80_core = CZ80_CORE;
 #endif
   star_mz80_off();
   return 0;
@@ -538,7 +537,6 @@ md::md()
 
   star_mz80_off(); // VERY IMPORTANT - Must call after using stars/mz80!!
 
-  cpu_emu=-1; // Do we have a cpu emu?
 #ifdef WITH_STAR
 // Dave: Rich said doing point star stuff is done after s68000init
 // in Asgard68000, so just in case...
@@ -555,13 +553,24 @@ md::md()
   cpu.s_readword  = cpu.u_readword  =  readword;
   cpu.s_writebyte = cpu.u_writebyte = writebyte;
   cpu.s_writeword = cpu.u_writeword = writeword;
-  cpu_emu=0; // zero=starscream, one=musashi, two=68kem
 #endif
-#ifdef WITH_MUSA
-  cpu_emu=1; // zero=starscream, one=musashi, two=68kemi
-#endif
-#ifdef WITH_M68KEM
-  cpu_emu=2; // zero=starscream, one=musashi, two=68kemi
+
+	// Make sure the default emulators are available by cycling them.
+
+	// 0 = none, 1 = StarScream, 2 = Musashi
+	cpu_emu = (enum cpu_emu)
+		((dgen_emu_m68k + (CPU_EMU_TOTAL - 1)) % CPU_EMU_TOTAL);
+	cycle_cpu();
+
+	// 0 = none, 1 = CZ80, 2 = MZ80
+	z80_core = (enum z80_core)
+		((dgen_emu_z80 + (Z80_CORE_TOTAL - 1)) % Z80_CORE_TOTAL);
+	cycle_z80();
+
+#ifdef WITH_STAR
+   star_mz80_on();
+   s68000reset();
+   star_mz80_off();
 #endif
 
 #ifdef WITH_MUSA
@@ -725,35 +734,84 @@ int md::load(char *name)
   return 0;
 }
 
-int md::change_cpu_emu(int to)
+void md::cycle_z80()
 {
+	while (1) {
+		z80_core = (enum z80_core)((z80_core + 1) % Z80_CORE_TOTAL);
+		switch (z80_core) {
+		case Z80_CORE_CZ80:
+#ifdef WITH_CZ80
+			Cz80_Reset(&cz80);
+			return;
+#else
+			continue;
+#endif
+		case Z80_CORE_MZ80:
+#ifdef WITH_MZ80
+			mz80reset();
+			return;
+#else
+			continue;
+#endif
+		default:
+			return;
+		}
+	}
+}
+
+void md::cycle_cpu()
+{
+	enum cpu_emu old = cpu_emu;
+
 	// Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
+	while (1) {
+		cpu_emu = (enum cpu_emu)((cpu_emu + 1) % CPU_EMU_TOTAL);
+		switch (cpu_emu) {
+			unsigned int i, j;
+
+		case CPU_EMU_MUSA:
+#ifdef WITH_MUSA
+#ifdef WITH_STAR
+			// From StarScream to Musashi
+			for (i = M68K_REG_D0, j = 0;
+			     (i <= M68K_REG_D7); ++i, ++j)
+				m68k_set_reg((m68k_register_t)i, cpu.dreg[j]);
+			for (i = M68K_REG_A0, j = 0;
+			     (i <= M68K_REG_A7); ++i, ++j)
+				m68k_set_reg((m68k_register_t)i, cpu.areg[j]);
+			m68k_set_reg(M68K_REG_PC, cpu.pc);
+			m68k_set_reg(M68K_REG_SR, cpu.sr);
+#endif // WITH_STAR
+			return;
+#else // WITH_MUSA
+			continue;
+#endif // WITH_MUSA
+		case CPU_EMU_STAR:
 #ifdef WITH_STAR
 #ifdef WITH_MUSA
-	if ((cpu_emu == 0) && (to == 1)) {
-		unsigned int i, j;
-
-		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
-			m68k_set_reg((m68k_register_t)i, cpu.dreg[j]);
-		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
-			m68k_set_reg((m68k_register_t)i, cpu.areg[j]);
-		m68k_set_reg(M68K_REG_PC, cpu.pc);
-		m68k_set_reg(M68K_REG_SR, cpu.sr);
+			// From Musashi to StarScream
+			for (i = M68K_REG_D0, j = 0;
+			     (i <= M68K_REG_D7); ++i, ++j)
+				cpu.dreg[j] =
+					m68k_get_reg(NULL, (m68k_register_t)i);
+			for (i = M68K_REG_A0, j = 0;
+			     (i <= M68K_REG_A7); ++i, ++j)
+				cpu.areg[j] =
+					m68k_get_reg(NULL, (m68k_register_t)i);
+			cpu.pc = m68k_get_reg(NULL, M68K_REG_PC);
+			cpu.sr = m68k_get_reg(NULL, M68K_REG_SR);
+#endif // WITH_MUSA
+			return;
+#else // WITH_STAR
+			continue;
+#endif // WITH_STAR
+		default:
+			(void)old;
+			(void)i;
+			(void)j;
+			return;
+		}
 	}
-	if ((cpu_emu == 1) && (to == 0)) {
-		unsigned int i, j;
-
-		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
-			cpu.dreg[j] = m68k_get_reg(NULL, (m68k_register_t)i);
-		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
-			cpu.areg[j] = m68k_get_reg(NULL, (m68k_register_t)i);
-		cpu.pc = m68k_get_reg(NULL, M68K_REG_PC);
-		cpu.sr = m68k_get_reg(NULL, M68K_REG_SR);
-	}
-#endif
-#endif
-	cpu_emu = to;
-	return 0;
 }
 
 int md::z80dump()

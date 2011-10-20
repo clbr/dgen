@@ -1,4 +1,4 @@
-.Dd October 16, 2011
+.Dd October 21, 2011
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -143,6 +143,10 @@ Restart the Genesis emulation.
 Switch CPU emulators. The x86 assembly CPU emulator StarScream is fast, but
 has glitches which affect a few games. Switching to the slower Musashi core
 will fix these problems, at a speed penalty.
+.It key_z80_toggle [f10]
+Switch Z80 emulators. MZ80 is a bit faster than CZ80, particularly in its
+assembly version (only available for x86), but CZ80 works with more
+games. This key can also disable Z80 emulation.
 .It key_stop [z]
 Pause emulation, so you can concentrate on real life for a few seconds. :)
 .It key_screenshot [f12]
@@ -150,6 +154,14 @@ Take a screenshot. Not available in 8 bpp mode.
 .El
 .Sh PREFERENCES
 .Bl -tag -width xxxx
+.It emu_m68k_startup [musa]
+Useful when both Musashi and StarScream are compiled-in. This option selects
+the default emulator to use ("musa" for Musashi, "star" for StarScream, "none"
+for neither). See key_cpu_toggle.
+.It emu_z80_startup [cz80]
+Useful when both CZ80 and MZ80 are compiled-in. This option selects the
+default emulator to use ("cz80", "mz80" or "none", if you want to disable it
+altogether). See key_z80_toggle.
 .It bool_autoload [false]
 Automatically load the saved state from slot 0 when DGen starts.
 .It bool_autosave [false]

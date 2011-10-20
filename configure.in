@@ -404,7 +404,7 @@ AC_ARG_WITH(
 )
 AS_IF(
 	[test "x$WITH_MUSA" != xyes -a "x$WITH_STAR" != xyes],
-	[AC_MSG_FAILURE([neither Musashi nor StarScream are enabled])]
+	[AC_MSG_WARN([neither Musashi nor StarScream are enabled])]
 )
 
 AC_ARG_WITH(

@@ -158,12 +158,6 @@ private:
   cz80_struc cz80;
   int cz80_cycles;
 #endif
-#if defined(WITH_MZ80) || defined(WITH_CZ80)
-  enum {
-	  MZ80_CORE = 0x1,
-	  CZ80_CORE = 0x2
-  } z80_core;
-#endif
 #ifdef WITH_STAR
   struct S68000CONTEXT cpu;
   STARSCREAM_PROGRAMREGION *fetch;
@@ -279,8 +273,22 @@ public:
   unsigned short z80_port_read(unsigned short a);
   void z80_port_write(unsigned short a,unsigned char v);
 
-  int cpu_emu;// OK to read it but call change_cpu_emu to change it
-  int change_cpu_emu(int to);
+  enum z80_core {
+    Z80_CORE_NONE,
+    Z80_CORE_MZ80,
+    Z80_CORE_CZ80,
+    Z80_CORE_TOTAL
+  } z80_core;
+  void cycle_z80();
+
+  enum cpu_emu {
+    CPU_EMU_NONE,
+    CPU_EMU_STAR,
+    CPU_EMU_MUSA,
+    CPU_EMU_TOTAL
+  } cpu_emu; // OK to read it but call cycle_cpu() to change it
+  void cycle_cpu();
+
 #ifdef WITH_MZ80
   mz80context&   z80_context() {return z80;}
 #endif

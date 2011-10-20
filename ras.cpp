@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "md.h"
 
 // This is marked each time the palette is updated. Handy for the 8bpp

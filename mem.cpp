@@ -255,11 +255,11 @@ void md::misc_writebyte(unsigned a,unsigned d)
   if (a==0xa11200)
   {
 #ifdef WITH_MZ80
-	if ((d == 0) && (z80_core == MZ80_CORE))
+	if ((d == 0) && (z80_core == Z80_CORE_MZ80))
 		mz80reset();
 #endif
 #ifdef WITH_CZ80
-	if ((d == 0) && (z80_core == CZ80_CORE))
+	if ((d == 0) && (z80_core == Z80_CORE_CZ80))
 		Cz80_Reset(&cz80);
 #endif
     return;

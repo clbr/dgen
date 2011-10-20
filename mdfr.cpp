@@ -41,11 +41,11 @@ void md::run_to_odo_z80(int odo_to)
 		return;
 	odo_to >>= 1;
 #ifdef WITH_MZ80
-	if (z80_core == MZ80_CORE)
+	if (z80_core == Z80_CORE_MZ80)
 		mz80exec(odo_to - mz80GetElapsedTicks(0));
 #endif
 #ifdef WITH_CZ80
-	if (z80_core == CZ80_CORE)
+	if (z80_core == Z80_CORE_CZ80)
 		cz80_cycles += Cz80_Exec(&cz80, (odo_to - cz80_cycles));
 #endif
 }
@@ -76,11 +76,11 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
   s68000tripOdometer();
 
 #ifdef WITH_MZ80
-	if (z80_core == MZ80_CORE)
+	if (z80_core == Z80_CORE_MZ80)
 		mz80GetElapsedTicks(1);
 #endif
 #ifdef WITH_CZ80
-	if (z80_core == CZ80_CORE)
+	if (z80_core == Z80_CORE_CZ80)
 		cz80_cycles = 0;
 #endif
 
@@ -125,11 +125,11 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 #if defined(WITH_MZ80) || defined(WITH_CZ80)
 	if (z80_online) {
 #ifdef WITH_MZ80
-		if (z80_core == MZ80_CORE)
+		if (z80_core == Z80_CORE_MZ80)
 			mz80int(0);
 #endif
 #ifdef WITH_CZ80
-		if (z80_core == CZ80_CORE)
+		if (z80_core == Z80_CORE_CZ80)
 			Cz80_Set_IRQ(&cz80, 0);
 #endif
 	}
@@ -170,11 +170,11 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
   odo = 0;
 
 #ifdef WITH_MZ80
-	if (z80_core == MZ80_CORE)
+	if (z80_core == Z80_CORE_MZ80)
 		mz80GetElapsedTicks(1);
 #endif
 #ifdef WITH_CZ80
-	if (z80_core == CZ80_CORE)
+	if (z80_core == Z80_CORE_CZ80)
 		cz80_cycles = 0;
 #endif
 
@@ -218,11 +218,11 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
 #if defined(WITH_MZ80) || defined(WITH_CZ80)
 	if (z80_online) {
 #ifdef WITH_MZ80
-		if (z80_core == MZ80_CORE)
+		if (z80_core == Z80_CORE_MZ80)
 			mz80int(0);
 #endif
 #ifdef WITH_CZ80
-		if (z80_core == CZ80_CORE)
+		if (z80_core == Z80_CORE_CZ80)
 			Cz80_Set_IRQ(&cz80, 0);
 #endif
 	}
@@ -265,17 +265,22 @@ int md::one_frame(
   switch(cpu_emu)
     {
 #ifdef WITH_STAR
-      case 0: return one_frame_star(bm, retpal, sndi);
+      case CPU_EMU_STAR: return one_frame_star(bm, retpal, sndi);
 #endif
 #ifdef WITH_MUSA
-      case 1: return one_frame_musa(bm, retpal, sndi);
+      case CPU_EMU_MUSA: return one_frame_musa(bm, retpal, sndi);
 #endif
 #ifdef WITH_M68KEM
-      case 2: return one_frame_m68kem(bm, retpal, sndi);
+      case CPU_EMU_M68KEM: return one_frame_m68kem(bm, retpal, sndi);
 #endif
       // Something's screwy here...
       default: return 1;
     }
+#if !defined(WITH_STAR) || !defined(WITH_MUSA) || !defined(WITH_M68KEM)
+	(void)bm;
+	(void)retpal;
+	(void)sndi;
+#endif
 }
 
 int md::calculate_hcoord()
@@ -283,10 +288,10 @@ int md::calculate_hcoord()
   int x=0,hcoord;
   // c00009 is the H counter (I believe it's (h-coord>>1)&0xff)
 #ifdef WITH_STAR
-  if (cpu_emu==0) x = s68000readOdometer() - (ras * scanlength);
+  if (cpu_emu == CPU_EMU_STAR) x = s68000readOdometer() - (ras * scanlength);
 #endif
 #if defined(WITH_MUSA) || defined(WITH_M68KEM)
-  if (cpu_emu==1) x = odo - (ras * scanlength);
+  if (cpu_emu == CPU_EMU_MUSA) x = odo - (ras * scanlength);
 #endif
 
   // hcoord=-56 (inclusive) to 364 (inclusive) in 40 column mode

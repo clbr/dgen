@@ -1443,21 +1443,46 @@ int pd_handle_events(md &megad)
 	    { slot = 9; pd_message("Selected save slot 9."); }
 	  else if(ksym == dgen_save) md_save(megad);
 	  else if(ksym == dgen_load) md_load(megad);
+
+		// Cycle Z80 core.
+		else if (ksym == dgen_z80_toggle) {
+			const char *msg;
+
+			megad.cycle_z80();
+			switch (megad.z80_core) {
+			case md::Z80_CORE_CZ80:
+				msg = "CZ80 core activated.";
+				break;
+			case md::Z80_CORE_MZ80:
+				msg = "MZ80 core activated.";
+				break;
+			default:
+				msg = "Z80 core disabled.";
+				break;
+			}
+			pd_message(msg);
+		}
+
 // Added this CPU core hot swap.  Compile both Musashi and StarScream
 // in, and swap on the fly like DirectX DGen. [PKH]
-#if defined (WITH_MUSA) && (WITH_STAR)
-	  else if(ksym == dgen_cpu_toggle)
-	    {
-	      if(megad.cpu_emu) {
-	        megad.change_cpu_emu(0);
-  	        pd_message("StarScream CPU core activated.");
-              }
-	      else {
-	        megad.change_cpu_emu(1);
-	        pd_message("Musashi CPU core activated."); 
-              }
-	    }
-#endif
+		else if (ksym == dgen_cpu_toggle) {
+			const char *msg;
+
+			megad.cycle_cpu();
+			switch (megad.cpu_emu) {
+			case md::CPU_EMU_STAR:
+				msg = "StarScream CPU core activated.";
+				break;
+			case md::CPU_EMU_MUSA:
+				msg = "Musashi CPU core activated.";
+				break;
+			default:
+				msg = "CPU core disabled.";
+				break;
+			}
+			pd_message(msg);
+		}
+
 	  else if(ksym == dgen_stop) {
 	    pd_message("STOPPED.");
 	    SDL_PauseAudio(1); // Stop audio :)

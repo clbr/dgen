@@ -45,6 +45,7 @@ RCVAR(dgen_quit, PDK_ESCAPE);
 RCVAR(dgen_craptv_toggle, PDK_F5);
 RCVAR(dgen_screenshot, PDK_F12);
 RCVAR(dgen_reset, PDK_TAB);
+RCVAR(dgen_z80_toggle, PDK_F10);
 RCVAR(dgen_cpu_toggle, PDK_F11);
 RCVAR(dgen_stop, PDK_z);
 RCVAR(dgen_fullscreen_toggle, KEYSYM_MOD_ALT | PDK_RETURN);
@@ -87,5 +88,23 @@ RCVAR(dgen_opengl_height, 480);
 RCVAR(dgen_opengl_linear, 1);
 RCVAR(dgen_opengl_32bit, 0);
 RCVAR(dgen_opengl_swap, 0);
+
+// Keep values in sync with rc.cpp and enums in md.h
+
+#if defined(WITH_CZ80)
+RCVAR(dgen_emu_z80, 2);
+#elif defined(WITH_MZ80)
+RCVAR(dgen_emu_z80, 1);
+#else
+RCVAR(dgen_emu_z80, 0);
+#endif
+
+#if defined(WITH_MUSA)
+RCVAR(dgen_emu_m68k, 2);
+#elif defined(WITH_STAR)
+RCVAR(dgen_emu_m68k, 1);
+#else
+RCVAR(dgen_emu_m68k, 0);
+#endif
 
 #endif // __RC_VARS_H__

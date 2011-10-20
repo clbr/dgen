@@ -35,7 +35,7 @@ extern int byteswap_memory(unsigned char *start,int len);
 int md::import_gst(FILE *hand)
 {
 #ifdef WITH_STAR
-  if (cpu_emu==0)
+  if (cpu_emu == CPU_EMU_STAR)
   {
     fseek(hand,0x80,SEEK_SET);
     fget(cpu.dreg,8*4);
@@ -48,7 +48,7 @@ int md::import_gst(FILE *hand)
 #endif
 
 #ifdef WITH_MUSA
-	if (cpu_emu == 1) {
+	if (cpu_emu == CPU_EMU_MUSA) {
 		unsigned int i, t;
 
 		fseek(hand, 0x80, SEEK_SET);
@@ -115,7 +115,7 @@ int md::export_gst(FILE *hand)
   fput(gst_head,0x80);
 
 #ifdef WITH_STAR
-  if (cpu_emu==0)
+  if (cpu_emu == CPU_EMU_STAR)
   {
     fseek(hand,0x80,SEEK_SET);
     fput(cpu.dreg,8*4);
@@ -127,7 +127,7 @@ int md::export_gst(FILE *hand)
   }
 #endif
 #ifdef WITH_MUSA
-	if (cpu_emu == 1) {
+	if (cpu_emu == CPU_EMU_MUSA) {
 		unsigned int i, t;
 
 		fseek(hand, 0x80, SEEK_SET);

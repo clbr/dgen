@@ -23,6 +23,10 @@
 // CTV names
 const char *ctv_names[NUM_CTV] = { "off", "blur", "scanline", "interlace" };
 
+// CPU names, keep index in sync with rc-vars.h and enums in md.h
+static const char *emu_z80_names[] = { "none", "mz80", "cz80", NULL };
+static const char *emu_m68k_names[] = { "none", "star", "musa", NULL };
+
 // The table of strings and the keysyms they map to.
 // The order is a bit weird, since this was originally a mapping for the SVGALib
 // scancodes, and I just added the SDL stuff on top of it.
@@ -299,6 +303,27 @@ static long ctv(const char *value)
   return -1;
 }
 
+/* Parse CPU types */
+static long emu_z80(const char *value)
+{
+	unsigned int i;
+
+	for (i = 0; (emu_z80_names[i] != NULL); ++i)
+		if (!strcasecmp(value, emu_z80_names[i]))
+			return i;
+	return -1;
+}
+
+static long emu_m68k(const char *value)
+{
+	unsigned int i;
+
+	for (i = 0; (emu_m68k_names[i] != NULL); ++i)
+		if (!strcasecmp(value, emu_m68k_names[i]))
+			return i;
+	return -1;
+}
+
 static long number(const char *value)
 {
   return atoi(value);
@@ -352,6 +377,7 @@ struct rc_field {
   { "key_slot_9", keysym, &dgen_slot_9 },
   { "key_save", keysym, &dgen_save },
   { "key_load", keysym, &dgen_load },
+  { "key_z80_toggle", keysym, &dgen_z80_toggle },
   { "key_cpu_toggle", keysym, &dgen_cpu_toggle },
   { "key_stop", keysym, &dgen_stop },
   { "key_fullscreen_toggle", keysym, &dgen_fullscreen_toggle },
@@ -360,6 +386,8 @@ struct rc_field {
   { "bool_frameskip", boolean, &dgen_frameskip },
   { "bool_show_carthead", boolean, &dgen_show_carthead },
   { "ctv_craptv_startup", ctv, &dgen_craptv },
+  { "emu_z80_startup", emu_z80, &dgen_emu_z80 },
+  { "emu_m68k_startup", emu_m68k, &dgen_emu_m68k },
   { "bool_sound", boolean, &dgen_sound },
   { "int_soundrate", number, &dgen_soundrate },
   { "bool_16bit", boolean, &dgen_16bit },
