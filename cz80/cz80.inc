@@ -27,13 +27,8 @@
 #define GET_BYTE_S              \
     (*(int8_t*)PC)
 
-#if CZ80_LITTLE_ENDIAN
 #define GET_WORD                \
     ((*(uint8_t*)(PC + 0)) | ((*(uint8_t*)(PC + 1)) << 8))
-#else
-#define GET_WORD                \
-    ((*(uint8_t*)(PC + 1)) | ((*(uint8_t*)(PC + 0)) << 8))
-#endif
 
 #define FETCH_BYTE              \
     (*(uint8_t*)PC++)
@@ -74,9 +69,12 @@
 #elif CZ80_LITTLE_ENDIAN
 #define READ_WORD(A, D)                 \
     D = CPU->Read_Byte(A) | (CPU->Read_Byte((A) + 1) << 8);
+#define READ_WORD_LE(A, D) READ_WORD(A, D)
 #else
 #define READ_WORD(A, D)                 \
     D = (CPU->Read_Byte(A) << 8) | CPU->Read_Byte((A) + 1);
+#define READ_WORD_LE(A, D)              \
+    D = CPU->Read_Byte(A) | (CPU->Read_Byte((A) + 1) << 8);
 #endif
 
 #define READSX_BYTE(A, D)               \
@@ -92,8 +90,12 @@
 #define WRITE_WORD(A, D)                \
     CPU->Write_Byte(A, D);              \
     CPU->Write_Byte((A) + 1, (D) >> 8);
+#define WRITE_WORD_LE(A, D) WRITE_WORD(A, D);
 #else
 #define WRITE_WORD(A, D)                \
+    CPU->Write_Byte(A, (D) >> 8);	\
+    CPU->Write_Byte((A) + 1, (D));
+#define WRITE_WORD_LE(A, D)             \
     CPU->Write_Byte(A, D);              \
     CPU->Write_Byte((A) + 1, (D) >> 8);
 #endif
@@ -104,7 +106,7 @@
                                 \
         zSP -= 2;               \
         sp = zSP;               \
-        WRITE_WORD(sp, A);      \
+        WRITE_WORD_LE(sp, A);   \
     }
 
 #define POP_16(A)           \
@@ -112,7 +114,7 @@
         uintptr_t sp;             \
                             \
         sp = zSP;           \
-        READ_WORD(sp, A)    \
+        READ_WORD_LE(sp, A);\
         zSP = sp + 2;       \
     }
 

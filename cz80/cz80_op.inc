@@ -199,7 +199,7 @@ OP_LD_SP_xx:
 OP_LD_xx_mNN:
         PRE_IO
         FETCH_WORD(adr)
-        READ_WORD(adr, data->W)
+        READ_WORD_LE(adr, data->W)
         POST_IO
         RET(16)
 
@@ -207,7 +207,7 @@ OP_LD_xx_mNN:
 OP_LD_mNN_xx:
         PRE_IO
         FETCH_WORD(adr)
-        WRITE_WORD(adr, data->W)
+        WRITE_WORD_LE(adr, data->W)
         POST_IO
         RET(16)
     }
@@ -300,8 +300,8 @@ OP_EX_xx_mSP:
         PRE_IO
         adr = zSP;
         tmp = data->W;
-        READ_WORD(adr, data->W)
-        WRITE_WORD(adr, tmp)
+        READ_WORD_LE(adr, data->W)
+        WRITE_WORD_LE(adr, tmp)
         POST_IO
         RET(19)
     }

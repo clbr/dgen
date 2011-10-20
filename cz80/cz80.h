@@ -55,7 +55,11 @@ extern "C" {
 // use zR8 for B/C/D/E/H/L registers only
 // use zR16 for BC/DE/HL registers only
 
+#if CZ80_LITTLE_ENDIAN
 #define zR8(A)          CPU->creg.r8[(A) ^ 1]
+#else
+#define zR8(A)          CPU->creg.r8[(A)]
+#endif
 #define zR16(A)         CPU->creg.r16[A].W
 #define pzR16(A)        &(CPU->creg.r16[A])
 
