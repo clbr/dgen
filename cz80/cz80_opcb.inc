@@ -30,9 +30,9 @@ switch (Opcode)
 
     OPCB(0x06): // RLC  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -62,9 +62,9 @@ switch (Opcode)
 
     OPCB(0x0e): // RRC  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -94,9 +94,9 @@ switch (Opcode)
 
     OPCB(0x16): // RL   (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -126,9 +126,9 @@ switch (Opcode)
 
     OPCB(0x1e): // RR   (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -158,9 +158,9 @@ switch (Opcode)
 
     OPCB(0x26): // SLA  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -190,9 +190,9 @@ switch (Opcode)
 
     OPCB(0x2e): // SRA  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -222,9 +222,9 @@ switch (Opcode)
 
     OPCB(0x36): // SLL  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -254,9 +254,9 @@ switch (Opcode)
 
     OPCB(0x3e): // SRL  (HL)
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         PRE_IO
         adr = zHL;
@@ -347,8 +347,8 @@ switch (Opcode)
     OPCB(0x76): // BIT  6,(HL)
     OPCB(0x7e): // BIT  7,(HL)
     {
-        uintptr_t src;
-        uintptr_t bitm;
+        uint8_t src;
+        uint8_t bitm;
 
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);
@@ -436,9 +436,9 @@ switch (Opcode)
     OPCB(0xb6): // RES  6,(HL)
     OPCB(0xbe): // RES  7,(HL)
     {
-        uintptr_t adr;
-        uintptr_t res;
-        uintptr_t bitm;
+        uint16_t adr;
+        uint8_t res;
+        uint8_t bitm;
 
         PRE_IO
         adr = zHL;
@@ -528,9 +528,9 @@ switch (Opcode)
     OPCB(0xf6): // SET  6,(HL)
     OPCB(0xfe): // SET  7,(HL)
     {
-        uintptr_t adr;
-        uintptr_t res;
-        uintptr_t bitm;
+        uint16_t adr;
+        uint8_t res;
+        uint8_t bitm;
 
         PRE_IO
         adr = zHL;

@@ -6,36 +6,23 @@
 /*                                                                              */
 /********************************************************************************/
 
-intptr_t FASTCALL Cz80_Exec(cz80_struc *cpu, intptr_t cycles)
+int FASTCALL Cz80_Exec(cz80_struc *cpu, int cycles)
 {
 #if CZ80_USE_JUMPTABLE
     #include "cz80jmp.inc"
 #endif
 
-#if 0
-    register cz80_struc *CPU asm ("edi");
-    register uintptr_t PC asm ("ebx");
-    register intptr_t CCnt asm ("esi");
-//    register uintptr_t Opcode asm ("eax");
-    register uintptr_t Opcode;
-#elif 0
-    register cz80_struc *CPU;
-    register uintptr_t PC;
-    register intptr_t CCnt;
-    register uintptr_t Opcode;
-#else
     cz80_struc *CPU;
     uintptr_t PC;
-    intptr_t CCnt;
-    uintptr_t Opcode;
-#endif
+    int CCnt;
+    uint8_t Opcode;
 
     CPU = cpu;
     PC = CPU->PC;
 
     if (CPU->Status & (CZ80_RUNNING | CZ80_DISABLE | CZ80_FAULTED))
     {
-        return (CPU->Status | 0x80000000);
+        return -(CPU->Status);
     }
 
 #if CZ80_SIZE_OPT

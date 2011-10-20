@@ -126,7 +126,7 @@ switch (Opcode)
         goto OP_LOAD_mNN_A;
 
     {
-        uintptr_t adr;
+        uint16_t adr;
 
     OPXY(0x46): // LD   B,(IX+o)
     OPXY(0x56): // LD   D,(IX+o)
@@ -396,7 +396,7 @@ switch (Opcode)
 
     OPXY(0xa6): // AND  (IX+o)
     {
-        uintptr_t val;
+        uint8_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -428,7 +428,7 @@ switch (Opcode)
 
     OPXY(0xae): // XOR  (IX+o)
     {
-        uintptr_t val;
+        uint8_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -460,7 +460,7 @@ switch (Opcode)
 
     OPXY(0xb6): // OR   (IX+o)
     {
-        uintptr_t val;
+        uint8_t val;
 
         PRE_IO
         READ_BYTE(data->W + FETCH_BYTE_S, val)
@@ -690,9 +690,9 @@ switch (Opcode)
 
     OPXY(0xcb): // XYCB PREFIXE
     {
-        uintptr_t adr;
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t adr;
+        uint8_t src;
+        uint8_t res;
 
         adr = data->W + FETCH_BYTE_S;
         Opcode = FETCH_BYTE;

@@ -272,8 +272,8 @@ switch (Opcode)
     OPED(0x74): // NEG
     OPED(0x7c): // NEG
     {
-        uintptr_t val;
-        uintptr_t res;
+        uint16_t val;
+        uint16_t res;
 
         val = zA;
         res = 0 - val;
@@ -288,7 +288,7 @@ switch (Opcode)
 
     OPED(0x67): // RRD  (HL)
     {
-        uintptr_t adr;
+        uint16_t adr;
         uint8_t src;
 
         PRE_IO
@@ -303,7 +303,7 @@ switch (Opcode)
 
     OPED(0x6f): // RLD  (HL)
     {
-        uintptr_t adr;
+        uint16_t adr;
         uint8_t src;
 
         PRE_IO
@@ -318,8 +318,8 @@ switch (Opcode)
 
 
     {
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t src;
+        uint16_t res;
 
     OPED(0x7a): // ADC  HL,SP
         src = zSP;
@@ -371,7 +371,7 @@ OP_SBC_HL:
 
 
     {
-        uintptr_t res;
+        uint8_t res;
 
     OPED(0x40): // IN   B,(C)
     OPED(0x48): // IN   C,(C)
@@ -395,7 +395,7 @@ OP_SBC_HL:
 
 
     {
-        uintptr_t src;
+        uint8_t src;
 
     OPED(0x71): // OUT  (C),0
         src = 0;
@@ -416,7 +416,7 @@ OP_OUT_mBC:
     }
 
     {
-        uintptr_t newPC;
+        uint16_t newPC;
 
     OPED(0x4d): // RETI
     OPED(0x5d): // RETI
@@ -569,8 +569,8 @@ OP_CPX:
     }
 
     {
-        uintptr_t val;
-        uintptr_t res;
+        uint8_t val;
+        uint8_t res;
         uint8_t F;
 
     OPED(0xb9): // CPDR

@@ -310,7 +310,7 @@ switch (Opcode)
     OPXYCB(0x76):   // BIT  6,(Ix+d)
     OPXYCB(0x7e):   // BIT  7,(Ix+d)
     {
-        uintptr_t bitm;
+        uint8_t bitm;
         
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);
@@ -404,7 +404,7 @@ switch (Opcode)
     OPXYCB(0xb6):   // RES  6,(Ix+d)
     OPXYCB(0xbe):   // RES  7,(Ix+d)
     {
-        uintptr_t bitm;
+        uint8_t bitm;
 
         PRE_IO
         bitm = ~(1 << ((Opcode >> 3) & 7));
@@ -498,7 +498,7 @@ switch (Opcode)
     OPXYCB(0xf6):   // SET  6,(Ix+d)
     OPXYCB(0xfe):   // SET  7,(Ix+d)
     {
-        uintptr_t bitm;
+        uint8_t bitm;
 
         PRE_IO
         bitm = 1 << ((Opcode >> 3) & 7);

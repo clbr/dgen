@@ -124,7 +124,7 @@ OP_LD_R_imm:
         RET(10)
 
     {
-        uintptr_t adr;
+        uint16_t adr;
     
     OP(0x0a):   // LD   A,(BC)
 OP_LOAD_A_mBC:
@@ -193,7 +193,7 @@ OP_LD_SP_xx:
         RET(6)
 
     {
-        uintptr_t adr;
+        uint16_t adr;
 
     OP(0x2a):   // LD   HL,(nn)
 OP_LD_xx_mNN:
@@ -217,7 +217,7 @@ OP_LD_mNN_xx:
     OP(0xf1):   // POP  AF
 OP_POP_AF:
     {
-        uintptr_t res;
+        uint16_t res;
 
         PRE_IO
         POP_16(res)
@@ -261,7 +261,7 @@ OP_PUSH:
     // EXCHANGE & BLOCK TRANSFERT / SEARCH
 
     {
-        uintptr_t tmp;
+        uint16_t tmp;
 
     OP(0x08):   // EX   AF,AF'
 OP_EX_AF_AF2:
@@ -293,8 +293,8 @@ OP_EXX:
 
     OP(0xe3):   // EX   HL,(SP)
     {
-        uintptr_t adr;
-        uintptr_t tmp;
+        uint16_t adr;
+        uint16_t tmp;
         
 OP_EX_xx_mSP:
         PRE_IO
@@ -321,8 +321,8 @@ OP_INC_R:
         RET(4)
 
     {
-        uintptr_t adr;
-        uintptr_t res;
+        uint16_t adr;
+        uint16_t res;
         
 OP_INC_mIx:
         adr = data->W + FETCH_BYTE_S;
@@ -355,8 +355,8 @@ OP_DEC_R:
         RET(4)
 
     {
-        uintptr_t adr;
-        uintptr_t res;
+        uint16_t adr;
+        uint16_t res;
 
 OP_DEC_mIx:
         adr = data->W + FETCH_BYTE_S;
@@ -377,8 +377,8 @@ OP_DEC_m:
     }
 
     {
-        uintptr_t val;
-        uintptr_t res;
+        uint8_t val;
+        uint16_t res;
 
     // ADD
 
@@ -646,7 +646,7 @@ OP_CP:
     // AND
 
     {
-        uintptr_t val;
+        uint8_t val;
 
     OP(0xa6):   // AND  (HL)
 /* OP_AND_mHL: */
@@ -927,8 +927,8 @@ OP_DEC_SP:
     // ADD16
 
     {
-        uintptr_t src;
-        uintptr_t res;
+        uint16_t src;
+        uint32_t res;
 
     OP(0x39):   // ADD  xx,SP
 OP_ADD16_xx_SP:
@@ -1060,7 +1060,7 @@ OP_JP_NZ:
         RET(10);
 
     {
-        uintptr_t newPC;
+        uint16_t newPC;
 
     OP(0xc3):   // JP   nn
 OP_JP:
@@ -1171,8 +1171,8 @@ OP_CALL_NZ:
     OP(0xcd):   // CALL nn
 OP_CALL:
     {
-        uintptr_t oldRPC;
-        uintptr_t newPC;
+        uint16_t oldRPC;
+        uint16_t newPC;
 
         PRE_IO
         FETCH_WORD(newPC);
@@ -1229,7 +1229,7 @@ OP_RET_COND:
     OP(0xc9):   // RET
 OP_RET:
     {
-        uintptr_t newPC;
+        uint16_t newPC;
 
         PRE_IO
         POP_16(newPC);
@@ -1249,8 +1249,8 @@ OP_RET:
     OP(0xff):   // RST  7
 OP_RST:
     {
-        uintptr_t src;
-        uintptr_t newPC;
+        uint16_t src;
+        uint16_t newPC;
 
         src = zRealPC;
         PUSH_16(src);
@@ -1262,7 +1262,7 @@ OP_RST:
     // INPUT & OUTPUT
 
     {
-        uintptr_t adr;
+        uint16_t adr;
         
     OP(0xd3):   // OUT  (n),A
 OP_OUT_mN_A:

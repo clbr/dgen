@@ -78,7 +78,7 @@
 #endif
 
 #define READSX_BYTE(A, D)               \
-    D = (intptr_t)(int8_t)CPU->Read_Byte(A);
+    D = CPU->Read_Byte(A);
 
 #define WRITE_BYTE(A, D)                \
     CPU->Write_Byte(A, D);
@@ -102,7 +102,7 @@
 
 #define PUSH_16(A)              \
     {                           \
-        uintptr_t sp;                 \
+        uint16_t sp;            \
                                 \
         zSP -= 2;               \
         sp = zSP;               \
@@ -111,7 +111,7 @@
 
 #define POP_16(A)           \
     {                       \
-        uintptr_t sp;             \
+        uint16_t sp;        \
                             \
         sp = zSP;           \
         READ_WORD_LE(sp, A);\
@@ -127,7 +127,7 @@
 #define CHECK_INT                                           \
     if (CPU->Status & (zIFF1 | CZ80_HAS_NMI))               \
     {                                                       \
-        uintptr_t newPC;                                          \
+        uint16_t newPC;                                     \
                                                             \
         if (CPU->Status & CZ80_HAS_NMI)                     \
         {                                                   \
@@ -145,7 +145,7 @@
             if (zIM == 1) newPC = 0x38;                     \
             else                                            \
             {                                               \
-                uintptr_t adr;                                    \
+                uint16_t adr;                               \
                                                                     \
                 Opcode = CPU->Interrupt_Ack(CPU->IntVect) & 0xFF;   \
                 if (zIM == 0) goto Cz80_Exec;                       \
@@ -157,7 +157,7 @@
         }                                                   \
                                                             \
         {                                                   \
-            uintptr_t src = zRealPC;                              \
+            uint16_t src = zRealPC;                         \
                                                             \
             PUSH_16(src)                                    \
             SET_PC(newPC)                                   \
