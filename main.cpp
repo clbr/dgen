@@ -194,9 +194,9 @@ fail:
 int main(int argc, char *argv[])
 {
   int c = 0, pal_mode = 0, running = 1, usec = 0, start_slot = -1;
-  unsigned long f = 0;
+  unsigned long frames = 0, frames_old = 0, fps = 0;
   char *patches = NULL, *rom = NULL;
-  unsigned long oldclk, newclk, startclk;
+  unsigned long oldclk, newclk, startclk, fpsclk;
   FILE *file = NULL;
   enum demo_status demo_status = DEMO_OFF;
   unsigned int samples;
@@ -415,6 +415,7 @@ int main(int argc, char *argv[])
   // Start the timing refs
   startclk = pd_usecs();
   oldclk = startclk;
+  fpsclk = startclk;
 
   // Start audio
   if(dgen_sound) pd_sound_start();
@@ -425,23 +426,36 @@ int main(int argc, char *argv[])
 	// Go around, and around, and around, and around... ;)
 	while (running) {
 		const unsigned int usec_frame = (1000000 / hz);
+		unsigned long tmp;
 		int frames_todo;
 
 		running = pd_handle_events(megad);
 
-		if (pd_stopped()) {
-			unsigned long tmp = pd_usecs();
+		newclk = pd_usecs();
 
-			// Fixes the FPS counter.
-			startclk += (tmp - oldclk);
-			oldclk = tmp;
+		if (pd_stopped()) {
+			// Fix FPS count.
+			tmp = (newclk - oldclk);
+			startclk += tmp;
+			fpsclk += tmp;
+			oldclk = newclk;
+		}
+
+		// Update FPS count.
+		tmp = ((newclk - fpsclk) & 0x3fffff);
+		if (tmp >= 1000000) {
+			fpsclk = newclk;
+			if (frames_old > frames)
+				fps = (frames_old - frames);
+			else
+				fps = (frames - frames_old);
+			frames_old = frames;
 		}
 
 		if (dgen_frameskip == 0)
 			goto do_not_skip;
 
 		// Measure how many frames to do this round.
-		newclk = pd_usecs();
 		usec += ((newclk - oldclk) & 0x3fffff); // no more than 4 secs
 		frames_todo = (usec / usec_frame);
 		usec %= usec_frame;
@@ -474,7 +488,7 @@ int main(int argc, char *argv[])
 				pal_dirty = 0;
 			}
 			pd_graphics_update();
-			++f;
+			++frames;
 		}
 		if (dgen_nice) {
 #ifdef __BEOS__
@@ -486,11 +500,12 @@ int main(int argc, char *argv[])
 	}
 
 	// Print fps
-	startclk = ((pd_usecs() - startclk) / 1000000);
-	if (startclk != 0)
-		printf("%lu frames per second (optimal %d)\n",
-		       (f / startclk), hz);
-  
+	fpsclk = ((pd_usecs() - startclk) / 1000000);
+	if (fpsclk == 0)
+		fpsclk = 1;
+	printf("%lu frames per second (average %lu, optimal %d)\n",
+	       fps, (frames / fpsclk), hz);
+
   // Cleanup
   if(file) fclose(file);
   ram_save(megad);
