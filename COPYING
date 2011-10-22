@@ -1,5 +1,5 @@
 With the exceptions listed below, all files in this archive fall under this
-license:
+licence:
 
 # Copyright (c) 1998, 1999 Dave.
 #
@@ -27,17 +27,17 @@ license:
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-The following files do not allow for commercial redistribution:
-	musa/*
-	zz80.c
-	z80stb.h
-	z80stbd.h
+The contents of the musa/ directory are copyright Karl Stenerud, under a
+licence described in musa/readme.txt.
 
-The contents of the star/ directory are copyright Neil Corlett, under a license
+The contents of the star/ directory are copyright Neil Corlett, under a licence
 described in star/stardoc.txt.
 
-The contents of the mz80/ directory are copyright Neil Bradly, under a license
+The contents of the mz80/ directory are copyright Neil Bradley, under a licence
 described in mz80/mz80.txt.
 
 Open-source replacements for the above modules would be appreciated, if you
 have the time and ability.
+
+The contents of the cz80/ directory are copyright Stephane Dallongeville, under
+a BSD-like licence described in cz80/readme.txt.
