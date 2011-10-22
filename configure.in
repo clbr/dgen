@@ -271,7 +271,7 @@ please specify --with-nasm-format=format]
 
 dnl Check for the need to prefix ASM globals with underscores.
 AS_IF(
-	[! test -z "x$NASM_FORMAT"],
+	[! test -z "$NASM_FORMAT"],
 	[AC_MSG_CHECKING([whether ASM globals require an underscore])]
 	[AS_CASE(
 		[$NASM_FORMAT],
