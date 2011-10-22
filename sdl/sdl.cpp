@@ -1542,11 +1542,11 @@ int pd_handle_events(md &megad)
 
 		if (do_videoresize(event.resize.w, event.resize.h) == -1)
 			snprintf(buf, sizeof(buf),
-				 "Failed to resize video to %dx%d",
+				 "Failed to resize video to %dx%d.\n",
 				 event.resize.w, event.resize.h);
 		else
 			snprintf(buf, sizeof(buf),
-				 "Video resized to %dx%d.",
+				 "Video resized to %dx%d.\n",
 				 event.resize.w, event.resize.h);
 		pd_message_postpone(buf);
 		break;
