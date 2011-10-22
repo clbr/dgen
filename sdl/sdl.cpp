@@ -123,6 +123,9 @@ static struct {
 static struct {
 	unsigned int displayed:1; // whether message is currently displayed
 	unsigned long since; // since this number of microseconds
+	size_t max; // maximum number of characters at once
+	size_t length; // remaining length to display
+	char message[2048];
 } info;
 
 // Stopped flag used by pd_stopped()
@@ -705,6 +708,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 
   // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
   // for the message bar.
+  // Set the maximum number of characters pd_message() can display at once.
 #ifdef WITH_OPENGL
 	if (opengl) {
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
@@ -716,13 +720,20 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_OPENGL | SDL_RESIZABLE |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
+		// 5x5 (7x5) font in OpenGL mode.
+		info.max = (320 / 7);
 	}
 	else
 #endif
+	{
 		screen = SDL_SetVideoMode(xs, (ys + 16), depth,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_DOUBLEBUF |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
+		// 8x13 font in non-OpenGL mode.
+		info.max = (xs / 8);
+	}
+
   if(!screen)
     {
 		fprintf(stderr, "sdl: Unable to set video mode: %s\n",
@@ -851,6 +862,10 @@ static void update_textures()
 }
 #endif
 
+static void pd_message_process(void);
+static void pd_message_display(const char *msg, size_t len);
+static void pd_message_postpone(const char *msg);
+
 // Update screen
 // This code is fairly transmittable to any linear display, just change p to
 // point to your favorite raw framebuffer. ;) But planar buffers are a 
@@ -874,11 +889,11 @@ void pd_graphics_update()
   // here.
   if(SDL_MUSTLOCK(screen))
     SDL_LockSurface(screen);
-  
-	// Check whether the message must be cleared.
-	if ((info.displayed) &&
+
+	// Check whether the message must be processed.
+	if (((info.displayed) || (info.length))  &&
 	    ((pd_usecs() - info.since) >= MESSAGE_LIFE))
-		pd_clear_message();
+		pd_message_process();
 
 #ifdef WITH_OPENGL
   if(!opengl)
@@ -1276,7 +1291,7 @@ static int stop_events(md &)
 			do_videoresize(event.resize.w, event.resize.h);
 #if WITH_OPENGL
 			if (opengl) {
-				pd_message("STOPPED.");
+				pd_message_display("STOPPED.", 8);
 				display();
 			}
 #endif
@@ -1484,7 +1499,7 @@ int pd_handle_events(md &megad)
 		}
 
 	  else if(ksym == dgen_stop) {
-	    pd_message("STOPPED.");
+	    pd_message_display("STOPPED.", 8);
 	    SDL_PauseAudio(1); // Stop audio :)
 #ifdef WITH_OPENGL
 	    if (opengl)
@@ -1533,7 +1548,7 @@ int pd_handle_events(md &megad)
 			snprintf(buf, sizeof(buf),
 				 "Video resized to %dx%d.",
 				 event.resize.w, event.resize.h);
-		pd_message(buf);
+		pd_message_postpone(buf);
 		break;
 	}
 	case SDL_KEYUP:
@@ -1623,7 +1638,7 @@ static void update_message()
 	display();
 }
 
-static void ogl_write_text(const char *msg)
+static void ogl_write_text(const char *msg, size_t len)
 {
 	unsigned int x = 0;
 	union {
@@ -1635,7 +1650,7 @@ static void ogl_write_text(const char *msg)
 		buf.u16 = &texmsgbuf.u16;
 	else
 		buf.u32 = &texmsgbuf.u32;
-	while ((*msg != '\0') && ((x + 5) <= 320)) {
+	while ((*msg != '\0') && (len != 0) && ((x + 5) <= 320)) {
 		unsigned int y;
 		unsigned char (*c)[5][5] =
 			&ogl_font_5x5[((unsigned char)*msg)];
@@ -1657,6 +1672,7 @@ static void ogl_write_text(const char *msg)
 				}
 			}
 		}
+		--len;
 		++msg;
 		x += 7;
 	}
@@ -1665,20 +1681,62 @@ static void ogl_write_text(const char *msg)
 
 #endif // WITH_OPENGL
 
+static void pd_message_display(const char *msg, size_t len)
+{
+	pd_clear_message();
+	if (len > info.max)
+		len = info.max;
+#ifdef WITH_OPENGL
+	if (opengl)
+		ogl_write_text(msg, len);
+	else
+#endif
+	{
+		font_text_n(screen, 0, ys, msg, len);
+		SDL_UpdateRect(screen, 0, ys, xs, 16);
+	}
+	info.displayed = 1;
+	info.since = pd_usecs();
+}
+
+// Process status bar message
+static void pd_message_process(void)
+{
+	size_t len = info.length;
+	size_t n;
+
+	if (len == 0) {
+		pd_clear_message();
+		return;
+	}
+	if (info.length > info.max)
+		len = info.max;
+	for (n = 0; (n < len); ++n)
+		if (info.message[n] == '\n') {
+			info.message[n] = 'X';
+			len = (n + 1);
+			break;
+		}
+	pd_message_display(info.message, n);
+	memmove(info.message, &(info.message[len]), (info.length - len));
+	info.length -= len;
+}
+
+// Postpone a message
+static void pd_message_postpone(const char *msg)
+{
+	strncpy(&info.message[info.length], msg,
+		(sizeof(info.message) - info.length));
+	info.length = strlen(info.message);
+	info.displayed = 1;
+}
+
 // Write a message to the status bar
 void pd_message(const char *msg)
 {
-	pd_clear_message();
-	info.displayed = 1;
-	info.since = pd_usecs();
-#ifdef WITH_OPENGL
-	if (opengl) {
-		ogl_write_text(msg);
-		return;
-	}
-#endif
-	font_text(screen, 0, ys, msg);
-	SDL_UpdateRect(screen, 0, ys, xs, 16);
+	strncpy(info.message, msg, sizeof(info.message));
+	info.length = strlen(info.message);
+	pd_message_process();
 }
 
 void pd_clear_message()
@@ -1700,10 +1758,39 @@ void pd_clear_message()
 	SDL_UpdateRect(screen, 0, ys, xs, 16);
 }
 
-/* FIXME: Implement this
- * Look at v1.16 to see how I did carthead there */
-void pd_show_carthead(md&)
+void pd_show_carthead(md& megad)
 {
+	struct {
+		const char *p;
+		const char *s;
+		size_t len;
+	} data[] = {
+#define CE(i, s) { i, s, sizeof(s) }
+		CE("System", megad.cart_head.system_name),
+		CE("Copyright", megad.cart_head.copyright),
+		CE("Domestic name", megad.cart_head.domestic_name),
+		CE("Overseas name", megad.cart_head.overseas_name),
+		CE("Product number", megad.cart_head.product_no),
+		CE("Memo", megad.cart_head.memo),
+		CE("Countries", megad.cart_head.countries)
+	};
+	size_t i;
+
+	pd_message_postpone("\n");
+	for (i = 0; (i < (sizeof(data) / sizeof(data[0]))); ++i) {
+		char buf[256];
+		size_t j, len = 0;
+
+		for (j = 0; (j < data[i].len); ++j)
+			if (data[i].s[j] != ' ')
+			        len = j;
+		if (len == 0)
+			continue;
+		++len;
+		snprintf(buf, sizeof(buf), "%s: %.*s\n",
+			 data[i].p, (int)len, data[i].s);
+		pd_message_postpone(buf);
+	}
 }
 
 /* Clean up this awful mess :) */
