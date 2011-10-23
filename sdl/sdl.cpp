@@ -1273,15 +1273,6 @@ int pd_stopped()
 	return ret;
 }
 
-static void stop_events_msg(const char *msg)
-{
-	pd_message_display(msg, strlen(msg));
-#ifdef WITH_OPENGL
-	if (opengl)
-		display(); // Otherwise the above message won't show up
-#endif
-}
-
 typedef struct {
 	char *buf;
 	size_t pos;
@@ -1385,6 +1376,11 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 		return KB_INPUT_CONSUMED;
 	}
 	return KB_INPUT_IGNORED;
+}
+
+static void stop_events_msg(const char *msg)
+{
+	pd_message_display(msg, strlen(msg));
 }
 
 // This is a small event loop to handle stuff when we're stopped.
@@ -1829,15 +1825,23 @@ static void ogl_write_text(const char *msg, size_t len)
 
 static void pd_message_display(const char *msg, size_t len)
 {
-	pd_clear_message();
 	if (len > info.max)
 		len = info.max;
 #ifdef WITH_OPENGL
-	if (opengl)
+	if (opengl) {
+		memset(&texmsgbuf, 0, sizeof(texmsgbuf));
 		ogl_write_text(msg, len);
+	}
 	else
 #endif
 	{
+		size_t i;
+		uint8_t *p =
+			((uint8_t *)screen->pixels + (screen->pitch * ys));
+
+		/* Clear 16 lines after ys */
+		for (i = 0; (i < 16); ++i, p += screen->pitch)
+			memset(p, 0, screen->pitch);
 		font_text_n(screen, 0, ys, msg, len);
 		SDL_UpdateRect(screen, 0, ys, xs, 16);
 	}
