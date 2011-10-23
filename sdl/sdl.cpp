@@ -1779,16 +1779,30 @@ void pd_show_carthead(md& megad)
 	pd_message_postpone("\n");
 	for (i = 0; (i < (sizeof(data) / sizeof(data[0]))); ++i) {
 		char buf[256];
-		size_t j, len = 0;
+		size_t j, k;
 
+		k = (size_t)snprintf(buf, sizeof(buf), "%s: ", data[i].p);
+		if (k >= (sizeof(buf) - 1))
+			continue;
+		// Filter out extra spaces.
 		for (j = 0; (j < data[i].len); ++j)
 			if (data[i].s[j] != ' ')
-			        len = j;
-		if (len == 0)
+				break;
+		if (j == data[i].len)
 			continue;
-		++len;
-		snprintf(buf, sizeof(buf), "%s: %.*s\n",
-			 data[i].p, (int)len, data[i].s);
+		while ((j < data[i].len) && (k < (sizeof(buf) - 1))) {
+			buf[(k++)] = data[i].s[j];
+			if (data[i].s[j] == ' ')
+				while ((j < data[i].len) &&
+				       (data[i].s[j] == ' '))
+					++j;
+			else
+				++j;
+		}
+		if (buf[(k - 1)] == ' ')
+			--k;
+		buf[(k++)] = '\n';
+		buf[k] = '\0';
 		pd_message_postpone(buf);
 	}
 }
