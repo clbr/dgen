@@ -308,7 +308,7 @@ public:
 
   // Added by Joe Groff:
   // Patch the ROM code, using Game Genie/Hex codes
-  void patch(const char *list);
+  int patch(const char *list);
   // Get/put the battery save RAM
   int has_save_ram();
   int get_save_ram(FILE *from);

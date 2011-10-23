@@ -10,12 +10,13 @@
 
 // This takes a comma or whitespace-separated list of Game Genie and/or hex 
 // codes to patch the ROM with.
-void md::patch(const char *list)
+int md::patch(const char *list)
 {
   static const char delims[] = " \t\n,";
   char *worklist, *tok;
   struct patch p;
-  
+  int ret = 0;
+
   // Copy the given list to a working list so we can strtok it
   worklist = (char*)malloc(strlen(list)+1);
   strcpy(worklist, list);
@@ -27,8 +28,9 @@ void md::patch(const char *list)
       // Decode it
       decode(tok, &p);
       // Discard it if it was bad code
-      if((signed)p.addr == -1) {
+      if (((signed)p.addr == -1) || (p.addr >= (size_t)romlen)) {
 	printf("Bad patch \"%s\"\n", tok);
+	ret = -1;
 	continue;
       }
       // Put it into the ROM (remember byteswapping)
@@ -38,7 +40,7 @@ void md::patch(const char *list)
     }
   // Done!
   free(worklist);
-  return;
+  return ret;
 }
 
 // Get/put saveram from/to FILE*'s

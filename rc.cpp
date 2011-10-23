@@ -380,6 +380,7 @@ struct rc_field {
   { "key_z80_toggle", keysym, &dgen_z80_toggle },
   { "key_cpu_toggle", keysym, &dgen_cpu_toggle },
   { "key_stop", keysym, &dgen_stop },
+  { "key_game_genie", keysym, &dgen_game_genie },
   { "key_fullscreen_toggle", keysym, &dgen_fullscreen_toggle },
   { "bool_autoload", boolean, &dgen_autoload },
   { "bool_autosave", boolean, &dgen_autosave },

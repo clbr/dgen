@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <SDL.h>
 #include <SDL_audio.h>
 
@@ -690,6 +691,9 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
       fprintf(stderr, "sdl: Couldn't init SDL: %s!\n", SDL_GetError());
       return 0;
     }
+  // Required for text input.
+  SDL_EnableUNICODE(1);
+
   ysize = (want_pal? 240 : 224);
 
   // Ignore events besides quit and keyboard, this must be done before calling
@@ -1269,43 +1273,162 @@ int pd_stopped()
 	return ret;
 }
 
+static void stop_events_msg(const char *msg)
+{
+	pd_message_display(msg, strlen(msg));
+#ifdef WITH_OPENGL
+	if (opengl)
+		display(); // Otherwise the above message won't show up
+#endif
+}
+
+typedef struct {
+	char *buf;
+	size_t pos;
+	size_t size;
+} kb_input_t;
+
+enum kb_input {
+	KB_INPUT_ABORTED,
+	KB_INPUT_ENTERED,
+	KB_INPUT_CONSUMED,
+	KB_INPUT_IGNORED
+};
+
+static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
+{
+	char c;
+
+	if (ks->mod & KMOD_CTRL)
+		return KB_INPUT_IGNORED;
+	if (((ks->unicode & 0xff80) == 0) &&
+	    (isprint((c = (ks->unicode & 0x7f))))) {
+		if (input->pos >= (input->size - 1))
+			return KB_INPUT_CONSUMED;
+		if (input->buf[input->pos] == '\0')
+			input->buf[(input->pos + 1)] = '\0';
+		input->buf[input->pos] = c;
+		++input->pos;
+		return KB_INPUT_CONSUMED;
+	}
+	else if (ks->sym == SDLK_DELETE) {
+		size_t tail;
+
+		if (input->buf[input->pos] == '\0')
+			return KB_INPUT_CONSUMED;
+		tail = ((input->size - input->pos) + 1);
+		memmove(&input->buf[input->pos],
+			&input->buf[(input->pos + 1)],
+			tail);
+		return KB_INPUT_CONSUMED;
+	}
+	else if (ks->sym == SDLK_BACKSPACE) {
+		size_t tail;
+
+		if (input->pos == 0)
+			return KB_INPUT_CONSUMED;
+		--input->pos;
+		tail = ((input->size - input->pos) + 1);
+		memmove(&input->buf[input->pos],
+			&input->buf[(input->pos + 1)],
+			tail);
+		return KB_INPUT_CONSUMED;
+	}
+	else if (ks->sym == SDLK_LEFT) {
+		if (input->pos != 0)
+			--input->pos;
+		return KB_INPUT_CONSUMED;
+	}
+	else if (ks->sym == SDLK_RIGHT) {
+		if (input->buf[input->pos] != '\0')
+			++input->pos;
+		return KB_INPUT_CONSUMED;
+	}
+	else if ((ks->sym == SDLK_RETURN) || (ks->sym == SDLK_KP_ENTER)) {
+		if (input->pos == 0)
+			return KB_INPUT_ABORTED;
+		return KB_INPUT_ENTERED;
+	}
+	else if (ks->sym == SDLK_ESCAPE)
+		return KB_INPUT_ABORTED;
+	return KB_INPUT_IGNORED;
+}
+
 // This is a small event loop to handle stuff when we're stopped.
-static int stop_events(md &)
+static int stop_events(md &megad, int gg)
 {
 	SDL_Event event;
+	char buf[128] = "";
+	kb_input_t input = { 0, 0, 0 };
+#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
+	int fullscreen = 0;
 
+	// Switch out of fullscreen mode (assuming this is supported)
+	if (screen->flags & SDL_FULLSCREEN) {
+		fullscreen = 1;
+		SDL_WM_ToggleFullScreen(screen);
+	}
+#endif
 	stopped = 1;
+	SDL_PauseAudio(1);
+	if (gg) {
+		size_t len;
+
+		strncpy(buf, "Enter Game Genie/Hex code: ", sizeof(buf));
+		len = strlen(buf);
+		input.buf = &(buf[len]);
+		input.pos = 0;
+		input.size = (sizeof(buf) - len);
+		if (input.size > 12)
+			input.size = 12;
+	}
+	else
+		strncpy(buf, "STOPPED.", sizeof(buf));
+	stop_events_msg(buf);
 	// We still check key events, but we can wait for them
 	while (SDL_WaitEvent(&event)) {
 		switch (event.type) {
 		case SDL_KEYDOWN:
+			if (gg)
+				switch (kb_input(&input, &event.key.keysym)) {
+				case KB_INPUT_ENTERED:
+					if (megad.patch(input.buf) == -1)
+						pd_message("Invalid code.");
+					else
+						pd_message("Applied.");
+					goto resume;
+				case KB_INPUT_ABORTED:
+					pd_message("Aborted.");
+					goto resume;
+				case KB_INPUT_CONSUMED:
+					stop_events_msg(buf);
+					continue;
+				case KB_INPUT_IGNORED:
+					break;
+				}
 			// We can still quit :)
 			if (event.key.keysym.sym == dgen_quit)
 				return 0;
 			if (event.key.keysym.sym == dgen_stop)
-				return 1;
+				goto resume;
 			break;
 		case SDL_QUIT:
 			return 0;
 		case SDL_VIDEORESIZE:
 			do_videoresize(event.resize.w, event.resize.h);
-#if WITH_OPENGL
-			if (opengl) {
-				pd_message_display("STOPPED.", 8);
-				display();
-			}
-#endif
-			break;
 		case SDL_VIDEOEXPOSE:
-#if WITH_OPENGL
-			if (opengl)
-				display();
-#endif
+			stop_events_msg(buf);
 			break;
 		}
 	}
 	// SDL_WaitEvent only returns zero on error :(
 	fprintf(stderr, "sdl: SDL_WaitEvent broke: %s!", SDL_GetError());
+resume:
+#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
+	if (fullscreen)
+		SDL_WM_ToggleFullScreen(screen);
+#endif
+	SDL_PauseAudio(0);
 	return 1;
 }
 
@@ -1497,31 +1620,11 @@ int pd_handle_events(md &megad)
 			}
 			pd_message(msg);
 		}
+		else if (ksym == dgen_stop)
+			return stop_events(megad, 0);
+		else if (ksym == dgen_game_genie)
+			return stop_events(megad, 1);
 
-	  else if(ksym == dgen_stop) {
-	    pd_message_display("STOPPED.", 8);
-	    SDL_PauseAudio(1); // Stop audio :)
-#ifdef WITH_OPENGL
-	    if (opengl)
-			display(); // Otherwise the above message won't show up
-#endif
-#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
-	    int fullscreen = 0;
-	    // Switch out of fullscreen mode (assuming this is supported)
-	    if(screen->flags & SDL_FULLSCREEN) {
-	      fullscreen = 1;
-	      SDL_WM_ToggleFullScreen(screen);
-	    }
-#endif
-	    int r = stop_events(megad);
-#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
-	    if(fullscreen)
-	      SDL_WM_ToggleFullScreen(screen);
-#endif
-	    pd_clear_message();
-	    if(r) SDL_PauseAudio(0); // Restart audio
-	    return r;
-	  }
 #ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
 	  else if(ksym == dgen_fullscreen_toggle) {
 	    SDL_WM_ToggleFullScreen(screen);
