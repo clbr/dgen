@@ -3,6 +3,29 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.27 <- v1.26
+ * Documentation clean-up, sample.dgenrc update.
+ * Compilation fixes for MZ80.
+ * When both Musashi and StarScream are available, default to Musashi since
+   it provides better emulation.
+ * Imported CZ80 0.91. This Z80 emulator is pure C and works better than the C
+   version of MZ80. This means that on non-x86/32 bit hardware, games that
+   previously didn't have sound now work properly (Sonic 2 for instance).
+   Thanks to DGen PSP which implemented CZ80 first.
+ * Modified CZ80 to work properly on big-endian machines.
+ * When both CZ80 and MZ80 are available, CZ80 is now the default.
+ * DGen can now be compiled without any external modules. MZ80, CZ80, Musashi
+   and StarScream can all be disabled.
+ * There's now a toggle key (F10 by default) to switch between MZ80, CZ80 or
+   neither.
+ * The Musashi/StarScream toggle key can now disable them both.
+ * New rc variables for selecting default emulators.
+ * FPS are now calculated every second for a more accurate message at exit.
+ * Implemented bool_show_carthead.
+ * Game Genie codes can now be entered interactively by pressing F9. They can
+   also be disabled by re-entering them.
+ * Various other fixes.
+
 v1.26 <- v1.25
  * Upgraded Musashi from 2.0 to 3.3.1. This version solves various emulation
    problems.
