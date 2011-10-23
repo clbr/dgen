@@ -1,8 +1,8 @@
-.Dd October 10, 2011
+.Dd October 23, 2011
 .Dt DGEN 1
 .Sh NAME
 .Nm dgen	
-.Nd Sega Genesis/MegaDrive emulator
+.Nd Sega Genesis/Mega Drive emulator
 .Sh SYNOPSIS
 .Nm dgen
 .Op Fl PRfhjv
@@ -21,7 +21,7 @@
 .Sh DESCRIPTION
 The rom image in the file
 .Ar romname
-is executed, as emulated on a Sega Genesis or MegaDrive running in 60Hz NTSC
+is executed, as emulated on a Sega Genesis or Mega Drive running in 60Hz NTSC
 mode (unless the
 .Fl P
 option is specified, in which case 50Hz PAL mode is used).
@@ -34,7 +34,7 @@ should be in raw binary or SMD format, and may be compressed with
 The options are as follows:
 .Bl -tag -width Fl
 .It Fl P
-Emulate 50Hz PAL mode (as used in European models of the MegaDrive).
+Emulate 50Hz PAL mode (as used in European models of the Mega Drive).
 .It Fl H Ar HZ
 Use a custom frame rate, can be used to accelerate or slow down emulation.
 .It Fl R
@@ -110,7 +110,5 @@ This manual page was written by
 .An Joe Groff Aq joe@pknet.com .
 .An Updated by zamaz Aq zamaz@users.sourceforge.net .
 .Sh BUGS
-No sound in some games.
-.Pp
 Report bugs to
 .An Aq http://sourceforge.net/projects/dgen/ .
