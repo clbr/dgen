@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
   if(patches)
     {
       printf("main: Using patch codes %s\n", patches);
-      megad.patch(patches);
+      megad.patch(patches, NULL, NULL, NULL);
     }
   // Fix checksum
   megad.fix_rom_checksum();

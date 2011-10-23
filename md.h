@@ -306,9 +306,16 @@ public:
   // Fix ROM checksum
   void fix_rom_checksum();
 
+  // List of patches currently applied.
+  struct patch_elem {
+    struct patch_elem *next;
+    uint32_t addr;
+    uint16_t data;
+  } *patch_elem;
   // Added by Joe Groff:
   // Patch the ROM code, using Game Genie/Hex codes
-  int patch(const char *list);
+  int patch(const char *list, unsigned int *errors,
+	    unsigned int *applied, unsigned int *reverted);
   // Get/put the battery save RAM
   int has_save_ram();
   int get_save_ram(FILE *from);

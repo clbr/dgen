@@ -588,6 +588,8 @@ md::md()
 
   reset(); // reset megadrive
 
+	patch_elem = NULL;
+
   ok=1;
 }
 
@@ -606,6 +608,13 @@ md::~md()
   if (writebyte) delete[] writebyte;
   if (writeword) delete[] writeword;
 #endif
+
+	while (patch_elem != NULL) {
+		struct patch_elem *next = patch_elem->next;
+
+		free(patch_elem);
+		patch_elem = next;
+	}
 
   ok=0;
 }

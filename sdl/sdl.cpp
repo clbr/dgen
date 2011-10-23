@@ -1295,8 +1295,13 @@ enum kb_input {
 	KB_INPUT_IGNORED
 };
 
+// Manage text input with some rudimentary history.
 static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 {
+#define HISTORY_LEN 32
+	static char history[HISTORY_LEN][64];
+	static int history_pos = -1;
+	static int history_len = 0;
 	char c;
 
 	if (ks->mod & KMOD_CTRL)
@@ -1345,12 +1350,40 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 		return KB_INPUT_CONSUMED;
 	}
 	else if ((ks->sym == SDLK_RETURN) || (ks->sym == SDLK_KP_ENTER)) {
+		history_pos = -1;
 		if (input->pos == 0)
 			return KB_INPUT_ABORTED;
+		if (history_len < HISTORY_LEN)
+			++history_len;
+		memmove(&history[1], &history[0],
+			((history_len - 1) * sizeof(history[0])));
+		strncpy(history[0], input->buf, sizeof(history[0]));
 		return KB_INPUT_ENTERED;
 	}
-	else if (ks->sym == SDLK_ESCAPE)
+	else if (ks->sym == SDLK_ESCAPE) {
+		history_pos = 0;
 		return KB_INPUT_ABORTED;
+	}
+	else if (ks->sym == SDLK_UP) {
+		if (input->size == 0)
+			return KB_INPUT_CONSUMED;
+		if (history_pos < (history_len - 1))
+			++history_pos;
+		strncpy(input->buf, history[history_pos], input->size);
+		input->buf[(input->size - 1)] = '\0';
+		input->pos = strlen(input->buf);
+		return KB_INPUT_CONSUMED;
+	}
+	else if (ks->sym == SDLK_DOWN) {
+		if ((input->size == 0) || (history_pos < 0))
+			return KB_INPUT_CONSUMED;
+		if (history_pos > 0)
+			--history_pos;
+		strncpy(input->buf, history[history_pos], input->size);
+		input->buf[(input->size - 1)] = '\0';
+		input->pos = strlen(input->buf);
+		return KB_INPUT_CONSUMED;
+	}
 	return KB_INPUT_IGNORED;
 }
 
@@ -1391,9 +1424,19 @@ static int stop_events(md &megad, int gg)
 		case SDL_KEYDOWN:
 			if (gg)
 				switch (kb_input(&input, &event.key.keysym)) {
+					unsigned int errors;
+					unsigned int applied;
+					unsigned int reverted;
+
 				case KB_INPUT_ENTERED:
-					if (megad.patch(input.buf) == -1)
+					megad.patch(input.buf,
+						    &errors,
+						    &applied,
+						    &reverted);
+					if (errors)
 						pd_message("Invalid code.");
+					else if (reverted)
+						pd_message("Reverted.");
 					else
 						pd_message("Applied.");
 					goto resume;
