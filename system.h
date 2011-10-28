@@ -59,6 +59,9 @@ static inline uint32_t h2le32(uint32_t v)
 #endif
 }
 
+extern uint8_t *load(size_t *file_size, FILE *file, size_t max_size);
+extern void unload(uint8_t *data);
+
 SYSTEM_H_END_
 
 #endif /* SYSTEM_H_ */

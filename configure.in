@@ -188,6 +188,31 @@ AS_IF(
 	[AC_MSG_FAILURE([OpenGL support seems unavailable])]
 )
 
+dnl Check for libarchive.
+AC_ARG_WITH(
+	[libarchive],
+	[AS_HELP_STRING(
+		[--with-libarchive],
+		[use libarchive for compressed ROMs [default=auto]]
+	)],
+	[USE_LIBARCHIVE=$enableval],
+	[USE_LIBARCHIVE=auto]
+)
+AS_IF(
+	[test "x$USE_LIBARCHIVE" != xno],
+	[AC_CHECK_HEADER(
+		[archive.h],
+		[AC_CHECK_LIB(
+			[archive],
+			[archive_read_open_FILE],
+			[LIBS="-larchive $LIBS"]
+			[USE_LIBARCHIVE=yes],
+			[USE_LIBARCHIVE=no]
+		)],
+		[USE_LIBARCHIVE=no]
+	)]
+)
+
 dnl Try to add wsock32 and shell32.
 AC_CHECK_LIB([wsock32], [main])
 AC_CHECK_LIB([shell32], [main])
@@ -429,6 +454,7 @@ AC_ARG_WITH(
 
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
+AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
 AS_IF([test "x$USE_JOYSTICK" != x], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
@@ -480,6 +506,7 @@ Front-end
   OpenGL: $USE_OPENGL
   Joystick: $USE_JOYSTICK
   Crap TV filters: $USE_CTV
+  Compressed ROMs: $USE_LIBARCHIVE
 
 CPU cores
   Musashi M68K: $WITH_MUSA

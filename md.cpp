@@ -9,6 +9,7 @@
 #endif
 #include "md.h"
 #include "system.h"
+#include "romload.h"
 #include "rc-vars.h"
 
 // This is the 'static' StarScream/MZ80 multitasker
@@ -678,7 +679,9 @@ int md::plug_in(unsigned char *cart,int len)
 int md::unplug()
 {
   if (rom==NULL) return 1; if (romlen<=0) return 1;
-  free(rom); free(saveram); romlen = save_start = save_len = 0;
+  unload_rom(rom);
+  free(saveram);
+  romlen = save_start = save_len = 0;
 #ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
 #endif
@@ -688,24 +691,22 @@ int md::unplug()
   return 0;
 }
 
-extern "C" int load_rom_into(char *name,unsigned char *into);
-
 int md::load(char *name)
 {
-  // Convenience function - calls romload.c functions
-  unsigned char *temp=NULL; int len=0;
-  char *b_name = dgen_basename(name);
-  if (name==NULL) return 1;
- 
-  len=load_rom_into(name,NULL);
-  if (len<=0) return 1;
-  temp=(unsigned char *)malloc(len);
-  if (temp==NULL) return 1;
-  load_rom_into(name,temp);
-  // Register name
+	uint8_t *temp;
+	size_t size;
+	char *b_name;
 
+	if ((name == NULL) ||
+	    ((b_name = dgen_basename(name)) == NULL))
+		return 1;
+	temp = load_rom(&size, name);
+	if (temp == NULL)
+		return 1;
+
+	// Register name
 	romname[0] = '\0';
-	if ((b_name != NULL) && (b_name[0] != '\0')) {
+	if ((b_name[0] != '\0')) {
 		unsigned int i;
 
 		snprintf(romname, sizeof(romname), "%s", b_name);
@@ -737,10 +738,11 @@ int md::load(char *name)
   cart_head.save_end   = temp[0x1b8]<<24 | temp[0x1b9]<<16 | temp[0x1ba]<<8 | temp[0x1bb];
   memcpy((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
   memcpy((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
-  // Plug it into the memory map
-  plug_in(temp,len); // md then deallocates it when it's done
 
-  return 0;
+	// Plug it into the memory map
+	plug_in(temp, size); // md then deallocates it when it's done
+
+	return 0;
 }
 
 void md::cycle_z80()
