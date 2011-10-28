@@ -31,9 +31,9 @@ dgen_DEPENDENCIES += star/libstarcpu.a
 dgen_LDADD += star/libstarcpu.a
 endif
 
-bin_PROGRAMS = dgen tobin
+bin_PROGRAMS = dgen dgen_tobin
 
-man_MANS = dgen.1 dgenrc.5 tobin.1
+man_MANS = dgen.1 dgenrc.5 dgen_tobin.1
 
 EXTRA_DIST = sample.dgenrc
 
@@ -91,5 +91,5 @@ dgen_SOURCES += x86_memcpy.asm
 endif
 endif
 
-# tobin
-tobin_SOURCES = tobin.c romload.c system.c
+# dgen_tobin
+dgen_tobin_SOURCES = tobin.c romload.c system.c
