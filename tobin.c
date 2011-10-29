@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#ifndef __MINGW32__
 #include <signal.h>
+#endif
 #include "romload.h"
 
 int main(int argc, char *argv[])
@@ -14,7 +16,9 @@ int main(int argc, char *argv[])
 	FILE *out;
 	uint8_t *rom;
 
+#ifndef __MINGW32__
 	signal(SIGPIPE, SIG_IGN);
+#endif
 	if (argc != 3) {
 		fprintf(stderr, "Usage: %s {from.smd} {to.bin}\n", argv[0]);
 		return EXIT_FAILURE;
