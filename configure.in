@@ -153,16 +153,16 @@ AS_IF(
 		[SDL_opengl.h],
 		[AC_SEARCH_LIBS(
 			[glEnd],
-			[GL opengl32 opengl64],
+			[GL opengl32 gl],
 			[USE_OPENGL=yes],
 			[AS_IF(
 				[test "x$cross_compiling" = xyes],
 				dnl When nothing works, use brute force.
 				[USE_OPENGL=no]
 				[AC_CHECK_LIB(
-					[gl],
+					[GL],
 					[main],
-					[LIBS="-lgl $LIBS"]
+					[LIBS="-lGL $LIBS"]
 					[USE_OPENGL=yes]
 				)]
 				[AC_CHECK_LIB(
@@ -172,9 +172,9 @@ AS_IF(
 					[USE_OPENGL=yes]
 				)]
 				[AC_CHECK_LIB(
-					[opengl64],
+					[gl],
 					[main],
-					[LIBS="-lopengl64 $LIBS"]
+					[LIBS="-lgl $LIBS"]
 					[USE_OPENGL=yes]
 				)],
 				[USE_OPENGL=no]
