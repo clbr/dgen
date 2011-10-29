@@ -197,6 +197,7 @@ int md_vdp::command(unsigned int cmd)
     int mode=(reg[0x17]>>6)&3;
     int s=0,d=0,i=0,len=0;
     s=dma_addr(); d=rw_addr; len=dma_len();
+    (void)d;
     switch (mode)
     {
       case 0: case 1:
