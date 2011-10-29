@@ -48,7 +48,6 @@ enum demo_status {
 
 static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
 {
-	size_t i;
 	uint32_t pad[2];
 
 	switch (*status) {
@@ -60,11 +59,15 @@ static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
 		fwrite(&pad, sizeof(pad), 1, demo);
 		break;
 	case DEMO_PLAY:
-		i = fread(&pad, sizeof(pad), 1, demo);
-		megad.pad[0] = ntohl(pad[0]);
-		megad.pad[1] = ntohl(pad[1]);
-		if (feof(demo)) {
-			pd_message("Demo finished.");
+		if (fread(&pad, sizeof(pad), 1, demo) == 1) {
+			megad.pad[0] = ntohl(pad[0]);
+			megad.pad[1] = ntohl(pad[1]);
+		}
+		else {
+			if (feof(demo))
+				pd_message("Demo finished.");
+			else
+				pd_message("Demo finished (read error).");
 			*status = DEMO_OFF;
 		}
 		break;
