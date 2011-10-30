@@ -319,7 +319,7 @@ switch (Opcode)
 
     {
         uint16_t src;
-        uint16_t res;
+        uint32_t res;
 
     OPED(0x7a): // ADC  HL,SP
         src = zSP;
