@@ -498,6 +498,9 @@ md::md()
   memset(&fm_reg,0,sizeof(fm_reg));
   memset(&ras_fm_ticker,0,sizeof(ras_fm_ticker));
 
+  memset(&m68k_state, 0, sizeof(m68k_state));
+  memset(&z80_state, 0, sizeof(z80_state));
+
 #ifdef WITH_STAR
   fetch=NULL;
   readbyte=readword=writebyte=writeword=NULL;
@@ -556,17 +559,38 @@ md::md()
   cpu.s_writeword = cpu.u_writeword = writeword;
 #endif
 
-	// Make sure the default emulators are available by cycling them.
-
-	// 0 = none, 1 = StarScream, 2 = Musashi
-	cpu_emu = (enum cpu_emu)
-		((dgen_emu_m68k + (CPU_EMU_TOTAL - 1)) % CPU_EMU_TOTAL);
-	cycle_cpu();
-
-	// 0 = none, 1 = CZ80, 2 = MZ80
-	z80_core = (enum z80_core)
-		((dgen_emu_z80 + (Z80_CORE_TOTAL - 1)) % Z80_CORE_TOTAL);
-	cycle_z80();
+	// M68K: 0 = none, 1 = StarScream, 2 = Musashi
+	switch (dgen_emu_m68k) {
+#ifdef WITH_STAR
+	case 1:
+		cpu_emu = CPU_EMU_STAR;
+		break;
+#endif
+#ifdef WITH_MUSA
+	case 2:
+		cpu_emu = CPU_EMU_MUSA;
+		break;
+#endif
+	default:
+		cpu_emu = CPU_EMU_NONE;
+		break;
+	}
+	// Z80: 0 = none, 1 = CZ80, 2 = MZ80
+	switch (dgen_emu_z80) {
+#ifdef WITH_MZ80
+	case 1:
+		z80_core = Z80_CORE_MZ80;
+		break;
+#endif
+#ifdef WITH_CZ80
+	case 2:
+		z80_core = Z80_CORE_CZ80;
+		break;
+#endif
+	default:
+		z80_core = Z80_CORE_NONE;
+		break;
+	}
 
 #ifdef WITH_STAR
    star_mz80_on();
@@ -747,82 +771,17 @@ int md::load(char *name)
 
 void md::cycle_z80()
 {
-	while (1) {
-		z80_core = (enum z80_core)((z80_core + 1) % Z80_CORE_TOTAL);
-		switch (z80_core) {
-		case Z80_CORE_CZ80:
-#ifdef WITH_CZ80
-			Cz80_Reset(&cz80);
-			return;
-#else
-			continue;
-#endif
-		case Z80_CORE_MZ80:
-#ifdef WITH_MZ80
-			mz80reset();
-			return;
-#else
-			continue;
-#endif
-		default:
-			return;
-		}
-	}
+	z80_state_dump();
+	z80_core = (enum z80_core)((z80_core + 1) % Z80_CORE_TOTAL);
+	z80_state_restore();
 }
 
 void md::cycle_cpu()
 {
-	enum cpu_emu old = cpu_emu;
-
 	// Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
-	while (1) {
-		cpu_emu = (enum cpu_emu)((cpu_emu + 1) % CPU_EMU_TOTAL);
-		switch (cpu_emu) {
-			unsigned int i, j;
-
-		case CPU_EMU_MUSA:
-#ifdef WITH_MUSA
-#ifdef WITH_STAR
-			// From StarScream to Musashi
-			for (i = M68K_REG_D0, j = 0;
-			     (i <= M68K_REG_D7); ++i, ++j)
-				m68k_set_reg((m68k_register_t)i, cpu.dreg[j]);
-			for (i = M68K_REG_A0, j = 0;
-			     (i <= M68K_REG_A7); ++i, ++j)
-				m68k_set_reg((m68k_register_t)i, cpu.areg[j]);
-			m68k_set_reg(M68K_REG_PC, cpu.pc);
-			m68k_set_reg(M68K_REG_SR, cpu.sr);
-#endif // WITH_STAR
-			return;
-#else // WITH_MUSA
-			continue;
-#endif // WITH_MUSA
-		case CPU_EMU_STAR:
-#ifdef WITH_STAR
-#ifdef WITH_MUSA
-			// From Musashi to StarScream
-			for (i = M68K_REG_D0, j = 0;
-			     (i <= M68K_REG_D7); ++i, ++j)
-				cpu.dreg[j] =
-					m68k_get_reg(NULL, (m68k_register_t)i);
-			for (i = M68K_REG_A0, j = 0;
-			     (i <= M68K_REG_A7); ++i, ++j)
-				cpu.areg[j] =
-					m68k_get_reg(NULL, (m68k_register_t)i);
-			cpu.pc = m68k_get_reg(NULL, M68K_REG_PC);
-			cpu.sr = m68k_get_reg(NULL, M68K_REG_SR);
-#endif // WITH_MUSA
-			return;
-#else // WITH_STAR
-			continue;
-#endif // WITH_STAR
-		default:
-			(void)old;
-			(void)i;
-			(void)j;
-			return;
-		}
-	}
+	m68k_state_dump();
+	cpu_emu = (enum cpu_emu)((cpu_emu + 1) % CPU_EMU_TOTAL);
+	m68k_state_restore();
 }
 
 int md::z80dump()

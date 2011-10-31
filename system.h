@@ -40,6 +40,7 @@ extern FILE *dgen_fopen(const char *subdir, const char *file,
 
 extern char *dgen_basename(char *path);
 
+#define le2h16(v) h2le16(v)
 static inline uint16_t h2le16(uint16_t v)
 {
 #ifdef WORDS_BIGENDIAN
@@ -49,6 +50,17 @@ static inline uint16_t h2le16(uint16_t v)
 #endif
 }
 
+#define be2h16(v) h2be16(v)
+static inline uint16_t h2be16(uint16_t v)
+{
+#ifdef WORDS_BIGENDIAN
+	return v;
+#else
+	return ((v >> 8) | (v << 8));
+#endif
+}
+
+#define le2h32(v) h2le32(v)
 static inline uint32_t h2le32(uint32_t v)
 {
 #ifdef WORDS_BIGENDIAN
@@ -56,6 +68,17 @@ static inline uint32_t h2le32(uint32_t v)
 		((v & 0x0000ff00) <<  8) | ((v & 0x000000ff) << 24));
 #else
 	return v;
+#endif
+}
+
+#define be2h32(v) h2be32(v)
+static inline uint32_t h2be32(uint32_t v)
+{
+#ifdef WORDS_BIGENDIAN
+	return v;
+#else
+	return (((v & 0xff000000) >> 24) | ((v & 0x00ff0000) >>  8) |
+		((v & 0x0000ff00) <<  8) | ((v & 0x000000ff) << 24));
 #endif
 }
 

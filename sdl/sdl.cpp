@@ -1627,12 +1627,16 @@ int pd_handle_events(md &megad)
 
 			megad.cycle_z80();
 			switch (megad.z80_core) {
+#ifdef WITH_CZ80
 			case md::Z80_CORE_CZ80:
 				msg = "CZ80 core activated.";
 				break;
+#endif
+#ifdef WITH_MZ80
 			case md::Z80_CORE_MZ80:
 				msg = "MZ80 core activated.";
 				break;
+#endif
 			default:
 				msg = "Z80 core disabled.";
 				break;
@@ -1647,12 +1651,16 @@ int pd_handle_events(md &megad)
 
 			megad.cycle_cpu();
 			switch (megad.cpu_emu) {
+#ifdef WITH_STAR
 			case md::CPU_EMU_STAR:
 				msg = "StarScream CPU core activated.";
 				break;
+#endif
+#ifdef WITH_MUSA
 			case md::CPU_EMU_MUSA:
 				msg = "Musashi CPU core activated.";
 				break;
+#endif
 			default:
 				msg = "CPU core disabled.";
 				break;

@@ -5,8 +5,7 @@
 
 #define VER VERSION
 
-// You needn't worry about changing the #defines at the beginning of this
-// header anymore, you can simply edit Makefile.config
+#include <stdint.h>
 
 #ifdef WITH_STAR
 #ifndef __STARCPU_H__
@@ -129,6 +128,34 @@ public:
   void draw_scanline(struct bmap *bits, int line);
 };
 
+/* Generic structures for dumping and restoring M68K and Z80 states. */
+
+typedef struct {
+	/* Stored MSB first (big endian) */
+	uint32_t d[8]; /* D0-D7 */
+	uint32_t a[8]; /* A0-A7 */
+	uint32_t pc;
+	uint32_t sr;
+} m68k_state_t;
+
+typedef struct {
+	/* Stored LSB first (little endian) */
+	struct {
+		uint16_t fa;
+		uint16_t cb;
+		uint16_t ed;
+		uint16_t lh;
+	} alt[2]; /* [1] = alternate registers */
+	uint16_t ix;
+	uint16_t iy;
+	uint16_t sp;
+	uint16_t pc;
+	uint8_t r;
+	uint8_t i;
+	uint8_t iff; /* x x x x x x IFF2 IFF1 */
+	uint8_t im; /* interrupt mode */
+} z80_state_t;
+
 #ifdef WITH_M68KEM
 // Make sure this gets C linkage
 extern "C" void cpu_setOPbase24(int pc);
@@ -150,6 +177,12 @@ private:
   int save_prot, save_active; // Flags set from $A130F1
 public:
   md_vdp vdp;
+  m68k_state_t m68k_state;
+  z80_state_t z80_state;
+  void m68k_state_dump();
+  void m68k_state_restore();
+  void z80_state_dump();
+  void z80_state_restore();
 private:
 #ifdef WITH_MZ80
   struct mz80context z80;
@@ -275,16 +308,24 @@ public:
 
   enum z80_core {
     Z80_CORE_NONE,
+#ifdef WITH_MZ80
     Z80_CORE_MZ80,
+#endif
+#ifdef WITH_CZ80
     Z80_CORE_CZ80,
+#endif
     Z80_CORE_TOTAL
   } z80_core;
   void cycle_z80();
 
   enum cpu_emu {
     CPU_EMU_NONE,
+#ifdef WITH_STAR
     CPU_EMU_STAR,
+#endif
+#ifdef WITH_MUSA
     CPU_EMU_MUSA,
+#endif
     CPU_EMU_TOTAL
   } cpu_emu; // OK to read it but call cycle_cpu() to change it
   void cycle_cpu();
