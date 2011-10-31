@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "md.h"
 #include "system.h"
 
@@ -199,160 +200,142 @@ Start of VRAM at 12478
 end of VRAM
 */
 
+/*
+  2011-10-31
+  We now store the Z80 context in that 0x1e2-0x474 area. I don't think anyone
+  cares if compatibility with Genecyst is broken as a result. The format
+  remains compatible with older versions of DGen.
+*/
+
 // NB - for load and save you don't need to use star_mz80_on/off
 // Because stars/mz80 isn't actually used
-#define fput(x,y) { if (fwrite(x,1,y,hand)!=y) goto save_error; }
-#define fget(x,y) if (fread(x,1,y,hand)!=y) goto load_error;
 
-extern int byteswap_memory(unsigned char *start,int len);
+static void *swap16cpy(void *dest, const void *src, size_t n)
+{
+	size_t i;
 
-/*
-  TODO/FIXME
-  - Use *_state_dump() and *_state_restore() functions above.
-  - Store the Z80 context in that 0x1e2-0x474 area. I don't think anyone cares
-    if compatibility with Genecyst is broken as a result. The format will remain
-    compatible with older versions of DGen.
-*/
+	for (i = 0; (i != (n & ~1)); ++i)
+		((uint8_t *)dest)[(i ^ 1)] = ((uint8_t *)src)[i];
+	((uint8_t *)dest)[i] = ((uint8_t *)src)[i];
+	return dest;
+}
 
 int md::import_gst(FILE *hand)
 {
-#ifdef WITH_STAR
-  if (cpu_emu == CPU_EMU_STAR)
-  {
-    fseek(hand,0x80,SEEK_SET);
-    fget(cpu.dreg,8*4);
-    fget(cpu.areg,8*4);
-    fseek(hand,0xc8,SEEK_SET);
-    fget(&cpu.pc,4);
-    fseek(hand,0xd0,SEEK_SET);
-    fget(&cpu.sr,4);
-  }
-#endif
+	uint8_t (*buf)[0x22478] =
+		(uint8_t (*)[sizeof(*buf)])malloc(sizeof(*buf));
+	uint8_t *p;
+	uint8_t *q;
+	size_t i;
 
-#ifdef WITH_MUSA
-	if (cpu_emu == CPU_EMU_MUSA) {
-		unsigned int i, t;
-
-		fseek(hand, 0x80, SEEK_SET);
-		for (i = M68K_REG_D0; (i <= M68K_REG_D7); ++i) {
-			fget(&t, 4);
-			m68k_set_reg((m68k_register_t)i, t);
-		}
-		for (i = M68K_REG_A0; (i <= M68K_REG_A7); ++i) {
-			fget(&t, 4);
-			m68k_set_reg((m68k_register_t)i, t);
-		}
-		fseek(hand, 0xc8, SEEK_SET);
-		fget(&t, 4);
-		m68k_set_reg(M68K_REG_PC, t);
-		fseek(hand, 0xd0, SEEK_SET);
-		fget(&t, 4);
-		m68k_set_reg(M68K_REG_SR, t);
+	if ((buf == NULL) ||
+	    (fread((*buf), sizeof(*buf), 1, hand) != 1) ||
+	    /* GST header */
+	    (memcmp((*buf), "GST\0\0\0\xe0\x40", 8) != 0)) {
+		free(buf);
+		return -1;
 	}
-#endif
-
-  fseek(hand,0xfa,SEEK_SET);
-  fget(vdp.reg,0x18);
-
-  fseek(hand,0x112,SEEK_SET);
-  fget(vdp.cram ,0x00080);
-  byteswap_memory(vdp.cram,0x80);
-  fget(vdp.vsram,0x00050);
-  byteswap_memory(vdp.vsram,0x50);
-
-  fseek(hand,0x474,SEEK_SET);
-  fget(z80ram,   0x02000);
-
-  fseek(hand,0x2478,SEEK_SET);
-  fget(ram,      0x10000);
-  byteswap_memory(ram,0x10000);
-
-  fget(vdp.vram ,0x10000);
-
-  memset(vdp.dirt,0xff,0x35); // mark everything as changed
-
-  return 0;
-load_error:
-  return 1;
+	/* M68K registers (18x32-bit, 72 bytes) */
+	p = &(*buf)[0x80];
+	q = &(*buf)[0xa0];
+	for (i = 0; (i != 8); ++i, p += 4, q += 4) {
+		memcpy(&m68k_state.d[i], p, 4);
+		memcpy(&m68k_state.a[i], q, 4);
+	}
+	memcpy(&m68k_state.pc, &(*buf)[0xc8], 4);
+	memcpy(&m68k_state.sr, &(*buf)[0xd0], 4);
+	m68k_state_restore();
+	/* VDP registers (24x8-bit VDP registers, not sizeof(vdp.reg)) */
+	memcpy(vdp.reg, &(*buf)[0xfa], 0x18);
+	memset(&vdp.reg[0x18], 0, (sizeof(vdp.reg) - 0x18));
+	/* CRAM (64x16-bit registers, 128 bytes), swapped */
+	swap16cpy(vdp.cram, &(*buf)[0x112], 0x80);
+	/* VSRAM (40x16-bit words, 80 bytes), swapped */
+	swap16cpy(vdp.vsram, &(*buf)[0x192], 0x50);
+	/* Z80 registers (12x16-bit and 4x8-bit, 28 bytes) */
+	p = &(*buf)[0x1e2];
+	for (i = 0; (i != 2); ++i, p += 8) {
+		memcpy(&z80_state.alt[i].fa, p, 2);
+		memcpy(&z80_state.alt[i].cb, p, 2);
+		memcpy(&z80_state.alt[i].ed, p, 2);
+		memcpy(&z80_state.alt[i].lh, p, 2);
+	}
+	memcpy(&z80_state.ix, &p[0x0],  2);
+	memcpy(&z80_state.iy, &p[0x2], 2);
+	memcpy(&z80_state.sp, &p[0x4], 2);
+	memcpy(&z80_state.pc, &p[0x6], 2);
+	z80_state.r = p[0x8];
+	z80_state.i = p[0x9];
+	z80_state.iff = p[0xa];
+	z80_state.im = p[0xb];
+	z80_state_restore();
+	/* Z80 RAM (8192 bytes) */
+	memcpy(z80ram, &(*buf)[0x474], 0x2000);
+	/* RAM (65536 bytes), swapped */
+	swap16cpy(ram, &(*buf)[0x2478], 0x10000);
+	/* VRAM (65536 bytes) */
+	memcpy(vdp.vram, &(*buf)[0x12478], 0x10000);
+	/* Mark everything as changed */
+	memset(vdp.dirt, 0xff, 0x35);
+	free(buf);
+	return 0;
 }
-
 
 int md::export_gst(FILE *hand)
 {
-  int i;
-  static unsigned char gst_head[0x80]=
-  {
-       0x47,0x53,0x54,0,0,0,0xe0,0x40
+	uint8_t (*buf)[0x22478] =
+		(uint8_t (*)[sizeof(*buf)])calloc(1, sizeof(*buf));
+	uint8_t *p;
+	uint8_t *q;
+	size_t i;
 
-  //     00 00 00 00 00 00 00 00 00 00 00 00 00 21 80 fa   <.............!..>
-  };
-  unsigned char *zeros=gst_head+0x40; // 0x40 zeros
-
-  fseek(hand,0x00,SEEK_SET);
-  // Make file size 0x22478 with zeros
-  for (i=0;i<0x22440;i+=0x40) fput(zeros,0x40);
-  fput(zeros,0x38);
-
-  fseek(hand,0x00,SEEK_SET);
-  fput(gst_head,0x80);
-
-#ifdef WITH_STAR
-  if (cpu_emu == CPU_EMU_STAR)
-  {
-    fseek(hand,0x80,SEEK_SET);
-    fput(cpu.dreg,8*4);
-    fput(cpu.areg,8*4);
-    fseek(hand,0xc8,SEEK_SET);
-    fput(&cpu.pc,4);
-    fseek(hand,0xd0,SEEK_SET);
-    fput(&cpu.sr,4);
-  }
-#endif
-#ifdef WITH_MUSA
-	if (cpu_emu == CPU_EMU_MUSA) {
-		unsigned int i, t;
-
-		fseek(hand, 0x80, SEEK_SET);
-		for (i = M68K_REG_D0; (i <= M68K_REG_D7); ++i) {
-			t = m68k_get_reg(NULL, (m68k_register_t)i);
-			fput(&t, 4);
-		}
-		for (i = M68K_REG_A0; (i <= M68K_REG_A7); ++i) {
-			t = m68k_get_reg(NULL, (m68k_register_t)i);
-			fput(&t, 4);
-		}
-		fseek(hand, 0xc8, SEEK_SET);
-		t = m68k_get_reg(NULL, M68K_REG_PC);
-		fput(&t, 4);
-		fseek(hand, 0xd0, SEEK_SET);
-		t = m68k_get_reg(NULL, M68K_REG_SR);
-		fput(&t, 4);
+	if (buf == NULL)
+		return -1;
+	/* GST header */
+	memcpy((*buf), "GST\0\0\0\xe0\x40", 8);
+	/* M68K registers (18x32-bit, 72 bytes) */
+	m68k_state_dump();
+	p = &(*buf)[0x80];
+	q = &(*buf)[0xa0];
+	for (i = 0; (i != 8); ++i, p += 4, q += 4) {
+		memcpy(p, &m68k_state.d[i], 4);
+		memcpy(q, &m68k_state.a[i], 4);
 	}
-#endif
-
-  fseek(hand,0xfa,SEEK_SET);
-  fput(vdp.reg,0x18);
-
-  fseek(hand,0x112,SEEK_SET);
-  byteswap_memory(vdp.cram,0x80);
-  fput(vdp.cram ,0x00080);
-  byteswap_memory(vdp.cram,0x80);
-  byteswap_memory(vdp.vsram,0x50);
-  fput(vdp.vsram,0x00050);
-  byteswap_memory(vdp.vsram,0x50);
-
-  fseek(hand,0x474,SEEK_SET);
-  fput(z80ram,   0x02000);
-
-  fseek(hand,0x2478,SEEK_SET);
-  byteswap_memory(ram,0x10000);
-  fput(ram,      0x10000);
-  byteswap_memory(ram,0x10000);
-
-  fput(vdp.vram ,0x10000);
-
-  return 0;
-save_error:
-  return 1;
+	memcpy(&(*buf)[0xc8], &m68k_state.pc, 4);
+	memcpy(&(*buf)[0xd0], &m68k_state.sr, 4);
+	/* VDP registers (24x8-bit VDP registers, not sizeof(vdp.reg)) */
+	memcpy(&(*buf)[0xfa], vdp.reg, 0x18);
+	/* CRAM (64x16-bit registers, 128 bytes), swapped */
+	swap16cpy(&(*buf)[0x112], vdp.cram, 0x80);
+	/* VSRAM (40x16-bit words, 80 bytes), swapped */
+	swap16cpy(&(*buf)[0x192], vdp.vsram, 0x50);
+	/* Z80 registers (12x16-bit and 4x8-bit, 28 bytes) */
+	z80_state_dump();
+	p = &(*buf)[0x1e2];
+	for (i = 0; (i != 2); ++i, p += 8) {
+		memcpy(p, &z80_state.alt[i].fa, 2);
+		memcpy(p, &z80_state.alt[i].cb, 2);
+		memcpy(p, &z80_state.alt[i].ed, 2);
+		memcpy(p, &z80_state.alt[i].lh, 2);
+	}
+	memcpy(&p[0x0], &z80_state.ix, 2);
+	memcpy(&p[0x2], &z80_state.iy, 2);
+	memcpy(&p[0x4], &z80_state.sp, 2);
+	memcpy(&p[0x6], &z80_state.pc, 2);
+	p[0x8] = z80_state.r;
+	p[0x9] = z80_state.i;
+	p[0xa] = z80_state.iff;
+	p[0xb] = z80_state.im;
+	/* Z80 RAM (8192 bytes) */
+	memcpy(&(*buf)[0x474], z80ram, 0x2000);
+	/* RAM (65536 bytes), swapped */
+	swap16cpy(&(*buf)[0x2478], ram, 0x10000);
+	/* VRAM (65536 bytes) */
+	memcpy(&(*buf)[0x12478], vdp.vram, 0x10000);
+	/* Output */
+	i = fwrite((*buf), sizeof(*buf), 1, hand);
+	free(buf);
+	if (i != 1)
+		return -1;
+	return 0;
 }
-
