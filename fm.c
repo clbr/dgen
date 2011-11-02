@@ -105,16 +105,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
-
-#ifndef __RAINE__
-#include "driver.h"		/* use M.A.M.E. */
-#include "state.h"
-#else
-#include "deftypes.h"		/* use RAINE */
-#include "support.h"		/* use RAINE */
-#endif
-
-#include "ay8910.h"
 #include "fm.h"
 
 
@@ -732,9 +722,7 @@ static INT32	LFO_PM;			/* runtime LFO calculations helper */
 #define LOG_INF  1      /* INFORMATION */
 #define LOG_LEVEL LOG_INF
 
-#ifndef __RAINE__
-#define LOG(n,x) if( (n)>=LOG_LEVEL ) logerror x
-#endif
+#define LOG(n,x) (void)0
 
 /* limitter */
 #define Limit(val, max,min) { \
@@ -860,7 +848,7 @@ INLINE void TimerBOver(FM_ST *ST)
 /* ----- internal timer mode , update timer */
 
 /* ---------- calculate timer A ---------- */
-	#define INTERNAL_TIMER_A(ST,CSM_CH)					\
+	#define INTERNAL_TIMER_A(type, ST, CSM_CH)				\
 	{													\
 		if( ST->TAC &&  (ST->Timer_Handler==0) )		\
 			if( (ST->TAC -= (int)(ST->freqbase*4096)) <= 0 )	\
@@ -868,7 +856,7 @@ INLINE void TimerBOver(FM_ST *ST)
 				TimerAOver( ST );						\
 				/* CSM mode total level latch and auto key on */	\
 				if( ST->mode & 0x80 )					\
-					CSMKeyControll( CSM_CH );			\
+					CSMKeyControll(type, CSM_CH );	\
 			}											\
 	}
 /* ---------- calculate timer B ---------- */
@@ -880,7 +868,7 @@ INLINE void TimerBOver(FM_ST *ST)
 	}
 #else /* FM_INTERNAL_TIMER */
 /* external timer mode */
-#define INTERNAL_TIMER_A(ST,CSM_CH)
+#define INTERNAL_TIMER_A(type, ST, CSM_CH)
 #define INTERNAL_TIMER_B(ST,step)
 #endif /* FM_INTERNAL_TIMER */
 
@@ -1050,6 +1038,7 @@ INLINE void set_det_mul(FM_ST *ST,FM_CH *CH,FM_SLOT *SLOT,int v)
 /* set total level */
 INLINE void set_tl(FM_CH *CH,FM_SLOT *SLOT , int v)
 {
+	(void)CH;
 	SLOT->tl = (v&0x7f)<<(ENV_BITS-7); /* 7bit TL */
 }
 
@@ -1908,8 +1897,12 @@ static void OPNSetPres(FM_OPN *OPN , int pres , int TimerPres, int SSGpres)
 	/* Timer base time */
 	OPN->ST.TimerBase = 1.0/((double)OPN->ST.clock / (double)TimerPres);
 
+#if FM_SSG_PRESCALER
 	/* SSG part  prescaler set */
 	if( SSGpres ) SSGClk( OPN->ST.index, OPN->ST.clock * 2 / SSGpres );
+#else
+	(void)SSGpres;
+#endif
 
 	/* make time tables */
 	init_timetables( &OPN->ST, dt_tab );
@@ -4854,12 +4847,12 @@ void YM2612UpdateOne(int num, INT16 **buffer, int length)
 			#endif
 
 			/* buffering */
-			bufL[i] = lt;
-			bufR[i] = rt;
+			bufL[i] += lt;
+			bufR[i] += rt;
 		}
 
 		/* timer A control */
-		INTERNAL_TIMER_A( State , cch[2] )
+		INTERNAL_TIMER_A(OPN->type, State, cch[2])
 	}
 	INTERNAL_TIMER_B(State,length)
 

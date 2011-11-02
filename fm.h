@@ -5,24 +5,28 @@
 #ifndef _H_FM_FM_
 #define _H_FM_FM_
 
+#include <stdint.h>
+
 /* --- select emulation chips --- */
 #define BUILD_YM2203  (HAS_YM2203)		/* build YM2203(OPN)   emulator */
 #define BUILD_YM2608  (HAS_YM2608)		/* build YM2608(OPNA)  emulator */
 #define BUILD_YM2610  (HAS_YM2610)		/* build YM2610(OPNB)  emulator */
 #define BUILD_YM2610B (HAS_YM2610B)		/* build YM2610B(OPNB?)emulator */
-#define BUILD_YM2612  (HAS_YM2612 || HAS_YM3438)		/* build YM2612(OPN2)  emulator */
+#define BUILD_YM2612 1 /* build YM2612(OPN2) emulator */
 
 //#define BUILD_YM2151  (HAS_YM2151)		/* build YM2151(OPM)   emulator */
+
+#define FM_SSG_PRESCALER 0
 
 /* select bit size of output : 8 or 16 */
 #define FM_SAMPLE_BITS 16
 
 /* select timer system internal or external */
-#define FM_INTERNAL_TIMER 0
+#define FM_INTERNAL_TIMER 1
 
 /* --- speedup optimize --- */
 /* busy flag enulation , The definition of FM_GET_TIME_NOW() is necessary. */
-#define FM_BUSY_FLAG_SUPPORT 1
+#define FM_BUSY_FLAG_SUPPORT 0
 
 /* --- external SSG(YM2149/AY-3-8910)emulator interface port */
 /* used by YM2203,YM2608,and YM2610 */
@@ -56,6 +60,7 @@
   /* in timer.c */
   #define FM_GET_TIME_NOW() timer_get_time()
 
+#if 0
 #if BUILD_YM2203
   /* in 2203intf.c */
 void BurnYM2203UpdateRequest(void);
@@ -80,33 +85,25 @@ void BurnYM2612UpdateRequest(void);
   /* in 2151intf.c */
   #define YM2151UpdateReq(chip) YM2151UpdateRequest(chip);
 #endif
+#else
+#define YM2612UpdateReq(chip) (void)0
+#endif
 
 /* compiler dependence */
-#if 0
-#ifndef OSD_CPU_H
-#define OSD_CPU_H
-typedef unsigned char	UINT8;   /* unsigned  8bit */
-typedef unsigned short	UINT16;  /* unsigned 16bit */
-typedef unsigned int	UINT32;  /* unsigned 32bit */
-typedef signed char		INT8;    /* signed  8bit   */
-typedef signed short	INT16;   /* signed 16bit   */
-typedef signed int		INT32;   /* signed 32bit   */
-#endif
-#endif
+typedef uint8_t UINT8; /* unsigned  8bit */
+typedef uint16_t UINT16; /* unsigned 16bit */
+typedef uint32_t UINT32; /* unsigned 32bit */
+typedef int8_t INT8; /* signed  8bit */
+typedef int16_t INT16; /* signed 16bit */
+typedef int32_t INT32; /* signed 32bit */
 
-#ifndef INLINE
-#define INLINE static __inline__
-#endif
-
-
-
-
+#define INLINE static inline
 
 #if (FM_SAMPLE_BITS==16)
 typedef INT16 FMSAMPLE;
 #endif
 #if (FM_SAMPLE_BITS==8)
-typedef unsigned char  FMSAMPLE;
+typedef UINT8 FMSAMPLE;
 #endif
 
 typedef void (*FM_TIMERHANDLER)(int n,int c,int cnt,double stepTime);
