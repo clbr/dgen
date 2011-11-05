@@ -15,7 +15,9 @@
 ///// commented out by starshine
 //#include "driver.h"
 
-///// added by starshine
+#include <stdint.h>
+#include <string.h>
+#include "system.h"
 #include "sn76496.h"
 
 
@@ -62,7 +64,29 @@ struct SN76496
 
 static struct SN76496 sn[MAX_76496];
 
+void SN76496_dump(int chip, uint8_t buf[16])
+{
+	struct SN76496 *R = &sn[chip];
+	uint16_t tmp;
+	unsigned int i;
 
+	for (i = 0; (i < 8); ++i) {
+		tmp = h2le16(R->Register[i]);
+		memcpy(&buf[(i * 2)], &tmp, 2);
+	}
+}
+
+void SN76496_restore(int chip, uint8_t buf[16])
+{
+	struct SN76496 *R = &sn[chip];
+	uint16_t tmp;
+	unsigned int i;
+
+	for (i = 0; (i < 8); ++i) {
+		memcpy(&tmp, &buf[(i * 2)], 2);
+		R->Register[i] = le2h16(tmp);
+	}
+}
 
 void SN76496Write(int chip,int data)
 {

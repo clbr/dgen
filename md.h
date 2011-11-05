@@ -45,11 +45,7 @@ extern "C" {
 #include "fm.h"
 }
 
-extern "C" {
-int SN76496_init(int chip,int clock,int sample_rate,int sample_bits);
-void SN76496Write(int chip,int data);
-void SN76496Update_16(int chip,void *buffer,int length);
-}
+#include "sn76496.h"
 
 extern "C" int test_ctv(unsigned char *dest, int len);
 extern "C" int blur_bitmap_16(unsigned char *dest, int len);
