@@ -111,9 +111,6 @@ bool_show_carthead = no
 bool_sound = yes
 # The sound rate to use.
 int_soundrate = 22050
-# Leave this true for 16-bit sound, but if you're unfortunate enough to have
-# an old 8-bit card make it false.
-bool_16bit = yes
 # Number of sound segments to use for sound buffering. Lower values guarantee
 # low latency. Increment this only if the sound becomes choppy.
 int_soundsegs = 8

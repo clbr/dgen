@@ -391,7 +391,6 @@ struct rc_field {
   { "emu_m68k_startup", emu_m68k, &dgen_emu_m68k },
   { "bool_sound", boolean, &dgen_sound },
   { "int_soundrate", number, &dgen_soundrate },
-  { "bool_16bit", boolean, &dgen_16bit },
   { "int_soundsegs", number, &dgen_soundsegs },
   { "int_soundsamples", number, &dgen_soundsamples },
   { "int_nice", number, &dgen_nice },

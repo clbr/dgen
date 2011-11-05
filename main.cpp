@@ -365,11 +365,10 @@ int main(int argc, char *argv[])
     }
   if(dgen_sound)
     {
-      dgen_16bit = dgen_16bit? PD_SND_16 : PD_SND_8;
       if (dgen_soundsegs < 0)
 	      dgen_soundsegs = 0;
       samples = (dgen_soundsegs * (dgen_soundrate / hz));
-      dgen_sound = pd_sound_init(dgen_16bit, dgen_soundrate, samples);
+      dgen_sound = pd_sound_init(dgen_soundrate, samples);
     }
 
   rom = argv[optind];

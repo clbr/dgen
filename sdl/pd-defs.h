@@ -8,15 +8,6 @@
 // In this file, you should define all the keysyms and audio formats, and
 // if you want to inline any functions, put them in here too. :)
 
-// There are two necessary formats: PD_SND_8, unsigned 8-bit audio, and
-// PD_SND_16, signed 16-bit audio in the same endianness as your CPU.
-#define PD_SND_8 AUDIO_U8
-#ifdef WORDS_BIGENDIAN
-#define PD_SND_16 AUDIO_S16MSB
-#else
-#define PD_SND_16 AUDIO_S16LSB
-#endif
-
 // Now for a grueling list of keysyms. *muahahahahahaha*
 // Seriously, this is tedious, I realise, but don't be discouraged please. :)
 // Just remember I had to do it also.

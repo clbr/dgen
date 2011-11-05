@@ -109,7 +109,6 @@ static int y_scale = dgen_scale;
 // Sound
 static struct {
 	unsigned int rate; // samples rate
-	unsigned int is_16:1; // 1 for 16 bit mode
 	unsigned int samples; // number of samples required by the callback
 	unsigned int size; // buffer size, in bytes
 	volatile unsigned int read; // current read position (bytes)
@@ -1123,14 +1122,18 @@ static void snd_callback(void *, Uint8 *stream, int len)
 }
 
 // Initialize the sound
-int pd_sound_init(long &format, long &freq, unsigned int &samples)
+int pd_sound_init(long &freq, unsigned int &samples)
 {
 	SDL_AudioSpec wanted;
 	SDL_AudioSpec spec;
 
 	// Set the desired format
 	wanted.freq = freq;
-	wanted.format = format;
+#ifdef WORDS_BIGENDIAN
+	wanted.format = AUDIO_S16MSB;
+#else
+	wanted.format = AUDIO_S16LSB;
+#endif
 	wanted.channels = 2;
 	wanted.samples = dgen_soundsamples;
 	wanted.callback = snd_callback;
@@ -1149,18 +1152,8 @@ int pd_sound_init(long &format, long &freq, unsigned int &samples)
 		fprintf(stderr, "sdl: couldn't get stereo audio format.\n");
 		goto snd_error;
 	}
-	switch (spec.format) {
-	case PD_SND_16:
-		sound.is_16 = 1;
-		format = PD_SND_16;
-		break;
-	case PD_SND_8:
-		sound.is_16 = 0;
-		format = PD_SND_8;
-		break;
-	default:
-		fprintf(stderr,
-			"sdl: couldn't get a supported audio format.\n");
+	if (spec.format != wanted.format) {
+		fprintf(stderr, "sdl: unable to get 16-bit audio.\n");
 		goto snd_error;
 	}
 
@@ -1171,7 +1164,7 @@ int pd_sound_init(long &format, long &freq, unsigned int &samples)
 	samples += sound.samples;
 
 	// Calculate buffer size (sample size = (channels * (bits / 8))).
-	sound.size = (samples * ((sound.is_16) ? 4 : 2));
+	sound.size = (samples * (2 * (16 / 8)));
 	sound.read = 0;
 	sound.write = 0;
 
@@ -1221,12 +1214,12 @@ unsigned int pd_sound_rp()
 	SDL_LockAudio();
 	ret = sound.read;
 	SDL_UnlockAudio();
-	return (ret >> (1 << sound.is_16));
+	return (ret >> 2);
 }
 
 unsigned int pd_sound_wp()
 {
-	return (sound.write >> (1 << sound.is_16));
+	return (sound.write >> 2);
 }
 
 // Write contents of sndi to sound.buf
@@ -1235,7 +1228,7 @@ void pd_sound_write()
 	unsigned int i;
 
 	SDL_LockAudio();
-	if (sound.is_16)
+
 		for (i = 0; (i < (unsigned int)sndi.len); ++i) {
 			int16_t tmp[2] = { sndi.l[i], sndi.r[i] };
 
@@ -1246,20 +1239,7 @@ void pd_sound_write()
 			if (sound.write == sound.size)
 				sound.write = 0;
 		}
-	else
-		for (i = 0; (i < (unsigned int)sndi.len); ++i) {
-			uint8_t tmp[2] = {
-				((sndi.l[i] >> 8) | 0x80),
-				((sndi.r[i] >> 8) | 0x80)
-			};
 
-			if (sound.read == sound.write)
-				sound.read = sound.write;
-			memcpy(&sound.buf.u8[sound.write], tmp, sizeof(tmp));
-			sound.write += sizeof(tmp);
-			if (sound.write == sound.size)
-				sound.write = 0;
-		}
 	SDL_UnlockAudio();
 }
 
