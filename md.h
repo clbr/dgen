@@ -131,7 +131,7 @@ typedef struct {
 	uint32_t d[8]; /* D0-D7 */
 	uint32_t a[8]; /* A0-A7 */
 	uint32_t pc;
-	uint32_t sr;
+	uint16_t sr;
 } m68k_state_t;
 
 typedef struct {
