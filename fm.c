@@ -5023,9 +5023,9 @@ int YM2612Write(int n, int a, UINT8 v)
 			break;	/* verified on real YM2608 */
 
 		addr = F2612->OPN.ST.address;
-#ifdef _STATE_H
+/*#ifdef _STATE_H*/
 		F2612->REGS[addr] = v;
-#endif
+/*#endif*/
 		switch( addr & 0xf0 )
 		{
 		case 0x20:	/* 0x20-0x2f Mode */
@@ -5063,9 +5063,9 @@ int YM2612Write(int n, int a, UINT8 v)
 			break;	/* verified on real YM2608 */
 
 		addr = F2612->OPN.ST.address;
-#ifdef _STATE_H
+/*#ifdef _STATE_H*/
 		F2612->REGS[addr | 0x100] = v;
-#endif
+/*#endif*/
 		YM2612UpdateReq(n);
 		OPNWriteReg(&(F2612->OPN),addr | 0x100,v);
 		break;
@@ -5111,4 +5111,33 @@ int YM2612TimerOver(int n,int c)
 	return F2612->OPN.ST.irq;
 }
 
+void YM2612_dump(int num, uint8_t buf[512])
+{
+	YM2612 *F2612 = &(FM2612[num]);
+
+	memcpy(buf, F2612->REGS, 512);
+}
+
+void YM2612_restore(int num, uint8_t buf[512])
+{
+	YM2612 *F2612 = &(FM2612[num]);
+	unsigned int r;
+
+	memcpy(F2612->REGS, buf, 512);
+	/* See YM2612_postload(). */
+	F2612->dacout = ((buf[0x2a] - 0x80) << 6);
+	F2612->dacen  = (buf[0x2d] & 0x80);
+	for (r = 0x30; (r != 0x9e); ++r) {
+		if ((r & 3) == 3)
+			continue;
+		OPNWriteReg(&F2612->OPN, r, buf[r]);
+		OPNWriteReg(&F2612->OPN, (r | 0x100), buf[(r | 0x100)]);
+	}
+	for (r = 0xb0; (r != 0xb6); ++r) {
+		if ((r & 3) == 3)
+			continue;
+		OPNWriteReg(&F2612->OPN, r, buf[r]);
+		OPNWriteReg(&F2612->OPN, (r | 0x100), buf[(r | 0x100)]);
+	}
+}
 #endif /* BUILD_YM2612 */
