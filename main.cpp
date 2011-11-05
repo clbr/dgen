@@ -36,7 +36,6 @@
 // Defined in ras.cpp, and set to true if the Genesis palette's changed.
 extern int pal_dirty;
 
-int sound_is_okay = 0;
 FILE *debug_log = NULL;
 
 // Do a demo frame, if active
@@ -347,6 +346,17 @@ int main(int argc, char *argv[])
   if(optind >= argc)
     help();
 
+	// Start up the sound chips.
+	if (YM2612Init(1, 7520000L, dgen_soundrate, NULL, NULL))
+		goto ym2612_fail;
+	if (SN76496_init(0, 3478000L, dgen_soundrate, 16)) {
+		YM2612Shutdown();
+	ym2612_fail:
+		fprintf(stderr,
+			"main: Couldn't start sound chipset emulators!\n");
+		return 1;
+	}
+
   // Initialize the platform-dependent stuff.
   if (!pd_graphics_init(dgen_sound, pal_mode, hz))
     {
@@ -360,15 +370,6 @@ int main(int argc, char *argv[])
 	      dgen_soundsegs = 0;
       samples = (dgen_soundsegs * (dgen_soundrate / hz));
       dgen_sound = pd_sound_init(dgen_16bit, dgen_soundrate, samples);
-    }
-  // If sound fared OK, start up the sound chips
-  if(dgen_sound)
-    {
-      if(YM2612Init(1, 7520000L, dgen_soundrate, NULL, NULL) ||
-	 SN76496_init(0, 3478000L, dgen_soundrate, 16))
-	fprintf(stderr, "main: Couldn't start sound chipset emulators!\n");
-      else
-	sound_is_okay = 1;
     }
 
   rom = argv[optind];

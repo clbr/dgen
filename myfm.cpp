@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include "md.h"
 
-extern int sound_is_okay;
-
 // md.h also has include fm.h
 
 // REMEMBER NOT TO USE ANY STATIC variables, because they
@@ -21,14 +19,11 @@ int md::flush_fm_to_mame()
   {
     for (r=0;r<0x100;r++)
     {
-      if (sound_is_okay)
-      {
         if (fm_reg[sid][r]!=-1)
         {
           YM2612Write(0,sid*2+0,r); // select reg r
           YM2612Write(0,sid*2+1,fm_reg[sid][r]); // Write data
         }
-      }
     }
   }
 
@@ -66,7 +61,7 @@ int md::myfm_write(int a,int v,int md)
 
   }
 
-  if (sound_is_okay && mame_can_have_it)
+  if (mame_can_have_it)
     YM2612Write(0,a&3,v);
 
   return 0;
@@ -78,14 +73,14 @@ int md::myfm_read(int a)
     return fm_tover[0];
   else
   {
-    if (sound_is_okay) YM2612Read(0,a&3);
+    YM2612Read(0, (a & 3));
   }
   return 0;
 }
 
 int md::mysn_write(int d)
 {
-  if (sound_is_okay) SN76496Write(0,d);
+  SN76496Write(0, d);
   return 0;
 }
 
