@@ -98,6 +98,9 @@ extension isn't known])]
 	)]
 )
 
+dnl Libraries used by dgen_tobin.
+TOBIN_LIBS="${LIBS} ${TOBIN_LIBS}"
+
 dnl Check for SDL libs
 AM_PATH_SDL([1.2.0], [], [AC_MSG_ERROR([SDL version >= 1.2.0 not found.])])
 CFLAGS="$CFLAGS $SDL_CFLAGS"
@@ -206,6 +209,7 @@ AS_IF(
 			[archive],
 			[archive_read_open_FILE],
 			[LIBS="-larchive $LIBS"]
+			[TOBIN_LIBS="-larchive $TOBIN_LIBS"]
 			[USE_LIBARCHIVE=yes],
 			[USE_LIBARCHIVE=no]
 		)],
@@ -452,6 +456,10 @@ AC_ARG_WITH(
 	[WITH_CZ80=yes]
 )
 
+dnl Prevent dgen_tobin from being linked with unnecessary libraries
+DGEN_LIBS="$LIBS"
+LIBS="$TOBIN_LIBS"
+
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
@@ -490,6 +498,7 @@ AC_SUBST(OBJEXT_FOR_BUILD)
 AC_SUBST(EXEEXT_FOR_BUILD)
 AC_SUBST(NASM)
 AC_SUBST(NASM_FORMAT)
+AC_SUBST(DGEN_LIBS)
 
 dnl Done!
 AC_OUTPUT(

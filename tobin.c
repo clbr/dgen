@@ -10,6 +10,7 @@
 #endif
 #include "romload.h"
 
+#undef main /* -Dmain=SDL_main */
 int main(int argc, char *argv[])
 {
 	size_t size;

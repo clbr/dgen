@@ -38,6 +38,7 @@ man_MANS = dgen.1 dgenrc.5 dgen_tobin.1
 EXTRA_DIST = sample.dgenrc
 
 # dgen
+dgen_LDADD += $(DGEN_LIBS)
 dgen_SOURCES =		\
 	rc.h		\
 	rc-vars.h	\
