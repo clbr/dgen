@@ -342,15 +342,16 @@ inline int md::may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int
 
 int md::may_want_to_get_sound(struct sndinfo *sndi)
 {
-  int i, len = sndi->len;
-  int in_dac, cur_dac = 0, acc_dac = len;
+  unsigned int i, len = sndi->len;
+  int in_dac, cur_dac = 0;
+  unsigned int acc_dac = len;
   int *dac = dac_data - 1;
 
   // Get the PSG
-  SN76496Update_16(0, sndi->l, len);
+  SN76496Update_16_2(0, sndi->lr, len);
 
   // We bring in the dac, but stretch it out to fit the real length.
-  for(i = 0; i < len; ++i)
+  for (i = 0; (i != len); ++i)
     {
       acc_dac += LINES_PER_FRAME;
       if(acc_dac >= len)
@@ -359,16 +360,12 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
 	  in_dac = *(++dac);
 	  if(in_dac != 1) cur_dac = in_dac;
 	}
-      sndi->l[i] += cur_dac;
+      sndi->lr[(i << 1)] += cur_dac;
+      sndi->lr[((i << 1) ^ 1)] += cur_dac;
     }
-  // Copy mono signal to center channel
-  memcpy(sndi->r, sndi->l, len * sizeof(short));
 
   // Add in the stereo FM buffer
-  FMSAMPLE *buf[2];
-  buf[0] = (FMSAMPLE *)sndi->l;
-  buf[1] = (FMSAMPLE *)sndi->r;
-  YM2612UpdateOne(0, buf, len);
+  YM2612UpdateOne(0, sndi->lr, len);
 
   // Clear the dac for next frame
   dac_clear();

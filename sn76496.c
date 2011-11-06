@@ -171,7 +171,7 @@ void SN76496_3_w(int offset, int data) { (void)offset; SN76496Write(3, data); }
 
 
 
-void SN76496Update_8(int chip,void *buffer,int length)
+void SN76496Update_8_2(int chip,void *buffer,int length)
 {
 #define DATATYPE unsigned char
 #define DATACONV(A) AUDIO_CONV((A) / (STEP * 256))
@@ -180,7 +180,7 @@ void SN76496Update_8(int chip,void *buffer,int length)
 #undef DATACONV
 }
 
-void SN76496Update_16(int chip,void *buffer,int length)
+void SN76496Update_16_2(int chip,void *buffer,int length)
 {
 #define DATATYPE unsigned short
 #define DATACONV(A) ((A) / STEP)

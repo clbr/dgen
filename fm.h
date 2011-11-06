@@ -207,7 +207,7 @@ int YM2612Init(int num, int baseclock, int rate,
                FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler);
 void YM2612Shutdown(void);
 void YM2612ResetChip(int num);
-void YM2612UpdateOne(int num, INT16 **buffer, int length);
+void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length);
 
 int YM2612Write(int n, int a,unsigned char v);
 unsigned char YM2612Read(int n,int a);

@@ -4736,18 +4736,13 @@ static YM2612 *FM2612=NULL;	/* array of YM2612's */
 static int dacen;
 
 /* Generate samples for one of the YM2612s */
-void YM2612UpdateOne(int num, INT16 **buffer, int length)
+void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
 {
 	YM2612 *F2612 = &(FM2612[num]);
 	FM_OPN *OPN   = &(FM2612[num].OPN);
-	int i;
-	FMSAMPLE  *bufL,*bufR;
+	unsigned int i;
 	INT32 dacout  = F2612->dacout;
 	
-	/* set bufer */
-	bufL = buffer[0];
-	bufR = buffer[1];
-
 	if( (void *)F2612 != cur_chip ){
 		cur_chip = (void *)F2612;
 		State = &OPN->ST;
@@ -4847,8 +4842,8 @@ void YM2612UpdateOne(int num, INT16 **buffer, int length)
 			#endif
 
 			/* buffering */
-			bufL[i] += lt;
-			bufR[i] += rt;
+			*(buffer++) += lt;
+			*(buffer++) += rt;
 		}
 
 		/* timer A control */

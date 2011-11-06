@@ -55,8 +55,12 @@ struct bmap { unsigned char *data; int w,h; int pitch; int bpp; };
 
 // Info passed to render the screen (possibly line by line)
 struct dgen_sinfo { unsigned char *vram,*cram,*vsram,*vdp_reg; };
+
 // New struct, happily encapsulates all the sound info
-struct sndinfo { signed short *l, *r; int len; };
+struct sndinfo {
+	int16_t *lr;
+	unsigned int len; /* number of stereo samples */
+};
 
 int draw_md_graphics
   (struct bmap *bm,unsigned char passpal[256],struct dgen_sinfo *si,

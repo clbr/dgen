@@ -32,8 +32,8 @@ void SN76496_restore(int chip, uint8_t buf[16]);
 void SN76496_set_clock(int chip,int _clock);
 int SN76496_init(int chip, int clock, int sample_rate, int sample_bits);
 void SN76496Write(int chip, int data);
-void SN76496Update_8(int chip,void *buffer, int length);
-void SN76496Update_16(int chip,void *buffer, int length);
+void SN76496Update_8_2(int chip,void *buffer, int length);
+void SN76496Update_16_2(int chip,void *buffer, int length);
 
 SN76496_H_END_
 

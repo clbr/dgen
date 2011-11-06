@@ -107,17 +107,67 @@ static int x_scale = dgen_scale;
 static int y_scale = dgen_scale;
 
 // Sound
+typedef struct {
+	size_t i; /* data start index */
+	size_t s; /* data size */
+	size_t size; /* buffer size */
+	union {
+		uint8_t *u8;
+		int16_t *i16;
+	} data;
+} cbuf_t;
+
 static struct {
 	unsigned int rate; // samples rate
 	unsigned int samples; // number of samples required by the callback
-	unsigned int size; // buffer size, in bytes
-	volatile unsigned int read; // current read position (bytes)
-	volatile unsigned int write; // current write position (bytes)
-	union {
-		uint8_t *volatile u8;
-		int16_t *volatile i16;
-	} buf; // data
+	cbuf_t cbuf; // circular buffer
 } sound;
+
+// Circular buffer management functions
+size_t cbuf_write(cbuf_t *cbuf, uint8_t *src, size_t size)
+{
+	size_t j;
+	size_t k;
+
+	if (size > cbuf->size) {
+		src += (size - cbuf->size);
+		size = cbuf->size;
+	}
+	k = (cbuf->size - cbuf->s);
+	j = ((cbuf->i + cbuf->s) % cbuf->size);
+	if (size > k) {
+		cbuf->i = ((cbuf->i + (size - k)) % cbuf->size);
+		cbuf->s = cbuf->size;
+	}
+	else
+		cbuf->s += size;
+	k = (cbuf->size - j);
+	if (k >= size) {
+		memcpy(&cbuf->data.u8[j], src, size);
+	}
+	else {
+		memcpy(&cbuf->data.u8[j], src, k);
+		memcpy(&cbuf->data.u8[0], &src[k], (size - k));
+	}
+	return size;
+}
+
+size_t cbuf_read(uint8_t *dst, cbuf_t *cbuf, size_t size)
+{
+	if (size > cbuf->s)
+		size = cbuf->s;
+	if ((cbuf->i + size) > cbuf->size) {
+		size_t k = (cbuf->size - cbuf->i);
+
+		memcpy(&dst[0], &cbuf->data.u8[(cbuf->i)], k);
+		memcpy(&dst[k], &cbuf->data.u8[0], (size - k));
+	}
+	else
+		memcpy(&dst[0], &cbuf->data.u8[(cbuf->i)], size);
+	cbuf->i = ((cbuf->i + size) % cbuf->size);
+	cbuf->s -= size;
+	return size;
+}
 
 // Messages
 static struct {
@@ -1106,19 +1156,14 @@ void pd_graphics_update()
 // Callback for sound
 static void snd_callback(void *, Uint8 *stream, int len)
 {
-	int i;
+	size_t wrote;
 
 	// Slurp off the play buffer
-	for (i = 0; (i < len); ++i) {
-		if (sound.read == sound.write) {
-			// Not enough data, fill remaining space with silence.
-			memset(&stream[i], 0, (len - i));
-			break;
-		}
-		stream[i] = sound.buf.u8[(sound.read++)];
-		if (sound.read == sound.size)
-			sound.read = 0;
-	}
+	wrote = cbuf_read(stream, &sound.cbuf, len);
+	if (wrote == (size_t)len)
+		return;
+	// Not enough data, fill remaining space with silence.
+	memset(&stream[wrote], 0, ((size_t)len - wrote));
 }
 
 // Initialize the sound
@@ -1164,19 +1209,18 @@ int pd_sound_init(long &freq, unsigned int &samples)
 	samples += sound.samples;
 
 	// Calculate buffer size (sample size = (channels * (bits / 8))).
-	sound.size = (samples * (2 * (16 / 8)));
-	sound.read = 0;
-	sound.write = 0;
+	sound.cbuf.size = (samples * (2 * (16 / 8)));
+	sound.cbuf.i = 0;
+	sound.cbuf.s = 0;
 
 	fprintf(stderr, "sound: %uHz, %d samples, buffer: %u bytes\n",
-		sound.rate, spec.samples, sound.size);
+		sound.rate, spec.samples, (unsigned int)sound.cbuf.size);
 
-	// Allocate zero-filled play buffers.
-	sndi.l = (int16_t *)calloc(2, (sndi.len * sizeof(sndi.l[0])));
-	sndi.r = &sndi.l[sndi.len];
+	// Allocate zero-filled play buffer.
+	sndi.lr = (int16_t *)calloc(2, (sndi.len * sizeof(sndi.lr[0])));
 
-	sound.buf.i16 = (int16_t *)calloc(1, sound.size);
-	if ((sndi.l == NULL) || (sound.buf.i16 == NULL)) {
+	sound.cbuf.data.i16 = (int16_t *)calloc(1, sound.cbuf.size);
+	if ((sndi.lr == NULL) || (sound.cbuf.data.i16 == NULL)) {
 		fprintf(stderr, "sdl: couldn't allocate sound buffers.\n");
 		goto snd_error;
 	}
@@ -1187,10 +1231,11 @@ int pd_sound_init(long &freq, unsigned int &samples)
 snd_error:
 	// Oops! Something bad happened, cleanup.
 	SDL_CloseAudio();
-	free((void *)sndi.l);
-	sndi.l = NULL;
-	sndi.r = NULL;
-	free((void *)sound.buf.i16);
+	free((void *)sndi.lr);
+	sndi.lr = NULL;
+	sndi.len = 0;
+	free((void *)sound.cbuf.data.i16);
+	sound.cbuf.data.i16 = NULL;
 	memset(&sound, 0, sizeof(sound));
 	return 0;
 }
@@ -1212,34 +1257,28 @@ unsigned int pd_sound_rp()
 	unsigned int ret;
 
 	SDL_LockAudio();
-	ret = sound.read;
+	ret = sound.cbuf.i;
 	SDL_UnlockAudio();
 	return (ret >> 2);
 }
 
 unsigned int pd_sound_wp()
 {
-	return (sound.write >> 2);
-}
-
-// Write contents of sndi to sound.buf
-void pd_sound_write()
-{
-	unsigned int i;
+	unsigned int ret;
 
 	SDL_LockAudio();
+	ret = ((sound.cbuf.i + sound.cbuf.s) % sound.cbuf.size);
+	SDL_UnlockAudio();
+	return (ret >> 2);
+}
 
-		for (i = 0; (i < (unsigned int)sndi.len); ++i) {
-			int16_t tmp[2] = { sndi.l[i], sndi.r[i] };
+// Write contents of sndi to sound.cbuf
+void pd_sound_write()
+{
+	size_t ret;
 
-			if (sound.read == sound.write)
-				sound.read = sound.write;
-			memcpy(&sound.buf.u8[sound.write], tmp, sizeof(tmp));
-			sound.write += sizeof(tmp);
-			if (sound.write == sound.size)
-				sound.write = 0;
-		}
-
+	SDL_LockAudio();
+	ret = cbuf_write(&sound.cbuf, (uint8_t *)sndi.lr, (sndi.len * 4));
 	SDL_UnlockAudio();
 }
 
@@ -1952,14 +1991,13 @@ void pd_quit()
 		free((void*)mdscr.data);
 		mdscr.data = NULL;
 	}
-	if (sound.buf.i16 != NULL) {
+	if (sound.cbuf.data.i16 != NULL) {
 		SDL_CloseAudio();
-		free((void *)sound.buf.i16);
-		memset(&sound, 0, sizeof(sound));
+		free((void *)sound.cbuf.data.i16);
 	}
-	free((void*)sndi.l);
-	sndi.l = NULL;
-	sndi.r = NULL;
+	memset(&sound, 0, sizeof(sound));
+	free((void*)sndi.lr);
+	sndi.lr = NULL;
 	if (mdpal) {
 		free((void*)mdpal);
 		mdpal = NULL;
