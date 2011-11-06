@@ -254,11 +254,6 @@ static void cz80_iowrite(uint16_t a, uint8_t d)
 
 extern FILE *debug_log;
 
-extern "C"
-{
-  int mega_dacout=0,mega_dacen=0;
-}
-
 #ifdef WITH_STAR
 int md::memory_map()
 {
