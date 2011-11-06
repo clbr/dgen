@@ -1417,6 +1417,7 @@ static int stop_events(md &megad, int gg)
 #endif
 	stopped = 1;
 	SDL_PauseAudio(1);
+gg:
 	if (gg) {
 		size_t len;
 
@@ -1435,6 +1436,11 @@ static int stop_events(md &megad, int gg)
 	while (SDL_WaitEvent(&event)) {
 		switch (event.type) {
 		case SDL_KEYDOWN:
+			if ((gg == 0) &&
+			    (event.key.keysym.sym == dgen_game_genie)) {
+				gg = 2;
+				goto gg;
+			}
 			if (gg)
 				switch (kb_input(&input, &event.key.keysym)) {
 					unsigned int errors;
@@ -1447,15 +1453,27 @@ static int stop_events(md &megad, int gg)
 						    &applied,
 						    &reverted);
 					if (errors)
-						pd_message("Invalid code.");
+						strncpy(buf, "Invalid code.",
+							sizeof(buf));
 					else if (reverted)
-						pd_message("Reverted.");
-					else
-						pd_message("Applied.");
-					goto resume;
-				case KB_INPUT_ABORTED:
-					pd_message("Aborted.");
-					goto resume;
+						strncpy(buf, "Reverted.",
+							sizeof(buf));
+					else if (applied)
+						strncpy(buf, "Applied.",
+							sizeof(buf));
+					else {
+					case KB_INPUT_ABORTED:
+						strncpy(buf, "Aborted.",
+							sizeof(buf));
+					}
+					if (gg == 2) {
+						// Return to stopped mode.
+						gg = 0;
+						stop_events_msg(buf);
+						continue;
+					}
+					pd_message(buf);
+					goto gg_resume;
 				case KB_INPUT_CONSUMED:
 					stop_events_msg(buf);
 					continue;
@@ -1480,6 +1498,8 @@ static int stop_events(md &megad, int gg)
 	// SDL_WaitEvent only returns zero on error :(
 	fprintf(stderr, "sdl: SDL_WaitEvent broke: %s!", SDL_GetError());
 resume:
+	pd_message("RUNNING.");
+gg_resume:
 #ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
 	if (fullscreen)
 		SDL_WM_ToggleFullScreen(screen);
