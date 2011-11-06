@@ -235,7 +235,7 @@ private:
   int dac_data[0x138], dac_enabled, dac_last;
   // Since dac values are normally shifted << 6, 1 is used to mark unchanged
   // values.
-  void dac_init() { dac_last = 1; dac_enabled = 0; dac_clear(); }
+  void dac_init() { dac_last = 1; dac_enabled = 1; dac_clear(); }
   void dac_clear() {
     dac_data[0] = dac_last;
     for(int i = 1; i < 0x138; ++i)

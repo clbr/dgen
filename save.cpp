@@ -400,6 +400,8 @@ int md::import_gst(FILE *hand)
 	memcpy(vdp.vram, &(*buf)[0x12478], 0x10000);
 	/* Mark everything as changed */
 	memset(vdp.dirt, 0xff, 0x35);
+	/* Initialize DAC */
+	dac_init();
 	free(buf);
 	return 0;
 }
