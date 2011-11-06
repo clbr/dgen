@@ -1715,7 +1715,7 @@ int pd_handle_events(md &megad)
 			snprintf(buf, sizeof(buf),
 				 "Video resized to %dx%d.\n",
 				 event.resize.w, event.resize.h);
-		pd_message_postpone(buf);
+		stop_events_msg(buf);
 		break;
 	}
 	case SDL_KEYUP:
