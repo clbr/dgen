@@ -250,7 +250,7 @@ int SN76496_init(int chip,int clock,int sample_rate,int sample_bits)
     //R->Channel = stream_init(msound,
     //        name,sample_rate,sample_bits,
     //        chip,(sample_bits == 16) ? SN76496Update_16 : SN76496Update_8);
-    
+
     if (R->Channel == -1)
         return 1;
 

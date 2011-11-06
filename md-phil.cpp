@@ -62,7 +62,7 @@ void md::init_joysticks() {
 #ifdef JSIOCGNAME
     char name [130];
     bzero (name, 128);
-    if (ioctl (js_fd [0], JSIOCGNAME(128), name) > 0) 
+    if (ioctl (js_fd [0], JSIOCGNAME(128), name) > 0)
     {
         printf ("Using %s (%s) as pad1", name, js_device [0]);
         if (js_fd [1] > 0)
@@ -70,7 +70,7 @@ void md::init_joysticks() {
 	    ioctl (js_fd [1], JSIOCGNAME(128), name);
 	    printf ("and %s (%s) as pad2", name, js_device [1]);
 	}
-    } 
+    }
     else
 
 #endif // JSIOCGNAME
@@ -86,7 +86,7 @@ void md::init_joysticks() {
 	}
     }
     puts (".");
-    
+
 #endif // JSIOCGVERSION
 }
 
@@ -107,38 +107,38 @@ void md::read_joysticks()
 		{
 		    if(js_ev.value < -16384)
 		    {
-			pad[i] &= ~MD_LEFT_MASK; 
+			pad[i] &= ~MD_LEFT_MASK;
 			pad[i] |= MD_RIGHT_MASK;
 			break;
 		    }
 		    if (js_ev.value > 16384)
 		    {
 			pad[i] |= MD_LEFT_MASK;
-			pad[i] &= ~MD_RIGHT_MASK; 
+			pad[i] &= ~MD_RIGHT_MASK;
 			break;
 		    }
 		    pad[i] |= MD_LEFT_MASK;
 		    pad[i] |= MD_RIGHT_MASK;
-		    break;	
+		    break;
 		}
 
 		if (js_ev.number == 1)
 		{
 		    if (js_ev.value < -16384)
 		    {
-			pad[i] &= ~MD_UP_MASK; 
+			pad[i] &= ~MD_UP_MASK;
 			pad[i] |= MD_DOWN_MASK;
 			break;
 		    }
 		    if (js_ev.value > 16384)
 		    {
 			pad[i] |= MD_UP_MASK;
-			pad[i] &= ~MD_DOWN_MASK; 
+			pad[i] &= ~MD_DOWN_MASK;
 			break;
 		    }
 		    pad[i] |= MD_UP_MASK;
 		    pad[i] |= MD_DOWN_MASK;
-		    break;	
+		    break;
 		}
 
 		break;

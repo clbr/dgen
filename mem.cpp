@@ -343,7 +343,7 @@ void md::misc_writeword(unsigned a,unsigned d)
     if (coo_waiting)
     {
       // Okay completed the vdp command
-      coo_cmd|=d; coo_waiting=0; 
+      coo_cmd|=d; coo_waiting=0;
 
       vdp.command(coo_cmd);
       return;

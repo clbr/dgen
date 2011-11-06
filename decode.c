@@ -2,7 +2,7 @@
  * The Game Genie code is made of the characters
  * ABCDEFGHJKLMNPRSTVWXYZ0123456789 (notice the missing I, O, Q and U).
  * Where A = 00000, B = 00001, C = 00010, ... , on to 9 = 11111.
- * 
+ *
  * These come out to a very scrambled bit pattern like this:
  * (SCRA-MBLE is just an example)
  *
@@ -142,7 +142,7 @@ void decode(const char* code, struct patch* result)
 
   /* Initialize the result */
   result->addr = result->data = 0;
-  
+
   /* If it's 9 chars long and the 5th is a hyphen, we have a Game Genie
    * code. */
   if(len == 9 && code[4] == '-')

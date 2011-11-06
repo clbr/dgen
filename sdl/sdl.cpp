@@ -455,7 +455,7 @@ retry:
 				out[x][0] = rgb[2];
 				out[x][1] = rgb[1];
 				out[x][2] = rgb[0];
-			}				
+			}
 			fwrite(out, sizeof(out), 1, fp);
 #else
 			fwrite(line.u8, sizeof(out), 1, fp);
@@ -828,7 +828,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	    return 0;
 	  }
       }
-  
+
   // Set up the MegaDrive screen
 #ifdef WITH_OPENGL
   if(opengl)
@@ -873,7 +873,7 @@ void pd_graphics_palette_update()
 }
 
 #ifdef WITH_OPENGL
-static inline void update_textures_16() 
+static inline void update_textures_16()
 {
 	unsigned int i;
 
@@ -921,7 +921,7 @@ static void pd_message_postpone(const char *msg);
 
 // Update screen
 // This code is fairly transmittable to any linear display, just change p to
-// point to your favorite raw framebuffer. ;) But planar buffers are a 
+// point to your favorite raw framebuffer. ;) But planar buffers are a
 // completely different deal...
 // Anyway, feel free to use it in your implementation. :)
 void pd_graphics_update()
@@ -937,7 +937,7 @@ void pd_graphics_update()
   // Frame number, even or odd?
   ++f;
 #endif
-  
+
   // If you need to do any sort of locking before writing to the buffer, do so
   // here.
   if(SDL_MUSTLOCK(screen))
@@ -1152,7 +1152,7 @@ void pd_graphics_update()
 #endif
     SDL_UpdateRect(screen, 0, 0, xs, ys);
 }
-  
+
 // Callback for sound
 static void snd_callback(void *, Uint8 *stream, int len)
 {

@@ -27,7 +27,7 @@ extern void mmx_memcpy(void *, void *, size_t);
 #define memcpy(a, b, c) asm_memcpy(a, b, c)
 extern void asm_memcpy(void *, void *, size_t);
 
-#endif 
+#endif
 
 END_C_DECL
 

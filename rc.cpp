@@ -224,7 +224,7 @@ static long keysym(const char *code)
     }
     break;
   }
-  
+
   do {
     if(!strcasecmp(s->name, code)) return r |= s->keysym;
   } while ((++s)->name);
@@ -492,7 +492,7 @@ parse:
 			fprintf(stderr, "rc: %s:%u:%u: key field too large\n",
 				name, ckvp.line, ckvp.column);
 			rc_field = NULL;
-			overflow = 0;	
+			overflow = 0;
 			break;
 		}
 		/* Find the related rc_field in rc_fields */

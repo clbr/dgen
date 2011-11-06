@@ -150,7 +150,7 @@ int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Fill the sound buffers
   if(sndi) may_want_to_get_sound(sndi);
-  
+
   // Shut off mz80/star - VERY IMPORTANT!
   star_mz80_off();
 
@@ -243,7 +243,7 @@ int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinf
 
   // Fill the sound buffers
   if(sndi) may_want_to_get_sound(sndi);
-  
+
   // Shut off mz80/star - VERY IMPORTANT!
   star_mz80_off();
 

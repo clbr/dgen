@@ -1,4 +1,4 @@
-/* 
+/*
    Simple parser for "key = value" text files, by zamaz.
 
    Can also manage the following weird cases:

@@ -70,7 +70,7 @@ enum {
 
 size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 {
-	/* 
+	/*
 	   State machine definition:
 
 	   st[current_state][current_character] = next state | action

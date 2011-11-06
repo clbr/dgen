@@ -156,7 +156,7 @@ void md_load(md& megad)
 	snprintf(temp, sizeof(temp), "Loaded state from slot %d.", slot);
 	pd_message(temp);
 }
- 
+
 // Load/save states from file
 static void ram_save(md& megad)
 {
@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
   // BeOS snooze() sleeps in milliseconds, not microseconds
   dgen_nice /= 1000;
 #endif
-  
+
   // There should be a romname after all those options. If not, show help and
   // exit.
   if(optind >= argc)
@@ -404,7 +404,7 @@ int main(int argc, char *argv[])
   megad.reset();
   // Set PAL mode
   megad.pal = pal_mode;
-  
+
   // Load up save RAM
   ram_load(megad);
   // If autoload is on, load save state 0
@@ -523,5 +523,5 @@ int main(int argc, char *argv[])
   YM2612Shutdown();
 
   // Come back anytime :)
-  return 0; 
+  return 0;
 }

@@ -20,7 +20,7 @@
 
   xsize = sizes[ reg[16]       & 3] << 1;
   ysize = sizes[(reg[16] >> 4) & 3];
-  
+
 #if PLANE == 0
   yscroll = get_word(vsram);
   scrolls = vram + ((reg[13]<<10) & 0xfc00);

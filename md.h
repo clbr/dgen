@@ -20,7 +20,7 @@ extern "C" {
 }
 #endif
 #endif
-	
+
 #ifdef WITH_MUSA
 #ifndef M68K__HEADER
 extern "C"
@@ -169,7 +169,7 @@ private:
   friend void cpu_setOPbase24(int pc);
 #endif
   int romlen;
-  int ok; 
+  int ok;
   unsigned char *mem,*rom,*ram,*z80ram;
   // Saveram stuff:
   unsigned char *saveram; // The actual saveram buffer
@@ -220,7 +220,7 @@ private:
   int may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int mark);
   int may_want_to_get_sound(struct sndinfo *sndi);
   int z80_int_pending;
-  
+
   void run_to_odo_star(int odo_to);
   void run_to_odo_musa(int odo_to);
   void run_to_odo_m68kem(int odo_to);
@@ -241,14 +241,14 @@ private:
     for(int i = 1; i < 0x138; ++i)
       dac_data[i] = 1;
   }
-  void dac_submit(int d) { 
+  void dac_submit(int d) {
     dac_last = (d - 0x80) << 6; if(dac_enabled) dac_data[ras] = dac_last;
   }
   void dac_enable(int d) {
     dac_enabled = d & 0x80;
     dac_data[ras] = (dac_enabled? dac_last : 1);
   }
-  
+
 public:
   int myfm_write(int a,int v,int md);
   int flush_fm_to_mame();
@@ -361,7 +361,7 @@ public:
   int has_save_ram();
   int get_save_ram(FILE *from);
   int put_save_ram(FILE *into);
-  
+
   // Added by Phillip K. Hornung <redx@pknet.com>
   // Linux joystick initialization and handling routines
   void init_joysticks();

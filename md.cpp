@@ -58,13 +58,13 @@ extern "C" {
 			return which->misc_readword(a);
 		return 0;
 	}
-  
+
 	unsigned root_readlong(unsigned a, unsigned d)
 	{
 		return ((root_readword(a, d) << 16) +
 			root_readword((a + 2), d));
 	}
-  
+
 	unsigned root_writebyte(unsigned a, unsigned d)
 	{
 		if (which)
@@ -78,7 +78,7 @@ extern "C" {
 			which->misc_writeword(a, d);
 		return 0;
 	}
-  
+
 	unsigned root_writelong(unsigned a, unsigned d)
 	{
 		root_writeword(a, ((d >> 16) & 0xffff));
@@ -488,7 +488,7 @@ int md::z80_init()
 
 md::md()
 {
-  romlen=0; 
+  romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
 
@@ -600,7 +600,7 @@ md::md()
 
 #ifdef WITH_MUSA
    m68k_pulse_reset();
-#endif 
+#endif
 
 #ifdef WITH_M68KEM
   m68000_reset(NULL);
@@ -665,10 +665,10 @@ int md::plug_in(unsigned char *cart,int len)
   // First check magic, if there is saveram
   if(rom[0x1b1] == 'R' && rom[0x1b0] == 'A')
     {
-      save_start = rom[0x1b5] << 24 | rom[0x1b4] << 16 | 
+      save_start = rom[0x1b5] << 24 | rom[0x1b4] << 16 |
                    rom[0x1b7] << 8  | rom[0x1b6];
       save_len = rom[0x1b9] << 24 | rom[0x1b8] << 16 |
-  	         rom[0x1bb] << 8  | rom[0x1ba];
+                 rom[0x1bb] << 8  | rom[0x1ba];
       // Make sure start is even, end is odd, for alignment
 // A ROM that I came across had the start and end bytes of
 // the save ram the same and wouldn't work.  Fix this as seen

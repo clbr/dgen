@@ -47,7 +47,7 @@ int pal_dirty;
 static inline int get_word(unsigned char *where)
   { return (int)(*(unsigned short*)where); }
 #else
-static inline int get_word(unsigned char *where) 
+static inline int get_word(unsigned char *where)
   { return (where[0] << 8) | where[1]; }
 #endif
 
@@ -94,7 +94,7 @@ extern "C" {
 void asm_tiles_init(unsigned char *vram,
 		    unsigned char *reg,
 		    unsigned *highpal);
-  
+
 void drawtile1(int which, int line, unsigned char *where);
 void drawtile1_solid(int which, int line, unsigned char *where);
 void drawtile2(int which, int line, unsigned char *where);
@@ -168,7 +168,7 @@ inline void md_vdp::draw_tile1_solid(int which, int line, unsigned char *where)
       *(where+6) = ((tile & PIXEL6)>>SHIFT6) | pal;
       *(where+7) = ((tile & PIXEL7)>>SHIFT7) | pal;
     }
-} 
+}
 
 // Blit tile, leaving color zero transparent, for 1 byte per pixel
 inline void md_vdp::draw_tile1(int which, int line, unsigned char *where)
@@ -208,7 +208,7 @@ inline void md_vdp::draw_tile1(int which, int line, unsigned char *where)
       if(tile & PIXEL6) *(where+6) = ((tile & PIXEL6)>>SHIFT6) | pal;
       if(tile & PIXEL7) *(where+7) = ((tile & PIXEL7)>>SHIFT7) | pal;
     }
-} 
+}
 
 // Blit tile solidly, for 2 byte-per-pixel
 inline void md_vdp::draw_tile2_solid(int which, int line, unsigned char *where)
@@ -250,7 +250,7 @@ inline void md_vdp::draw_tile2_solid(int which, int line, unsigned char *where)
     }
   // Restore the original color
   *pal = temp;
-} 
+}
 
 // Blit tile, leaving color zero transparent, for 2 byte per pixel
 inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
@@ -291,7 +291,7 @@ inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
       if(tile & PIXEL6) *(wwhere+6) = pal[((tile & PIXEL6)>>SHIFT6)];
       if(tile & PIXEL7) *(wwhere+7) = pal[((tile & PIXEL7)>>SHIFT7)];
     }
-} 
+}
 
 inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
 {
@@ -430,7 +430,7 @@ inline void md_vdp::draw_tile4_solid(int which, int line, unsigned char *where)
     }
   // Restore the original color
   *pal = temp;
-} 
+}
 
 // Blit tile, leaving color zero transparent, for 4 byte per pixel
 inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
@@ -471,7 +471,7 @@ inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
       if(tile & PIXEL6) *(wwhere+6) = pal[((tile & PIXEL6)>>SHIFT6)];
       if(tile & PIXEL7) *(wwhere+7) = pal[((tile & PIXEL7)>>SHIFT7)];
     }
-} 
+}
 #endif // WITH_X86_TILES
 
 // Draw the window (front or back)
@@ -554,7 +554,7 @@ void md_vdp::draw_sprites(int line, int front)
 
 	  // Narrow mode?
 	  if(!(reg[12] & 1)) x += 32;
-	  
+
 	  xend = ((sprite[2] << 1) & 0x18) + x;
 	  ysize = sprite[2] & 0x3;
 
@@ -588,7 +588,7 @@ void md_vdp::draw_sprites(int line, int front)
 		      which += ysize;
 		      where += Bpp_times8;
 		    }
-		} 
+		}
 	    }
 	}
     }
@@ -671,19 +671,19 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 	case 32:
 	  for(i = 0; i < 128; i += 2)
 	    *ptr++ = ((cram[i+1]&0x0e) << 20) |
-	    	     ((cram[i+1]&0xe0) << 8 ) |
+		     ((cram[i+1]&0xe0) << 8 ) |
 		     ((cram[i]  &0x0e) << 4 );
 	  break;
 	case 16:
 	  for(i = 0; i < 128; i += 2)
 	    *ptr++ = ((cram[i+1]&0x0e) << 12) |
-	    	     ((cram[i+1]&0xe0) << 3 ) |
+		     ((cram[i+1]&0xe0) << 3 ) |
 		     ((cram[i]  &0x0e) << 1 );
 	  break;
 	case 15:
 	  for(i = 0; i < 128; i += 2)
 	    *ptr++ = ((cram[i+1]&0x0e) << 11) |
-	    	     ((cram[i+1]&0xe0) << 2 ) |
+		     ((cram[i+1]&0xe0) << 2 ) |
 		     ((cram[i]  &0x0e) << 1 );
 	  break;
 	case 8:

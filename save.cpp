@@ -267,7 +267,7 @@ end of VRAM
   Gens and Kega ADD
   -----------------
   00040 : last VDP Control data written (DWORD)
-  00044 : second write flag (1 for second write) 
+  00044 : second write flag (1 for second write)
   00045 : DMA Fill flag (1 mean next data write will cause a DMA fill)
   00048 : VDP write address (DWORD)
 
@@ -421,7 +421,7 @@ int md::export_gst(FILE *hand)
 	/* Version */
 	(*buf)[0x50] = 5;
 	/* Emulator ID */
-	(*buf)[0x51] = 9; 
+	(*buf)[0x51] = 9;
 	/* System ID */
 	(*buf)[0x52] = 0;
 	/* PSG registers (8x16-bit, 16 bytes) */
@@ -466,7 +466,7 @@ int md::export_gst(FILE *hand)
 	p = &(*buf)[0x434];
 	p[0] = z80_state.i;
 	p[1] = z80_state.r;
-	p[2] = ((z80_state.iff >> 1) | z80_state.iff); 
+	p[2] = ((z80_state.iff >> 1) | z80_state.iff);
 	p[3] = z80_state.im;
 	/* Z80 state (8 bytes) */
 	p = &(*buf)[0x438];

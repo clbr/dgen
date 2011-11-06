@@ -8,7 +8,7 @@
 
 // These are my (Joe's) functions added to the md class.
 
-// This takes a comma or whitespace-separated list of Game Genie and/or hex 
+// This takes a comma or whitespace-separated list of Game Genie and/or hex
 // codes to patch the ROM with.
 int md::patch(const char *list, unsigned int *errors,
 	      unsigned int *applied, unsigned int *reverted)
@@ -57,7 +57,7 @@ int md::patch(const char *list, unsigned int *errors,
 	    prev->next = elem->next;
 	  else
 	    patch_elem = NULL;
-	  free(elem);		  
+	  free(elem);
 	  rev = 1;
 	  break;
 	}

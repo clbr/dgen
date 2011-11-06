@@ -102,14 +102,14 @@ int md_vdp::poke_cram(int addr,unsigned char d)
     int byt,bit;
     byt=addr; bit=byt&7; byt>>=3; byt&=0x0f;
     dirt[0x20+byt]|=(1<<bit); dirt[0x34]|=2;
-    cram[addr]=d; 
+    cram[addr]=d;
   }
 
   return 0;
 }
 int md_vdp::poke_vsram(int addr,unsigned char d)
 {
-//  int diff=0; 
+//  int diff=0;
   addr&=0x007f;
   if (vsram[addr]!=d)
   { dirt[0x34]|=4; vsram[addr]=d; }
