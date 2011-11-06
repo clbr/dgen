@@ -1275,10 +1275,8 @@ unsigned int pd_sound_wp()
 // Write contents of sndi to sound.cbuf
 void pd_sound_write()
 {
-	size_t ret;
-
 	SDL_LockAudio();
-	ret = cbuf_write(&sound.cbuf, (uint8_t *)sndi.lr, (sndi.len * 4));
+	cbuf_write(&sound.cbuf, (uint8_t *)sndi.lr, (sndi.len * 4));
 	SDL_UnlockAudio();
 }
 
