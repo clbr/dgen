@@ -4816,7 +4816,7 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
 		}
 
 		{
-			int lt,rt;
+			int32_t lt, rt;
 
 			lt  = ((out_fm[0]>>0) & OPN->pan[0]);
 			rt  = ((out_fm[0]>>0) & OPN->pan[1]);
@@ -4841,9 +4841,18 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
 				SAVE_ALL_CHANNELS
 			#endif
 
-			/* buffering */
-			*(buffer++) += lt;
-			*(buffer++) += rt;
+			/* Mix with buffer. */
+			lt += *buffer;
+			/* Make it louder. */
+			lt = ((lt * 3) >> 1);
+			/* Hard clipping for signed 16-bit output. */
+			lt = ((abs(lt + 32767) - abs(lt - 32767)) >> 1);
+			*(buffer++) = lt;
+
+			rt += *buffer;
+			rt = ((rt * 3) >> 1);
+			rt = ((abs(rt + 32767) - abs(rt - 32767)) >> 1);
+			*(buffer++) = rt;
 		}
 
 		/* timer A control */
