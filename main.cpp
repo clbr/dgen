@@ -86,13 +86,13 @@ static void help()
   "    -v              Print version number and exit.\n"
   "    -r RCFILE       Read in the file RCFILE after parsing\n"
   "                    $HOME/.dgen/dgenrc.\n"
-  "    -n USEC         Cuses dgen to sleep USEC microseconds per frame, to be\n"
-  "                    nice to other processes.\n"
+  "    -n USEC         Causes DGen to sleep USEC microseconds per frame, to\n"
+  "                    be nice to other processes.\n"
   "    -p CODE,CODE... Takes a comma-delimited list of Game Genie (ABCD-EFGH)\n"
   "                    or Hex (123456:ABCD) codes to patch the ROM with.\n"
 #if !defined(__BEOS__) && !defined(__MINGW32__)
   "    -R              Set realtime priority -20, so no other processes may\n"
-  "                    interrupt. dgen definitely needs root priviledges for\n"
+  "                    interrupt. DGen definitely needs root priviledges for\n"
   "                    this.\n"
 #endif
   "    -P              Use PAL mode (50Hz) instead of normal NTSC (60Hz).\n"
