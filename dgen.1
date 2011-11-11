@@ -1,11 +1,12 @@
-.Dd October 23, 2011
+.Dd November 11, 2011
 .Dt DGEN 1
 .Sh NAME
 .Nm dgen	
 .Nd Sega Genesis/Mega Drive emulator
 .Sh SYNOPSIS
 .Nm dgen
-.Op Fl PRfhjv
+.Op Fl Pfhjv
+.Op Fl R Ar (J|U|E)
 .Op Fl H Ar HZ
 .Op Fl D Ar DEMONAME
 .Op Fl d Ar DEMONAME
@@ -33,13 +34,34 @@ should be in raw binary or SMD format, and may be compressed with
 .Pp
 The options are as follows:
 .Bl -tag -width Fl
-.It Fl P
-Emulate 50Hz PAL mode (as used in European models of the Mega Drive).
 .It Fl H Ar HZ
 Use a custom frame rate, can be used to accelerate or slow down emulation.
-.It Fl R
-If running with root priviledges, set priority to -20, so no other processes
-interrupt (including the X server, which can be a Bad Thing).
+.It Fl P
+Emulate 50Hz PAL mode (as used in European models of the Mega Drive).
+.It Fl R Ar (J|U|E)
+Emulator region. Without this option, DGen uses the first region mentioned in
+the ROM header. It should be combined with
+.Fl P
+for PAL mode. See below.
+.Bl -tag -width Fl
+.It (none)
+Autodetect (NTSC, 60Hz)
+.It Fl P
+Autodetect (PAL, 50Hz)
+.It Fl R Ar J
+Japan (NTSC, 60Hz)
+.It Fl R Ar J Fl P
+Japan (PAL, 50Hz)
+.It Fl R Ar E
+Europe (NTSC, 60Hz, music will certainly play too fast)
+.It Fl R Ar E Fl P
+Europe (PAL, 50Hz)
+.It Fl R Ar U
+America (NTSC, 60Hz)
+.It Fl R Ar U Fl P
+Same as
+.Fl R Ar E Fl P
+.El
 .It Fl f 
 Run fullscreen, if possible.
 .It Fl h

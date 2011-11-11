@@ -9,8 +9,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #ifndef __MINGW32__
-#include <sys/resource.h>
-#include <sys/wait.h>
 #include <netinet/in.h>
 #else
 #include <winsock2.h>
@@ -90,11 +88,7 @@ static void help()
   "                    be nice to other processes.\n"
   "    -p CODE,CODE... Takes a comma-delimited list of Game Genie (ABCD-EFGH)\n"
   "                    or Hex (123456:ABCD) codes to patch the ROM with.\n"
-#if !defined(__BEOS__) && !defined(__MINGW32__)
-  "    -R              Set realtime priority -20, so no other processes may\n"
-  "                    interrupt. DGen definitely needs root priviledges for\n"
-  "                    this.\n"
-#endif
+  "    -R (J|U|E)      Force emulator region. This does not affect -P.\n"
   "    -P              Use PAL mode (50Hz) instead of normal NTSC (60Hz).\n"
   "    -H HZ           Use a custom frame rate.\n"
   "    -d DEMONAME     Record a demo of the game you are playing.\n"
@@ -205,6 +199,7 @@ int main(int argc, char *argv[])
   enum demo_status demo_status = DEMO_OFF;
   unsigned int samples;
   unsigned int hz = 60;
+  char region = '\0';
 
 	// Parse the RC file
 	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
@@ -226,7 +221,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "rc: %s: %s\n", DGEN_RC, strerror(errno));
 
   // Check all our options
-  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:RPH:jd:D:", pd_options);
+  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:R:PH:jd:D:", pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
     {
       switch(c)
@@ -261,19 +256,22 @@ int main(int argc, char *argv[])
 	  patches = optarg;
 	  break;
 	case 'R':
-#if !defined(__BEOS__) && !defined(__MINGW32__)
-	  // Try to set realtime priority
-	  if(geteuid()) {
-	    fprintf(stderr, "main: Only root can set lower priorities!\n");
-	    break;
-	  }
-	  if(setpriority(PRIO_PROCESS, 0, -20) == -1)
-	    perror("main: setpriority");
-	  break;
-#else
-	  help();
-	  break;
-#endif
+		// Region selection
+		if (strlen(optarg) != 1)
+			goto bad_region;
+		switch (optarg[0] | 0x20) {
+		case 'u':
+		case 'j':
+		case 'e':
+			break;
+		default:
+		bad_region:
+			fprintf(stderr, "main: invalid region `%s'.\n",
+				optarg);
+			return EXIT_FAILURE;
+		}
+		region = (optarg[0] & ~(0x20));
+		break;
 	case 'P':
 		// PAL mode
 		hz = 50;
@@ -378,7 +376,7 @@ int main(int argc, char *argv[])
   rom = argv[optind];
 
   // Create the megadrive object
-  md megad;
+  md megad(region);
   if(!megad.okay())
     {
       fprintf(stderr, "main: Megadrive init failed!\n");

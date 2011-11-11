@@ -159,29 +159,29 @@ unsigned md::misc_readbyte(unsigned a)
     goto end;
   }
 
-  if (a==0xa10001)
-  {
-    // overseas/pal/disk/0/ md version (0-f) - may make games act different!
-    if ((country_ver&0xff0)==0xff0)
-    {
-      // autodetect country
-      int headcode=0x80,avail=0;
-      int i;
-      for (i=0;i<3;i++)
-      {
-        int ch=misc_readbyte(0x1f0+i);
-             if (ch=='U') avail|=1;
-        else if (ch=='E') avail|=2;
-        else if (ch=='J') avail|=4;
-      }
-           if (avail&1) headcode=0x80;
-      else if (avail&2) headcode=0x80;
-      else if (avail&4) headcode=0x00;
-	   ret = ((headcode + (country_ver & 0x0f)) | (pal ? 0x40 : 0));
-    }
-    else ret=country_ver;
-    goto end;
-  }
+	if (a == 0xa10001) {
+		char c = region;
+
+		if (c == '\0') {
+			// The region to emulate hasn't been defined, get it
+			// from the ROM header.
+			c = misc_readbyte(0x1f0);
+		}
+		switch (c) {
+		case 'U':
+			ret = 0x80;
+			break;
+		case 'E':
+			ret = (0x80 | 0x40); /* Force PAL flag. */
+			break;
+		case 'J':
+		default:
+			ret = 0x00;
+			break;
+		}
+		ret = (ret | (pal ? 0x40 : 0x00));
+		goto end;
+	}
 
   if (a==0xa11000) {ret=0xff; goto end; }
   if (a==0xa11001) {ret=0xff; goto end; }

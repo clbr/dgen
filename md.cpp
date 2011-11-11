@@ -481,7 +481,7 @@ int md::z80_init()
 }
 
 
-md::md()
+md::md(char region)
 {
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
@@ -509,7 +509,8 @@ md::md()
   Cz80_Init(&cz80);
 #endif
 
-  country_ver=0xff0; layer_sel = 0xff;
+  md::region = region;
+  layer_sel = 0xff;
 
   memset(romname, 0, sizeof(romname));
 

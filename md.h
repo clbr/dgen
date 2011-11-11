@@ -274,7 +274,7 @@ public:
     char countries[0x10];             // Country code
   } cart_head;
   int snd_mute; // &1=fm &2=psg &4=dac
-  int country_ver;
+  char region; // Emulator region.
   int pal; // 0 = NTSC 1 = PAL
   int one_frame_star(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
   int one_frame_musa(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
@@ -287,7 +287,7 @@ public:
 // invblank, inhblank, dma busy, pal
   unsigned char coo4,coo5;
   int okay() {return ok;}
-  md();
+  md(char region);
   ~md();
   int plug_in(unsigned char *cart,int len);
   int unplug();
