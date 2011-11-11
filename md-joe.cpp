@@ -34,6 +34,8 @@ int md::patch(const char *list, unsigned int *errors,
     {
       struct patch_elem *elem = patch_elem;
       struct patch_elem *prev = NULL;
+      uint8_t *dest = rom;
+      size_t mask = ~(size_t)0;
       int rev = 0;
 
       // If it's empty, toss it
@@ -41,14 +43,19 @@ int md::patch(const char *list, unsigned int *errors,
       // Decode it
       decode(tok, &p);
       // Discard it if it was bad code
-      if (((signed)p.addr == -1) || (p.addr >= (size_t)romlen)) {
-	printf("Bad patch \"%s\"\n", tok);
-	if (errors != NULL)
-	  ++(*errors);
-	ret = -1;
-	continue;
+      if (((signed)p.addr == -1) || (p.addr >= (size_t)(romlen - 1))) {
+		if ((p.addr < 0xff0000) || (p.addr >= 0xffffff)) {
+			printf("Bad patch \"%s\"\n", tok);
+			if (errors != NULL)
+				++(*errors);
+			ret = -1;
+			continue;
+		}
+		// This is a RAM patch.
+		dest = ram;
+		mask = 0xffff;
       }
-      // Put it into the ROM (remember byteswapping)
+      // Put it into dest (remember byteswapping)
       while (elem != NULL) {
 	if (elem->addr == p.addr) {
 	  // Revert a previous patch.
@@ -76,12 +83,13 @@ int md::patch(const char *list, unsigned int *errors,
 	if ((elem = (struct patch_elem *)malloc(sizeof(*elem))) != NULL) {
 	  elem->next = patch_elem;
 	  elem->addr = p.addr;
-	  elem->data = ((rom[(p.addr + 1)] << 8) | (rom[p.addr]));
+	  elem->data = ((dest[((p.addr + 1) & mask)] << 8) |
+			(dest[(p.addr & mask)]));
 	  patch_elem = elem;
 	}
       }
-      rom[p.addr] = (char)(p.data & 0xFF);
-      rom[p.addr+1] = (char)((p.data & 0xFF00) >> 8);
+      dest[(p.addr & mask)] = (uint8_t)(p.data & 0xff);
+      dest[((p.addr + 1) & mask)] = (uint8_t)(p.data >> 8);
     }
   // Done!
   free(worklist);
