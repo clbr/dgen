@@ -62,9 +62,6 @@ struct sndinfo {
 	unsigned int len; /* number of stereo samples */
 };
 
-int draw_md_graphics
-  (struct bmap *bm,unsigned char passpal[256],struct dgen_sinfo *si,
-     int ymin, int ymax, int layer_sel);
 int get_md_palette(unsigned char pal[256],unsigned char *cram);
 
 class md;
@@ -202,9 +199,8 @@ private:
 
   int z80_bank68k; // 9 bits
   int z80_online;
-  int odo; //,odo_frame_max; // value of odo now/at end of frame
-  int odo_line_start,odo_line_end,odo_line_len,ras,frame;
-  int hint_countdown;
+  int odo; // value of odo now/at end of frame
+  int ras;
   int z80_extra_cycles;
 
   // Note order is (0) Vblank end -------- Vblank Start -- (HIGH)
@@ -219,7 +215,6 @@ private:
   unsigned char  calculate_coo9();
   int may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int mark);
   int may_want_to_get_sound(struct sndinfo *sndi);
-  int z80_int_pending;
 
   void run_to_odo_star(int odo_to);
   void run_to_odo_musa(int odo_to);
@@ -251,8 +246,6 @@ private:
 
 public:
   int myfm_write(int a,int v,int md);
-  int flush_fm_to_mame();
-  int pause, layer_sel;
   // public struct, full with data from the cartridge header
   struct _carthead_ {
     char system_name[0x10];           // "SEGA GENESIS    ", "SEGA MEGA DRIVE  "
@@ -273,7 +266,6 @@ public:
     char memo[0x28];                  // Extra data
     char countries[0x10];             // Country code
   } cart_head;
-  int snd_mute; // &1=fm &2=psg &4=dac
   char region; // Emulator region.
   int pal; // 0 = NTSC 1 = PAL
   int one_frame_star(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);

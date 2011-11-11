@@ -261,7 +261,6 @@ int md::one_frame(
   struct bmap *bm,unsigned char retpal[256],
   struct sndinfo *sndi)
 {
-  ++frame;
   switch(cpu_emu)
     {
 #ifdef WITH_STAR

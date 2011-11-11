@@ -10,26 +10,6 @@
 // REMEMBER NOT TO USE ANY STATIC variables, because they
 // will exist thoughout ALL megadrives!
 
-int md::flush_fm_to_mame()
-{
-  int sid,r;
-  // If we reset mame's ym2612 code, we need to pass all the values
-  // to it again
-  for (sid=0;sid<2;sid++)
-  {
-    for (r=0;r<0x100;r++)
-    {
-        if (fm_reg[sid][r]!=-1)
-        {
-          YM2612Write(0,sid*2+0,r); // select reg r
-          YM2612Write(0,sid*2+1,fm_reg[sid][r]); // Write data
-        }
-    }
-  }
-
-  return 0;
-}
-
 int md::myfm_write(int a,int v,int md)
 {
   int sid=0;

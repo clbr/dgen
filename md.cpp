@@ -403,7 +403,7 @@ int md::reset()
   z80_bank68k=z80_online=z80_extra_cycles
     =coo_waiting=coo_cmd=aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
     =aoo3_six_timeout=aoo5_six_timeout
-    =coo4=coo5=pause=0;
+    =coo4=coo5=0;
   pad[0]=pad[1]=0xf303f; // Untouched pad
 
   // Reset FM registers
@@ -416,10 +416,8 @@ int md::reset()
   fm_sel[0] = fm_sel[1] = fm_tover[0] = fm_tover[1] = 0;
   dac_init();
 
-  odo=odo_line_start=odo_line_end=ras=0;
-  //odo_frame_max=0;
-  hint_countdown=0;
-  z80_int_pending=0;
+  odo = 0;
+  ras = 0;
 
   star_mz80_off();
   return 0;
@@ -487,9 +485,8 @@ md::md(char region)
   mem=rom=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
 
-  pal = frame = 0;
+  pal = 0;
   fm_sel[0]=fm_sel[1]=fm_tover[0]=fm_tover[1]=0;
-  snd_mute=0;
   memset(&fm_reg,0,sizeof(fm_reg));
   memset(&ras_fm_ticker,0,sizeof(ras_fm_ticker));
 
@@ -510,7 +507,6 @@ md::md(char region)
 #endif
 
   md::region = region;
-  layer_sel = 0xff;
 
   memset(romname, 0, sizeof(romname));
 
