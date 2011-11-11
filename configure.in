@@ -191,7 +191,8 @@ AS_IF(
 	[AC_MSG_FAILURE([OpenGL support seems unavailable])]
 )
 
-dnl Check for libarchive.
+dnl Check for libarchive. Note that older versions of libarchive don't have
+dnl archive_read_support_format_raw().
 AC_ARG_WITH(
 	[libarchive],
 	[AS_HELP_STRING(
@@ -207,7 +208,7 @@ AS_IF(
 		[archive.h],
 		[AC_CHECK_LIB(
 			[archive],
-			[archive_read_open_FILE],
+			[archive_read_support_format_raw],
 			[LIBS="-larchive $LIBS"]
 			[TOBIN_LIBS="-larchive $TOBIN_LIBS"]
 			[USE_LIBARCHIVE=yes],
