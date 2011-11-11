@@ -218,8 +218,7 @@ AS_IF(
 	)]
 )
 
-dnl Try to add wsock32 and shell32.
-AC_CHECK_LIB([wsock32], [main])
+dnl Try to add shell32.
 AC_CHECK_LIB([shell32], [main])
 
 dnl Check for ASM availability.

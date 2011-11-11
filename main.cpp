@@ -8,11 +8,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifndef __MINGW32__
-#include <netinet/in.h>
-#else
-#include <winsock2.h>
-#endif
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
@@ -51,14 +46,14 @@ static inline void do_demo(md& megad, FILE* demo, enum demo_status* status)
 	case DEMO_OFF:
 		break;
 	case DEMO_RECORD:
-		pad[0] = htonl(megad.pad[0]);
-		pad[1] = htonl(megad.pad[1]);
+		pad[0] = h2be32(megad.pad[0]);
+		pad[1] = h2be32(megad.pad[1]);
 		fwrite(&pad, sizeof(pad), 1, demo);
 		break;
 	case DEMO_PLAY:
 		if (fread(&pad, sizeof(pad), 1, demo) == 1) {
-			megad.pad[0] = ntohl(pad[0]);
-			megad.pad[1] = ntohl(pad[1]);
+			megad.pad[0] = be2h32(pad[0]);
+			megad.pad[1] = be2h32(pad[1]);
 		}
 		else {
 			if (feof(demo))
