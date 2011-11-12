@@ -247,7 +247,7 @@ void md::misc_writebyte(unsigned a,unsigned d)
   {
 //d8 (W) 0: BUSREQ CANCEL
 //       1: BUSREQ REQUEST
-    if (d==1) z80_online=0;
+    if (d) z80_online=0;
     else z80_online=1;
     return;
   }
