@@ -389,7 +389,7 @@ int md::import_gst(FILE *hand)
 	/* Z80 state (8 bytes) */
 	p = &(*buf)[0x438];
 	/* = p[0]; Z80 reset */
-	/* = p[1]; Z80 busreq */
+	z80_online = p[1];
 	memcpy(&tmp, &(*buf)[0x43c], 4);
 	z80_bank68k = le2h32(tmp);
 	/* Z80 RAM (8192 bytes) */
@@ -473,7 +473,7 @@ int md::export_gst(FILE *hand)
 	/* Z80 state (8 bytes) */
 	p = &(*buf)[0x438];
 	p[0] = 1; /* Z80 reset, Gens needs this */
-	p[1] = 0; /* Z80 busreq */
+	p[1] = z80_online;
 	tmp = h2le32(z80_bank68k);
 	memcpy(&(*buf)[0x43c], &tmp, 4);
 	/* Z80 RAM (8192 bytes) */
