@@ -781,7 +781,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	{
 		screen = SDL_SetVideoMode(xs, (ys + 16), depth,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
-					   SDL_DOUBLEBUF |
+					   SDL_DOUBLEBUF | SDL_ASYNCBLIT |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
 		// 8x13 font in non-OpenGL mode.
 		info.max = (xs / 8);
@@ -1150,7 +1150,7 @@ void pd_graphics_update()
     update_textures();
   else
 #endif
-    SDL_UpdateRect(screen, 0, 0, xs, ys);
+    SDL_Flip(screen);
 }
 
 // Callback for sound
