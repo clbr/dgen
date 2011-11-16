@@ -28,57 +28,37 @@
 #include "system.h"
 
 #ifdef WITH_OPENGL
-// Width and height of screen
-# define XRES xs
-# define YRES ys
 
-// Where tex (256x256) ends in x
-// (256/320 == 512/640. 512-320 == 192 (Negative half ignored).
-// Positive tex end pos (range from 0.0 to 1.0 (0 to 320) in x) == 192/320)
-static double tex_end = (double)192/320;
+// Framebuffer texture
+static struct {
+	unsigned int width; // texture width
+	unsigned int height; // texture height
+	unsigned int vis_width; // visible width
+	unsigned int vis_height; // visible height
+	GLuint id; // texture identifier
+	GLuint dlist; // display list
+	unsigned int u32: 1; // texture is 32-bit
+	unsigned int swap: 1; // texture is byte-swapped
+	unsigned int linear: 1; // linear filtering is enabled
+	union {
+		uint16_t *u16;
+		uint32_t *u32;
+	} buf; // 16 or 32-bit buffer
+} texture;
 
-// Since the useful texture height is smaller than the texture itself
-// (224 or 240 versus 256), we need stretch it vertically outside of the
-// visible area. tex_lower stores the value where the texture should end.
-static double tex_lower;
-
-static void compute_tex_lower(int h)
-{
-	double th = 256.0;
-
-	h += 5; // reserve 5 pixels for the message bar
-	th += (256.0 - (double)h); // add the difference to the total height
-	th /= (double)h; // divide by the original height
-	tex_lower = th;
-}
-
-// Framebuffer textures
-static union {
-	uint16_t u16[2][256][256];
-	uint32_t u32[2][256][256];
-} texbuf;
-static int texbuf_32bit = dgen_opengl_32bit;
-static int texbuf_swap = dgen_opengl_swap;
-
-// Textures (one 256x256 and on 64x256 => 320x256)
-static GLuint texture[2];
-// Display list
-static GLuint dlist;
 // Is OpenGL mode enabled?
 static int opengl = dgen_opengl;
 static int xs = dgen_opengl_width;
 static int ys = dgen_opengl_height;
 
-static union {
-	uint16_t u16[2][5][256];
-	uint32_t u32[2][5][256];
-} texmsgbuf;
+static int init_texture();
+static void update_texture();
 
-static void init_textures();
-static void update_textures();
-#else
+#else // WITH_OPENGL
+
 static int xs = 0;
 static int ys = 0;
+
 #endif // WITH_OPENGL
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
@@ -488,6 +468,7 @@ static int do_videoresize(unsigned int width, unsigned int height)
 {
 	SDL_Surface *tmp;
 
+	stopped = 1;
 #ifdef WITH_OPENGL
 	if (opengl) {
 		unsigned int w;
@@ -532,8 +513,6 @@ static int do_videoresize(unsigned int width, unsigned int height)
 		x = ((width - w) / 2);
 		y = ((height - h) / 2);
 		glViewport(x, y, w, h);
-		init_textures();
-		update_textures();
 		screen = tmp;
 		return 0;
 	}
@@ -568,8 +547,6 @@ void pd_rc()
 	x_scale = y_scale = dgen_scale;
 #ifdef WITH_OPENGL
 	opengl = dgen_opengl;
-	texbuf_32bit = dgen_opengl_32bit;
-	texbuf_swap = dgen_opengl_swap;
 	if (opengl) {
 		xs = dgen_opengl_width;
 		ys = dgen_opengl_height;
@@ -612,96 +589,144 @@ void pd_option(char c, const char *)
 }
 
 #ifdef WITH_OPENGL
-static void maketex(unsigned int id)
+
+static void texture_init_id()
 {
 	GLint param;
 
-	if (dgen_opengl_linear)
+	if (texture.linear)
 		param = GL_LINEAR;
 	else
 		param = GL_NEAREST;
-	glGenTextures(1, &(texture[id]));
-	glBindTexture(GL_TEXTURE_2D, texture[id]);
+	glBindTexture(GL_TEXTURE_2D, texture.id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param);
-	if (texbuf_32bit == 0)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB,
-			     GL_UNSIGNED_SHORT_5_6_5, texbuf.u16[id]);
+	if (texture.u32 == 0)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+			     texture.vis_width, texture.vis_height,
+			     0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+			     NULL);
 	else
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA,
-			     GL_UNSIGNED_INT_8_8_8_8, texbuf.u32[id]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+			     texture.vis_width, texture.vis_height,
+			     0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+			     NULL);
 }
 
-static void makedlist()
+static void texture_init_dlist()
 {
-  dlist=glGenLists(1);
-  glNewList(dlist,GL_COMPILE);
+	glNewList(texture.dlist, GL_COMPILE);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, texture.vis_width, texture.vis_height, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_TEXTURE_2D);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  glEnable(GL_TEXTURE_2D);
-
-  glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-  // 256x256
-  glBindTexture(GL_TEXTURE_2D, texture[0]);
-
+	glBindTexture(GL_TEXTURE_2D, texture.id);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 1.0);
-	glVertex2f(-1.0, -tex_lower); // lower left
-	glTexCoord2f(0.0, 0.0);
-	glVertex2f(-1.0, 1.0); // upper left
-	glTexCoord2f(1.0, 0.0);
-	glVertex2f(tex_end, 1.0); // upper right
-	glTexCoord2f(1.0, 1.0);
-	glVertex2f(tex_end, -tex_lower); // lower right
+	glTexCoord2i(0, 1);
+	glVertex2i(0, texture.vis_height); // lower left
+	glTexCoord2i(0, 0);
+	glVertex2i(0, 0); // upper left
+	glTexCoord2i(1, 0);
+	glVertex2i(texture.vis_width, 0); // upper right
+	glTexCoord2i(1, 1);
+	glVertex2i(texture.vis_width, texture.vis_height); // lower right
 	glEnd();
 
-  // 64x256
-  glBindTexture(GL_TEXTURE_2D, texture[1]);
-
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 1.0);
-	glVertex2f(tex_end, -tex_lower); // lower left
-	glTexCoord2f(0.0, 0.0);
-	glVertex2f(tex_end, 1.0); // upper left
-	glTexCoord2f(1.0, 0.0);
-	glVertex2f((1.0 + (tex_end * 2)), 1.0); // upper right
-	glTexCoord2f(1.0, 1.0);
-	glVertex2f((1.0 + (tex_end * 2)), -tex_lower); // lower right
-	glEnd();
-
-  glDisable(GL_TEXTURE_2D);
-
-  glEndList();
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+	glEndList();
 }
 
-static void init_textures()
+static uint32_t roundup2(uint32_t v)
 {
-  // Disable dithering
-  glDisable(GL_DITHER);
-  // Disable anti-aliasing
-  glDisable(GL_LINE_SMOOTH);
-  glDisable(GL_POINT_SMOOTH);
-  // Disable depth buffer
-  glDisable(GL_DEPTH_TEST);
-
-  glClearColor(0.0, 0.0, 0.0, 0.0);
-  glShadeModel(GL_FLAT);
-
-	maketex(0);
-	maketex(1);
-
-  makedlist();
+	--v;
+	v |= (v >> 1);
+	v |= (v >> 2);
+	v |= (v >> 4);
+	v |= (v >> 8);
+	v |= (v >> 16);
+	++v;
+	return v;
 }
 
-static void display()
+static int init_texture()
 {
-  glCallList(dlist);
-  SDL_GL_SwapBuffers();
+	const unsigned int vis_width = 320; // FIXME
+	const unsigned int vis_height = (ysize + 5); // FIXME ALSO
+	void *tmp;
+	size_t i;
+
+	// Disable dithering
+	glDisable(GL_DITHER);
+	// Disable anti-aliasing
+	glDisable(GL_LINE_SMOOTH);
+	glDisable(GL_POINT_SMOOTH);
+	// Disable depth buffer
+	glDisable(GL_DEPTH_TEST);
+
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glShadeModel(GL_FLAT);
+
+	// Initialize and allocate texture.
+	texture.u32 = (!!dgen_opengl_32bit);
+	texture.swap = (!!dgen_opengl_swap);
+	texture.linear = (!!dgen_opengl_linear);
+	texture.width = roundup2(vis_width);
+	texture.height = roundup2(vis_height);
+	texture.vis_width = vis_width;
+	texture.vis_height = vis_height;
+	if ((texture.width == 0) || (texture.height == 0))
+		return -1;
+	i = ((texture.vis_width * texture.vis_height) * (2 << texture.u32));
+	if ((tmp = realloc(texture.buf.u32, i)) == NULL)
+		return -1;
+	memset(tmp, 0, i);
+	texture.buf.u32 = (uint32_t *)tmp;
+	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
+		glDeleteTextures(1, &texture.id);
+		glDeleteLists(texture.dlist, 1);
+	}
+	if ((texture.dlist = glGenLists(1)) == 0)
+		return -1;
+	glGenTextures(1, &texture.id);
+	texture_init_id();
+	texture_init_dlist();
+	return 0;
 }
+
+static void update_texture()
+{
+	glBindTexture(GL_TEXTURE_2D, texture.id);
+	if (texture.u32 == 0) {
+		if (texture.swap) {
+			glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+			glPixelStorei(GL_PACK_ROW_LENGTH, 2);
+		}
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+				texture.vis_width, texture.vis_height,
+				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+				texture.buf.u16);
+	}
+	else {
+		if (texture.swap) {
+			glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+			glPixelStorei(GL_PACK_ROW_LENGTH, 4);
+		}
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+				texture.vis_width, texture.vis_height,
+				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+				texture.buf.u32);
+	}
+	glCallList(texture.dlist);
+	SDL_GL_SwapBuffers();
+}
+
 #endif // WITH_OPENGL
 
 // Initialize SDL, and the graphics
@@ -810,8 +835,16 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 
 #ifdef WITH_OPENGL
 	if (opengl) {
-		compute_tex_lower(ysize);
-		init_textures();
+		if (init_texture() != 0) {
+			fprintf(stderr,
+				"video: OpenGL texture initialization"
+				" failure.\n");
+			return 0;
+		}
+		fprintf(stderr,
+			"video: OpenGL texture %ux%ux%u (%ux%u)\n",
+			texture.width, texture.height, (2 << texture.u32),
+			texture.vis_width, texture.vis_height);
 	}
 	else
 #endif
@@ -872,49 +905,6 @@ void pd_graphics_palette_update()
     SDL_SetColors(screen, colors, 0, 64);
 }
 
-#ifdef WITH_OPENGL
-static inline void update_textures_16()
-{
-	unsigned int i;
-
-	if (texbuf_swap) {
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-		glPixelStorei(GL_PACK_ROW_LENGTH, 2);
-	}
-	for (i = 0; (i != 2); ++i) {
-		glBindTexture(GL_TEXTURE_2D, texture[i]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
-				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
-				texbuf.u16[i]);
-	}
-}
-
-static inline void update_textures_32()
-{
-	unsigned int i;
-
-	if (texbuf_swap) {
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-		glPixelStorei(GL_PACK_ROW_LENGTH, 4);
-	}
-	for (i = 0; (i != 2); ++i) {
-		glBindTexture(GL_TEXTURE_2D, texture[i]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, ysize,
-				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
-				texbuf.u32[i]);
-	}
-}
-
-static void update_textures()
-{
-	if (texbuf_32bit == 0)
-		update_textures_16();
-	else
-		update_textures_32();
-	display();
-}
-#endif
-
 static void pd_message_process(void);
 static void pd_message_display(const char *msg, size_t len);
 static void pd_message_postpone(const char *msg);
@@ -928,6 +918,12 @@ void pd_graphics_update()
 {
 #ifdef WITH_CTV
   static int f = 0;
+#endif
+#ifdef WITH_OPENGL
+	union {
+		uint16_t *u16;
+		uint32_t *u32;
+	} u;
 #endif
   int i, j, k;
   unsigned char *p = NULL;
@@ -949,7 +945,13 @@ void pd_graphics_update()
 		pd_message_process();
 
 #ifdef WITH_OPENGL
-  if(!opengl)
+	if (opengl) {
+		if (texture.u32 == 0)
+			u.u16 = texture.buf.u16;
+		else
+			u.u32 = texture.buf.u32;
+	}
+	else
 #endif
     p = (unsigned char*)screen->pixels;
   // Use the same formula as draw_scanline() in ras.cpp to avoid the messy
@@ -1032,23 +1034,22 @@ void pd_graphics_update()
 
 #ifdef WITH_OPENGL
 	if (opengl) {
-		if (texbuf_32bit == 0) {
-			memcpy(texbuf.u16[0][i], q, sizeof(texbuf.u16[0][i]));
-			memcpy(texbuf.u16[1][i],
-			       &(q[sizeof(texbuf.u16[0][i])]),
-			       (sizeof(texbuf.u16[0][i][0]) * 64));
+		if (texture.u32 == 0) {
+			memcpy(u.u16, q,
+			       (sizeof(u.u16[0]) * texture.vis_width));
+			u.u16 += texture.vis_width;
 		}
 		else {
 			unsigned int k;
 			uint16_t *line = (uint16_t *)q;
 
-			for (k = 0; (k < 320); ++k) {
+			for (k = 0; (k < texture.vis_width); ++k) {
 				uint32_t v = line[k];
 
 				v = (((v & 0xf800) << 16) |
 				     ((v & 0x07e0) << 13) |
 				     ((v & 0x001f) << 11));
-				texbuf.u32[(k / 256)][i][(k % 256)] = v;
+				*(u.u32++) = v;
 			}
 		}
 	}
@@ -1147,7 +1148,7 @@ void pd_graphics_update()
   // Update the screen
 #ifdef WITH_OPENGL
   if(opengl)
-    update_textures();
+    update_texture();
   else
 #endif
     SDL_Flip(screen);
@@ -1784,60 +1785,50 @@ int pd_handle_events(md &megad)
 
 #ifdef WITH_OPENGL
 
-static inline void update_message_16()
+static void ogl_erase_text()
 {
-	unsigned int i;
+	union {
+		uint16_t *u16;
+		uint32_t *u32;
+	} buf;
 
-	if (texbuf_swap) {
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-		glPixelStorei(GL_PACK_ROW_LENGTH, 2);
+	if (texture.u32 == 0) {
+		buf.u16 = &texture.buf.u16[(texture.vis_width *
+					    (texture.vis_height - 5))];
+		memset(buf.u16, 0,
+		       ((texture.vis_width * sizeof(buf.u16[0])) * 5));
 	}
-	for (i = 0; (i != 2); ++i) {
-		glBindTexture(GL_TEXTURE_2D, texture[i]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
-				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
-				texmsgbuf.u16[i]);
+	else {
+		buf.u32 = &texture.buf.u32[(texture.vis_width *
+					    (texture.vis_height - 5))];
+		memset(buf.u32, 0,
+		       ((texture.vis_width * sizeof(buf.u32[0])) * 5));
 	}
-}
-
-static inline void update_message_32()
-{
-	unsigned int i;
-
-	if (texbuf_swap) {
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-		glPixelStorei(GL_PACK_ROW_LENGTH, 4);
-	}
-	for (i = 0; (i != 2); ++i) {
-		glBindTexture(GL_TEXTURE_2D, texture[i]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, ysize, 256, 5,
-				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
-				texmsgbuf.u32[i]);
-	}
-}
-
-static void update_message()
-{
-	if (texbuf_32bit == 0)
-		update_message_16();
-	else
-		update_message_32();
-	display();
+	update_texture();
 }
 
 static void ogl_write_text(const char *msg, size_t len)
 {
 	unsigned int x = 0;
 	union {
-		uint16_t (*u16)[2][5][256];
-		uint32_t (*u32)[2][5][256];
+		uint16_t *u16;
+		uint32_t *u32;
 	} buf;
 
-	if (texbuf_32bit == 0)
-		buf.u16 = &texmsgbuf.u16;
-	else
-		buf.u32 = &texmsgbuf.u32;
-	while ((*msg != '\0') && (len != 0) && ((x + 5) <= 320)) {
+	if (texture.u32 == 0) {
+		buf.u16 = &texture.buf.u16[(texture.vis_width *
+					    (texture.vis_height - 5))];
+		memset(buf.u16, 0,
+		       ((texture.vis_width * sizeof(buf.u16[0])) * 5));
+	}
+	else {
+		buf.u32 = &texture.buf.u32[(texture.vis_width *
+					    (texture.vis_height - 5))];
+		memset(buf.u32, 0,
+		       ((texture.vis_width * sizeof(buf.u32[0])) * 5));
+	}
+	while ((*msg != '\0') && (len != 0) &&
+	       ((x + 5) <= texture.vis_width)) {
 		unsigned int y;
 		unsigned char (*c)[5][5] =
 			&ogl_font_5x5[((unsigned char)*msg)];
@@ -1846,24 +1837,22 @@ static void ogl_write_text(const char *msg, size_t len)
 			unsigned int cx;
 
 			for (cx = 0; (cx < 5); ++cx) {
-				if ((*c)[y][cx]) {
-					unsigned int off = ((x + cx) % 256);
-					unsigned int idx = ((x + cx) / 256);
+				unsigned int off;
 
-					if (texbuf_32bit == 0)
-						(*buf.u16)[idx][y][off] =
-							0xffff;
-					else
-						(*buf.u32)[idx][y][off] =
-							0xffffffff;
-				}
+				if ((*c)[y][cx] == 0)
+					continue;
+				off = ((texture.vis_width * y) + (x + cx));
+				if (texture.u32 == 0)
+					buf.u16[off] = 0xffff;
+				else
+					buf.u32[off] = 0xffffffff;
 			}
 		}
 		--len;
 		++msg;
 		x += 7;
 	}
-	update_message();
+	update_texture();
 }
 
 #endif // WITH_OPENGL
@@ -1873,10 +1862,8 @@ static void pd_message_display(const char *msg, size_t len)
 	if (len > info.max)
 		len = info.max;
 #ifdef WITH_OPENGL
-	if (opengl) {
-		memset(&texmsgbuf, 0, sizeof(texmsgbuf));
+	if (opengl)
 		ogl_write_text(msg, len);
-	}
 	else
 #endif
 	{
@@ -1942,8 +1929,7 @@ void pd_clear_message()
 	info.displayed = 0;
 #ifdef WITH_OPENGL
 	if (opengl) {
-		memset(&texmsgbuf, 0, sizeof(texmsgbuf));
-		update_message();
+		ogl_erase_text();
 		return;
 	}
 #endif
@@ -2009,6 +1995,7 @@ void pd_quit()
 		free((void*)mdscr.data);
 		mdscr.data = NULL;
 	}
+	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	if (sound.cbuf.data.i16 != NULL) {
 		SDL_CloseAudio();
 		free((void *)sound.cbuf.data.i16);
@@ -2020,5 +2007,14 @@ void pd_quit()
 		free((void*)mdpal);
 		mdpal = NULL;
 	}
+#ifdef WITH_OPENGL
+	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
+		glDeleteTextures(1, &texture.id);
+		glDeleteLists(texture.dlist, 1);
+		texture.dlist = 0;
+	}
+	free(texture.buf.u32);
+	texture.buf.u32 = NULL;
+#endif
 	SDL_Quit();
 }
