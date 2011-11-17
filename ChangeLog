@@ -3,6 +3,36 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.28 <- v1.27
+ * ROM loader can now use libarchive when available for decompression. This
+   replaces the previous system()-based implementation.
+ * "tobin" has been renamed "dgen_tobin" and no longer has dependencies on
+   SDL and other unnecessary libraries.
+ * CZ80: fixed emulation bug ("weird sound") introduced just before the 1.27
+   release.
+ * Improved CZ80/MZ80 switching.
+ * Improved save file handling. Z80 context and other important things are now
+   stored. The format is mostly compatible with Gens v5 and save states can be
+   exchanged between both emulators. Old save files are still supported.
+ * YM2612: upgraded from version 0.35f to 1.4b, as found in Final Burn Alpha.
+   Sound quality has improved as a result.
+ * Improved sound buffer management again, a single buffer is now used with
+   both channels instead of two separate buffers.
+ * Removed 8-bit sound output format since it was useless and annoying to
+   support with the new buffer.
+ * Removed superfluous window resizing messages.
+ * Game Genie codes can now be entered while in stopped mode to avoid crashes
+   when more than one is needed at once. Also, DGen now supports RAM patching.
+ * Corrected clock frequencies for YM2612 and SN76496, sound is pitched a bit
+   higher than before.
+ * Added region selection command-line option. This option reuses "-R"
+   (realtime priority). In case this option isn't given, the default region
+   used by DGen is now the first found in the ROM header. This option has no
+   effect on PAL (50Hz) mode which needs to be enabled separately.
+ * OpenGL: a single OpenGL texture (and subtexture) is now used instead of two
+   smaller ones, thus removing some of the complexity.
+ * Usual batch of miscellaneous bugfixes.
+
 v1.27 <- v1.26
  * Documentation clean-up, sample.dgenrc update.
  * Compilation fixes for MZ80.
