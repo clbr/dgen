@@ -923,7 +923,7 @@ void pd_graphics_update()
 	union {
 		uint16_t *u16;
 		uint32_t *u32;
-	} u;
+	} u = { NULL };
 #endif
   int i, j, k;
   unsigned char *p = NULL;
