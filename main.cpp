@@ -434,8 +434,6 @@ int main(int argc, char *argv[])
 		unsigned long tmp;
 		int frames_todo;
 
-		running = pd_handle_events(megad);
-
 		newclk = pd_usecs();
 
 		if (pd_stopped()) {
@@ -466,8 +464,24 @@ int main(int argc, char *argv[])
 		usec %= usec_frame;
 		oldclk = newclk;
 
-		// Draw frames, if any.
-		if (frames_todo != 0) {
+		if (frames_todo == 0) {
+			// No frame to do yet, relax the CPU until next one.
+			tmp = (usec_frame - usec);
+			if (tmp > 1000) {
+				// Never sleep for longer than the 50Hz value
+				// so events are checked often enough.
+				if (tmp > (1000000 / 50))
+					tmp = (1000000 / 50);
+				tmp -= 1000;
+#ifdef __BEOS__
+				snooze(tmp / 1000);
+#else
+				usleep(tmp);
+#endif
+			}
+		}
+		else {
+			// Draw frames.
 			while (frames_todo != 1) {
 				do_demo(megad, file, &demo_status);
 				if (dgen_sound) {
@@ -495,6 +509,9 @@ int main(int argc, char *argv[])
 			pd_graphics_update();
 			++frames;
 		}
+
+		running = pd_handle_events(megad);
+
 		if (dgen_nice) {
 #ifdef __BEOS__
 			snooze(dgen_nice);
