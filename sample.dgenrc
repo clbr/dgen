@@ -149,7 +149,7 @@ int_opengl_width = 640
 int_opengl_height = 480
 
 # Retain original aspect ratio when resizing OpenGL window.
-bool_opengl_ratio = true
+bool_opengl_aspect = true
 
 # Use GL_LINEAR for textures filtering instead of GL_NEAREST.
 bool_opengl_linear = true
