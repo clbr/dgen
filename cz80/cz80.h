@@ -116,7 +116,6 @@ extern "C" {
 #define zlSP            CPU->SP.B.L
 #define zhSP            CPU->SP.B.H
 
-#define zRealPC         (PC - CPU->BasePC)
 #define zPC             PC
 
 #define zI              CPU->I
@@ -207,7 +206,7 @@ typedef struct
     union16 IX;
     union16 IY;
     union16 SP;
-    uintptr_t PC;
+    uint16_t PC;
     
     union16 BC2;
     union16 DE2;

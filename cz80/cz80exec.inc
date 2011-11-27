@@ -13,7 +13,7 @@ int FASTCALL Cz80_Exec(cz80_struc *cpu, int cycles)
 #endif
 
     cz80_struc *CPU;
-    uintptr_t PC;
+    uint16_t PC;
     int CCnt;
     uint8_t Opcode;
 

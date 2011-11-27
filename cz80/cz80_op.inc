@@ -1176,7 +1176,7 @@ OP_CALL:
 
         PRE_IO
         FETCH_WORD(newPC);
-        oldRPC = zRealPC;
+        oldRPC = PC;
         PUSH_16(oldRPC);
         SET_PC(newPC);
         POST_IO
@@ -1252,7 +1252,7 @@ OP_RST:
         uint16_t src;
         uint16_t newPC;
 
-        src = zRealPC;
+        src = PC;
         PUSH_16(src);
         newPC = Opcode & 0x38;
         SET_PC(newPC);
