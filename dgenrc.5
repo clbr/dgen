@@ -1,4 +1,4 @@
-.Dd November 26, 2011
+.Dd November 27, 2011
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -105,6 +105,9 @@ somehow 16 bit textures don't work properly.
 .It bool_opengl_swap [false]
 Swap textures endianness. Sometimes useful when video output is located on a
 different system.
+.It bool_opengl_square [false]
+Use square textures. Wastes a lot of memory but may solve OpenGL
+initialization failures.
 .It bool_fullscreen [false]
 Try to run fullscreen, if possible.
 .It int_scale [1]

@@ -404,6 +404,7 @@ struct rc_field {
   { "bool_opengl_linear", boolean, &dgen_opengl_linear },
   { "bool_opengl_32bit", boolean, &dgen_opengl_32bit },
   { "bool_opengl_swap", boolean, &dgen_opengl_swap },
+  { "bool_opengl_square", boolean, &dgen_opengl_square },
   { "bool_joystick", boolean, &dgen_joystick },
   { "joypad1_b0", jsmap, &js_map_button[0][0] },
   { "joypad1_b1", jsmap, &js_map_button[0][1] },

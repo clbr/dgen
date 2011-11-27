@@ -679,6 +679,13 @@ static int init_texture()
 	texture.linear = (!!dgen_opengl_linear);
 	texture.width = roundup2(vis_width);
 	texture.height = roundup2(vis_height);
+	if (dgen_opengl_square) {
+		// Texture must be square.
+		if (texture.width < texture.height)
+			texture.width = texture.height;
+		else
+			texture.height = texture.width;
+	}
 	texture.vis_width = vis_width;
 	texture.vis_height = vis_height;
 	if ((texture.width == 0) || (texture.height == 0))
