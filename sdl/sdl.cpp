@@ -605,14 +605,14 @@ static void texture_init_id()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param);
 	if (texture.u32 == 0)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-			     texture.vis_width, texture.vis_height,
+			     texture.width, texture.height,
 			     0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
-			     NULL);
+			     texture.buf.u16);
 	else
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			     texture.vis_width, texture.vis_height,
+			     texture.width, texture.height,
 			     0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
-			     NULL);
+			     texture.buf.u32);
 }
 
 static void texture_init_dlist()
@@ -629,13 +629,13 @@ static void texture_init_dlist()
 	glBindTexture(GL_TEXTURE_2D, texture.id);
 	glBegin(GL_QUADS);
 	glTexCoord2i(0, 1);
-	glVertex2i(0, texture.vis_height); // lower left
+	glVertex2i(0, texture.height); // lower left
 	glTexCoord2i(0, 0);
 	glVertex2i(0, 0); // upper left
 	glTexCoord2i(1, 0);
-	glVertex2i(texture.vis_width, 0); // upper right
+	glVertex2i(texture.width, 0); // upper right
 	glTexCoord2i(1, 1);
-	glVertex2i(texture.vis_width, texture.vis_height); // lower right
+	glVertex2i(texture.width, texture.height); // lower right
 	glEnd();
 
 	glDisable(GL_TEXTURE_2D);
@@ -661,6 +661,7 @@ static int init_texture()
 	const unsigned int vis_height = (ysize + 5); // FIXME ALSO
 	void *tmp;
 	size_t i;
+	GLenum error;
 
 	// Disable dithering
 	glDisable(GL_DITHER);
@@ -690,7 +691,7 @@ static int init_texture()
 	texture.vis_height = vis_height;
 	if ((texture.width == 0) || (texture.height == 0))
 		return -1;
-	i = ((texture.vis_width * texture.vis_height) * (2 << texture.u32));
+	i = ((texture.width * texture.height) * (2 << texture.u32));
 	if ((tmp = realloc(texture.buf.u32, i)) == NULL)
 		return -1;
 	memset(tmp, 0, i);
@@ -701,9 +702,12 @@ static int init_texture()
 	}
 	if ((texture.dlist = glGenLists(1)) == 0)
 		return -1;
-	glGenTextures(1, &texture.id);
-	texture_init_id();
-	texture_init_dlist();
+	if ((glGenTextures(1, &texture.id), error = glGetError()) ||
+	    (texture_init_id(), error = glGetError()) ||
+	    (texture_init_dlist(), error = glGetError())) {
+		// Do something with "error".
+		return -1;
+	}
 	return 0;
 }
 
