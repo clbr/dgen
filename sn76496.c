@@ -12,9 +12,6 @@
 
 ***************************************************************************/
 
-///// commented out by starshine
-//#include "driver.h"
-
 #include <stdint.h>
 #include <string.h>
 #include "system.h"

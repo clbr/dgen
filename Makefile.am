@@ -63,7 +63,6 @@ dgen_SOURCES =		\
 	main.cpp	\
 	mem.cpp		\
 	pd.h		\
-	driver.h	\
 	ckvp.c		\
 	ckvp.h		\
 	md-phil.h	\
