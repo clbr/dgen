@@ -356,7 +356,11 @@ int md::import_gst(FILE *hand)
 	/* VSRAM (40x16-bit words, 80 bytes), swapped */
 	swap16cpy(vdp.vsram, &(*buf)[0x192], 0x50);
 	/* YM2612 registers */
-	YM2612_restore(0, &(*buf)[0x1e4]);
+	p = &(*buf)[0x1e4];
+	YM2612_restore(0, p);
+	fm_reg[0][0x24] = p[0x24];
+	fm_reg[0][0x25] = p[0x25];
+	fm_reg[0][0x26] = p[0x26];
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	p = &(*buf)[0x404];
 	for (i = 0; (i != 2); ++i, p = &(*buf)[0x424]) {
@@ -450,7 +454,11 @@ int md::export_gst(FILE *hand)
 	/* VSRAM (40x16-bit words, 80 bytes), swapped */
 	swap16cpy(&(*buf)[0x192], vdp.vsram, 0x50);
 	/* YM2612 registers */
-	YM2612_dump(0, &(*buf)[0x1e4]);
+	p = &(*buf)[0x1e4];
+	YM2612_dump(0, p);
+	p[0x24] = fm_reg[0][0x24];
+	p[0x25] = fm_reg[0][0x25];
+	p[0x26] = fm_reg[0][0x26];
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	z80_state_dump();
 	p = &(*buf)[0x404];
