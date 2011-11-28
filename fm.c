@@ -4834,8 +4834,10 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
 			lt >>= FINAL_SH;
 			rt >>= FINAL_SH;
 
+#if 0
 			Limit( lt, MAXOUT, MINOUT );
 			Limit( rt, MAXOUT, MINOUT );
+#endif
 
 			#ifdef SAVE_SAMPLE
 				SAVE_ALL_CHANNELS
