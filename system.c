@@ -56,11 +56,8 @@ FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
 
 	if ((file == NULL) || (file[0] == '\0') || (fmode == NULL))
 		goto error;
-	/* Look for directory separator in file. */
-	if (strpbrk(file, DGEN_DIRSEP DGEN_DIRSEP_ALT) != NULL)
-		goto open;
 	/*
-	  None, try to open the file in the current directory if DGEN_CURRENT
+	  Try to open the file in the current directory if DGEN_CURRENT
 	  is specified.
 	*/
 	if (mode & DGEN_CURRENT) {
@@ -101,15 +98,6 @@ FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
 	if (size >= sizeof(path))
 		goto error;
 	file = path;
-open:
-	if (mode & DGEN_APPEND)
-		fmode = "a+b";
-	else if (mode & DGEN_WRITE)
-		fmode = "w+b";
-	else if (mode & DGEN_READ)
-		fmode = "rb";
-	else
-		goto error;
 	return fopen(file, fmode);
 error:
 	errno = EACCES;
