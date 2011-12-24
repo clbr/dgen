@@ -426,12 +426,12 @@ int md::reset()
 #ifdef WITH_MZ80
 
 static struct MemoryReadByte mem_read[] = {
-	{ 0x2000, 0xffff, root_z80_read, NULL },
+	{ 0x0000, 0xffff, root_z80_read, NULL },
 	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
 
 static struct MemoryWriteByte mem_write[] = {
-	{ 0x2000, 0xffff, root_z80_write, NULL },
+	{ 0x0000, 0xffff, root_z80_write, NULL },
 	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
 
@@ -452,6 +452,7 @@ int md::z80_init()
   // Set up the z80
   star_mz80_on();
 #ifdef WITH_MZ80
+  mz80init();
   mz80reset();
   // Modify the default context
   mz80GetContext(&z80);
@@ -595,9 +596,6 @@ md::md(bool pal, char region): vdp(*this), region(region), pal(pal)
 #endif
 
   z80_init();
-#ifdef WITH_MZ80
-  mz80init();
-#endif
 
   reset(); // reset megadrive
 
