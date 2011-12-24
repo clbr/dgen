@@ -153,28 +153,6 @@ extern "C"
 }
 #endif
 
-// The same thing for 68KEM
-#ifdef WITH_M68KEM
-extern "C" {
-  int cpu_readmem24(int address) { return root_readbyte(address); }
-  int cpu_readmem24_word(int address) { return root_readword(address); }
-  int cpu_readmem24_dword(int address) { return root_readlong(address); }
-
-  void cpu_writemem24(int address, int val) { root_writebyte(address, val); }
-  void cpu_writemem24_word(int address, int val) { root_writeword(address, val); }
-  void cpu_writemem24_dword(int address, int val) { root_writelong(address, val); }
-
-  unsigned char *OP_ROM, *OP_RAM;
-  void cpu_setOPbase24(int pc) {
-    if(!which) return; // star_mz80_on() wasn't called! :0
-    if (pc < 0xa00000) // ROM area
-      OP_ROM = which->rom;
-    if (pc >= 0xe00000) // RAM
-      OP_ROM = which->ram - (pc & 0xff0000);
-  }
-}
-#endif
-
 #ifdef WITH_MZ80
 
 /*
@@ -386,9 +364,6 @@ int md::reset()
 #endif
 #ifdef WITH_MUSA
   if (cpu_emu == CPU_EMU_MUSA) m68k_pulse_reset();
-#endif
-#ifdef WITH_M68KEM
-  if (cpu_emu == CPU_EMU_M68KEM) m68000_reset(NULL);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 
@@ -614,10 +589,6 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
 
 #ifdef WITH_MUSA
    m68k_pulse_reset();
-#endif
-
-#ifdef WITH_M68KEM
-  m68000_reset(NULL);
 #endif
 
   z80_init();

@@ -13,14 +13,6 @@
 #endif
 #endif
 
-#ifdef WITH_M68KEM
-#ifndef M68000__HEADER
-extern "C" {
-#include "m68000.h"
-}
-#endif
-#endif
-
 #ifdef WITH_MUSA
 #ifndef M68K__HEADER
 extern "C"
@@ -149,11 +141,6 @@ typedef struct {
 	uint8_t im; /* interrupt mode */
 } z80_state_t;
 
-#ifdef WITH_M68KEM
-// Make sure this gets C linkage
-extern "C" void cpu_setOPbase24(int pc);
-#endif
-
 #define MCLK_CYCLES_PER_LINE 3416 /* 3420 */
 #define M68K_CYCLES_PER_LINE (MCLK_CYCLES_PER_LINE / 7)
 #define M68K_CYCLES_HBLANK ((M68K_CYCLES_PER_LINE * 36) / 209)
@@ -182,10 +169,6 @@ public:
 	unsigned int vblank(); // Return first vblank line
 
 private:
-#ifdef WITH_M68KEM
-  // Yuck - had to use friend function :(
-  friend void cpu_setOPbase24(int pc);
-#endif
   unsigned int romlen;
   int ok;
   unsigned char *mem,*rom,*ram,*z80ram;
@@ -310,7 +293,6 @@ public:
     char countries[0x10];             // Country code
   } cart_head;
   char region; // Emulator region.
-  int one_frame_m68kem(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
   int one_frame(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
 
   int pad[2];
