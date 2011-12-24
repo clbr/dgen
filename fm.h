@@ -22,7 +22,7 @@
 #define FM_SAMPLE_BITS 16
 
 /* select timer system internal or external */
-#define FM_INTERNAL_TIMER 1
+#define FM_INTERNAL_TIMER 0
 
 /* --- speedup optimize --- */
 /* busy flag enulation , The definition of FM_GET_TIME_NOW() is necessary. */
