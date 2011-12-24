@@ -53,9 +53,6 @@ extern "C" int blur_bitmap_15(unsigned char *dest, int len);
 
 struct bmap { unsigned char *data; int w,h; int pitch; int bpp; };
 
-// Info passed to render the screen (possibly line by line)
-struct dgen_sinfo { unsigned char *vram,*cram,*vsram,*vdp_reg; };
-
 // New struct, happily encapsulates all the sound info
 struct sndinfo {
 	int16_t *lr;
@@ -71,8 +68,9 @@ public:
   // Next three lines are the state of the VDP
   // They have to be public so we can save and load states
   // and draw the screen.
-  unsigned char *mem,*vram,*cram,*vsram;
-  unsigned char reg[0x20];
+  uint8_t mem[(0x10100 + 0x35)]; //0x20+0x10+0x4+1 for dirt
+  uint8_t *vram, *cram, *vsram;
+  uint8_t reg[0x20];
   int rw_mode,rw_addr,rw_dma;
 private:
   int poke_vram (int addr,unsigned char d);
@@ -83,7 +81,6 @@ private:
   unsigned char dma_mem_read(int addr);
   int putword(unsigned short d);
   int putbyte(unsigned char d);
-  int ok;
   // Used by draw_scanline to render the different display components
   void draw_tile1(int which, int line, unsigned char *where);
   void draw_tile1_solid(int which, int line, unsigned char *where);
@@ -105,9 +102,10 @@ private:
   unsigned int Bpp;
   unsigned int Bpp_times8;
   unsigned char *dest;
+  md& belongs;
 public:
-  md_vdp(); ~md_vdp();
-  md *belongs;
+  md_vdp(md&);
+  ~md_vdp();
 // These are called by MEM.CPP
   int command(unsigned int cmd);
   unsigned short readword();
@@ -115,12 +113,10 @@ public:
   int writeword(unsigned short d);
   int writebyte(unsigned char d);
 
-  int okay() {return ok;}
   unsigned char *dirt; // Bitfield: what has changed VRAM/CRAM/VSRAM/Reg
-  int get_screen_info(struct dgen_sinfo *si); // For Graph
-  int reset();
+  void reset();
 
-  unsigned int *highpal;
+  uint32_t highpal[64];
   // Draw a scanline
   void draw_scanline(struct bmap *bits, int line);
 };
@@ -332,8 +328,6 @@ public:
 
   char romname[256];
 
-  int get_screen_info(struct dgen_sinfo *si)
-  { return vdp.get_screen_info(si); }
   int z80dump();
 
   // Fix ROM checksum

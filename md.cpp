@@ -479,7 +479,7 @@ int md::z80_init()
 }
 
 
-md::md(char region)
+md::md(char region): vdp(*this)
 {
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
@@ -511,8 +511,6 @@ md::md(char region)
   memset(romname, 0, sizeof(romname));
 
   ok=0;
-  if (!vdp.okay()) return;
-  vdp.belongs=this;
 
   //  Format of pad is: __SA____ UDLRBC__
 

@@ -6,55 +6,35 @@
 #include <string.h>
 #include "md.h"
 
-int md_vdp::get_screen_info(struct dgen_sinfo *si)
+void md_vdp::reset()
 {
-  // Release the pointers to vdp Data to an external function
-  si->vram=vram; si->cram=cram; si->vsram=vsram;
-  si->vdp_reg=reg;
-  // NB - if you change anything, remember to set 'dirt' accordingly
-  return 0;
+	rw_mode = 0x00;
+	rw_addr = 0;
+	rw_dma = 0;
+	memset(mem, 0, sizeof(mem));
+	memset(reg, 0, 0x20);
+	memset(dirt, 0xff, 0x35); // mark everything as changed
+	memset(highpal, 0, sizeof(highpal));
+	memset(sprite_order, 0, sizeof(sprite_order));
+	sprite_base = NULL;
+	sprite_count = 0;
+	dest = NULL;
 }
 
-int md_vdp::reset()
+md_vdp::md_vdp(md& md): belongs(md)
 {
-  if (!ok) return 1;
-
-  rw_mode=0x00; rw_addr=0; rw_dma=0;
-  memset(mem,0,0x10100);
-  memset(reg,0,0x20);
-  memset(dirt,0xff,0x35); // mark everything as changed
-  return 0;
-}
-
-md_vdp::md_vdp()
-{
-  ok=0;
-  belongs=0; // Don't know which megadrive vdp belongs to yet
-
-  mem=vram=cram=vsram=NULL;
-  mem=new unsigned char[0x10100+0x35]; //0x20+0x10+0x4+1 for dirt
-  if (mem==0) return;
-  vram=mem+0x00000; cram=mem+0x10000; vsram=mem+0x10080;
-  dirt=mem+0x10100; // VRAM/CRAM/Reg dirty buffer bitfield
-  // Also in 0x34 are global dirt flags (inclduing VSRAM this time)
-
-  highpal=new unsigned int[64]; if (highpal==0) return;
-
-  Bpp = Bpp_times8 = 0;
-
-  ok=1;
-  reset();
-
+	vram = (mem + 0x00000);
+	cram = (mem + 0x10000);
+	vsram = (mem + 0x10080);
+	dirt = (mem + 0x10100); // VRAM/CRAM/Reg dirty buffer bitfield
+	// Also in 0x34 are global dirt flags (inclduing VSRAM this time)
+	Bpp = Bpp_times8 = 0;
+	reset();
 }
 
 md_vdp::~md_vdp()
 {
-	if (mem)
-		delete [] mem;
-	if (highpal)
-		delete [] highpal;
-	mem = vram = cram = vsram = NULL;
-	ok = 0;
+	vram = cram = vsram = NULL;
 }
 
 int md_vdp::dma_len()
@@ -73,7 +53,7 @@ int md_vdp::dma_addr()
 // DMA can read from anywhere
 unsigned char md_vdp::dma_mem_read(int addr)
 {
-  return belongs->misc_readbyte(addr);
+  return belongs.misc_readbyte(addr);
 }
 
 // Must go through these calls to update the dirty flags
