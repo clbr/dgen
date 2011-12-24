@@ -374,16 +374,6 @@ int md::import_gst(FILE *hand)
 	memcpy(&z80_state.iy, &p[0x4], 2);
 	memcpy(&z80_state.pc, &p[0x8], 2);
 	memcpy(&z80_state.sp, &p[0xc], 2);
-	if (le2h16(z80_state.pc) < 0x8) {
-		/*
-		  This usually means this is an old save file without a Z80
-		  state. Make sure PC keeps a sane value to prevent it from
-		  leaving the allocated area.
-		*/
-		z80_state.pc = h2le16(0x8);
-		/* Silence the YM2612, just in case. */
-		YM2612ResetChip(0);
-	}
 	p = &(*buf)[0x434];
 	z80_state.i = p[0];
 	z80_state.r = p[1];
