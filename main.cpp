@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
   rom = argv[optind];
 
   // Create the megadrive object
-  md megad(region);
+  md megad(pal_mode, region);
   if(!megad.okay())
     {
       fprintf(stderr, "main: Megadrive init failed!\n");
@@ -399,8 +399,6 @@ int main(int argc, char *argv[])
   megad.fix_rom_checksum();
   // Reset
   megad.reset();
-  // Set PAL mode
-  megad.pal = pal_mode;
 
   // Load up save RAM
   ram_load(megad);

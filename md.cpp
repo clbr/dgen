@@ -479,13 +479,12 @@ int md::z80_init()
 }
 
 
-md::md(char region): vdp(*this)
+md::md(bool pal, char region): vdp(*this), region(region), pal(pal)
 {
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
 
-  pal = 0;
   fm_sel[0]=fm_sel[1]=fm_tover[0]=fm_tover[1]=0;
   memset(&fm_reg,0,sizeof(fm_reg));
   memset(&ras_fm_ticker,0,sizeof(ras_fm_ticker));
@@ -506,7 +505,6 @@ md::md(char region): vdp(*this)
   Cz80_Init(&cz80);
 #endif
 
-  md::region = region;
 
   memset(romname, 0, sizeof(romname));
 

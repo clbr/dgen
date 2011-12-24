@@ -275,7 +275,7 @@ public:
 // invblank, inhblank, dma busy, pal
   unsigned char coo4,coo5;
   int okay() {return ok;}
-  md(char region);
+  md(bool pal, char region);
   ~md();
   int plug_in(unsigned char *cart,int len);
   int unplug();
