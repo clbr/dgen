@@ -506,6 +506,7 @@ md::md(bool pal, char region): vdp(*this), region(region), pal(pal)
   Cz80_Init(&cz80);
 #endif
 
+  memset(&cart_head, 0, sizeof(cart_head));
 
   memset(romname, 0, sizeof(romname));
 
