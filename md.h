@@ -154,14 +154,39 @@ typedef struct {
 extern "C" void cpu_setOPbase24(int pc);
 #endif
 
-class md
-{
+#define MCLK_CYCLES_PER_LINE 3416 /* 3420 */
+#define M68K_CYCLES_PER_LINE (MCLK_CYCLES_PER_LINE / 7)
+#define M68K_CYCLES_HBLANK ((M68K_CYCLES_PER_LINE * 36) / 209)
+#define M68K_CYCLES_VDELAY ((M68K_CYCLES_PER_LINE * 36) / 156)
+#define Z80_CYCLES_PER_LINE (MCLK_CYCLES_PER_LINE / 15)
+#define Z80_CYCLES_HBLANK ((Z80_CYCLES_PER_LINE * 36) / 209)
+#define Z80_CYCLES_VDELAY ((Z80_CYCLES_PER_LINE * 36) / 156)
+#define NTSC_LINES 262
+#define NTSC_VBLANK 224
+#define NTSC_HZ 60
+#define NTSC_MCLK (MCLK_CYCLES_PER_LINE * NTSC_LINES * NTSC_HZ)
+#define PAL_LINES 312
+#define PAL_VBLANK 240
+#define PAL_HZ 50
+#define PAL_MCLK (MCLK_CYCLES_PER_LINE * PAL_LINES * PAL_HZ)
+
+class md {
+public:
+	unsigned int mclk; // Master clock
+	unsigned int clk0; // MCLK/15 for Z80, SN76489
+	unsigned int clk1; // MCLK/7 for M68K, YM2612
+	unsigned int lines;
+	unsigned int vhz;
+	unsigned int pal: 1;
+
+	unsigned int vblank(); // Return first vblank line
+
 private:
 #ifdef WITH_M68KEM
   // Yuck - had to use friend function :(
   friend void cpu_setOPbase24(int pc);
 #endif
-  int romlen;
+  unsigned int romlen;
   int ok;
   unsigned char *mem,*rom,*ram,*z80ram;
   // Saveram stuff:
@@ -182,7 +207,6 @@ private:
 #endif
 #ifdef WITH_CZ80
   cz80_struc cz80;
-  int cz80_cycles;
 #endif
 #ifdef WITH_STAR
   struct S68000CONTEXT cpu;
@@ -193,11 +217,19 @@ private:
   int star_mz80_on();
   int star_mz80_off();
 
-  int z80_bank68k; // 9 bits
-  int z80_online;
-  int odo; // value of odo now/at end of frame
+	uint32_t z80_bank68k;
+	unsigned int z80_st_busreq: 1; // in BUSREQ state
+	unsigned int z80_st_reset: 1; // in RESET state
+	unsigned int z80_st_running: 1; // Z80 is running
+	unsigned int m68k_st_running: 1; // M68K is running
+	struct {
+		int m68k;
+		int m68k_max;
+		int z80;
+		int z80_max;
+	} odo;
+
   int ras;
-  int z80_extra_cycles;
 
   // Note order is (0) Vblank end -------- Vblank Start -- (HIGH)
   // So int6 happens in the middle of the count
@@ -206,21 +238,36 @@ private:
   unsigned int coo_cmd; // The complete command
   int aoo3_toggle,aoo5_toggle,aoo3_six,aoo5_six;
   int aoo3_six_timeout, aoo5_six_timeout;
-  int calculate_hcoord();
   unsigned char  calculate_coo8();
   unsigned char  calculate_coo9();
   int may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int mark);
   int may_want_to_get_sound(struct sndinfo *sndi);
 
-  void run_to_odo_star(int odo_to);
-  void run_to_odo_musa(int odo_to);
-  void run_to_odo_m68kem(int odo_to);
-  void run_to_odo_z80(int odo_to);
+	// Horizontal counter table
+	uint8_t hc_table[512][2];
+
+	int m68k_odo(); // M68K odometer
+	void m68k_run(); // Run M68K to odo.m68k_max
+	void m68k_busreq_request(); // Issue BUSREQ
+	void m68k_busreq_cancel(); // Cancel BUSREQ
+	void m68k_irq(int i); // Trigger M68K IRQ
+
+	int z80_odo(); // Z80 odometer
+	void z80_run(); // Run Z80 to odo.z80_max
+	void z80_sync(int fake); // Synchronize Z80 with M68K
+	void z80_irq(); // Trigger Z80 IRQ
+	void z80_irq_clear(); // Clear Z80 IRQ
+
+	 // Number of microseconds spent in current frame
+	unsigned int frame_usecs();
 
   int fm_timer_callback();
   int myfm_read(int a);
   int mysn_write(int v);
-  int fm_sel[2],fm_tover[2],ras_fm_ticker[4];
+  void fm_reset();
+  uint8_t fm_sel[2];
+  uint8_t fm_tover;
+  int fm_ticker[4];
   signed short fm_reg[2][0x100]; // All of them (-1 = not def'd yet)
 
   int dac_data[0x138], dac_enabled, dac_last;
@@ -263,13 +310,11 @@ public:
     char countries[0x10];             // Country code
   } cart_head;
   char region; // Emulator region.
-  int pal; // 0 = NTSC 1 = PAL
-  int one_frame_star(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
-  int one_frame_musa(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
   int one_frame_m68kem(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
   int one_frame(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
 
   int pad[2];
+  uint8_t pad_com[2];
 // c000004 bit 1 write fifo empty, bit 0 write fifo full (???)
 // c000005 vint happened, (sprover, coll, oddinint)
 // invblank, inhblank, dma busy, pal
@@ -283,16 +328,18 @@ public:
 
   int reset();
 
-  unsigned misc_readbyte(unsigned a);
-  void misc_writebyte(unsigned a,unsigned d);
-  unsigned misc_readword(unsigned a);
-  void misc_writeword(unsigned a,unsigned d);
+	uint8_t misc_readbyte(uint32_t a);
+	void misc_writebyte(uint32_t a, uint8_t d);
+	uint16_t misc_readword(uint32_t a);
+	void misc_writeword(uint32_t a, uint16_t d);
 
   int z80_init();
-  unsigned char z80_read(unsigned int a);
-  void z80_write(unsigned int a,unsigned char v);
-  unsigned short z80_port_read(unsigned short a);
-  void z80_port_write(unsigned short a,unsigned char v);
+
+	void z80_reset();
+	uint8_t z80_read(uint16_t a);
+	void z80_write(uint16_t a, uint8_t d);
+	uint8_t z80_port_read(uint16_t a);
+	void z80_port_write(uint16_t a, uint8_t d);
 
   enum z80_core {
     Z80_CORE_NONE,

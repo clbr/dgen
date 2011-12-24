@@ -391,35 +391,26 @@ int md::reset()
   if (cpu_emu == CPU_EMU_M68KEM) m68000_reset(NULL);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
-#ifdef WITH_MZ80
-  mz80reset();
-#endif
-#ifdef WITH_CZ80
-  Cz80_Reset(&cz80);
-#endif
 
-  // zero = natural state of select line?
-
-  z80_bank68k=z80_online=z80_extra_cycles
-    =coo_waiting=coo_cmd=aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
+    coo_waiting=coo_cmd=aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
     =aoo3_six_timeout=aoo5_six_timeout
     =coo4=coo5=0;
   pad[0]=pad[1]=0xf303f; // Untouched pad
+  memset(pad_com, 0, sizeof(pad_com));
 
   // Reset FM registers
-  {
-    int s, r;
-    for(s=0;s<2;s++)
-      for(r=0;r<0x100;r++)
-        fm_reg[s][r]=0;
-  }
-  fm_sel[0] = fm_sel[1] = fm_tover[0] = fm_tover[1] = 0;
+  fm_reset();
   dac_init();
 
-  odo = 0;
+  memset(&odo, 0, sizeof(odo));
   ras = 0;
 
   star_mz80_off();
+  z80_st_running = 0;
+  m68k_st_running = 0;
+  z80_reset();
+  z80_st_busreq = 1;
+  z80_st_reset = 1;
   return 0;
 }
 
@@ -476,19 +467,52 @@ int md::z80_init()
   Cz80_Reset(&cz80);
 #endif
   star_mz80_off();
+  z80_st_busreq = 1;
+  z80_st_reset = 0;
+  z80_bank68k = 0xff8000;
   return 0;
 }
 
-
-md::md(bool pal, char region): vdp(*this), region(region), pal(pal)
+void md::z80_reset()
 {
+	z80_bank68k = 0xff8000;
+#ifdef WITH_MZ80
+	mz80reset();
+#endif
+#ifdef WITH_CZ80
+	Cz80_Reset(&cz80);
+#endif
+}
+
+md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
+{
+	unsigned int hc;
+
+	if (pal) {
+		mclk = PAL_MCLK;
+		lines = PAL_LINES;
+		vhz = PAL_HZ;
+	}
+	else {
+		mclk = NTSC_MCLK;
+		lines = NTSC_LINES;
+		vhz = NTSC_HZ;
+	}
+	clk0 = (mclk / 15);
+	clk1 = (mclk / 7);
+	// Initialize horizontal counter table (Gens style)
+	for (hc = 0; (hc < 512); ++hc) {
+		// H32
+		hc_table[hc][0] = (((hc * 170) / M68K_CYCLES_PER_LINE) - 0x18);
+		// H40
+		hc_table[hc][1] = (((hc * 205) / M68K_CYCLES_PER_LINE) - 0x1c);
+	}
+
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
 
-  fm_sel[0]=fm_sel[1]=fm_tover[0]=fm_tover[1]=0;
-  memset(&fm_reg,0,sizeof(fm_reg));
-  memset(&ras_fm_ticker,0,sizeof(ras_fm_ticker));
+  fm_reset();
 
   memset(&m68k_state, 0, sizeof(m68k_state));
   memset(&z80_state, 0, sizeof(z80_state));

@@ -1,372 +1,445 @@
-// DGen/SDL v1.15+
+// DGen/SDL v1.29+
 // Megadrive C++ module - misc memory
 
+#include <stdlib.h>
 #include <stdio.h>
 #include "md.h"
-// md.h also has include fm.h
 
-// This is to handle memory accesses outside of ROM and RAM
-// e.g. c00000 and a00000 addresses
-// REMEMBER NOT TO USE ANY STATIC variables, because they
-// will exist thoughout ALL megadrives!
-
-unsigned char md::z80_read(unsigned int a)
+uint8_t md::z80_read(uint16_t a)
 {
-  if (a<0x2000) return z80ram[a&0xffff];
-
-
-  if ((a&0xfffc)==0x4000) // 00 01 02 03 - not sure about reads
-  {
-    return myfm_read(a&3);
-  }
-
-  if (a>=0x8000)
-  {
-    int addr68k;
-    addr68k=z80_bank68k<<15;
-    addr68k+=a&0x7fff;
-
-    return misc_readbyte(addr68k);
-  }
-
-  return 0;
+	/* 0x0000-0x3fff: Z80 RAM */
+	if (a < 0x4000)
+		return z80ram[(a & 0x1fff)];
+	/* 0x4000-0x5fff: YM2612 */
+	if (a < 0x6000)
+		return myfm_read(a);
+	/* 0x6000-0x6fff: bank register */
+	if (a < 0x7000)
+		return 0; /* invalid address */
+	/* 0x7000-0x7fff: PSG/VDP */
+	if (a < 0x8000)
+		return 0; /* invalid address */
+	/* 0x8000-0xffff: M68K bank */
+	return misc_readbyte(z80_bank68k + (a & 0x7fff));
 }
 
-unsigned short md::z80_port_read(unsigned short a)
+void md::z80_write(uint16_t a, uint8_t d)
 {
-  int ret=0;
+	/* 0x0000-0x3fff: Z80 RAM */
+	if (a < 0x4000) {
+		z80ram[(a & 0x1fff)] = d;
+		return;
+	}
+	/* 0x4000-0x5fff: YM2612 */
+	if (a < 0x6000) {
+		myfm_write(a, d, 1);
+		return;
+	}
+	/* 0x6000-0x6fff: bank register */
+	if (a < 0x7000) {
+		uint32_t tmp;
 
-  (void)a;
-//  dprintf("z80 port read %.2x return %.4x\n",a,ret);
-
-  return ret;
+		if (a > 0x60ff)
+			return; /* invalid address */
+		tmp = (z80_bank68k >> 1);
+		tmp |= ((d & 1) << 23);
+		z80_bank68k = (tmp & 0xff8000);
+		return;
+	}
+	/* 0x7000-0x7fff: PSG */
+	if (a < 0x8000) {
+		if (a == 0x7f11) {
+			mysn_write(d);
+			return;
+		}
+		return; /* invalid address */
+	}
+	/* 0x8000-0xffff: M68K bank */
+	misc_writebyte((z80_bank68k + (a & 0x7fff)), d);
 }
-void md::z80_port_write(unsigned short a,unsigned char v)
+
+uint8_t md::z80_port_read(uint16_t a)
 {
 	(void)a;
-	(void)v;
-//  dprintf("z80 port write %.2x %.2x\n",a,v);
+	return 0xff;
 }
 
-
-void md::z80_write(unsigned int a,unsigned char v)
+void md::z80_port_write(uint16_t a, uint8_t d)
 {
-  if ((a&0xfffc)==0x4000) // 00 01 02 03
-  {
-    myfm_write(a&3,v,1);
-    return ;
-  }
-  if (a==0x7f11)
-  { mysn_write(v); return; }
-
-  if (a==0x6000)
-  {
-    z80_bank68k>>=1;
-    z80_bank68k+=(v&1)<<8;
-    z80_bank68k&=0x1ff; // 9 bits and filled in the new top one
-    return ;
-  }
-  if (a<0x2000) { z80ram[a&0xffff]=v; return; }
-
-
-  if (a>=0x8000)
-  {
-    int addr68k;
-    addr68k=z80_bank68k<<15;
-    addr68k+=a&0x7fff;
-    misc_writebyte(addr68k,v);
-    return;
-  }
-
-//  dprintf("z80 write %.4x %.2x\n",a,v);
-  return;
+	(void)a;
+	(void)d;
 }
 
-
-unsigned md::misc_readbyte(unsigned a)
+uint8_t md::misc_readbyte(uint32_t a)
 {
-  unsigned char ret=0;
-  a&=0x00ffffff; // in case stars didn't clip to 24-bit bus
-
-
-  // In case it's a rom read after all
-  if (a<0xa00000) {
-    // Saveram
-    if((save_active)     && (save_len) &&
-       (a >= save_start) && ((a - save_start) < save_len)) {
-      return saveram[(a^1) - save_start];
-    }
-    else if ((signed)(a^1)<romlen) { ret=rom[(a^1)]; goto end; }
-  }
-
-  // In case it's a ram read after all
-  if (a>=0xe00000) if (a<=0xffffff) { ret=ram[(a^1)&0xffff]; goto end; }
-
-  // GFX data read (byte)
-  if ((a&0xfffffffe)==0x00c00000) // 00 or 01
-    { ret=vdp.readbyte(); goto end; }
-
-
-  if ((a&0xfffffffc)==0xa04000)
-  {
-    ret=myfm_read(a&3); goto end;
-  }
-
-  if ((a>=0xa00000)&&(a<0xa08000))
-  {
-    // Read from z80's memory
-    ret=z80_read(a&0x7fff); goto end;
-  }
-
-  // I/O port access
-  if ((a&0xfffffe)==0xa10002)
-  {
-    if (aoo3_six==3)
-    {
-      // Extended pad info
-      if (aoo3_toggle==0) ret=((pad[0]>>8)&0x30)+0x00;
-      else ret=((pad[0])&0x30)+0x40+((pad[0]>>16)&0xf);
-    }
-    else
-    {
-      if (aoo3_toggle==0)
-      {
-        if (aoo3_six==4) ret=((pad[0]>>8)&0x30)+0x00+0x0f;
-        else             ret=((pad[0]>>8)&0x30)+0x00+(pad[0]&3);
-      }
-      else ret=((pad[0])&0x30)+0x40+(pad[0]&15);
-    }
-    goto end;
-  }
-
-  if ((a&0xfffffe)==0xa10004)
-  {
-    if (aoo5_six==3)
-    {
-      // Extended pad info
-      if (aoo5_toggle==0x00) ret=((pad[1]>>8)&0x30)+0x00;
-      else ret=((pad[1])&0x30)+0x40+((pad[1]>>16)&0xf);
-    }
-    else
-    {
-      if (aoo5_toggle==0x00)
-      {
-        if (aoo5_six==4) ret=((pad[1]>>8)&0x30)+0x00+0x0f;
-        else             ret=((pad[1]>>8)&0x30)+0x00+(pad[1]&3);
-      }
-      else ret=((pad[1])&0x30)+0x40+(pad[1]&15);
-    }
-    goto end;
-  }
-
-	if (a == 0xa10001) {
-		char c = region;
-
-		if (c == '\0') {
-			// The region to emulate hasn't been defined, get it
-			// from the ROM header.
-			c = misc_readbyte(0x1f0);
-		}
-		switch (c) {
-		case 'U':
-			ret = 0x80;
-			break;
-		case 'E':
-			ret = (0x80 | 0x40); /* Force PAL flag. */
-			break;
-		case 'J':
-		default:
-			ret = 0x00;
-			break;
-		}
-		ret = (ret | (pal ? 0x40 : 0x00));
-		goto end;
+	/* clip to 24-bit */
+	a &= 0x00ffffff;
+	/* 0x000000-0x7fffff: ROM */
+	if (a < 0x800000) {
+		/* save RAM */
+		if ((save_active) && (save_len) &&
+		    (a >= save_start) && ((a - save_start) < save_len))
+			return saveram[((a ^ 1) - save_start)];
+		/* ROM */
+		if ((a ^ 1) < romlen)
+			return rom[(a ^ 1)];
+		/* empty area */
+		return 0;
 	}
+	/* 0x800000-0x9fffff: empty area */
+	if (a < 0xa00000)
+		return 0;
+	/* 0xa00000-0xafffff: system I/O and control */
+	if (a < 0xb00000) {
+		/* Z80 */
+		if (a < 0xa10000) {
+			if ((!z80_st_busreq) && (a < 0xa04000))
+				return 0;
+			return z80_read(a & 0xffff);
+		}
+		/* version */
+		if (a == 0xa10000)
+			return 0;
+		if (a == 0xa10001) {
+			uint8_t c = region;
 
-  if (a==0xa11000) {ret=0xff; goto end; }
-  if (a==0xa11001) {ret=0xff; goto end; }
-  if (a==0xa11100)
-  {
-    ret=z80_online; goto end;
-  }
-  if (a==0xa11101) {ret=0x00; goto end; }
-  if (a==0xa11200) {ret=0xff; goto end; }
-  if (a==0xa11201) {ret=0xff; goto end; }
-
-  // Genecyst style - toggles fifo full/empty
-  if (a==0xc00004)
-  {
-    // This is the genecyst fudge for FIFO full/empty
-    coo4^=0x03;
-    ret=coo4; goto end;
-  }
-  if (a==0xc00005)
-  {
-    // This is the genecyst fudge for in h-blank
-    //coo5^=0x04;
-    ret=coo5 | (pal? 1 : 0); goto end;
-  }
-
-  if (a==0xc00008) { ret=calculate_coo8(); goto end; }
-  if (a==0xc00009) { ret=calculate_coo9(); goto end; }
-
-
-  end:
-  return ret;
+			if (c == '\0') {
+				/*
+				  The region to emulate hasn't been defined,
+				  get it from the ROM header.
+				*/
+				c = rom[(0x1f0 ^ 1)];
+			}
+			switch (c) {
+			case 'U':
+				c = 0x80;
+				break;
+			case 'E':
+				c = (0x80 | 0x40); /* force PAL flag */
+				break;
+			case 'J':
+			default:
+				c = 0x00;
+				break;
+			}
+			return (c | (pal ? 0x40 : 0x00));
+		}
+		/* data 1 (pad 0) */
+		if (a == 0xa10002)
+			return 0;
+		if (a == 0xa10003) {
+			if (aoo3_six == 3) {
+				/* extended pad info */
+				if (aoo3_toggle == 0)
+					return (((pad[0] >> 8) & 0x30) + 0x00);
+				return ((pad[0] & 0x30) + 0x40 +
+					((pad[0] >> 16) & 0x0f));
+			}
+			if (aoo3_toggle == 0) {
+				if (aoo3_six == 4)
+					return (((pad[0] >> 8) & 0x30) +
+						0x00 + 0x0f);
+				return (((pad[0] >> 8) & 0x30) +
+					0x00 + (pad[0] & 0x03));
+			}
+			return ((pad[0] & 0x30) + 0x40 + (pad[0] & 0x0f));
+		}
+		/* data 2 (pad 1) */
+		if (a == 0xa10004)
+			return 0;
+		if (a == 0xa10005) {
+			if (aoo5_six == 3) {
+				/* extended pad info */
+				if (aoo5_toggle == 0)
+					return (((pad[1] >> 8) & 0x30) + 0x00);
+				return ((pad[1] & 0x30) + 0x40 +
+					((pad[1] >> 16) & 0x0f));
+			}
+			if (aoo5_toggle == 0) {
+				if (aoo5_six == 4)
+					return (((pad[1] >> 8) & 0x30) +
+						0x00 + 0x0f);
+				return (((pad[1] >> 8) & 0x30) +
+					0x00 + (pad[1] & 0x03));
+			}
+			return ((pad[1] & 0x30) + 0x40 + (pad[1] & 0x0f));
+		}
+		/* data 3 (exp) */
+		if (a == 0xa10006)
+			return 0;
+		if (a == 0xa10007)
+			return 0xff;
+		/* ctrl 1 */
+		if (a == 0xa10008)
+			return 0;
+		if (a == 0xa10009)
+			return pad_com[0];
+		/* ctrl 2 */
+		if (a == 0xa1000a)
+			return 0;
+		if (a == 0xa1000b)
+			return pad_com[1];
+		/* ctrl 3 */
+		if ((a & 0xa1000c) == 0xa1000c)
+			return 0;
+		/* memory mode */
+		if ((a & 0xfffffe) == 0xa11000)
+			return 0xff;
+		/* Z80 BUSREQ */
+		if (a == 0xa11100)
+			return (!z80_st_busreq | 0x80);
+		if (a == 0xa11101)
+			return 0xff;
+		/* Z80 RESET */
+		if ((a & 0xfffffe) == 0xa11200)
+			return 0xff;
+		return 0; /* invalid address */
+	}
+	/* 0xb00000-0xbfffff: empty area */
+	if (a < 0xc00000)
+		return 0;
+	/* 0xc00000-0xdfffff: VDP/PSG */
+	if (a < 0xe00000) {
+		a &= 0xe700ff;
+		/* data */
+		if (a < 0xc00004) {
+			if (a & 0x01)
+				return 0;
+			return vdp.readbyte();
+		}
+		/* control */
+		if (a < 0xc00008) {
+			if ((a & 0x01) == 0)
+				return coo4;
+			return coo5;
+		}
+		/* HV counters */
+		if (a == 0xc00008)
+			return calculate_coo8();
+		if (a == 0xc00009)
+			return calculate_coo9();
+		/* PSG */
+		if (a == 0xc00011)
+			return (0);
+		return 0; /* invalid address */
+	}
+	/* 0xe00000-0xfeffff: invalid addresses, mirror RAM */
+	/* 0xff0000-0xffffff: RAM */
+	return ram[((a ^ 1) & 0xffff)];
 }
 
-void md::misc_writebyte(unsigned a,unsigned d)
+void md::misc_writebyte(uint32_t a, uint8_t d)
 {
-  a&=0x00ffffff; // in case stars didn't clip to 24-bit bus
-
-  // Saveram write
-  if(save_len && !save_prot) if(a >= save_start)
-    if ((a - save_start) < save_len)
-      { saveram[(a^1) - save_start] = d; return; }
-
-  // In case it's a ram write after all
-
-  if (a>=0xe00000) if (a<=0xffffff) { ram[(a^1)&0xffff]=d; return; }
-
-  // GFX data write (byte)
-  if ((a&0xfffffffe)==0x00c00000) // 00 or 01
-    { vdp.writebyte(d); return; }
-
-  if ((a&0xfffffffc)==0xa04000)
-  {
-    myfm_write(a&3,d,1);
-    return;
-  }
-
-  if (a==0xc00011)
-  {
-    mysn_write(d); return;
-  }
-
-  if (a==0xa11100)
-  {
-//d8 (W) 0: BUSREQ CANCEL
-//       1: BUSREQ REQUEST
-    if (d) z80_online=0;
-    else z80_online=1;
-    return;
-  }
-  if (a==0xa11101) return;
-  if (a==0xa11200)
-  {
-#ifdef WITH_MZ80
-	if ((d == 0) && (z80_core == Z80_CORE_MZ80))
-		mz80reset();
-#endif
-#ifdef WITH_CZ80
-	if ((d == 0) && (z80_core == Z80_CORE_CZ80))
-		Cz80_Reset(&cz80);
-#endif
-    return;
-  }
-  if (a==0xa11201) return;
-
-  if ((a>=0xa00000)&&(a<0xa08000))
-  {
-    // Write into z80's memory
-    z80_write(a&0x7fff,d);
-    return;
-  }
-
-  // I/O port access
-  if (a==0xa10003)
-  {
-    if (aoo3_six>=0 && (d&0x40)==0 && aoo3_toggle ) aoo3_six++;
-
-    if (aoo3_six>0xc00000) aoo3_six&=~0x400000;
-    // keep it circling around a high value
-
-    if (d&0x40) aoo3_toggle=1; else aoo3_toggle=0;
-    aoo3_six_timeout=0;
-    return;
-  }
-  if (a==0xa10005)
-  {
-    if (aoo5_six>=0 && (d&0x40)==0 && aoo5_toggle ) aoo5_six++;
-
-    if (aoo5_six>0xc00000) aoo5_six&=~0x400000;
-    // keep it circling around a high value
-
-    if (d&0x40) aoo5_toggle=1; else aoo5_toggle=0;
-    aoo5_six_timeout=0;
-    return;
-  }
-  // Saveram status (thanks Steve :)
-  if(a==0xa130f1)
-  {
-    // Bit 0: 0=rom active, 1=sram active
-    // Bit 1: 0=writeable,  1=write protect
-    save_active = d & 1;
-    save_prot   = d & 2;
-  }
+	/* clip to 24-bit */
+	a &= 0x00ffffff;
+	/* 0x000000-0x7fffff: ROM */
+	if (a < 0x800000) {
+		/* save RAM */
+		if ((!save_prot) && (save_len) &&
+		    (a >= save_start) && ((a - save_start) < save_len))
+			saveram[((a ^ 1) - save_start)] = d;
+		return;
+	}
+	/* 0x800000-0x9fffff: empty area */
+	if (a < 0xa00000)
+		return;
+	/* 0xa00000-0xafffff: system I/O and control */
+	if (a < 0xb00000) {
+		/* Z80 */
+		if (a < 0xa10000) {
+			if ((!z80_st_busreq) && (a < 0xa04000))
+				return;
+			z80_write((a & 0xffff), d);
+			return;
+		}
+		if (a == 0xa11100) {
+			/* Z80 BUSREQ */
+			if (d)
+				m68k_busreq_request();
+			else
+				m68k_busreq_cancel();
+			return;
+		}
+		if (a == 0xa11101)
+			return;
+		/* Z80 RESET */
+		if (a == 0xa11200) {
+			/* cancel RESET state if nonzero */
+			if (d)
+				z80_st_reset = 0;
+			else if (z80_st_reset == 0) {
+				if (z80_st_busreq == 0)
+					z80_sync(0);
+				z80_st_reset = 1;
+				z80_reset();
+				fm_reset();
+			}
+			return;
+		}
+		if (a == 0xa11201)
+			return;
+		/* I/O port access */
+		if (a < 0xa1000d) {
+			if (a == 0xa10003) {
+				if ((aoo3_six >= 0) && ((d & 0x40) == 0) &&
+				    (aoo3_toggle))
+					++aoo3_six;
+				if (aoo3_six > 0xc00000)
+					aoo3_six &= ~0x400000;
+				/* keep it circling around a high value */
+				if (d & 0x40)
+					aoo3_toggle = 1;
+				else
+					aoo3_toggle = 0;
+				aoo3_six_timeout = 0;
+				return;
+			}
+			if (a == 0xa10005) {
+				if ((aoo5_six >= 0) && ((d & 0x40) == 0) &&
+				    (aoo5_toggle))
+					++aoo5_six;
+				if (aoo5_six > 0xc00000)
+					aoo5_six &= ~0x400000;
+				/* keep it circling around a high value */
+				if (d & 0x40)
+					aoo5_toggle = 1;
+				else
+					aoo5_toggle = 0;
+				aoo5_six_timeout = 0;
+				return;
+			}
+			return;
+		}
+		/* save RAM status */
+		if (a == 0xa130f1) {
+			/*
+			  Bit 0: 0 = ROM active, 1 = SRAM active
+			  Bit 1: 0 = writable protect
+			*/
+			save_active = (d & 1);
+			save_prot = (d & 2);
+			return;
+		}
+		return;
+	}
+	/* 0xb00000-0xbfffff: empty area */
+	if (a < 0xc00000)
+		return;
+	/* 0xc00000-0xdfffff: VDP/PSG */
+	if (a < 0xe00000) {
+		a &= 0xe700ff;
+		if (a < 0xc00008) {
+			misc_writeword(a, (d | (d << 8)));
+			return;
+		}
+		/* PSG */
+		if (a == 0xc00011)
+			mysn_write(d);
+		return;
+	}
+	/* 0xe00000-0xfeffff: invalid addresses, mirror RAM */
+	/* 0xff0000-0xffffff: RAM */
+	ram[((a ^ 1) & 0xffff)] = d;
 }
 
-unsigned md::misc_readword(unsigned a)
+uint16_t md::misc_readword(uint32_t a)
 {
-  unsigned int ret=0;
+	uint16_t ret;
 
-  a&=0x00ffffff; // in case stars didn't clip to 24-bit bus
-
-  if ((a&0xfffffffc)==0x00c00000) // 00 or 02
-  {
-    ret=vdp.readword();
-    goto end;
-  }
-
-  // else pass onto readbyte
-  ret =misc_readbyte(a)<<8;
-  ret|=misc_readbyte(a+1);
-  goto end;
-
-  end:
-  return ret;
+	a &= 0x00ffffff;
+	/* BUSREQ */
+	if (a == 0xa11100)
+		return ((!z80_st_busreq << 8) | 0x00ff);
+	/* RESET */
+	if (a == 0xa11200)
+		return 0xffff;
+	/* VDP */
+	if ((a >= 0xc00000) && (a < 0xe00000)) {
+		a &= 0xe700ff;
+		if (a < 0xc00004) {
+			if (a & 0x01)
+				return 0;
+			return vdp.readword();
+		}
+		if (a < 0xc00008) {
+			if (a & 0x01)
+				return 0;
+			return (((coo4 & 0xff) << 8) | (coo5 & 0xff));
+		}
+		if (a == 0xc00008) {
+			if (a & 0x01)
+				return 0;
+			return ((calculate_coo8() << 8) |
+				(calculate_coo9() & 0xff));
+		}
+	}
+	/* else pass onto readbyte */
+	ret = (misc_readbyte(a) << 8);
+	ret |= misc_readbyte(a + 1);
+	return ret;
 }
 
-void md::misc_writeword(unsigned a,unsigned d)
+void md::misc_writeword(uint32_t a, uint16_t d)
 {
-  a&=0x00ffffff; // in case stars didn't clip to 24-bit bus
+	a &= 0x00ffffff;
+	/* Z80 */
+	if ((a >= 0xa00000) && (a < 0xa10000)) {
+		if ((!z80_st_busreq) && (a < 0xa04000))
+			return;
+		z80_write((a & 0xffff), (d >> 8));
+		return;
+	}
+	/* BUSREQ and RESET */
+	if ((a == 0xa11100) ||
+	    (a == 0xa11200)) {
+		misc_writebyte(a, (d >> 8));
+		return;
+	}
+	/* VDP */
+	if ((a >= 0xc00000) && (a < 0xe00000)) {
+		a &= 0xe700ff;
+		if (a < 0xc00004) {
+			if (a & 0x01)
+				return;
+			vdp.writeword(d);
+			return;
+		}
+		if (a < 0xc00008) {
+			if (a & 0x01)
+				return;
+			if (coo_waiting) {
+				/* completed the vdp command */
+				coo_cmd |= d;
+				coo_waiting = 0;
+				vdp.command(coo_cmd);
+				return;
+			}
+			if ((d & 0xc000) == 0x8000) {
+				uint8_t addr = ((d >> 8) & 0x1f);
 
-  // GFX data write (word)
-  if ((a&0xfffffffc)==0x00c00000) // 00 or 02
-  {
-    vdp.writeword(d);
-    return;
-  }
+				if (vdp.reg[addr] != (d & 0xff)) {
+					uint8_t byt, bit;
 
-  if ((a&0xfffffffc)==0x00c00004) // 04 or 06
-  {
-    if (coo_waiting)
-    {
-      // Okay completed the vdp command
-      coo_cmd|=d; coo_waiting=0;
-
-      vdp.command(coo_cmd);
-      return;
-    }
-    if ((d&0xc000)==0x8000)
-    {
-      int addr; addr=d>>8; addr&=0x1f;
-      if (vdp.reg[addr]!=(d&0xff))
-      {
-        // Store dirty information down to 1byte level in bits
-        int byt,bit;
-        byt=addr; bit=byt&7; byt>>=3; byt&=0x03;
-        vdp.dirt[0x30+byt]|=(1<<bit); vdp.dirt[0x34]|=8;
-      }
-      vdp.reg[addr]=d&0xff;
-      return;
-    }
-    coo_cmd=d<<16; coo_waiting=1;
-    return;
-  }
-
-  // else pass onto writebyte
-  misc_writebyte(a,d>>8);
-  misc_writebyte(a+1,d&255);
+					/*
+					  store dirty information down to
+					  1 byte level in bits
+					*/
+					byt = addr;
+					bit = (byt & 7);
+					byt >>= 3;
+					byt &= 0x03;
+					vdp.dirt[(0x30 + byt)] |= (1 << bit);
+					vdp.dirt[0x34] |= 8;
+				}
+				vdp.reg[addr] = (d & 0xff);
+				return;
+			}
+			coo_cmd = (d << 16);
+			coo_waiting = 1;
+			return;
+		}
+	}
+	/* else pass onto writebyte */
+	misc_writebyte(a, (d >> 8));
+	misc_writebyte((a + 1), (d & 0xff));
 }
-

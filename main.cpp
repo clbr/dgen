@@ -341,11 +341,11 @@ int main(int argc, char *argv[])
 
 	// Start up the sound chips.
 	if (YM2612Init(1,
-		       ((pal_mode) ? 7600489 : 7670453),
+		       (((pal_mode) ? PAL_MCLK : NTSC_MCLK) / 7),
 		       dgen_soundrate, NULL, NULL))
 		goto ym2612_fail;
 	if (SN76496_init(0,
-			 ((pal_mode) ? 3546893 : 3579545),
+			 (((pal_mode) ? PAL_MCLK : NTSC_MCLK) / 15),
 			 dgen_soundrate, 16)) {
 		YM2612Shutdown();
 	ym2612_fail:

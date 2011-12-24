@@ -361,6 +361,8 @@ int md::import_gst(FILE *hand)
 	fm_reg[0][0x24] = p[0x24];
 	fm_reg[0][0x25] = p[0x25];
 	fm_reg[0][0x26] = p[0x26];
+	fm_reg[0][0x27] = p[0x27];
+	memset(fm_ticker, 0, sizeof(fm_ticker));
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	p = &(*buf)[0x404];
 	for (i = 0; (i != 2); ++i, p = &(*buf)[0x424]) {
@@ -382,8 +384,12 @@ int md::import_gst(FILE *hand)
 	z80_state_restore();
 	/* Z80 state (8 bytes) */
 	p = &(*buf)[0x438];
-	/* = p[0]; Z80 reset */
-	z80_online = p[1];
+	z80_st_reset = !p[0]; /* BUS RESET state */
+	if (z80_st_reset) {
+		z80_reset();
+		fm_reset();
+	}
+	z80_st_busreq = (p[1] & 1); /* BUSREQ state */
 	memcpy(&tmp, &(*buf)[0x43c], 4);
 	z80_bank68k = le2h32(tmp);
 	/* Z80 RAM (8192 bytes) */
@@ -449,6 +455,7 @@ int md::export_gst(FILE *hand)
 	p[0x24] = fm_reg[0][0x24];
 	p[0x25] = fm_reg[0][0x25];
 	p[0x26] = fm_reg[0][0x26];
+	p[0x27] = fm_reg[0][0x27];
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	z80_state_dump();
 	p = &(*buf)[0x404];
@@ -470,8 +477,8 @@ int md::export_gst(FILE *hand)
 	p[3] = z80_state.im;
 	/* Z80 state (8 bytes) */
 	p = &(*buf)[0x438];
-	p[0] = 1; /* Z80 reset, Gens needs this */
-	p[1] = z80_online;
+	p[0] = !z80_st_reset;
+	p[1] = z80_st_busreq;
 	tmp = h2le32(z80_bank68k);
 	memcpy(&(*buf)[0x43c], &tmp, 4);
 	/* Z80 RAM (8192 bytes) */

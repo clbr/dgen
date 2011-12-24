@@ -1,6 +1,7 @@
-// DGen/SDL v1.18+
+// DGen/SDL v1.29+
 // Megadrive 1 Frame module
 // Many, many thanks to John Stiles for the new structure of this module! :)
+// And kudos to Gens (Gens/GS) and Genplus (GX) authors -- zamaz
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,319 +12,402 @@
 #endif
 #include "md.h"
 
-int split_screen=0;
-
-#ifdef WITH_STAR
-void md::run_to_odo_star(int odo_to)
+// Return current M68K odometer
+int md::m68k_odo()
 {
-  int odo_start = s68000readOdometer();
-  s68000exec(odo_to - odo_start);
-}
-#endif
-
+	if (m68k_st_running) {
 #ifdef WITH_MUSA
-void md::run_to_odo_musa(int odo_to)
-{
-  odo += m68k_execute(odo_to - odo);
-}
+		if (cpu_emu == CPU_EMU_MUSA)
+			return (odo.m68k + m68k_cycles_run());
 #endif
-
-#ifdef WITH_M68KEM
-void md::run_to_odo_m68kem(int odo_to)
-{
-  odo += m68000_execute(odo_to - odo);
-}
+#ifdef WITH_STAR
+		if (cpu_emu == CPU_EMU_STAR)
+			return (odo.m68k + s68000readOdometer());
 #endif
+	}
+	return odo.m68k;
+}
 
-void md::run_to_odo_z80(int odo_to)
+// Run M68K to odo.m68k_max
+void md::m68k_run()
 {
-	if (!z80_online)
+	int cycles = (odo.m68k_max - odo.m68k);
+
+	if (cycles <= 0)
 		return;
-	odo_to >>= 1;
-#ifdef WITH_MZ80
-	if (z80_core == Z80_CORE_MZ80)
-		mz80exec(odo_to - mz80GetElapsedTicks(0));
+	m68k_st_running = 1;
+#ifdef WITH_MUSA
+	if (cpu_emu == CPU_EMU_MUSA)
+		odo.m68k += m68k_execute(cycles);
+	else
 #endif
-#ifdef WITH_CZ80
-	if (z80_core == Z80_CORE_CZ80)
-		cz80_cycles += Cz80_Exec(&cz80, (odo_to - cz80_cycles));
+#ifdef WITH_STAR
+	if (cpu_emu == CPU_EMU_STAR) {
+		s68000tripOdometer();
+		s68000exec(cycles);
+		odo.m68k += s68000readOdometer();
+	}
+	else
 #endif
+		odo.m68k += cycles;
+	m68k_st_running = 0;
 }
 
-#define LINES_PER_FRAME_NTSC 0x106 // Number of scanlines in NTSC (w/ vblank)
-#define LINES_PER_FRAME_PAL  0x138 // Number of scanlines in PAL  (w/ vblank)
-
-#define LINES_PER_FRAME (pal? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC)
-
-#define VBLANK_LINE_NTSC 0xE0 // vblank location for NTSC (and PAL 28-cel mode)
-#define VBLANK_LINE_PAL  0xF0 // vblank location for PAL 30-cel mode
-
-#define VBLANK_LINE ((pal && (vdp.reg[1] & 8))? \
-                     VBLANK_LINE_PAL : VBLANK_LINE_NTSC)
-
-#define scanlength (pal? (7189547/50/0x138) : (8000000/60/0x106))
-#define scanlength_z80 (7189547/50/0x138)
-
-#ifdef WITH_STAR
-int md::one_frame_star(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
+// Issue BUSREQ
+void md::m68k_busreq_request()
 {
-  int hints, odom = 0;
-  int odom_z80 = 0;
+	if (z80_st_busreq)
+		return;
+	z80_st_busreq = 1;
+	if (z80_st_reset)
+		return;
+	z80_sync(0);
+}
 
-  star_mz80_on(); // VERY IMPORTANT! Must call before using star/mz80
+// Cancel BUSREQ
+void md::m68k_busreq_cancel()
+{
+	if (!z80_st_busreq)
+		return;
+	z80_st_busreq = 0;
+	z80_sync(1);
+}
 
-  // Clear odos
-  s68000tripOdometer();
-
-#ifdef WITH_MZ80
-	if (z80_core == Z80_CORE_MZ80)
-		mz80GetElapsedTicks(1);
+// Trigger M68K IRQ
+void md::m68k_irq(int i)
+{
+#ifdef WITH_MUSA
+	if (cpu_emu == CPU_EMU_MUSA)
+		m68k_set_irq(i);
+	else
 #endif
-#ifdef WITH_CZ80
-	if (z80_core == Z80_CORE_CZ80)
-		cz80_cycles = 0;
+#ifdef WITH_STAR
+	if (cpu_emu == CPU_EMU_STAR)
+		s68000interrupt(i, -1);
+	else
 #endif
+		(void)0;
+}
 
-  // Raster zero causes special things to happen :)
-  coo4 = 0x37; // Init status register
-  if(vdp.reg[12] & 0x2) coo5 ^= 0x10; // Toggle odd/even for interlace
-  if(vdp.reg[1]  & 0x40) coo5 &= ~0x88; // Clear vblank and vint
-  if(!(vdp.reg[1] & 0x20)) coo5 |= 0x80; // If vint disabled, vint happened
-					 // is permanently set
-  hints = vdp.reg[10]; // Set hint counter
-
-  // Video display! :D
-  for(ras = 0; ras < VBLANK_LINE; ++ras)
-    {
-      fm_timer_callback(); // update sound timers
-
-      if((vdp.reg[0] & 0x10) && (--hints < 0))
-        {
-	  // Trigger hint
-	  s68000interrupt(4, -1);
-	  hints = vdp.reg[10];
-	  may_want_to_get_pic(bm, retpal, 1);
-	} else
-	  may_want_to_get_pic(bm, retpal, 0);
-
-      coo5 |= 4; // hblank comes before, about 36/209 of the whole scanline
-      run_to_odo_star(odom + (scanlength * 36/209));
-      // Do hdisplay now
-      odom += scanlength;
-      odom_z80 += scanlength_z80;
-      coo5 &= ~4;
-      run_to_odo_star(odom);
-
-      // Do Z80
-      run_to_odo_z80(odom_z80);
-    }
-  // Now we're in vblank, more special things happen :)
-  // Blank everything, and trigger vint
-  coo5 |= 0x8C;
-  if(vdp.reg[1] & 0x20) s68000interrupt(6, -1);
-
-#if defined(WITH_MZ80) || defined(WITH_CZ80)
-	if (z80_online) {
-#ifdef WITH_MZ80
-		if (z80_core == Z80_CORE_MZ80)
-			mz80int(0);
-#endif
+// Return current Z80 odometer
+int md::z80_odo()
+{
+	if (z80_st_running) {
 #ifdef WITH_CZ80
 		if (z80_core == Z80_CORE_CZ80)
-			Cz80_Set_IRQ(&cz80, 0);
+			return (odo.z80 + Cz80_Get_CycleRemaining(&cz80));
 #endif
-	}
-#endif
-
-  // Run the course of vblank
-  for(; ras < LINES_PER_FRAME; ++ras)
-    {
-      fm_timer_callback();
-
-      // No interrupts happen in vblank
-
-      odom += scanlength;
-      odom_z80 += scanlength_z80;
-      run_to_odo_star(odom);
-      run_to_odo_z80(odom_z80);
-    }
-
-  // Fill the sound buffers
-  if(sndi) may_want_to_get_sound(sndi);
-
-  // Shut off mz80/star - VERY IMPORTANT!
-  star_mz80_off();
-
-  return 0;
-}
-#endif // WITH_STAR
-
-#ifdef WITH_MUSA
-int md::one_frame_musa(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
-{
-  int hints, odom = 0;
-  int odom_z80 = 0;
-
-  star_mz80_on(); // VERY IMPORTANT! Must call before using star/mz80
-
-  // Clear odos
-  odo = 0;
-
-#ifdef WITH_MZ80
-	if (z80_core == Z80_CORE_MZ80)
-		mz80GetElapsedTicks(1);
-#endif
-#ifdef WITH_CZ80
-	if (z80_core == Z80_CORE_CZ80)
-		cz80_cycles = 0;
-#endif
-
-  // Raster zero causes special things to happen :)
-  coo4 = 0x37; // Init status register
-  if(vdp.reg[12] & 0x2) coo5 ^= 0x10; // Toggle odd/even for interlace
-  if(vdp.reg[1]  & 0x40) coo5 &= ~0x88; // Clear vblank and vint
-  if(!(vdp.reg[1] & 0x20)) coo5 |= 0x80; // If vint disabled, vint happened
-					 // is permanently set
-  hints = vdp.reg[10]; // Set hint counter
-
-  // Video display! :D
-  for(ras = 0; ras < VBLANK_LINE; ++ras)
-    {
-      fm_timer_callback(); // update sound timers
-
-      if((vdp.reg[0] & 0x10) && (--hints < 0))
-        {
-	  // Trigger hint
-	  m68k_set_irq(4);
-	  hints = vdp.reg[10];
-	  may_want_to_get_pic(bm, retpal, 1);
-	} else may_want_to_get_pic(bm, retpal, 0);
-      coo5 |= 4; // hblank comes before, about 36/209 of the whole scanline
-      run_to_odo_musa(odom + (scanlength * 36/209));
-      // Do hdisplay now
-      odom += scanlength;
-      odom_z80 += scanlength_z80;
-      coo5 &= ~4;
-      run_to_odo_musa(odom);
-
-      // Do Z80
-      run_to_odo_z80(odom_z80);
-    }
-  // Now we're in vblank, more special things happen :)
-  // Blank everything, and trigger vint
-  coo5 |= 0x8C;
-  if (vdp.reg[1] & 0x20)
-	  m68k_set_irq(6);
-
-#if defined(WITH_MZ80) || defined(WITH_CZ80)
-	if (z80_online) {
 #ifdef WITH_MZ80
 		if (z80_core == Z80_CORE_MZ80)
-			mz80int(0);
-#endif
-#ifdef WITH_CZ80
-		if (z80_core == Z80_CORE_CZ80)
-			Cz80_Set_IRQ(&cz80, 0);
+			return (odo.z80 + mz80GetElapsedTicks(0));
 #endif
 	}
-#endif
-
-  // Run the course of vblank
-  for(; ras < LINES_PER_FRAME; ++ras)
-    {
-      fm_timer_callback();
-
-      // No interrupts happen in vblank :)
-
-      odom += scanlength;
-      odom_z80 += scanlength_z80;
-      run_to_odo_musa(odom);
-      run_to_odo_z80(odom_z80);
-    }
-
-  // Fill the sound buffers
-  if(sndi) may_want_to_get_sound(sndi);
-
-  // Shut off mz80/star - VERY IMPORTANT!
-  star_mz80_off();
-
-  return 0;
+	return odo.z80;
 }
-#endif // WITH_MUSA
 
-// FIXME: I'm not going to do this until I figure out 68kem better
-#ifdef WITH_M68KEM
-int md::one_frame_m68kem(struct bmap *bm, unsigned char retpal[256], struct sndinfo *sndi)
-{}
-#endif
-
-int md::one_frame(
-  struct bmap *bm,unsigned char retpal[256],
-  struct sndinfo *sndi)
+// Run Z80 to odo.z80_max
+void md::z80_run()
 {
-  switch(cpu_emu)
-    {
-#ifdef WITH_STAR
-      case CPU_EMU_STAR: return one_frame_star(bm, retpal, sndi);
+	int cycles = (odo.z80_max - odo.z80);
+
+	if (cycles <= 0)
+		return;
+	if (z80_st_busreq | z80_st_reset)
+		odo.z80 += cycles;
+	else {
+		z80_st_running = 1;
+#ifdef WITH_CZ80
+		if (z80_core == Z80_CORE_CZ80)
+			odo.z80 += Cz80_Exec(&cz80, cycles);
+		else
 #endif
-#ifdef WITH_MUSA
-      case CPU_EMU_MUSA: return one_frame_musa(bm, retpal, sndi);
+#ifdef WITH_MZ80
+		if (z80_core == Z80_CORE_MZ80) {
+			mz80exec(cycles);
+			odo.z80 += mz80GetElapsedTicks(1);
+		}
+		else
 #endif
-#ifdef WITH_M68KEM
-      case CPU_EMU_M68KEM: return one_frame_m68kem(bm, retpal, sndi);
-#endif
-      // Something's screwy here...
-      default: return 1;
-    }
-#if !defined(WITH_STAR) || !defined(WITH_MUSA) || !defined(WITH_M68KEM)
-	(void)bm;
-	(void)retpal;
-	(void)sndi;
-#endif
+			odo.z80 += cycles;
+		z80_st_running = 0;
+	}
 }
 
-int md::calculate_hcoord()
+// Synchronize Z80 with M68K, don't execute code if fake is nonzero
+void md::z80_sync(int fake)
 {
-  int x=0,hcoord;
-  // c00009 is the H counter (I believe it's (h-coord>>1)&0xff)
-#ifdef WITH_STAR
-  if (cpu_emu == CPU_EMU_STAR) x = s68000readOdometer() - (ras * scanlength);
+	int cycles = (m68k_odo() >> 1);
+
+	if (cycles > odo.z80_max)
+		cycles = odo.z80_max;
+	cycles -= odo.z80;
+	if (cycles <= 0)
+		return;
+	if (fake)
+		odo.z80 += cycles;
+	else {
+		z80_st_running = 1;
+#ifdef WITH_CZ80
+		if (z80_core == Z80_CORE_CZ80)
+			odo.z80 += Cz80_Exec(&cz80, cycles);
+		else
 #endif
-#if defined(WITH_MUSA) || defined(WITH_M68KEM)
-  if (cpu_emu == CPU_EMU_MUSA) x = odo - (ras * scanlength);
+#ifdef WITH_MZ80
+		if (z80_core == Z80_CORE_MZ80) {
+			mz80exec(cycles);
+			odo.z80 += mz80GetElapsedTicks(1);
+		}
+		else
 #endif
-
-  // hcoord=-56 (inclusive) to 364 (inclusive) in 40 column mode
-
-  hcoord=(x*416)/scanlength;
-  hcoord-=56;
-
-  return hcoord;
+			odo.z80 += cycles;
+		z80_st_running = 0;
+	}
 }
 
-unsigned char md::calculate_coo8()
+// Trigger Z80 IRQ
+void md::z80_irq()
 {
-  int hvcount;
-  hvcount=ras;
-
-  // c00008 is the V counter
-  if (calculate_hcoord()>=330) hvcount++;
-    // v counter seems to be a bit ahead of where h counter wraps
-
-  if (hvcount>(VBLANK_LINE+0xa)) hvcount-=6; // vcounter E5-EA appears twice!
-
-  hvcount&=0xff;
-  return hvcount;
+#ifdef WITH_CZ80
+	if (z80_core == Z80_CORE_CZ80)
+		Cz80_Set_IRQ(&cz80, 0);
+	else
+#endif
+#ifdef WITH_MZ80
+	if (z80_core == Z80_CORE_MZ80)
+		mz80int(0);
+	else
+#endif
+		(void)0;
 }
 
-unsigned char md::calculate_coo9()
+// Clear Z80 IRQ
+void md::z80_irq_clear()
 {
-  int coo9;
-  coo9=(calculate_hcoord()>>1)&0xff;
-
-  return coo9;
+#ifdef WITH_CZ80
+	if (z80_core == Z80_CORE_CZ80)
+		Cz80_Clear_IRQ(&cz80);
+	else
+#endif
+#ifdef WITH_MZ80
+	if (z80_core == Z80_CORE_MZ80)
+		mz80ClearPendingInterrupt();
+	else
+#endif
+		(void)0;
 }
 
+// Return the number of microseconds spent in current frame
+unsigned int md::frame_usecs()
+{
+	if (z80_st_running)
+		return ((z80_odo() * 1000) / (clk0 / 1000));
+	return ((m68k_odo() * 1000) / (clk1 / 1000));
+}
+
+// Return first line of vblank
+unsigned int md::vblank()
+{
+	return (((pal) && (vdp.reg[1] & 0x08)) ? PAL_VBLANK : NTSC_VBLANK);
+}
+
+// Generate one frame
+int md::one_frame(struct bmap *bm, unsigned char retpal[256],
+		  struct sndinfo *sndi)
+{
+	int hints;
+	int m68k_max, z80_max;
+	int zirq = 0;
+	unsigned int vblank = md::vblank();
+
+	star_mz80_on();
+	// Reset odometers
+	memset(&odo, 0, sizeof(odo));
+	// Reset FM tickers
+	fm_ticker[1] = 0;
+	fm_ticker[3] = 0;
+	// Raster zero causes special things to happen :)
+	coo4 = 0x02; // Init status register (FIXME)
+	if (vdp.reg[12] & 0x2)
+		coo5 ^= 0x10; // Toggle odd/even for interlace
+	if (vdp.reg[1] & 0x40)
+		coo5 &= ~0x88; // Clear vblank and vint
+	else
+		coo5 &= ~0x08; // Clear vblank
+	if (!(vdp.reg[1] & 0x20))
+		coo5 |= 0x80; // If vint disabled, vint happened
+	coo5 |= !!pal;
+	// Is permanently set
+	hints = vdp.reg[10]; // Set hint counter
+	// Video display! :D
+	for (ras = 0; ((unsigned int)ras < vblank); ++ras) {
+		fm_timer_callback(); // Update sound timers
+		if ((vdp.reg[0] & 0x10) && (--hints < 0)) {
+			// Trigger hint
+			m68k_irq(4);
+			hints = vdp.reg[10];
+			may_want_to_get_pic(bm, retpal, 1);
+		}
+		else
+			may_want_to_get_pic(bm, retpal, 0);
+		// Enable h-blank
+		coo5 |= 0x04;
+		// H-blank comes before, about 36/209 of the whole scanline
+		m68k_max = (odo.m68k_max + M68K_CYCLES_PER_LINE);
+		odo.m68k_max += M68K_CYCLES_HBLANK;
+		z80_max = (odo.z80_max + Z80_CYCLES_PER_LINE);
+		odo.z80_max += Z80_CYCLES_HBLANK;
+		m68k_run();
+		z80_run();
+		// Disable h-blank
+		coo5 &= ~0x04;
+		// Do hdisplay now
+		odo.m68k_max = m68k_max;
+		odo.z80_max = z80_max;
+		m68k_run();
+		z80_run();
+	}
+	// Now we're in vblank, more special things happen :)
+	// The following was roughly adapted from Genplus GX
+	// Enable v-blank
+	coo5 |= 0x08;
+	if ((vdp.reg[0] & 0x10) && (--hints < 0)) {
+		// Trigger hint
+		m68k_irq(4);
+		hints = vdp.reg[10];
+	}
+	// Save m68k_max and z80_max
+	m68k_max = (odo.m68k_max + M68K_CYCLES_PER_LINE);
+	z80_max = (odo.z80_max + Z80_CYCLES_PER_LINE);
+	// Delay between vint and vint flag
+	odo.m68k_max += M68K_CYCLES_HBLANK;
+	odo.z80_max += Z80_CYCLES_HBLANK;
+	// Enable h-blank
+	coo5 |= 0x04;
+	m68k_run();
+	z80_run();
+	// Disable h-blank
+	coo5 &= ~0x04;
+	// Toggle vint flag
+	coo5 |= 0x80;
+	// Delay between v-blank and vint
+	odo.m68k_max += (M68K_CYCLES_VDELAY - M68K_CYCLES_HBLANK);
+	odo.z80_max += (Z80_CYCLES_VDELAY - Z80_CYCLES_HBLANK);
+	m68k_run();
+	z80_run();
+	// Restore m68k_max and z80_max
+	odo.m68k_max = m68k_max;
+	odo.z80_max = z80_max;
+	// Blank everything and trigger vint
+	if (vdp.reg[1] & 0x20)
+		m68k_irq(6);
+	if (!z80_st_reset) {
+		z80_irq();
+		zirq = 1;
+	}
+	fm_timer_callback();
+	// Run remaining cycles
+	m68k_run();
+	z80_run();
+	++ras;
+	// Run the course of vblank
+	fm_timer_callback();
+	// Usual h-blank stuff
+	coo5 |= 0x04;
+	m68k_max = (odo.m68k_max + M68K_CYCLES_PER_LINE);
+	odo.m68k_max += M68K_CYCLES_HBLANK;
+	z80_max = (odo.z80_max + Z80_CYCLES_PER_LINE);
+	odo.z80_max += Z80_CYCLES_HBLANK;
+	m68k_run();
+	z80_run();
+	coo5 &= ~0x04;
+	odo.m68k_max = m68k_max;
+	odo.z80_max = z80_max;
+	m68k_run();
+	z80_run();
+	// Clear Z80 interrupt
+	if (zirq)
+		z80_irq_clear();
+	++ras;
+	// Remaining lines
+	while ((unsigned int)ras < lines) {
+		fm_timer_callback();
+		// Enable h-blank
+		coo5 |= 0x04;
+		m68k_max = (odo.m68k_max + M68K_CYCLES_PER_LINE);
+		odo.m68k_max += M68K_CYCLES_HBLANK;
+		z80_max = (odo.z80_max + Z80_CYCLES_PER_LINE);
+		odo.z80_max += Z80_CYCLES_HBLANK;
+		m68k_run();
+		z80_run();
+		// Disable h-blank
+		coo5 &= ~0x04;
+		odo.m68k_max = m68k_max;
+		odo.z80_max = z80_max;
+		m68k_run();
+		z80_run();
+		++ras;
+	}
+	// Fill the sound buffers
+	if (sndi)
+		may_want_to_get_sound(sndi);
+	star_mz80_off();
+	fm_timer_callback();
+	return 0;
+}
+
+// Return V counter (Gens/GS style)
+uint8_t md::calculate_coo8()
+{
+	unsigned int id;
+	unsigned int hc, vc;
+	uint8_t bl, bh;
+
+	id = m68k_odo();
+	/*
+	  FIXME
+	  Using "(ras - 1)" instead of "ras" here seems to solve horizon
+	  issues in Road Rash and Mickey Mania (Moose Chase level).
+	*/
+	if (ras)
+		id -= ((ras - 1) * M68K_CYCLES_PER_LINE);
+	id &= 0x1ff;
+	if (vdp.reg[4] & 0x81) {
+		hc = hc_table[id][1];
+		bl = 0xa4;
+	}
+	else {
+		hc = hc_table[id][0];
+		bl = 0x84;
+	}
+	bh = (hc <= 0xe0);
+	bl = (hc >= bl);
+	bl &= bh;
+	vc = ras;
+	vc += (bl != 0);
+	if (pal) {
+		if (vc >= 0x103)
+			vc -= 56;
+	}
+	else {
+		if (vc >= 0xeb)
+			vc -= 6;
+	}
+	return vc;
+}
+
+// Return H counter (Gens/GS style)
+uint8_t md::calculate_coo9()
+{
+	unsigned int id;
+
+	id = m68k_odo();
+	if (ras)
+		id -= ((ras - 1) * M68K_CYCLES_PER_LINE);
+	id &= 0x1ff;
+	if (vdp.reg[4] & 0x81)
+		return hc_table[id][1];
+	return hc_table[id][0];
+}
 
 // *************************************
 //       May want to get pic or sound
@@ -333,7 +417,7 @@ inline int md::may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int
 {
   if (bm==NULL) return 0;
 
-  if (ras>=0 && ras<VBLANK_LINE )
+  if (ras>=0 && (unsigned int)ras<vblank())
     vdp.draw_scanline(bm, ras);
   if(retpal && ras == 100) get_md_palette(retpal, vdp.cram);
   return 0;
@@ -352,7 +436,7 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
   // We bring in the dac, but stretch it out to fit the real length.
   for (i = 0; (i != len); ++i)
     {
-      acc_dac += LINES_PER_FRAME;
+      acc_dac += lines;
       if(acc_dac >= len)
 	{
 	  acc_dac -= len;
