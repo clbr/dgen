@@ -116,9 +116,9 @@ int md_vdp::putbyte(unsigned char d)
   // Called by dma or a straight write
   switch(rw_mode)
   {
-    case 0x04: poke_vram (rw_addr,d>>8); break;
-    case 0x0c: poke_cram (rw_addr,d>>8); break;
-    case 0x14: poke_vsram(rw_addr,d>>8); break;
+    case 0x04: poke_vram (rw_addr,d); break;
+    case 0x0c: poke_cram (rw_addr,d); break;
+    case 0x14: poke_vsram(rw_addr,d); break;
   }
   rw_addr+=reg[15];
   return 0;
