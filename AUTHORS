@@ -1,6 +1,9 @@
 DGen was originally written by Dave <dave@dtmnt.com>. It was ported to SDL by
 Joe Groff <joe@pknet.com> and Phil K. Hornung <falcon@pknet.com>.
 
+It was resurrected by tamentis <tamentis@neopulsar.org> in 2008 and is
+maintained by zamaz <zamaz@users.sourceforge.net> since september 2011.
+
 The following people have also made contributions to DGen:
 
 Andrew Bazan <abazan@mailbag.com>
@@ -28,3 +31,21 @@ Daniel Robbins <drobbins@gentoo.org>
   - Helped fix timing problems on very fast machines.
 Andre Souza <asouza@olinux.com.br>
   - Added OpenGL rendering mode.
+
+The following people involuntarily contributed to DGen:
+
+Charles MacDonald
+  - Author of Genesis plus.
+    http://cgfm2.emuviews.com/
+Eke-Eke
+  - Author of Genesis plus GX.
+    http://code.google.com/p/genplus-gx/
+Stephane Dallongeville
+  - Author of Gens and CZ80 (used in DGen).
+    http://www.gens.me/
+David Korth
+  - Author of Gens/GS.
+    http://segaretro.org/Gens/GS
+The SpritesMind community
+  - Especially Nemesis for the technical information he published.
+    http://gendev.spritesmind.net/forum/
