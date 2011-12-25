@@ -33,11 +33,11 @@ static uint8_t SZXYHV_dec[256];      // zero, sign, half carry and overflow flag
 // prototype
 /////////////
 
-uint8_t FASTCALL Cz80_Read_Dummy(const uint16_t adr);
-void FASTCALL Cz80_Write_Dummy(const uint16_t adr, uint8_t data);
+uint8_t FASTCALL Cz80_Read_Dummy(void *ctx, const uint16_t adr);
+void FASTCALL Cz80_Write_Dummy(void *ctx, const uint16_t adr, uint8_t data);
 
-uint8_t FASTCALL Cz80_Interrupt_Ack_Dummy(uint8_t param);
-void FASTCALL Cz80_RetI_Dummy();
+uint8_t FASTCALL Cz80_Interrupt_Ack_Dummy(void *ctx, uint8_t param);
+void FASTCALL Cz80_RetI_Dummy(void *ctx);
 
 // core main functions
 ///////////////////////
@@ -165,38 +165,46 @@ void FASTCALL Cz80_Add_Cycle(cz80_struc *cpu, unsigned int cycle)
 // Read / Write dummy functions
 ////////////////////////////////
 
-uint8_t FASTCALL Cz80_Read_Dummy(const uint16_t adr)
+uint8_t FASTCALL Cz80_Read_Dummy(void *ctx, const uint16_t adr)
 {
+    (void)ctx;
     (void)adr;
     return 0;
 }
 
-void FASTCALL Cz80_Write_Dummy(const uint16_t adr, uint8_t data)
+void FASTCALL Cz80_Write_Dummy(void *ctx, const uint16_t adr, uint8_t data)
 {
+	(void)ctx;
 	(void)adr;
 	(void)data;
 }
 
-uint8_t FASTCALL Cz80_Interrupt_Ack_Dummy(uint8_t param)
+uint8_t FASTCALL Cz80_Interrupt_Ack_Dummy(void *ctx, uint8_t param)
 {
+    (void)ctx;
     (void)param;
 
     // return vector
     return -1;
 }
 
-void FASTCALL Cz80_RetI_Dummy()
+void FASTCALL Cz80_RetI_Dummy(void *ctx)
 {
-
+    (void)ctx;
 }
 
 
 // Read / Write core functions
 ///////////////////////////////
 
+void Cz80_Set_Ctx(cz80_struc *cpu, void *ctx)
+{
+    cpu->ctx = ctx;
+}
+
 uint8_t Cz80_Read_Byte(cz80_struc *cpu, uint16_t adr)
 {
-    return cpu->Read_Byte(adr);
+    return cpu->Read_Byte(cpu->ctx, adr);
 }
 
 uint16_t Cz80_Read_Word(cz80_struc *cpu, uint16_t adr)
@@ -204,15 +212,17 @@ uint16_t Cz80_Read_Word(cz80_struc *cpu, uint16_t adr)
 #if CZ80_USE_WORD_HANDLER
     return cpu->Read_Word(adr);
 #elif CZ80_LITTLE_ENDIAN
-    return cpu->Read_Byte(adr) | (cpu->Read_Byte(adr + 1) << 8);
+    return (cpu->Read_Byte(cpu->ctx, adr) |
+	    (cpu->Read_Byte(cpu->ctx, (adr + 1)) << 8));
 #else
-    return (cpu->Read_Byte(adr) << 8) | cpu->Read_Byte(adr + 1);
+    return ((cpu->Read_Byte(cpu->ctx, adr) << 8) |
+	    cpu->Read_Byte(cpu->ctx, (adr + 1)));
 #endif
 }
 
 void Cz80_Write_Byte(cz80_struc *cpu, uint16_t adr, uint8_t data)
 {
-    cpu->Write_Byte(adr, data);
+    cpu->Write_Byte(cpu->ctx, adr, data);
 }
 
 void Cz80_Write_Word(cz80_struc *cpu, uint16_t adr, uint16_t data)
@@ -220,11 +230,11 @@ void Cz80_Write_Word(cz80_struc *cpu, uint16_t adr, uint16_t data)
 #if CZ80_USE_WORD_HANDLER
     cpu->Write_Word(adr, data);
 #elif CZ80_LITTLE_ENDIAN
-    cpu->Write_Byte(adr, data & 0xFF);
-    cpu->Write_Byte(adr + 1, data >> 8);
+    cpu->Write_Byte(cpu->ctx, adr, (data & 0xFF));
+    cpu->Write_Byte(cpu->ctx, (adr + 1), (data >> 8));
 #else
-    cpu->Write_Byte(adr, data >> 8);
-    cpu->Write_Byte(adr + 1, data & 0xFF);
+    cpu->Write_Byte(cpu->ctx, adr, (data >> 8));
+    cpu->Write_Byte(cpu->ctx, (adr + 1), (data & 0xFF));
 #endif
 }
 

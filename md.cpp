@@ -202,30 +202,24 @@ void root_z80_port_write(UINT16 a, UINT8 d, struct z80PortWrite *unused)
 
 #ifdef WITH_CZ80
 
-static uint8_t cz80_memread(uint16_t a)
+static uint8_t cz80_memread(void *ctx, uint16_t a)
 {
-	if (which)
-		return which->z80_read(a);
-	return 0;
+	return ((class md*)ctx)->z80_read(a);
 }
 
-static void cz80_memwrite(uint16_t a, uint8_t d)
+static void cz80_memwrite(void *ctx, uint16_t a, uint8_t d)
 {
-	if (which)
-		which->z80_write(a, d);
+	((class md*)ctx)->z80_write(a, d);
 }
 
-static uint8_t cz80_ioread(uint16_t a)
+static uint8_t cz80_ioread(void *ctx, uint16_t a)
 {
-	if (which)
-		return which->z80_port_read(a);
-	return 0;
+	return ((class md*)ctx)->z80_port_read(a);
 }
 
-static void cz80_iowrite(uint16_t a, uint8_t d)
+static void cz80_iowrite(void *ctx, uint16_t a, uint8_t d)
 {
-	if (which)
-		which->z80_port_write(a, d);
+	((class md*)ctx)->z80_port_write(a, d);
 }
 
 #endif // WITH_CZ80
@@ -434,6 +428,7 @@ int md::z80_init()
   mz80reset();
 #endif
 #ifdef WITH_CZ80
+	Cz80_Set_Ctx(&cz80, this);
   Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (void *)z80ram);
   Cz80_Set_ReadB(&cz80, cz80_memread);
   Cz80_Set_WriteB(&cz80, cz80_memwrite);

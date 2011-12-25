@@ -162,16 +162,16 @@ extern "C" {
 #define CZ80_DISABLE    0x40
 
 
-typedef uint8_t FASTCALL CZ80_READ(uint16_t adr);
-typedef void FASTCALL CZ80_WRITE(uint16_t adr, uint8_t data);
+typedef uint8_t FASTCALL CZ80_READ(void *ctx, uint16_t adr);
+typedef void FASTCALL CZ80_WRITE(void *ctx, uint16_t adr, uint8_t data);
 
 #if CZ80_USE_WORD_HANDLER
-typedef uint16_t FASTCALL CZ80_READ_WORD(uint16_t adr);
-typedef void FASTCALL CZ80_WRITE_WORD(uint16_t adr, uint16_t data);
+typedef uint16_t FASTCALL CZ80_READ_WORD(void *ctx, uint16_t adr);
+typedef void FASTCALL CZ80_WRITE_WORD(void *ctx, uint16_t adr, uint16_t data);
 #endif
 
-typedef void FASTCALL CZ80_RETI_CALLBACK(void);
-typedef uint8_t FASTCALL CZ80_INT_CALLBACK(uint8_t param);
+typedef void FASTCALL CZ80_RETI_CALLBACK(void *ctx);
+typedef uint8_t FASTCALL CZ80_INT_CALLBACK(void *ctx, uint8_t param);
 
 typedef union
 {
@@ -227,6 +227,8 @@ typedef struct
         int CycleToDo;
         int CycleSup;
 
+	void *ctx;
+
         CZ80_READ *Read_Byte;
         CZ80_WRITE *Write_Byte;
 #if CZ80_USE_WORD_HANDLER
@@ -260,6 +262,7 @@ uint8_t Cz80_Reset(cz80_struc *cpu);
 
 void    Cz80_Set_Fetch(cz80_struc *cpu, uint16_t low_adr, uint16_t high_adr, void *fetch_adr);
 
+void    Cz80_Set_Ctx(cz80_struc *cpu, void *ctx);
 void    Cz80_Set_ReadB(cz80_struc *cpu, CZ80_READ *Func);
 void    Cz80_Set_WriteB(cz80_struc *cpu, CZ80_WRITE *Func);
 #if CZ80_USE_WORD_HANDLER

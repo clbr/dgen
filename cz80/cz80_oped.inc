@@ -422,7 +422,7 @@ OP_OUT_mBC:
     OPED(0x5d): // RETI
     OPED(0x6d): // RETI
     OPED(0x7d): // RETI
-        if (CPU->RetI) CPU->RetI();
+        if (CPU->RetI) CPU->RetI(CPU->ctx);
 
     OPED(0x45): // RETN;
     OPED(0x55): // RETN;

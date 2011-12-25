@@ -62,43 +62,43 @@
     CCnt = CPU->CycleIO;
 
 #define READ_BYTE(A, D)                 \
-    D = CPU->Read_Byte(A);
+    D = CPU->Read_Byte(CPU->ctx, (A));
 
 #if CZ80_USE_WORD_HANDLER
 #define READ_WORD(A, D)                 \
-    D = CPU->Read_Word(A);
+    D = CPU->Read_Word(CPU->ctx, (A));
 #elif CZ80_LITTLE_ENDIAN
 #define READ_WORD(A, D)                 \
-    D = CPU->Read_Byte(A) | (CPU->Read_Byte((A) + 1) << 8);
+    D = CPU->Read_Byte(CPU->ctx, (A)) | (CPU->Read_Byte(CPU->ctx, ((A) + 1)) << 8);
 #define READ_WORD_LE(A, D) READ_WORD(A, D)
 #else
 #define READ_WORD(A, D)                 \
-    D = (CPU->Read_Byte(A) << 8) | CPU->Read_Byte((A) + 1);
+    D = (CPU->Read_Byte(CPU->ctx, (A)) << 8) | CPU->Read_Byte(CPU->ctx, ((A) + 1));
 #define READ_WORD_LE(A, D)              \
-    D = CPU->Read_Byte(A) | (CPU->Read_Byte((A) + 1) << 8);
+    D = CPU->Read_Byte(CPU->ctx, (A)) | (CPU->Read_Byte(CPU->ctx, ((A) + 1)) << 8);
 #endif
 
 #define READSX_BYTE(A, D)               \
-    D = CPU->Read_Byte(A);
+    D = CPU->Read_Byte(CPU->ctx, (A));
 
 #define WRITE_BYTE(A, D)                \
-    CPU->Write_Byte(A, D);
+    CPU->Write_Byte(CPU->ctx, (A), (D));
 
 #if CZ80_USE_WORD_HANDLER
 #define WRITE_WORD(A, D)                \
-    CPU->Write_Word(A, D);
+    CPU->Write_Word(CPU->ctx, (A), (D));
 #elif CZ80_LITTLE_ENDIAN
-#define WRITE_WORD(A, D)                \
-    CPU->Write_Byte(A, D);              \
-    CPU->Write_Byte((A) + 1, (D) >> 8);
+#define WRITE_WORD(A, D)				\
+    CPU->Write_Byte(CPU->ctx, (A), (D));		\
+    CPU->Write_Byte(CPU->ctx, ((A) + 1), ((D) >> 8));
 #define WRITE_WORD_LE(A, D) WRITE_WORD(A, D);
 #else
-#define WRITE_WORD(A, D)                \
-    CPU->Write_Byte(A, (D) >> 8);	\
-    CPU->Write_Byte((A) + 1, (D));
-#define WRITE_WORD_LE(A, D)             \
-    CPU->Write_Byte(A, D);              \
-    CPU->Write_Byte((A) + 1, (D) >> 8);
+#define WRITE_WORD(A, D)			\
+    CPU->Write_Byte(CPU->ctx, (A), ((D) >> 8));	\
+    CPU->Write_Byte(CPU->ctx, ((A) + 1), (D));
+#define WRITE_WORD_LE(A, D)				\
+    CPU->Write_Byte(CPU->ctx, (A), (D));		\
+    CPU->Write_Byte(CPU->ctx, ((A) + 1), ((D) >> 8));
 #endif
 
 #define PUSH_16(A)              \
@@ -120,10 +120,10 @@
     }
 
 #define IN(A, D)            \
-    D = CPU->IN_Port(A);
+    D = CPU->IN_Port(CPU->ctx, (A));
 
 #define OUT(A, D)           \
-    CPU->OUT_Port(A, D);
+    CPU->OUT_Port(CPU->ctx, (A), (D));
 
 #define CHECK_INT                                           \
     if (CPU->Status & (zIFF1 | CZ80_HAS_NMI))               \
@@ -148,7 +148,7 @@
             {                                               \
                 uint16_t adr;                               \
                                                                     \
-                Opcode = CPU->Interrupt_Ack(CPU->IntVect) & 0xFF;   \
+                Opcode = CPU->Interrupt_Ack(CPU->ctx, CPU->IntVect) & 0xFF; \
                 if (zIM == 0) goto Cz80_Exec;                       \
                                                             \
                 adr = Opcode | (zI << 8);                   \
