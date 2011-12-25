@@ -18,6 +18,7 @@ void md::m68k_state_dump()
 
 #ifdef WITH_MUSA
 	case CPU_EMU_MUSA:
+		md_set_musa(1);
 		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
 			m68k_state.d[j] =
 				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
@@ -26,6 +27,7 @@ void md::m68k_state_dump()
 				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
 		m68k_state.pc = h2le32(m68k_get_reg(NULL, M68K_REG_PC));
 		m68k_state.sr = h2le16(m68k_get_reg(NULL, M68K_REG_SR));
+		md_set_musa(0);
 		break;
 #endif
 #ifdef WITH_STAR
@@ -54,6 +56,7 @@ void md::m68k_state_restore()
 
 #ifdef WITH_MUSA
 	case CPU_EMU_MUSA:
+		md_set_musa(1);
 		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
 			m68k_set_reg((m68k_register_t)i,
 				     le2h32(m68k_state.d[j]));
@@ -62,6 +65,7 @@ void md::m68k_state_restore()
 				     le2h32(m68k_state.a[j]));
 		m68k_set_reg(M68K_REG_PC, le2h32(m68k_state.pc));
 		m68k_set_reg(M68K_REG_SR, le2h16(m68k_state.sr));
+		md_set_musa(0);
 		break;
 #endif
 #ifdef WITH_STAR
@@ -277,9 +281,6 @@ end of VRAM
 
   00060-0007F : PSG registers (DWORDs, little endian).
 */
-
-// NB - for load and save you don't need to use star_mz80_on/off
-// Because stars/mz80 isn't actually used
 
 static void *swap16cpy(void *dest, const void *src, size_t n)
 {

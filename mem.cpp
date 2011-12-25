@@ -443,3 +443,170 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 	misc_writebyte(a, (d >> 8));
 	misc_writebyte((a + 1), (d & 0xff));
 }
+
+#ifdef WITH_MUSA
+
+// read/write functions called by the CPU to access memory.
+// while values used are 32 bits, only the appropriate number
+// of bits are relevant (i.e. in write_memory_8, only the lower 8 bits
+// of value should be written to memory).
+// address will be a 24-bit value.
+
+/* Read from anywhere */
+extern "C" unsigned int m68k_read_memory_8(unsigned int address)
+{
+	return md::md_musa->misc_readbyte(address);
+}
+
+extern "C" unsigned int m68k_read_memory_16(unsigned int address)
+{
+	return md::md_musa->misc_readword(address);
+}
+
+extern "C" unsigned int m68k_read_memory_32(unsigned int address)
+{
+	return ((md::md_musa->misc_readword(address) << 16) |
+		(md::md_musa->misc_readword(address + 2) & 0xffff));
+}
+
+/* Read data immediately following the PC */
+extern "C" unsigned int m68k_read_immediate_8(unsigned int address)
+{
+	return m68k_read_memory_8(address);
+}
+
+extern "C" unsigned int m68k_read_immediate_16(unsigned int address)
+{
+	return m68k_read_memory_16(address);
+}
+
+extern "C" unsigned int m68k_read_immediate_32(unsigned int address)
+{
+	return m68k_read_memory_32(address);
+}
+
+/* Read an instruction (16-bit word immeditately after PC) */
+extern "C" unsigned int m68k_read_instruction(unsigned int address)
+{
+	return m68k_read_memory_16(address);
+}
+
+/* Write to anywhere */
+extern "C" void m68k_write_memory_8(unsigned int address, unsigned int value)
+{
+	md::md_musa->misc_writebyte(address, value);
+}
+
+extern "C" void m68k_write_memory_16(unsigned int address, unsigned int value)
+{
+	md::md_musa->misc_writeword(address, value);
+}
+
+extern "C" void m68k_write_memory_32(unsigned int address, unsigned int value)
+{
+	md::md_musa->misc_writeword(address, ((value >> 16) & 0xffff));
+	md::md_musa->misc_writeword((address + 2), (value & 0xffff));
+}
+
+#endif // WITH_MUSA
+
+#ifdef WITH_STAR
+
+extern "C" unsigned star_readbyte(unsigned a, unsigned d)
+{
+	(void)d;
+	return md::md_star->misc_readbyte(a);
+}
+
+extern "C" unsigned star_readword(unsigned a, unsigned d)
+{
+	(void)d;
+	return md::md_star->misc_readword(a);
+}
+
+extern "C" unsigned star_writebyte(unsigned a, unsigned d)
+{
+	md::md_star->misc_writebyte(a, d);
+	return 0;
+}
+
+extern "C" unsigned star_writeword(unsigned a, unsigned d)
+{
+	md::md_star->misc_writeword(a, d);
+	return 0;
+}
+
+#endif // WITH_STAR
+
+#ifdef WITH_MZ80
+
+/*
+  In case the assembly version of MZ80 is used (WITH_X86_MZ80), prevent
+  GCC from optimizing sibling calls (-foptimize-sibling-calls, enabled
+  by default at -O2 and above). The ASM code doesn't expect this and
+  crashes otherwise.
+*/
+
+#ifdef WITH_X86_MZ80
+#define MZ80_NOSIBCALL(t, w) *((volatile t *)&(w))
+#else
+#define MZ80_NOSIBCALL(t, w) (w)
+#endif
+
+extern "C" UINT8 mz80_read(UINT32 a, struct MemoryReadByte *unused)
+{
+	(void)unused;
+	return md::md_mz80->z80_read(MZ80_NOSIBCALL(UINT32, a));
+}
+
+extern "C" void mz80_write(UINT32 a, UINT8 d, struct MemoryWriteByte *unused)
+{
+	(void)unused;
+	md::md_mz80->z80_write(MZ80_NOSIBCALL(UINT32, a), d);
+}
+
+extern "C" UINT16 mz80_ioread(UINT16 a, struct z80PortRead *unused)
+{
+	(void)unused;
+	return md::md_mz80->z80_port_read(MZ80_NOSIBCALL(UINT16, a));
+}
+
+extern "C" void mz80_iowrite(UINT16 a, UINT8 d, struct z80PortWrite *unused)
+{
+	(void)unused;
+	return md::md_mz80->z80_port_write(MZ80_NOSIBCALL(UINT16, a), d);
+}
+
+#endif // WITH_MZ80
+
+#ifdef WITH_CZ80
+
+extern "C" uint8_t cz80_memread(void *ctx, uint16_t a)
+{
+	class md* md = (class md*)ctx;
+
+	return md->z80_read(a);
+}
+
+extern "C" void cz80_memwrite(void *ctx, uint16_t a, uint8_t d)
+{
+	class md* md = (class md*)ctx;
+
+	md->z80_write(a, d);
+}
+
+extern "C" uint8_t cz80_ioread(void *ctx, uint16_t a)
+{
+	class md* md = (class md*)ctx;
+
+	return md->z80_port_read(a);
+}
+
+extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d)
+{
+	class md* md = (class md*)ctx;
+
+	md->z80_port_write(a, d);
+}
+
+#endif // WITH_CZ80

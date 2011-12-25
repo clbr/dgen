@@ -159,6 +159,29 @@ typedef struct {
 
 class md {
 public:
+#ifdef WITH_MUSA
+	static class md* md_musa;
+	unsigned int md_musa_ref;
+	class md* md_musa_prev;
+
+	void md_set_musa(bool set);
+#endif
+#ifdef WITH_STAR
+	static class md* md_star;
+	unsigned int md_star_ref;
+	class md* md_star_prev;
+
+	void md_set_star(bool set);
+#endif
+#ifdef WITH_MZ80
+	static class md* md_mz80;
+	unsigned int md_mz80_ref;
+	class md* md_mz80_prev;
+
+	void md_set_mz80(bool set);
+#endif
+	void md_set(bool set);
+
 	unsigned int mclk; // Master clock
 	unsigned int clk0; // MCLK/15 for Z80, SN76489
 	unsigned int clk1; // MCLK/7 for M68K, YM2612
@@ -197,8 +220,9 @@ private:
   STARSCREAM_DATAREGION    *readbyte,*readword,*writebyte,*writeword;
   int memory_map();
 #endif
-  int star_mz80_on();
-  int star_mz80_off();
+#ifdef WITH_MUSA
+	void *ctx_musa;
+#endif
 
 	uint32_t z80_bank68k;
 	unsigned int z80_st_busreq: 1; // in BUSREQ state
@@ -315,8 +339,7 @@ public:
 	uint16_t misc_readword(uint32_t a);
 	void misc_writeword(uint32_t a, uint16_t d);
 
-  int z80_init();
-
+	void z80_init();
 	void z80_reset();
 	uint8_t z80_read(uint16_t a);
 	void z80_write(uint16_t a, uint8_t d);

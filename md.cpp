@@ -12,221 +12,14 @@
 #include "romload.h"
 #include "rc-vars.h"
 
-// This is the 'static' StarScream/MZ80 multitasker
-// which detects which megadrive is active (by which star_mz80_on() has been called
-// and forwards to the appropriate misc_read/writebyte/word/z80 function
-// of the appropriate instance (grrrr - bloody C++)
-
-static md* which=0;
-
-int md::star_mz80_on()
-{
-#ifdef WITH_STAR
-  s68000SetContext(&cpu);
-#endif
-#ifdef WITH_MZ80
-  mz80SetContext(&z80);
-#endif
-  which=this;
-  return 0;
-}
-int md::star_mz80_off()
-{
-  which=0;
-#ifdef WITH_STAR
-  s68000GetContext(&cpu);
-#endif
-#ifdef WITH_MZ80
-  mz80GetContext(&z80);
-#endif
-  return 0;
-}
-
-extern "C" {
-	unsigned root_readbyte(unsigned a, unsigned d)
-	{
-		(void)d;
-		if (which)
-			return which->misc_readbyte(a);
-		return 0;
-	}
-
-	unsigned root_readword(unsigned a, unsigned d)
-	{
-		(void)d;
-		if (which)
-			return which->misc_readword(a);
-		return 0;
-	}
-
-	unsigned root_readlong(unsigned a, unsigned d)
-	{
-		return ((root_readword(a, d) << 16) +
-			root_readword((a + 2), d));
-	}
-
-	unsigned root_writebyte(unsigned a, unsigned d)
-	{
-		if (which)
-			which->misc_writebyte(a, d);
-		return 0;
-	}
-
-	unsigned root_writeword(unsigned a, unsigned d)
-	{
-		if (which)
-			which->misc_writeword(a, d);
-		return 0;
-	}
-
-	unsigned root_writelong(unsigned a, unsigned d)
-	{
-		root_writeword(a, ((d >> 16) & 0xffff));
-		root_writeword((a + 2), (d & 0xffff));
-		return 0;
-	}
-}
-
-#ifdef WITH_MUSA
-// Okay: a bit for MUSASHI
-extern "C"
-{
-	// read/write functions called by the CPU to access memory.
-	// while values used are 32 bits, only the appropriate number
-	// of bits are relevant (i.e. in write_memory_8, only the lower 8 bits
-	// of value should be written to memory).
-	// address will be a 24-bit value.
-
-	/* Read from anywhere */
-	unsigned int m68k_read_memory_8(unsigned int address)
-	{
-		return root_readbyte(address, 0);
-	}
-
-	unsigned int m68k_read_memory_16(unsigned int address)
-	{
-		return root_readword(address, 0);
-	}
-
-	unsigned int m68k_read_memory_32(unsigned int address)
-	{
-		return root_readlong(address, 0);
-	}
-
-	/* Read data immediately following the PC */
-	unsigned int m68k_read_immediate_8(unsigned int address)
-	{
-		return root_readbyte(address, 0);
-	}
-
-	unsigned int m68k_read_immediate_16(unsigned int address)
-	{
-		return root_readword(address, 0);
-	}
-
-	unsigned int m68k_read_immediate_32(unsigned int address)
-	{
-		return root_readlong(address, 0);
-	}
-
-	/* Read an instruction (16-bit word immeditately after PC) */
-	unsigned int m68k_read_instruction(unsigned int address)
-	{
-		return root_readword(address, 0);
-	}
-
-	/* Write to anywhere */
-	void m68k_write_memory_8(unsigned int address, unsigned int value)
-	{
-		root_writebyte(address, value);
-	}
-
-	void m68k_write_memory_16(unsigned int address, unsigned int value)
-	{
-		root_writeword(address, value);
-	}
-
-	void m68k_write_memory_32(unsigned int address, unsigned int value)
-	{
-		root_writelong(address, value);
-	}
-}
-#endif
-
-#ifdef WITH_MZ80
-
-/*
-  In case the assembly version of MZ80 is used (WITH_X86_MZ80), prevent
-  GCC from optimizing sibling calls (-foptimize-sibling-calls, enabled
-  by default at -O2 and above). The ASM code doesn't expect this and
-  crashes otherwise.
-*/
-
-#ifdef WITH_X86_MZ80
-#define MZ80_NOSIBCALL(t, w) *((volatile t *)&(w))
-#else
-#define MZ80_NOSIBCALL(t, w) (w)
-#endif
-
-UINT8 root_z80_read(UINT32 a, struct MemoryReadByte *unused)
-{
-	(void)unused;
-	if (which)
-		return which->z80_read(MZ80_NOSIBCALL(UINT32, a));
-	return 0x00;
-}
-
-void root_z80_write(UINT32 a, UINT8 d, struct MemoryWriteByte *unused)
-{
-	(void)unused;
-	if (which)
-		which->z80_write(MZ80_NOSIBCALL(UINT32, a), d);
-}
-
-UINT16 root_z80_port_read(UINT16 a, struct z80PortRead *unused)
-{
-	(void)unused;
-	if (which)
-		return which->z80_port_read(MZ80_NOSIBCALL(UINT16, a));
-	return 0x0000;
-}
-
-void root_z80_port_write(UINT16 a, UINT8 d, struct z80PortWrite *unused)
-{
-	(void)unused;
-	if (which)
-		which->z80_port_write(MZ80_NOSIBCALL(UINT16, a), d);
-}
-
-#endif // WITH_MZ80
-
-#ifdef WITH_CZ80
-
-static uint8_t cz80_memread(void *ctx, uint16_t a)
-{
-	return ((class md*)ctx)->z80_read(a);
-}
-
-static void cz80_memwrite(void *ctx, uint16_t a, uint8_t d)
-{
-	((class md*)ctx)->z80_write(a, d);
-}
-
-static uint8_t cz80_ioread(void *ctx, uint16_t a)
-{
-	return ((class md*)ctx)->z80_port_read(a);
-}
-
-static void cz80_iowrite(void *ctx, uint16_t a, uint8_t d)
-{
-	((class md*)ctx)->z80_port_write(a, d);
-}
-
-#endif // WITH_CZ80
-
 extern FILE *debug_log;
 
 #ifdef WITH_STAR
+extern "C" unsigned star_readbyte(unsigned a, unsigned d);
+extern "C" unsigned star_readword(unsigned a, unsigned d);
+extern "C" unsigned star_writebyte(unsigned a, unsigned d);
+extern "C" unsigned star_writeword(unsigned a, unsigned d);
+
 int md::memory_map()
 {
   int i=0,j=0;
@@ -258,10 +51,10 @@ int md::memory_map()
   readbyte[i].highaddr=  readword[i].highaddr=
   writebyte[j].highaddr= writeword[j].highaddr=  0xffffffff;
 
-  readbyte[i].memorycall=(void *) root_readbyte;
-  readword[i].memorycall=(void *) root_readword;
-  writebyte[j].memorycall=(void *)root_writebyte;
-  writeword[j].memorycall=(void *)root_writeword;
+  readbyte[i].memorycall=(void *)star_readbyte;
+  readword[i].memorycall=(void *)star_readword;
+  writebyte[j].memorycall=(void *)star_writebyte;
+  writeword[j].memorycall=(void *)star_writeword;
 
   readbyte[i].userdata=  readword[i].userdata=
   writebyte[j].userdata= writeword[j].userdata=  NULL;
@@ -279,10 +72,10 @@ int md::memory_map()
       writebyte[j].lowaddr=   writeword[j].lowaddr=   save_start;
       readbyte[i].highaddr=   readword[i].highaddr=
       writebyte[j].highaddr=  writeword[j].highaddr=  save_start+save_len-1;
-      readbyte[i].memorycall = root_readbyte;
-      readword[j].memorycall = root_readword;
-      writebyte[i].memorycall = root_writebyte;
-      writeword[j].memorycall = root_writeword;
+      readbyte[i].memorycall = star_readbyte;
+      readword[j].memorycall = star_readword;
+      writebyte[i].memorycall = star_writebyte;
+      writeword[j].memorycall = star_writeword;
       readbyte[i].userdata=   readword[i].userdata=
       writebyte[j].userdata=  writeword[j].userdata=  NULL;
       i++; j++;
@@ -293,7 +86,7 @@ int md::memory_map()
     readbyte[i].memorycall=readword[i].memorycall=NULL;
     readbyte[i].userdata=  readword[i].userdata=  rom;
     i++;
-// misc memory (e.g. aoo and coo) through root_rw
+// misc memory (e.g. aoo and coo) through star_rw
     readbyte[i].lowaddr=   readword[i].lowaddr=
     writebyte[j].lowaddr=  writeword[j].lowaddr=   rommax;
   }
@@ -304,10 +97,10 @@ int md::memory_map()
   readbyte[i].highaddr=  readword[i].highaddr=
   writebyte[j].highaddr= writeword[j].highaddr=  0xfeffff;
 
-  readbyte[i].memorycall = root_readbyte;
-  readword[i].memorycall = root_readword;
-  writebyte[j].memorycall = root_writebyte;
-  writeword[j].memorycall = root_writeword;
+  readbyte[i].memorycall = star_readbyte;
+  readword[i].memorycall = star_readword;
+  writebyte[j].memorycall = star_writebyte;
+  writeword[j].memorycall = star_writeword;
 
   readbyte[i].userdata=  readword[i].userdata=
   writebyte[j].userdata= writeword[j].userdata=  NULL;
@@ -352,12 +145,15 @@ int md::memory_map()
 
 int md::reset()
 {
-  star_mz80_on();
 #ifdef WITH_STAR
-  if (cpu_emu == CPU_EMU_STAR) s68000reset();
+	md_set_star(1);
+	s68000reset();
+	md_set_star(0);
 #endif
 #ifdef WITH_MUSA
-  if (cpu_emu == CPU_EMU_MUSA) m68k_pulse_reset();
+	md_set_musa(1);
+	m68k_pulse_reset();
+	md_set_musa(0);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 
@@ -374,7 +170,6 @@ int md::reset()
   memset(&odo, 0, sizeof(odo));
   ras = 0;
 
-  star_mz80_off();
   z80_st_running = 0;
   m68k_st_running = 0;
   z80_reset();
@@ -385,76 +180,98 @@ int md::reset()
 
 #ifdef WITH_MZ80
 
+extern "C" UINT8 mz80_read(UINT32 a, struct MemoryReadByte *unused);
+extern "C" void mz80_write(UINT32 a, UINT8 d, struct MemoryWriteByte *unused);
+extern "C" UINT16 mz80_ioread(UINT16 a, struct z80PortRead *unused);
+extern "C" void mz80_iowrite(UINT16 a, UINT8 d, struct z80PortWrite *unused);
+
 static struct MemoryReadByte mem_read[] = {
-	{ 0x0000, 0xffff, root_z80_read, NULL },
+	{ 0x0000, 0xffff, mz80_read, NULL },
 	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
 
 static struct MemoryWriteByte mem_write[] = {
-	{ 0x0000, 0xffff, root_z80_write, NULL },
+	{ 0x0000, 0xffff, mz80_write, NULL },
 	{ (UINT32)-1, (UINT32)-1, NULL, NULL }
 };
 
 static struct z80PortRead io_read[] = {
-	{ 0x00, 0x00ff, root_z80_port_read, NULL },
+	{ 0x00, 0xff, mz80_ioread, NULL },
 	{ (UINT16)-1, (UINT16)-1, NULL, NULL }
 };
 
 static struct z80PortWrite io_write[] = {
-	{ 0x00, 0x00ff, root_z80_port_write, NULL },
+	{ 0x00, 0xff, mz80_iowrite, NULL },
 	{ (UINT16)-1, (UINT16)-1, NULL, NULL }
 };
 
 #endif // WITH_MZ80
 
-int md::z80_init()
+#ifdef WITH_CZ80
+
+extern "C" uint8_t cz80_memread(void *ctx, uint16_t a);
+extern "C" void cz80_memwrite(void *ctx, uint16_t a, uint8_t d);
+extern "C" uint8_t cz80_ioread(void *ctx, uint16_t a);
+extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d);
+
+#endif // WITH_CZ80
+
+void md::z80_init()
 {
-  // Set up the z80
-  star_mz80_on();
 #ifdef WITH_MZ80
-  mz80init();
-  mz80reset();
-  // Modify the default context
-  mz80GetContext(&z80);
-
-  // point mz80 stuff
-  z80.z80Base=z80ram;
-  z80.z80MemRead=mem_read;
-  z80.z80MemWrite=mem_write;
-  z80.z80IoRead=io_read;
-  z80.z80IoWrite=io_write;
-
-  mz80SetContext(&z80);
-  mz80reset();
+	md_set_mz80(1);
+	mz80init();
+	mz80reset();
+	// Erase local context with global context.
+	mz80GetContext(&z80);
+	// Configure callbacks in local context.
+	z80.z80Base = z80ram;
+	z80.z80MemRead = mem_read;
+	z80.z80MemWrite = mem_write;
+	z80.z80IoRead = io_read;
+	z80.z80IoWrite = io_write;
+	// Erase global context with the above.
+	mz80SetContext(&z80);
+	md_set_mz80(0);
 #endif
 #ifdef WITH_CZ80
 	Cz80_Set_Ctx(&cz80, this);
-  Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (void *)z80ram);
-  Cz80_Set_ReadB(&cz80, cz80_memread);
-  Cz80_Set_WriteB(&cz80, cz80_memwrite);
-  Cz80_Set_INPort(&cz80, cz80_ioread);
-  Cz80_Set_OUTPort(&cz80, cz80_iowrite);
-  Cz80_Reset(&cz80);
+	Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (void *)z80ram);
+	Cz80_Set_ReadB(&cz80, cz80_memread);
+	Cz80_Set_WriteB(&cz80, cz80_memwrite);
+	Cz80_Set_INPort(&cz80, cz80_ioread);
+	Cz80_Set_OUTPort(&cz80, cz80_iowrite);
+	Cz80_Reset(&cz80);
 #endif
-  star_mz80_off();
-  z80_st_busreq = 1;
-  z80_st_reset = 0;
-  z80_bank68k = 0xff8000;
-  return 0;
+	z80_st_busreq = 1;
+	z80_st_reset = 0;
+	z80_bank68k = 0xff8000;
 }
 
 void md::z80_reset()
 {
 	z80_bank68k = 0xff8000;
 #ifdef WITH_MZ80
+	md_set_mz80(1);
 	mz80reset();
+	md_set_mz80(0);
 #endif
 #ifdef WITH_CZ80
 	Cz80_Reset(&cz80);
 #endif
 }
 
-md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
+md::md(bool pal, char region):
+#ifdef WITH_MUSA
+	md_musa_ref(0), md_musa_prev(0),
+#endif
+#ifdef WITH_STAR
+	md_star_ref(0), md_star_prev(0),
+#endif
+#ifdef WITH_MZ80
+	md_mz80_ref(0), md_mz80_prev(0),
+#endif
+	pal(pal), vdp(*this), region(region)
 {
 	unsigned int hc;
 
@@ -487,6 +304,12 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
   memset(&m68k_state, 0, sizeof(m68k_state));
   memset(&z80_state, 0, sizeof(z80_state));
 
+#ifdef WITH_MUSA
+	ctx_musa = calloc(1, m68k_context_size());
+	if (ctx_musa == NULL)
+		return;
+#endif
+
 #ifdef WITH_STAR
   fetch=NULL;
   readbyte=readword=writebyte=writeword=NULL;
@@ -510,22 +333,23 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
 
   rom=mem=ram=z80ram=NULL;
   mem=(unsigned char *)malloc(0x20000);
-  if (mem==NULL) return;
+	if (mem == NULL)
+		goto cleanup;
   memset(mem,0,0x20000);
   ram=   mem+0x00000;
   z80ram=mem+0x10000;
 
   romlen=0;
 
-  star_mz80_on();  // VERY IMPORTANT - Must call before using stars/mz80!!
-
 #ifdef WITH_STAR
-  if (s68000init()!=0) { printf ("s68000init failed!\n"); return; }
-#endif
+	md_set_star(1);
+	if (s68000init() != 0) {
+		md_set_star(0);
+		printf ("s68000init failed!\n");
+		goto cleanup;
+	}
+	md_set_star(0);
 
-  star_mz80_off(); // VERY IMPORTANT - Must call after using stars/mz80!!
-
-#ifdef WITH_STAR
 // Dave: Rich said doing point star stuff is done after s68000init
 // in Asgard68000, so just in case...
   fetch= new STARSCREAM_PROGRAMREGION[6]; if (!fetch)     return;
@@ -541,6 +365,10 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
   cpu.s_readword  = cpu.u_readword  =  readword;
   cpu.s_writebyte = cpu.u_writebyte = writebyte;
   cpu.s_writeword = cpu.u_writeword = writeword;
+
+	md_set_star(1);
+	s68000reset();
+	md_set_star(0);
 #endif
 
 	// M68K: 0 = none, 1 = StarScream, 2 = Musashi
@@ -576,14 +404,10 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
 		break;
 	}
 
-#ifdef WITH_STAR
-   star_mz80_on();
-   s68000reset();
-   star_mz80_off();
-#endif
-
 #ifdef WITH_MUSA
-   m68k_pulse_reset();
+	md_set_musa(1);
+	m68k_pulse_reset();
+	md_set_musa(0);
 #endif
 
   z80_init();
@@ -593,6 +417,14 @@ md::md(bool pal, char region): pal(pal), vdp(*this), region(region)
 	patch_elem = NULL;
 
   ok=1;
+
+	return;
+cleanup:
+#ifdef WITH_MUSA
+	free(ctx_musa);
+#endif
+	free(mem);
+	memset(this, 0, sizeof(*this));
 }
 
 
@@ -603,6 +435,9 @@ md::~md()
   free(mem);
   rom=mem=ram=z80ram=NULL;
 
+#ifdef WITH_MUSA
+	free(ctx_musa);
+#endif
 #ifdef WITH_STAR
   if (fetch)     delete[] fetch;
   if (readbyte)  delete[] readbyte;
@@ -755,7 +590,6 @@ void md::cycle_z80()
 
 void md::cycle_cpu()
 {
-	// Note - stars/mz80 isn't run here, so star_mz80_on() not necessary
 	m68k_state_dump();
 	cpu_emu = (enum cpu_emu)((cpu_emu + 1) % CPU_EMU_TOTAL);
 	m68k_state_restore();

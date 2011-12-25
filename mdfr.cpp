@@ -12,6 +12,103 @@
 #endif
 #include "md.h"
 
+// Set and unset contexts (Musashi, StarScream, MZ80)
+
+#ifdef WITH_MUSA
+class md* md::md_musa(0);
+
+void md::md_set_musa(bool set)
+{
+	if (set) {
+		++md_musa_ref;
+		if (md_musa == this)
+			return;
+		m68k_set_context(ctx_musa);
+		md_musa_prev = md_musa;
+		md_musa = this;
+	}
+	else {
+		if (md_musa != this)
+			abort();
+		if (--md_musa_ref != 0)
+			return;
+		m68k_get_context(ctx_musa);
+		md_musa = md_musa_prev;
+		md_musa_prev = 0;
+	}
+}
+#endif // WITH_MUSA
+
+#ifdef WITH_STAR
+class md* md::md_star(0);
+
+void md::md_set_star(bool set)
+{
+	if (set) {
+		++md_star_ref;
+		if (md_star == this)
+			return;
+		s68000SetContext(&cpu);
+		md_star_prev = md_star;
+		md_star = this;
+	}
+	else {
+		if (md_star != this)
+			abort();
+		if (--md_star_ref != 0)
+			return;
+		s68000GetContext(&cpu);
+		md_star = md_star_prev;
+		md_star_prev = 0;
+	}
+}
+#endif // WITH_STAR
+
+#ifdef WITH_MZ80
+class md* md::md_mz80(0);
+
+void md::md_set_mz80(bool set)
+{
+	if (set) {
+		++md_mz80_ref;
+		if (md_mz80 == this)
+			return;
+		mz80SetContext(&z80);
+		md_mz80_prev = md_mz80;
+		md_mz80 = this;
+	}
+	else {
+		if (md_mz80 != this)
+			abort();
+		if (--md_mz80_ref != 0)
+			return;
+		mz80GetContext(&z80);
+		md_mz80 = md_mz80_prev;
+		md_mz80_prev = 0;
+	}
+}
+#endif // WITH_MZ80
+
+// Set/unset contexts
+void md::md_set(bool set)
+{
+#ifdef WITH_MUSA
+	if (cpu_emu == CPU_EMU_MUSA)
+		md_set_musa(set);
+	else
+#endif
+#ifdef WITH_STAR
+	if (cpu_emu == CPU_EMU_STAR)
+		md_set_star(set);
+	else
+#endif
+		(void)0;
+#ifdef WITH_MZ80
+	if (z80_core == Z80_CORE_MZ80)
+		md_set_mz80(set);
+#endif
+}
+
 // Return current M68K odometer
 int md::m68k_odo()
 {
@@ -219,7 +316,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	int zirq = 0;
 	unsigned int vblank = md::vblank();
 
-	star_mz80_on();
+	md_set(1);
 	// Reset odometers
 	memset(&odo, 0, sizeof(odo));
 	// Reset FM tickers
@@ -350,8 +447,8 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	// Fill the sound buffers
 	if (sndi)
 		may_want_to_get_sound(sndi);
-	star_mz80_off();
 	fm_timer_callback();
+	md_set(0);
 	return 0;
 }
 
