@@ -102,8 +102,20 @@ int md_vdp::putword(unsigned short d)
   // Called by dma or a straight write
   switch(rw_mode)
   {
-    case 0x04: poke_vram (rw_addr+0,d>>8); poke_vram (rw_addr+1,d&0xff); break;
-    case 0x0c: poke_cram (rw_addr+0,d>>8); poke_cram (rw_addr+1,d&0xff); break;
+	case 0x04:
+		if (rw_addr & 0x0001) {
+			poke_vram((rw_addr + 0), (d & 0xff));
+			poke_vram((rw_addr + 1), (d >> 8));
+		}
+		else {
+			poke_vram((rw_addr + 0), (d >> 8));
+			poke_vram((rw_addr + 1), (d & 0xff));
+		}
+		break;
+	case 0x0c:
+		poke_cram((rw_addr + 0), (d >> 8));
+		poke_cram((rw_addr + 1), (d & 0xff));
+		break;
     case 0x14: poke_vsram(rw_addr+0,d>>8); poke_vsram(rw_addr+1,d&0xff); break;
   }
   rw_addr+=reg[15];
