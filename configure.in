@@ -1,9 +1,9 @@
-dnl DGen/SDL v1.28
+dnl DGen/SDL v1.29
 dnl At long last, the configure script!
 
 AC_INIT(
 	[DGen/SDL],
-	[1.28],
+	[1.29],
 	[zamaz@users.sourceforge.net],
 	[dgen-sdl],
 	[http://sourceforge.net/projects/dgen],

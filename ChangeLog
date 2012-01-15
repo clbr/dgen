@@ -3,6 +3,22 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.29 <- v1.28
+ * Reduced CPU consumption.
+ * Prevented CZ80 from crashing when handling invalid code.
+ * OpenGL: added configuration option to force square textures.
+ * OpenGL: fixed non-power of two texture size issue from v1.28.
+ * Fixed save files to manage YM2612 timers properly.
+ * Fixed the way files are opened relative to DGen's home directory.
+ * YM2612 timers are now managed externally by DGen.
+ * Removed unused support for M68KEM.
+ * Refactored memory handling, frame generation and initialization routines.
+   As a side effect, DGen can run more games now.
+ * Fixed remaining bugs in Z80 and M68K hot swapping code.
+ * Updated AUTHORS file.
+ * Added BUGS file for unresolved emulation bugs.
+ * Fixed other minor bugs.
+
 v1.28 <- v1.27
  * ROM loader can now use libarchive when available for decompression. This
    replaces the previous system()-based implementation.
