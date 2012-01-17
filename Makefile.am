@@ -75,6 +75,18 @@ AM_CPPFLAGS += -I$(top_srcdir)/cz80
 dgen_SOURCES += cz80/cz80.c
 endif
 
+# hqx
+if WITH_HQX
+AM_CPPFLAGS += -I$(top_srcdir)/hqx/src
+dgen_SOURCES +=		\
+	hqx/src/init.c	\
+	hqx/src/hq2x.c	\
+	hqx/src/hq3x.c	\
+	hqx/src/hq4x.c	\
+	hqx/src/hqx.h	\
+	hqx/src/common.h
+endif
+
 if WITH_X86_TILES
 dgen_SOURCES += x86_tiles.asm
 endif

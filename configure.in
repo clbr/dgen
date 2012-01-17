@@ -321,6 +321,14 @@ AC_ARG_ENABLE(
 	[USE_CTV=yes]
 )
 
+dnl hqx filters support.
+AC_ARG_ENABLE(
+	[hqx],
+	[AS_HELP_STRING([--disable-hqx], [disable hqx filters])],
+	[USE_HQX=$enableval],
+	[USE_HQX=yes]
+)
+
 dnl x86-specific ASM options.
 AC_ARG_ENABLE(
 	[x86-mmx],
@@ -477,11 +485,14 @@ AS_IF(
 	[AC_DEFINE([HAVE_MEMCPY_H])]
 )
 AS_IF([test "x$USE_CTV" = xyes], [AC_DEFINE([WITH_CTV])])
+AS_IF([test "x$USE_HQX" = xyes], [AC_DEFINE([WITH_HQX])])
 AS_IF([test "x$USE_X86_MZ80" = xyes], [AC_DEFINE([WITH_X86_MZ80])])
 AS_IF([test "x$USE_X86_MMX" = xyes], [AC_DEFINE([WITH_X86_MMX])])
 AS_IF([test "x$USE_X86_CTV" = xyes], [AC_DEFINE([WITH_X86_CTV])])
 AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 
+AM_CONDITIONAL([WITH_CTV], [test "x$USE_CTV" = xyes])
+AM_CONDITIONAL([WITH_HQX], [test "x$USE_HQX" = xyes])
 AM_CONDITIONAL([WITH_MUSA], [test "x$WITH_MUSA" = xyes])
 AM_CONDITIONAL([WITH_STAR], [test "x$WITH_STAR" = xyes])
 AM_CONDITIONAL([WITH_MZ80], [test "x$WITH_MZ80" = xyes])
@@ -515,6 +526,7 @@ Front-end
   OpenGL: $USE_OPENGL
   Joystick: $USE_JOYSTICK
   Crap TV filters: $USE_CTV
+  hqx filters: $USE_HQX
   Compressed ROMs: $USE_LIBARCHIVE
 
 CPU cores
