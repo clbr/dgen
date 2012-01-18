@@ -612,9 +612,9 @@ static void texture_init_id()
 			     0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
 			     texture.buf.u16);
 	else
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 			     texture.width, texture.height,
-			     0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+			     0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
 			     texture.buf.u32);
 }
 
@@ -734,7 +734,7 @@ static void update_texture()
 		}
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
-				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8,
+				GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
 				texture.buf.u32);
 	}
 	glCallList(texture.dlist);
@@ -879,7 +879,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
   // Set up the MegaDrive screen
 #ifdef WITH_OPENGL
   if(opengl)
-    bytes_pixel = 4;
+    bytes_pixel = (2 << texture.u32);
   else
 #endif
     bytes_pixel = screen->format->BytesPerPixel;
@@ -887,7 +887,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
   mdscr.h = ysize + 16;
 #ifdef WITH_OPENGL
   if(opengl)
-    mdscr.bpp = 16;
+    mdscr.bpp = (16 << texture.u32);
   else
 #endif
     mdscr.bpp = screen->format->BitsPerPixel;
@@ -1053,17 +1053,8 @@ void pd_graphics_update()
 			u.u16 += texture.vis_width;
 		}
 		else {
-			unsigned int k;
-			uint16_t *line = (uint16_t *)q;
-
-			for (k = 0; (k < (unsigned int)xsize); ++k) {
-				uint32_t v = line[k];
-
-				v = (((v & 0xf800) << 16) |
-				     ((v & 0x07e0) << 13) |
-				     ((v & 0x001f) << 11));
-				*(u.u32++) = v;
-			}
+			memcpy(u.u32, q, (sizeof(u.u32[0]) * xsize));
+			u.u32 += texture.vis_width;
 		}
 	}
 	else {
