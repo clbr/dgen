@@ -80,7 +80,10 @@ const char *pd_options = "fX:Y:S:"
 // Graphics
 static SDL_Surface *screen = NULL;
 static SDL_Color colors[64];
-static int ysize = 0, bytes_pixel = 0, pal_mode = 0;
+static const int xsize = 320;
+static int ysize = 0;
+static int bytes_pixel = 0;
+static int pal_mode = 0;
 static unsigned int video_hz = 60;
 static int fullscreen = dgen_fullscreen;
 static int x_scale = dgen_scale;
@@ -183,7 +186,7 @@ extern long js_map_button[2][16];
 
 static void gen_blur_bitmap_32(uint8_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint8_t old[4];
 	uint8_t tmp[4];
@@ -203,7 +206,7 @@ static void gen_blur_bitmap_32(uint8_t line[])
 
 static void gen_blur_bitmap_24(uint8_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint8_t old[3];
 	uint8_t tmp[3];
@@ -222,7 +225,7 @@ static void gen_blur_bitmap_24(uint8_t line[])
 
 static void gen_blur_bitmap_16(uint16_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint16_t old;
 	uint16_t tmp;
@@ -239,7 +242,7 @@ static void gen_blur_bitmap_16(uint16_t line[])
 
 static void gen_blur_bitmap_15(uint16_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint16_t old;
 	uint16_t tmp;
@@ -256,7 +259,7 @@ static void gen_blur_bitmap_15(uint16_t line[])
 
 static void gen_test_ctv_32(uint8_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint8_t old[4];
 	uint8_t tmp[4];
@@ -276,7 +279,7 @@ static void gen_test_ctv_32(uint8_t line[])
 
 static void gen_test_ctv_24(uint8_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 	uint8_t old[3];
 	uint8_t tmp[3];
@@ -295,7 +298,7 @@ static void gen_test_ctv_24(uint8_t line[])
 
 static void gen_test_ctv_16(uint16_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 
 	for (i = 0; (i < size); ++i)
@@ -304,7 +307,7 @@ static void gen_test_ctv_16(uint16_t line[])
 
 static void gen_test_ctv_15(uint16_t line[])
 {
-	const unsigned int size = 320;
+	const unsigned int size = xsize;
 	unsigned int i;
 
 	for (i = 0; (i < size); ++i)
@@ -380,7 +383,7 @@ retry:
 		uint16_t tmp[4] = {
 			0, // x-origin
 			0, // y-origin
-			h2le16(320), // width
+			h2le16(xsize), // width
 			h2le16(ysize) // height
 		};
 
@@ -398,11 +401,11 @@ retry:
 	switch (mdscr.bpp) {
 		unsigned int y;
 		unsigned int x;
-		uint8_t out[320][3]; // 24 bpp
+		uint8_t out[xsize][3]; // 24 bpp
 
 	case 15:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < 320); ++x) {
+			for (x = 0; (x < (unsigned int)xsize); ++x) {
 				uint16_t v = line.u16[x];
 
 				out[x][0] = ((v << 3) & 0xf8);
@@ -415,7 +418,7 @@ retry:
 		break;
 	case 16:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < 320); ++x) {
+			for (x = 0; (x < (unsigned int)xsize); ++x) {
 				uint16_t v = line.u16[x];
 
 				out[x][0] = ((v << 3) & 0xf8);
@@ -429,7 +432,7 @@ retry:
 	case 24:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
 #ifdef WORDS_BIGENDIAN
-			for (x = 0; (x < 320); ++x) {
+			for (x = 0; (x < xsize); ++x) {
 				uint8_t *rgb = &(line.u8[(x * 3)]);
 
 				out[x][0] = rgb[2];
@@ -445,7 +448,7 @@ retry:
 		break;
 	case 32:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < 320); ++x) {
+			for (x = 0; (x < (unsigned int)xsize); ++x) {
 #ifdef WORDS_BIGENDIAN
 				uint32_t rgb = h2le32(line.u32[x]);
 
@@ -657,8 +660,8 @@ static uint32_t roundup2(uint32_t v)
 
 static int init_texture()
 {
-	const unsigned int vis_width = 320; // FIXME
-	const unsigned int vis_height = (ysize + 5); // FIXME ALSO
+	const unsigned int vis_width = (xsize * x_scale); // FIXME
+	const unsigned int vis_height = ((ysize * y_scale) + 5); // FIXME
 	void *tmp;
 	size_t i;
 	GLenum error;
@@ -793,7 +796,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 #ifdef WITH_OPENGL
   if(!opengl)
 #endif
-    xs = 320*x_scale, ys = ysize*y_scale;
+    xs = (xsize * x_scale), ys = (ysize * y_scale);
 
   // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
   // for the message bar.
@@ -810,7 +813,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 					   SDL_OPENGL | SDL_RESIZABLE |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
 		// 5x5 (7x5) font in OpenGL mode.
-		info.max = (320 / 7);
+		info.max = (xsize / 7);
 	}
 	else
 #endif
@@ -880,7 +883,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
   else
 #endif
     bytes_pixel = screen->format->BytesPerPixel;
-  mdscr.w = 320 + 16;
+  mdscr.w = xsize + 16;
   mdscr.h = ysize + 16;
 #ifdef WITH_OPENGL
   if(opengl)
@@ -1022,7 +1025,7 @@ void pd_graphics_update()
 		case 16:
 		case 15:
 			// Scanline, by Phil
-			test_ctv(q, 320);
+			test_ctv(q, xsize);
 			(void)gen_test_ctv_16;
 			(void)gen_test_ctv_15;
 			break;
@@ -1046,15 +1049,14 @@ void pd_graphics_update()
 #ifdef WITH_OPENGL
 	if (opengl) {
 		if (texture.u32 == 0) {
-			memcpy(u.u16, q,
-			       (sizeof(u.u16[0]) * texture.vis_width));
+			memcpy(u.u16, q, (sizeof(u.u16[0]) * xsize));
 			u.u16 += texture.vis_width;
 		}
 		else {
 			unsigned int k;
 			uint16_t *line = (uint16_t *)q;
 
-			for (k = 0; (k < texture.vis_width); ++k) {
+			for (k = 0; (k < (unsigned int)xsize); ++k) {
 				uint32_t v = line[k];
 
 				v = (((v & 0xf800) << 16) |
@@ -1071,14 +1073,14 @@ void pd_graphics_update()
             {
 	      if(y_scale == 1)
 	        {
-	          memcpy(p, q, 320 * bytes_pixel);
+		  memcpy(p, q, (xsize * bytes_pixel));
 	          p += screen->pitch;
 	        }
 	      else
 	        {
 	          for(j = 0; j < y_scale; ++j)
 	            {
-		      memcpy(p, q, 320 * bytes_pixel);
+		      memcpy(p, q, (xsize * bytes_pixel));
 		      p += screen->pitch;
 		    }
 	        }
@@ -1091,7 +1093,7 @@ void pd_graphics_update()
 	        case 1:
 	          {
 	            unsigned char *pp = p, *qq = q;
-	            for(j = 0; j < 320; ++j, ++qq)
+	            for(j = 0; j < xsize; ++j, ++qq)
 	              for(k = 0; k < x_scale; ++k)
 		        *(pp++) = *qq;
 	            if(y_scale != 1)
@@ -1105,7 +1107,7 @@ void pd_graphics_update()
 	        case 2:
 	          {
 	            short *pp = (short*)p, *qq = (short*)q;
-	            for(j = 0; j < 320; ++j, ++qq)
+	            for(j = 0; j < xsize; ++j, ++qq)
 	              for(k = 0; k < x_scale; ++k)
 		        *(pp++) = *qq;
 	            if(y_scale != 1)
@@ -1121,7 +1123,7 @@ void pd_graphics_update()
 			uint8_t *pp = (uint8_t *)p;
 			uint8_t *qq = (uint8_t *)q;
 
-			for (j = 0; (j < 320); ++j, qq += 3)
+			for (j = 0; (j < xsize); ++j, qq += 3)
 				for (k = 0; (k < x_scale); ++k, pp += 3)
 					memcpy(pp, qq, 3);
 			if (y_scale == 1)
@@ -1135,7 +1137,7 @@ void pd_graphics_update()
 	        case 4:
 	          {
 	            int *pp = (int*)p, *qq = (int*)q;
-	            for(j = 0; j < 320; ++j, ++qq)
+	            for(j = 0; j < xsize; ++j, ++qq)
 	              for(k = 0; k < x_scale; ++k)
 		        *(pp++) = *qq;
 	            if(y_scale != 1)
