@@ -30,6 +30,10 @@
 #define MASK_RGB   0x00FFFFFF
 #define MASK_ALPHA 0xFF000000
 
+#define MASK16_2     0x07E0
+#define MASK16_13    0xF81F
+#define MASK16_RGB   0xFFFF
+
 #define Ymask 0x00FF0000
 #define Umask 0x0000FF00
 #define Vmask 0x000000FF
@@ -44,6 +48,13 @@ static inline uint32_t rgb_to_yuv(uint32_t c)
 {
     // Mask against MASK_RGB to discard the alpha channel
     return RGBtoYUV[MASK_RGB & c];
+}
+
+static inline uint32_t rgb16_to_yuv(uint16_t c)
+{
+    return RGBtoYUV[(((c & 0xF800) << 8) |
+                     ((c & 0x07E0) << 5) |
+                     ((c & 0x001F) << 3))];
 }
 
 /* Test if there is difference in color */
@@ -136,6 +147,84 @@ static inline uint32_t Interp10(uint32_t c1, uint32_t c2, uint32_t c3)
 {
     //(c1*14+c2+c3)/16;
     return Interpolate_3(c1, 14, c2, 1, c3, 1, 4);
+}
+
+/* Interpolate functions (16 bit, 565) */
+static inline uint16_t Interpolate_2_16(uint16_t c1, int w1, uint16_t c2, int w2, int s)
+{
+    if (c1 == c2) {
+        return c1;
+    }
+    return
+        ((((c1 & MASK16_2) * w1 + (c2 & MASK16_2) * w2) >> s) & MASK16_2) +
+        ((((c1 & MASK16_13) * w1 + (c2 & MASK16_13) * w2) >> s) & MASK16_13);
+}
+
+static inline uint16_t Interpolate_3_16(uint16_t c1, int w1, uint16_t c2, int w2, uint16_t c3, int w3, int s)
+{
+    return
+        ((((c1 & MASK16_2) * w1 + (c2 & MASK16_2) * w2 + (c3 & MASK16_2) * w3) >> s) & MASK16_2) +
+        ((((c1 & MASK16_13) * w1 + (c2 & MASK16_13) * w2 + (c3 & MASK16_13) * w3) >> s) & MASK16_13);
+}
+
+static inline uint16_t Interp1_16(uint16_t c1, uint16_t c2)
+{
+    //(c1*3+c2) >> 2;
+    return Interpolate_2_16(c1, 3, c2, 1, 2);
+}
+
+static inline uint16_t Interp2_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*2+c2+c3) >> 2;
+    return Interpolate_3_16(c1, 2, c2, 1, c3, 1, 2);
+}
+
+static inline uint16_t Interp3_16(uint16_t c1, uint16_t c2)
+{
+    //(c1*7+c2)/8;
+    return Interpolate_2_16(c1, 7, c2, 1, 3);
+}
+
+static inline uint16_t Interp4_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*2+(c2+c3)*7)/16;
+    return Interpolate_3_16(c1, 2, c2, 7, c3, 7, 4);
+}
+
+static inline uint16_t Interp5_16(uint16_t c1, uint16_t c2)
+{
+    //(c1+c2) >> 1;
+    return Interpolate_2_16(c1, 1, c2, 1, 1);
+}
+
+static inline uint16_t Interp6_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*5+c2*2+c3)/8;
+    return Interpolate_3_16(c1, 5, c2, 2, c3, 1, 3);
+}
+
+static inline uint16_t Interp7_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*6+c2+c3)/8;
+    return Interpolate_3_16(c1, 6, c2, 1, c3, 1, 3);
+}
+
+static inline uint16_t Interp8_16(uint16_t c1, uint16_t c2)
+{
+    //(c1*5+c2*3)/8;
+    return Interpolate_2_16(c1, 5, c2, 3, 3);
+}
+
+static inline uint16_t Interp9_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*2+(c2+c3)*3)/8;
+    return Interpolate_3_16(c1, 2, c2, 3, c3, 3, 3);
+}
+
+static inline uint16_t Interp10_16(uint16_t c1, uint16_t c2, uint16_t c3)
+{
+    //(c1*14+c2+c3)/16;
+    return Interpolate_3_16(c1, 14, c2, 1, c3, 1, 4);
 }
 
 #endif
