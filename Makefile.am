@@ -77,7 +77,7 @@ endif
 
 # hqx
 if WITH_HQX
-AM_CPPFLAGS += -I$(top_srcdir)/hqx/src
+AM_CPPFLAGS += -I$(top_srcdir)/hqx/src -DHQX_NO_CALLCONV -DHQX_NO_API
 dgen_SOURCES +=		\
 	hqx/src/init.c	\
 	hqx/src/hq2x.c	\

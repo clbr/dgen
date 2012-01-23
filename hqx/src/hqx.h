@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-#if defined( __GNUC__ )
+#if !defined(HQX_NO_CALLCONV) && defined(__GNUC__)
     #ifdef __MINGW32__
         #define HQX_CALLCONV __stdcall
     #else
@@ -33,7 +33,7 @@
     #define HQX_CALLCONV
 #endif
 
-#if defined(_WIN32)
+#if !defined(HQX_NO_API) && defined(_WIN32)
     #ifdef DLL_EXPORT
         #define HQX_API __declspec(dllexport)
     #else
