@@ -1,4 +1,4 @@
-.Dd November 27, 2011
+.Dd January 24, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -111,9 +111,9 @@ initialization failures.
 .It bool_fullscreen [false]
 Try to run fullscreen, if possible.
 .It int_scale [1]
-Amount by which to scale the window from the default 320x240 resolution. This
-does not affect the OpenGL renderer; it only has effect if the software
-renderer is in use.
+Amount by which to scale the window from the default resolution. Setting this
+to 2 will double the dimensions of the window, 3 will triple it, and so on. It
+must be a positive integer.
 .It key_fullscreen_toggle [alt-enter]
 Key to toggle fullscreen mode (this may do nothing if SDL doesn't support
 fullscreen toggling on your platform.)
@@ -174,18 +174,6 @@ off when you start it again.
 Automatically skip frames, when it is necessary to maintain proper emulation
 speed. You may want to disable sound or set int_nice to a nonzero
 value when setting this to false.
-.It bool_fullscreen [false]
-Run in fullscreen mode, if it is available.
-.It int_scale [1]
-Amount by which to scale the window. Setting this to 2 will double the
-dimensions of the window, 3 will triple it, and so on. It must be a positive
-integer.
-.It bool_opengl [false]
-Use OpenGL mode to render the screen, if available.
-.It int_opengl_width [640]
-Width of the OpenGL resolution to use.
-.It int_opengl_height [480]
-Height of the OpenGL resolution to use.
 .It int_nice [0]
 If set to a non-zero value, DGen will call
 .Xr usleep 3

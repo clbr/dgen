@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 #define SYSTEM_H_BEGIN_ extern "C" {
@@ -80,6 +81,21 @@ static inline uint32_t h2be32(uint32_t v)
 	return (((v & 0xff000000) >> 24) | ((v & 0x00ff0000) >>  8) |
 		((v & 0x0000ff00) <<  8) | ((v & 0x000000ff) << 24));
 #endif
+}
+
+typedef uint8_t uint24_t[3];
+
+static inline uint24_t *u24cpy(uint24_t *dst, const uint24_t *src)
+{
+	/* memcpy() is sometimes faster. */
+#ifdef U24CPY_MEMCPY
+	memcpy(*dst, *src, sizeof(*dst));
+#else
+	(*dst)[0] = (*src)[0];
+	(*dst)[1] = (*src)[1];
+	(*dst)[2] = (*src)[2];
+#endif
+	return dst;
 }
 
 extern uint8_t *load(size_t *file_size, FILE *file, size_t max_size);

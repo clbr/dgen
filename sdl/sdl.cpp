@@ -181,140 +181,34 @@ extern long js_map_button[2][16];
 // Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
 
+// Generic type for supported depths.
+typedef union {
+	uint32_t *u32;
+	uint24_t *u24;
+	uint16_t *u16;
+	uint16_t *u15;
+	uint8_t *u8;
+} bpp_t;
+
 #ifdef WITH_CTV
-// Portable versions of Crap TV filters, for all depths except 8 bpp.
 
-static void gen_blur_bitmap_32(uint8_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint8_t old[4];
-	uint8_t tmp[4];
+struct filter {
+	const char *name;
+	void (*func)(bpp_t buf, unsigned int buf_pitch,
+		     unsigned int xsize, unsigned int ysize,
+		     unsigned int bpp);
+};
 
-	memcpy(old, line, sizeof(old));
-	i = 0;
-	while (i < (size * 4)) {
-		unsigned int j;
-
-		memcpy(tmp, &(line[i]), sizeof(tmp));
-		for (j = 0; (j < 3); ++j, ++i)
-			line[i] = ((line[i] + old[j]) >> 1);
-		memcpy(old, tmp, sizeof(old));
-		++i;
-	}
-}
-
-static void gen_blur_bitmap_24(uint8_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint8_t old[3];
-	uint8_t tmp[3];
-
-	memcpy(old, line, sizeof(old));
-	i = 0;
-	while (i < (size * 3)) {
-		unsigned int j;
-
-		memcpy(tmp, &(line[i]), sizeof(tmp));
-		for (j = 0; (j < 3); ++j, ++i)
-			line[i] = ((line[i] + old[j]) >> 1);
-		memcpy(old, tmp, sizeof(old));
-	}
-}
-
-static void gen_blur_bitmap_16(uint16_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint16_t old;
-	uint16_t tmp;
-
-	old = line[0];
-	for (i = 0; (i < size); ++i) {
-		tmp = line[i];
-		line[i] = ((((tmp & 0xf800) + (old & 0xf800)) >> 1) |
-			   (((tmp & 0x07e0) + (old & 0x07e0)) >> 1) |
-			   (((tmp & 0x001f) + (old & 0x001f)) >> 1));
-		old = tmp;
-	}
-}
-
-static void gen_blur_bitmap_15(uint16_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint16_t old;
-	uint16_t tmp;
-
-	old = line[0];
-	for (i = 0; (i < size); ++i) {
-		tmp = line[i];
-		line[i] = ((((tmp & 0x7c00) + (old & 0x7c00)) >> 1) |
-			   (((tmp & 0x03e0) + (old & 0x03e0)) >> 1) |
-			   (((tmp & 0x001f) + (old & 0x001f)) >> 1));
-		old = tmp;
-	}
-}
-
-static void gen_test_ctv_32(uint8_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint8_t old[4];
-	uint8_t tmp[4];
-
-	memcpy(old, line, sizeof(old));
-	i = 0;
-	while (i < (size * 4)) {
-		unsigned int j;
-
-		memcpy(tmp, &(line[i]), sizeof(tmp));
-		for (j = 0; (j < 3); ++j, ++i)
-			line[i] >>= 1;
-		memcpy(old, tmp, sizeof(old));
-		++i;
-	}
-}
-
-static void gen_test_ctv_24(uint8_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-	uint8_t old[3];
-	uint8_t tmp[3];
-
-	memcpy(old, line, sizeof(old));
-	i = 0;
-	while (i < (size * 3)) {
-		unsigned int j;
-
-		memcpy(tmp, &(line[i]), sizeof(tmp));
-		for (j = 0; (j < 3); ++j, ++i)
-			line[i] >>= 1;
-		memcpy(old, tmp, sizeof(old));
-	}
-}
-
-static void gen_test_ctv_16(uint16_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-
-	for (i = 0; (i < size); ++i)
-		line[i] = ((line[i] >> 1) & 0x7bef);
-}
-
-static void gen_test_ctv_15(uint16_t line[])
-{
-	const unsigned int size = xsize;
-	unsigned int i;
-
-	for (i = 0; (i < size); ++i)
-		line[i] = ((line[i] >> 1) & 0x3def);
-}
+static const struct filter *filters_prescale[64];
+static const struct filter *filters_postscale[64];
 
 #endif // WITH_CTV
+
+static void (*scaling)(bpp_t dst, unsigned int dst_pitch,
+		       bpp_t src, unsigned int src_pitch,
+		       unsigned int xsize, unsigned int xscale,
+		       unsigned int ysize, unsigned int yscale,
+		       unsigned int bpp);
 
 static void do_screenshot(void)
 {
@@ -743,6 +637,456 @@ static void update_texture()
 
 #endif // WITH_OPENGL
 
+// Copy/rescale functions.
+
+static void rescale_32_1x1(uint32_t *dst, unsigned int dst_pitch,
+			   uint32_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	(void)xscale;
+	(void)yscale;
+	for (y = 0; (y != ysize); ++y) {
+		memcpy(dst, src, (xsize * sizeof(*dst)));
+		src = (uint32_t *)((uint8_t *)src + src_pitch);
+		dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
+	}
+}
+
+static void rescale_32_any(uint32_t *dst, unsigned int dst_pitch,
+			   uint32_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	for (y = 0; (y != ysize); ++y) {
+		uint32_t *out = dst;
+		unsigned int i;
+		unsigned int x;
+
+		for (x = 0; (x != xsize); ++x) {
+			uint32_t tmp = src[x];
+
+			for (i = 0; (i != xscale); ++i)
+				*(out++) = tmp;
+		}
+		out = dst;
+		dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
+		for (i = 1; (i != yscale); ++i) {
+			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
+			out = dst;
+			dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
+		}
+		src = (uint32_t *)((uint8_t *)src + src_pitch);
+	}
+}
+
+static void rescale_24_1x1(uint24_t *dst, unsigned int dst_pitch,
+			   uint24_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	(void)xscale;
+	(void)yscale;
+	for (y = 0; (y != ysize); ++y) {
+		memcpy(dst, src, (xsize * sizeof(*dst)));
+		src = (uint24_t *)((uint8_t *)src + src_pitch);
+		dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
+	}
+}
+
+static void rescale_24_any(uint24_t *dst, unsigned int dst_pitch,
+			   uint24_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	for (y = 0; (y != ysize); ++y) {
+		uint24_t *out = dst;
+		unsigned int i;
+		unsigned int x;
+
+		for (x = 0; (x != xsize); ++x) {
+			uint24_t tmp;
+
+			u24cpy(&tmp, &src[x]);
+			for (i = 0; (i != xscale); ++i)
+				u24cpy((out++), &tmp);
+		}
+		out = dst;
+		dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
+		for (i = 1; (i != yscale); ++i) {
+			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
+			out = dst;
+			dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
+		}
+		src = (uint24_t *)((uint8_t *)src + src_pitch);
+	}
+}
+
+static void rescale_16_1x1(uint16_t *dst, unsigned int dst_pitch,
+			   uint16_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	(void)xscale;
+	(void)yscale;
+	for (y = 0; (y != ysize); ++y) {
+		memcpy(dst, src, (xsize * sizeof(*dst)));
+		src = (uint16_t *)((uint8_t *)src + src_pitch);
+		dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
+	}
+}
+
+static void rescale_16_any(uint16_t *dst, unsigned int dst_pitch,
+			   uint16_t *src, unsigned int src_pitch,
+			   unsigned int xsize, unsigned int xscale,
+			   unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	for (y = 0; (y != ysize); ++y) {
+		uint16_t *out = dst;
+		unsigned int i;
+		unsigned int x;
+
+		for (x = 0; (x != xsize); ++x) {
+			uint16_t tmp = src[x];
+
+			for (i = 0; (i != xscale); ++i)
+				*(out++) = tmp;
+		}
+		out = dst;
+		dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
+		for (i = 1; (i != yscale); ++i) {
+			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
+			out = dst;
+			dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
+		}
+		src = (uint16_t *)((uint8_t *)src + src_pitch);
+	}
+}
+
+static void rescale_8_1x1(uint8_t *dst, unsigned int dst_pitch,
+			  uint8_t *src, unsigned int src_pitch,
+			  unsigned int xsize, unsigned int xscale,
+			  unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	(void)xscale;
+	(void)yscale;
+	for (y = 0; (y != ysize); ++y) {
+		memcpy(dst, src, xsize);
+		src += src_pitch;
+		dst += dst_pitch;
+	}
+}
+
+static void rescale_8_any(uint8_t *dst, unsigned int dst_pitch,
+			  uint8_t *src, unsigned int src_pitch,
+			  unsigned int xsize, unsigned int xscale,
+			  unsigned int ysize, unsigned int yscale)
+{
+	unsigned int y;
+
+	for (y = 0; (y != ysize); ++y) {
+		uint8_t *out = dst;
+		unsigned int i;
+		unsigned int x;
+
+		for (x = 0; (x != xsize); ++x) {
+			uint8_t tmp = src[x];
+
+			for (i = 0; (i != xscale); ++i)
+				*(out++) = tmp;
+		}
+		out = dst;
+		dst += dst_pitch;
+		for (i = 1; (i != yscale); ++i) {
+			memcpy(dst, out, (xsize * xscale));
+			out = dst;
+			dst += dst_pitch;
+		}
+		src += src_pitch;
+	}
+}
+
+static void rescale_1x1(bpp_t dst, unsigned int dst_pitch,
+			bpp_t src, unsigned int src_pitch,
+			unsigned int xsize, unsigned int xscale,
+			unsigned int ysize, unsigned int yscale,
+			unsigned int bpp)
+{
+	switch (bpp) {
+	case 32:
+		rescale_32_1x1(dst.u32, dst_pitch, src.u32, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 24:
+		rescale_24_1x1(dst.u24, dst_pitch, src.u24, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 16:
+	case 15:
+		rescale_16_1x1(dst.u16, dst_pitch, src.u16, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 8:
+		rescale_8_1x1(dst.u8, dst_pitch, src.u8, src_pitch,
+			      xsize, xscale, ysize, yscale);
+		break;
+	}
+}
+
+static void rescale_any(bpp_t dst, unsigned int dst_pitch,
+			bpp_t src, unsigned int src_pitch,
+			unsigned int xsize, unsigned int xscale,
+			unsigned int ysize, unsigned int yscale,
+			unsigned int bpp)
+{
+	switch (bpp) {
+	case 32:
+		rescale_32_any(dst.u32, dst_pitch, src.u32, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 24:
+		rescale_24_any(dst.u24, dst_pitch, src.u24, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 16:
+	case 15:
+		rescale_16_any(dst.u16, dst_pitch, src.u16, src_pitch,
+			       xsize, xscale, ysize, yscale);
+		break;
+	case 8:
+		rescale_8_any(dst.u8, dst_pitch, src.u8, src_pitch,
+			      xsize, xscale, ysize, yscale);
+		break;
+	}
+}
+
+#ifdef WITH_CTV
+
+// "Blur" CTV filters.
+
+static void filter_blur_u32(uint32_t *buf, unsigned int buf_pitch,
+			    unsigned int xsize, unsigned int ysize)
+{
+	unsigned int y;
+
+	for (y = 0; (y < ysize); ++y) {
+		uint32_t old = *buf;
+		unsigned int x;
+
+		for (x = 0; (x < xsize); ++x) {
+			uint32_t tmp = buf[x];
+
+			tmp = (((((tmp & 0x00ff00ff) +
+				  (old & 0x00ff00ff)) >> 1) & 0x00ff00ff) |
+			       ((((tmp & 0xff00ff00) +
+				  (old & 0xff00ff00)) >> 1) & 0xff00ff00));
+			old = buf[x];
+			buf[x] = tmp;
+		}
+		buf = (uint32_t *)((uint8_t *)buf + buf_pitch);
+	}
+}
+
+static void filter_blur_u24(uint24_t *buf, unsigned int buf_pitch,
+			    unsigned int xsize, unsigned int ysize)
+{
+	unsigned int y;
+
+	for (y = 0; (y < ysize); ++y) {
+		uint24_t old;
+		unsigned int x;
+
+		u24cpy(&old, buf);
+		for (x = 0; (x < xsize); ++x) {
+			uint24_t tmp;
+
+			u24cpy(&tmp, &buf[x]);
+			buf[x][0] = ((tmp[0] + old[0]) >> 1);
+			buf[x][1] = ((tmp[1] + old[1]) >> 1);
+			buf[x][2] = ((tmp[2] + old[2]) >> 1);
+			u24cpy(&old, &tmp);
+		}
+		buf = (uint24_t *)((uint8_t *)buf + buf_pitch);
+	}
+}
+
+static void filter_blur_u16(uint16_t *buf, unsigned int buf_pitch,
+			    unsigned int xsize, unsigned int ysize)
+{
+	unsigned int y;
+
+	for (y = 0; (y < ysize); ++y) {
+#ifdef WITH_X86_CTV
+		// Blur, by Dave
+		blur_bitmap_16((uint8_t *)buf, (xsize - 1));
+#else
+		uint16_t old = *buf;
+		unsigned int x;
+
+		for (x = 0; (x < xsize); ++x) {
+			uint16_t tmp = buf[x];
+
+			tmp = (((((tmp & 0xf81f) +
+				  (old & 0xf81f)) >> 1) & 0xf81f) |
+			       ((((tmp & 0x07e0) +
+				  (old & 0x07e0)) >> 1) & 0x07e0));
+			old = buf[x];
+			buf[x] = tmp;
+		}
+#endif
+		buf = (uint16_t *)((uint8_t *)buf + buf_pitch);
+	}
+}
+
+static void filter_blur_u15(uint16_t *buf, unsigned int buf_pitch,
+			    unsigned int xsize, unsigned int ysize)
+{
+	unsigned int y;
+
+	for (y = 0; (y < ysize); ++y) {
+#ifdef WITH_X86_CTV
+		// Blur, by Dave
+		blur_bitmap_15((uint8_t *)buf, (xsize - 1));
+#else
+		uint16_t old = *buf;
+		unsigned int x;
+
+		for (x = 0; (x < xsize); ++x) {
+			uint16_t tmp = buf[x];
+
+			tmp = (((((tmp & 0x7c1f) +
+				  (old & 0x7c1f)) >> 1) & 0x7c1f) |
+			       ((((tmp & 0x03e0) +
+				  (old & 0x03e0)) >> 1) & 0x03e0));
+			old = buf[x];
+			buf[x] = tmp;
+		}
+#endif
+		buf = (uint16_t *)((uint8_t *)buf + buf_pitch);
+	}
+}
+
+static void filter_blur(bpp_t buf, unsigned int buf_pitch,
+			unsigned int xsize, unsigned int ysize,
+			unsigned int bpp)
+{
+	switch (bpp) {
+	case 32:
+		filter_blur_u32(buf.u32, buf_pitch, xsize, ysize);
+		break;
+	case 24:
+		filter_blur_u24(buf.u24, buf_pitch, xsize, ysize);
+		break;
+	case 16:
+		filter_blur_u16(buf.u16, buf_pitch, xsize, ysize);
+		break;
+	case 15:
+		filter_blur_u15(buf.u16, buf_pitch, xsize, ysize);
+		break;
+	}
+}
+
+// Scanline/Interlace CTV filters.
+
+static void filter_scanline_frame(bpp_t buf, unsigned int buf_pitch,
+				  unsigned int xsize, unsigned int ysize,
+				  unsigned int bpp, unsigned int frame)
+{
+	unsigned int y;
+
+	buf.u8 += (buf_pitch * !!frame);
+	for (y = frame; (y < ysize); y += 2) {
+		switch (bpp) {
+			unsigned int x;
+
+		case 32:
+			for (x = 0; (x < xsize); ++x)
+				buf.u32[x] = ((buf.u32[x] >> 1) & 0x7f7f7f7f);
+			break;
+		case 24:
+			for (x = 0; (x < xsize); ++x) {
+				buf.u24[x][0] >>= 1;
+				buf.u24[x][1] >>= 1;
+				buf.u24[x][2] >>= 1;
+			}
+			break;
+#ifdef WITH_X86_CTV
+		case 16:
+		case 15:
+			// Scanline, by Phil
+			test_ctv((uint8_t *)buf.u16, xsize);
+			break;
+#else
+		case 16:
+			for (x = 0; (x < xsize); ++x)
+				buf.u16[x] = ((buf.u16[x] >> 1) & 0x7bef);
+			break;
+		case 15:
+			for (x = 0; (x < xsize); ++x)
+				buf.u15[x] = ((buf.u15[x] >> 1) & 0x3def);
+			break;
+#endif
+		}
+		buf.u8 += (buf_pitch * 2);
+	}
+
+}
+
+static void filter_scanline(bpp_t buf, unsigned int buf_pitch,
+			    unsigned int xsize, unsigned int ysize,
+			    unsigned int bpp)
+{
+	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, 0);
+}
+
+static void filter_interlace(bpp_t buf, unsigned int buf_pitch,
+			     unsigned int xsize, unsigned int ysize,
+			     unsigned int bpp)
+{
+	static unsigned int frame = 0;
+
+	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, frame);
+	frame ^= 0x1;
+}
+
+// No-op filter.
+static void filter_off(bpp_t buf, unsigned int buf_pitch,
+		       unsigned int xsize, unsigned int ysize,
+		       unsigned int bpp)
+{
+	(void)buf;
+	(void)buf_pitch;
+	(void)xsize;
+	(void)ysize;
+	(void)bpp;
+}
+
+// Available filters.
+static const struct filter filters_list[] = {
+	// The first four filters must match ctv_names in rc.cpp.
+	{ "off", filter_off },
+	{ "blur", filter_blur },
+	{ "scanline", filter_scanline },
+	{ "interlace", filter_interlace },
+	{ NULL, NULL }
+};
+
+#endif // WITH_CTV
+
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
@@ -899,6 +1243,14 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
       return 0;
     }
 
+	if ((x_scale == 1) && (y_scale == x_scale))
+		scaling = rescale_1x1;
+	else
+		scaling = rescale_any;
+#ifdef WITH_CTV
+	filters_prescale[0] = &filters_list[(dgen_craptv % NUM_CTV)];
+#endif // WITH_CTV
+
   // And that's it! :D
   return 1;
 }
@@ -924,238 +1276,69 @@ static void pd_message_display(const char *msg, size_t len);
 static void pd_message_postpone(const char *msg);
 
 // Update screen
-// This code is fairly transmittable to any linear display, just change p to
-// point to your favorite raw framebuffer. ;) But planar buffers are a
-// completely different deal...
-// Anyway, feel free to use it in your implementation. :)
 void pd_graphics_update()
 {
+	bpp_t src;
+	bpp_t dst;
+	unsigned int src_pitch;
+	unsigned int dst_pitch;
 #ifdef WITH_CTV
-  static int f = 0;
-#endif
-#ifdef WITH_OPENGL
-	union {
-		uint16_t *u16;
-		uint32_t *u32;
-	} u = { NULL };
-#endif
-  int i, j, k;
-  unsigned char *p = NULL;
-  unsigned char *q;
-
-#ifdef WITH_CTV
-  // Frame number, even or odd?
-  ++f;
+	unsigned int xsize2;
+	unsigned int ysize2;
+	const struct filter **filter;
 #endif
 
-  // If you need to do any sort of locking before writing to the buffer, do so
-  // here.
-  if(SDL_MUSTLOCK(screen))
-    SDL_LockSurface(screen);
-
+	// If you need to do any sort of locking before writing to the buffer,
+	// do so here.
+	if (SDL_MUSTLOCK(screen))
+		SDL_LockSurface(screen);
 	// Check whether the message must be processed.
 	if (((info.displayed) || (info.length))  &&
 	    ((pd_usecs() - info.since) >= MESSAGE_LIFE))
 		pd_message_process();
-
+	// Set destination buffer.
 #ifdef WITH_OPENGL
 	if (opengl) {
-		if (texture.u32 == 0)
-			u.u16 = texture.buf.u16;
-		else
-			u.u32 = texture.buf.u32;
+		dst_pitch = (texture.vis_width << (1 << texture.u32));
+		dst.u32 = texture.buf.u32;
 	}
 	else
 #endif
-    p = (unsigned char*)screen->pixels;
-  // Use the same formula as draw_scanline() in ras.cpp to avoid the messy
-  // border once and for all. This one works with any supported depth.
-  q = ((unsigned char *)mdscr.data + ((mdscr.pitch * 8) + 16));
-
-  for(i = 0; i < ysize; ++i)
-    {
+	{
+		dst_pitch = screen->pitch;
+		dst.u8 = (uint8_t *)screen->pixels;
+	}
+	// Use the same formula as draw_scanline() in ras.cpp to avoid the
+	// messy border once and for all. This one works with any supported
+	// depth.
+	src_pitch = mdscr.pitch;
+	src.u8 = ((uint8_t *)mdscr.data + (src_pitch * 8) + 16);
 #ifdef WITH_CTV
-	switch (dgen_craptv) {
-	case CTV_BLUR:
-		switch (mdscr.bpp) {
-		case 32:
-			gen_blur_bitmap_32(q);
-			break;
-		case 24:
-			gen_blur_bitmap_24(q);
-			break;
-#ifdef WITH_X86_CTV
-		case 16:
-			// Blur, by Dave
-			blur_bitmap_16(q, 319);
-			(void)gen_blur_bitmap_16;
-			break;
-		case 15:
-			blur_bitmap_15(q, 319);
-			(void)gen_blur_bitmap_15;
-			break;
-#else
-		case 16:
-			gen_blur_bitmap_16((uint16_t *)q);
-			break;
-		case 15:
-			gen_blur_bitmap_15((uint16_t *)q);
-			break;
+	// Apply prescale filters.
+	xsize2 = (xsize * x_scale);
+	ysize2 = (ysize * y_scale);
+	for (filter = filters_prescale; (*filter != NULL); ++filter)
+		(*filter)->func(src, src_pitch, xsize, ysize, mdscr.bpp);
 #endif
-		default:
-			break;
-		}
-		break;
-	case CTV_SCANLINE:
-		if ((i & 1) == 0) {
-			break;
-		case CTV_INTERLACE:
-			// Swap scanlines in every frame.
-			if ((f & 1) ^ (i & 1))
-				break;
-		}
-		switch (mdscr.bpp) {
-		case 32:
-			gen_test_ctv_32(q);
-			break;
-		case 24:
-			gen_test_ctv_24(q);
-			break;
-#ifdef WITH_X86_CTV
-		case 16:
-		case 15:
-			// Scanline, by Phil
-			test_ctv(q, xsize);
-			(void)gen_test_ctv_16;
-			(void)gen_test_ctv_15;
-			break;
-#else
-		case 16:
-			gen_test_ctv_16((uint16_t *)q);
-			break;
-		case 15:
-			gen_test_ctv_15((uint16_t *)q);
-			break;
+	// Copy/rescale output.
+	scaling(dst, dst_pitch, src, src_pitch,
+		xsize, x_scale, ysize, y_scale,
+		mdscr.bpp);
+#ifdef WITH_CTV
+	// Apply postscale filters.
+	for (filter = filters_postscale; (*filter != NULL); ++filter)
+		(*filter)->func(dst, dst_pitch, xsize2, ysize2, mdscr.bpp);
 #endif
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-#endif // WITH_CTV
-
+	// Unlock when you're done!
+	if (SDL_MUSTLOCK(screen))
+		SDL_UnlockSurface(screen);
+	// Update the screen
 #ifdef WITH_OPENGL
-	if (opengl) {
-		if (texture.u32 == 0) {
-			memcpy(u.u16, q, (sizeof(u.u16[0]) * xsize));
-			u.u16 += texture.vis_width;
-		}
-		else {
-			memcpy(u.u32, q, (sizeof(u.u32[0]) * xsize));
-			u.u32 += texture.vis_width;
-		}
-	}
-	else {
-#endif // WITH_OPENGL
-
-          if(x_scale == 1)
-            {
-	      if(y_scale == 1)
-	        {
-		  memcpy(p, q, (xsize * bytes_pixel));
-	          p += screen->pitch;
-	        }
-	      else
-	        {
-	          for(j = 0; j < y_scale; ++j)
-	            {
-		      memcpy(p, q, (xsize * bytes_pixel));
-		      p += screen->pitch;
-		    }
-	        }
-	    }
-          else
-            {
-	      /* Stretch the scanline out */
-	      switch(bytes_pixel)
-	        {
-	        case 1:
-	          {
-	            unsigned char *pp = p, *qq = q;
-	            for(j = 0; j < xsize; ++j, ++qq)
-	              for(k = 0; k < x_scale; ++k)
-		        *(pp++) = *qq;
-	            if(y_scale != 1)
-	              for(pp = p, j = 1; j < y_scale; ++j)
-		        {
-		          p += screen->pitch;
-		          memcpy(p, pp, xs);
-		        }
-	          }
-	          break;
-	        case 2:
-	          {
-	            short *pp = (short*)p, *qq = (short*)q;
-	            for(j = 0; j < xsize; ++j, ++qq)
-	              for(k = 0; k < x_scale; ++k)
-		        *(pp++) = *qq;
-	            if(y_scale != 1)
-	              for(pp = (short*)p, j = 1; j < y_scale; ++j)
-		        {
-		          p += screen->pitch;
-		          memcpy(p, pp, xs*2);
-		        }
-	          }
-	          break;
-	        case 3:
-		{
-			uint8_t *pp = (uint8_t *)p;
-			uint8_t *qq = (uint8_t *)q;
-
-			for (j = 0; (j < xsize); ++j, qq += 3)
-				for (k = 0; (k < x_scale); ++k, pp += 3)
-					memcpy(pp, qq, 3);
-			if (y_scale == 1)
-				break;
-			for (pp = (uint8_t *)p, j = 1; (j < y_scale); ++j) {
-				p += screen->pitch;
-				memcpy(p, pp, xs * 3);
-			}
-			break;
-		}
-	        case 4:
-	          {
-	            int *pp = (int*)p, *qq = (int*)q;
-	            for(j = 0; j < xsize; ++j, ++qq)
-	              for(k = 0; k < x_scale; ++k)
-		        *(pp++) = *qq;
-	            if(y_scale != 1)
-	              for(pp = (int*)p, j = 1; j < y_scale; ++j)
-		        {
-		          p += screen->pitch;
-		          memcpy(p, pp, xs*4);
-		        }
-	          }
-	          break;
-	        }
-	      p += screen->pitch;
-	    }
-#ifdef WITH_OPENGL
-        }
+	if (opengl)
+		update_texture();
+	else
 #endif
-      q += mdscr.pitch;
-    }
-  // Unlock when you're done!
-  if(SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
-  // Update the screen
-#ifdef WITH_OPENGL
-  if(opengl)
-    update_texture();
-  else
-#endif
-    SDL_Flip(screen);
+		SDL_Flip(screen);
 }
 
 // Callback for sound
@@ -1622,20 +1805,15 @@ int pd_handle_events(md &megad)
 
 	  else if(ksym == dgen_quit) return 0;
 #ifdef WITH_CTV
-	  else if(ksym == dgen_craptv_toggle)
+	  else if (ksym == dgen_craptv_toggle)
 	    {
-		    char temp[256];
+		char temp[256];
 
-		    if (mdscr.bpp == 8)
-			    snprintf(temp, sizeof(temp),
-				     "Crap TV mode unavailable in 8 bpp.");
-		    else {
-			    dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
-			    snprintf(temp, sizeof(temp),
-				     "Crap TV mode \"%s\".",
-				     ctv_names[dgen_craptv]);
-		    }
-		    pd_message(temp);
+		dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
+		snprintf(temp, sizeof(temp), "Crap TV mode \"%s\".",
+			 ctv_names[dgen_craptv]);
+		filters_prescale[0] = &filters_list[dgen_craptv];
+		pd_message(temp);
 	    }
 #endif // WITH_CTV
 	  else if(ksym == dgen_reset)

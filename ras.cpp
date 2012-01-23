@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "system.h"
 #include "md.h"
 
 // This is marked each time the palette is updated. Handy for the 8bpp
@@ -296,7 +297,7 @@ inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
 inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
 {
   unsigned tile, temp, *pal;
-  uint8_t *wwhere = (uint8_t *)where;
+  uint24_t *wwhere = (uint24_t *)where;
 
   pal = highpal + (which >> 9 & 0x30); // Determine which 16-color palette
   temp = *pal; *pal = highpal[reg[7]&0x3f]; // Get background color
@@ -312,23 +313,23 @@ inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
   // Blit the tile!
   if(which & 0x800) // x flipped
     {
-      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
-      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
-      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
-      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
-      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
-      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
-      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
-      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
+      u24cpy(&wwhere[0], (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
+      u24cpy(&wwhere[1], (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
+      u24cpy(&wwhere[2], (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
+      u24cpy(&wwhere[3], (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
+      u24cpy(&wwhere[4], (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
+      u24cpy(&wwhere[5], (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
+      u24cpy(&wwhere[6], (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
+      u24cpy(&wwhere[7], (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
     } else {
-      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
-      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
-      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
-      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
-      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
-      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
-      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
-      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
+      u24cpy(&wwhere[0], (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
+      u24cpy(&wwhere[1], (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
+      u24cpy(&wwhere[2], (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
+      u24cpy(&wwhere[3], (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
+      u24cpy(&wwhere[4], (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
+      u24cpy(&wwhere[5], (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
+      u24cpy(&wwhere[6], (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
+      u24cpy(&wwhere[7], (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
     }
   // Restore the original color
   *pal = temp;
@@ -337,7 +338,7 @@ inline void md_vdp::draw_tile3_solid(int which, int line, unsigned char *where)
 inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
 {
   unsigned tile, *pal;
-  uint8_t *wwhere = (uint8_t *)where;
+  uint24_t *wwhere = (uint24_t *)where;
 
   pal = highpal + (which >> 9 & 0x30); // Determine which 16-color palette
 
@@ -355,38 +356,54 @@ inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
   if(which & 0x800) // x flipped
     {
       if (tile & PIXEL7)
-	      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
+		u24cpy(&wwhere[0],
+		       (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
       if(tile & PIXEL6)
-	      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+		u24cpy(&wwhere[1],
+		       (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
       if(tile & PIXEL5)
-	      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+		u24cpy(&wwhere[2],
+		       (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
       if(tile & PIXEL4)
-	      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+		u24cpy(&wwhere[3],
+		       (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
       if(tile & PIXEL3)
-	      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+		u24cpy(&wwhere[4],
+		       (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
       if(tile & PIXEL2)
-	      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+		u24cpy(&wwhere[5],
+		       (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
       if(tile & PIXEL1)
-	      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+		u24cpy(&wwhere[6],
+		       (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
       if(tile & PIXEL0)
-	      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
+		u24cpy(&wwhere[7],
+		       (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
     } else {
       if(tile & PIXEL0)
-	      memcpy(&wwhere[(3 * 0)], &pal[((tile & PIXEL0) >> SHIFT0)], 3);
+		u24cpy(&wwhere[0],
+		       (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
       if(tile & PIXEL1)
-	      memcpy(&wwhere[(3 * 1)], &pal[((tile & PIXEL1) >> SHIFT1)], 3);
+		u24cpy(&wwhere[1],
+		       (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
       if(tile & PIXEL2)
-	      memcpy(&wwhere[(3 * 2)], &pal[((tile & PIXEL2) >> SHIFT2)], 3);
+		u24cpy(&wwhere[2],
+		       (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
       if(tile & PIXEL3)
-	      memcpy(&wwhere[(3 * 3)], &pal[((tile & PIXEL3) >> SHIFT3)], 3);
+		u24cpy(&wwhere[3],
+		       (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
       if(tile & PIXEL4)
-	      memcpy(&wwhere[(3 * 4)], &pal[((tile & PIXEL4) >> SHIFT4)], 3);
+		u24cpy(&wwhere[4],
+		       (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
       if(tile & PIXEL5)
-	      memcpy(&wwhere[(3 * 5)], &pal[((tile & PIXEL5) >> SHIFT5)], 3);
+		u24cpy(&wwhere[5],
+		       (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
       if(tile & PIXEL6)
-	      memcpy(&wwhere[(3 * 6)], &pal[((tile & PIXEL6) >> SHIFT6)], 3);
+		u24cpy(&wwhere[6],
+		       (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
       if(tile & PIXEL7)
-	      memcpy(&wwhere[(3 * 7)], &pal[((tile & PIXEL7) >> SHIFT7)], 3);
+		u24cpy(&wwhere[7],
+		       (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
     }
 }
 
