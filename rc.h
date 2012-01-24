@@ -6,6 +6,7 @@
 
 // Define the different craptv types
 #define NUM_CTV 4 // Include CTV_OFF
+#define NUM_SCALING 2
 #define CTV_OFF       0
 #define CTV_BLUR      1
 #define CTV_SCANLINE  2
@@ -19,6 +20,9 @@
 
 // All the CTV engine names, in string form for the RC and message bar
 extern const char *ctv_names[];
+
+// Scaling algorithms names
+extern const char *scaling_names[];
 
 // Provide a prototype to the parse_rc function in rc.cpp
 extern void parse_rc(FILE *file, const char *name);

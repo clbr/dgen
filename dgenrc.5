@@ -137,6 +137,8 @@ this, and resetting should fix the problem.
 Exit DGen.
 .It key_craptv_toggle [f5]
 Toggles Crap-TV image filters. These filters aren't available in 8 bpp mode.
+.It key_scaling_toggle [f6]
+Toggles scaling algorithms. See scaling_startup below.
 .It key_reset [tab]
 Restart the Genesis emulation.
 .It key_cpu_toggle [f11]
@@ -184,6 +186,12 @@ CPU time.
 .It ctv_craptv_startup [off]
 CTV filter to use by default. Available filters are "blur", "scanline"
 and "interlace".
+.It scaling_startup [default]
+Scaling algorithm to use when (int_scale > 1). Available algorithms are
+"default" and "hqx".
+Algorithms other than "default" may not work for all possible depths
+and int_scale values. They are also more CPU-intensive but it's
+usually worthwhile.
 .It bool_show_carthead [false]
 Show cartridge header info at startup.
 .El

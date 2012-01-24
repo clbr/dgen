@@ -43,6 +43,7 @@ RCVAR(pad2_start, PDK_KP_ENTER);
 RCVAR(dgen_fix_checksum, PDK_F1);
 RCVAR(dgen_quit, PDK_ESCAPE);
 RCVAR(dgen_craptv_toggle, PDK_F5);
+RCVAR(dgen_scaling_toggle, PDK_F6);
 RCVAR(dgen_screenshot, PDK_F12);
 RCVAR(dgen_reset, PDK_TAB);
 RCVAR(dgen_z80_toggle, PDK_F10);
@@ -75,6 +76,7 @@ RCVAR(dgen_soundsegs, 8);
 RCVAR(dgen_soundsamples, 0);
 
 RCVAR(dgen_craptv, 0);
+RCVAR(dgen_scaling, 0);
 RCVAR(dgen_nice, 0);
 RCVAR(dgen_joystick, 0);
 

@@ -27,6 +27,10 @@
 #include "font.h"
 #include "system.h"
 
+#ifdef WITH_HQX
+#include "hqx.h"
+#endif
+
 #ifdef WITH_OPENGL
 
 // Framebuffer texture
@@ -203,6 +207,15 @@ static const struct filter *filters_prescale[64];
 static const struct filter *filters_postscale[64];
 
 #endif // WITH_CTV
+
+struct scaling {
+	const char *name;
+	void (*func)(bpp_t dst, unsigned int dst_pitch,
+		     bpp_t src, unsigned int src_pitch,
+		     unsigned int xsize, unsigned int xscale,
+		     unsigned int ysize, unsigned int yscale,
+		     unsigned int bpp);
+};
 
 static void (*scaling)(bpp_t dst, unsigned int dst_pitch,
 		       bpp_t src, unsigned int src_pitch,
@@ -874,6 +887,51 @@ static void rescale_any(bpp_t dst, unsigned int dst_pitch,
 	}
 }
 
+#ifdef WITH_HQX
+
+static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
+			bpp_t src, unsigned int src_pitch,
+			unsigned int xsize, unsigned int xscale,
+			unsigned int ysize, unsigned int yscale,
+			unsigned int bpp)
+{
+	if (xscale != yscale)
+		goto skip;
+	switch (bpp) {
+	case 32:
+		switch (xscale) {
+		case 2:
+			hq2x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 3:
+			hq3x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 4:
+			hq4x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
+				   xsize, ysize);
+			return;
+		}
+		break;
+	case 16:
+	case 15:
+		switch (xscale) {
+		case 2:
+			hq2x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
+				   xsize, ysize);
+			return;
+		}
+		break;
+	}
+skip:
+	rescale_any(dst, dst_pitch, src, src_pitch,
+		    xsize, xscale, ysize, yscale,
+		    bpp);
+}
+
+#endif // WITH_HQX
+
 #ifdef WITH_CTV
 
 // "Blur" CTV filters.
@@ -1087,11 +1145,43 @@ static const struct filter filters_list[] = {
 
 #endif // WITH_CTV
 
+// Available scaling functions.
+static const struct scaling scaling_list[] = {
+	// These items must match scaling_names in rc.cpp.
+	{ "default", rescale_any },
+#ifdef WITH_HQX
+	{ "hqx", rescale_hqx },
+#endif
+	{ NULL, NULL }
+};
+
+static int set_scaling(const char *name)
+{
+	unsigned int i;
+
+	for (i = 0; (scaling_list[i].name != NULL); ++i) {
+		if (strcasecmp(name, scaling_list[i].name))
+			continue;
+		scaling = scaling_list[i].func;
+		return 0;
+	}
+	scaling = rescale_any;
+	return -1;
+}
+
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
   SDL_Color color;
 	int depth = dgen_depth;
+#ifdef WITH_HQX
+	static int hqx_initialized = 0;
+
+	if (hqx_initialized == 0) {
+		hqxInit();
+		hqx_initialized = 1;
+	}
+#endif
 
 	switch (depth) {
 	case 0:
@@ -1246,7 +1336,8 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	if ((x_scale == 1) && (y_scale == x_scale))
 		scaling = rescale_1x1;
 	else
-		scaling = rescale_any;
+		set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
+
 #ifdef WITH_CTV
 	filters_prescale[0] = &filters_list[(dgen_craptv % NUM_CTV)];
 #endif // WITH_CTV
@@ -1816,6 +1907,20 @@ int pd_handle_events(md &megad)
 		pd_message(temp);
 	    }
 #endif // WITH_CTV
+	  else if (ksym == dgen_scaling_toggle) {
+		char temp[256];
+
+		dgen_scaling = ((dgen_scaling + 1) % NUM_SCALING);
+		if (set_scaling(scaling_names[dgen_scaling]))
+			snprintf(temp, sizeof(temp),
+				 "Scaling algorithm \"%s\" unavailable.",
+				 scaling_names[dgen_scaling]);
+		else
+			snprintf(temp, sizeof(temp),
+				 "Using scaling algorithm \"%s\".",
+				 scaling_names[dgen_scaling]);
+		pd_message(temp);
+	  }
 	  else if(ksym == dgen_reset)
 	    { megad.reset(); pd_message("Genesis reset."); }
 	  else if(ksym == dgen_slot_0)

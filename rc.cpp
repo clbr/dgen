@@ -23,6 +23,9 @@
 // CTV names
 const char *ctv_names[NUM_CTV] = { "off", "blur", "scanline", "interlace" };
 
+// Scaling algorithms names
+const char *scaling_names[NUM_SCALING] = { "default", "hqx" };
+
 // CPU names, keep index in sync with rc-vars.h and enums in md.h
 static const char *emu_z80_names[] = { "none", "mz80", "cz80", NULL };
 static const char *emu_m68k_names[] = { "none", "star", "musa", NULL };
@@ -303,6 +306,16 @@ static long ctv(const char *value)
   return -1;
 }
 
+static long scaling(const char *value)
+{
+	int i;
+
+	for (i = 0; (i < NUM_SCALING); ++i)
+		if (!strcasecmp(value, scaling_names[i]))
+			return i;
+	return -1;
+}
+
 /* Parse CPU types */
 static long emu_z80(const char *value)
 {
@@ -363,6 +376,7 @@ struct rc_field {
   { "key_fix_checksum", keysym, &dgen_fix_checksum },
   { "key_quit", keysym, &dgen_quit },
   { "key_craptv_toggle", keysym, &dgen_craptv_toggle },
+  { "key_scaling_toggle", keysym, &dgen_scaling_toggle },
   { "key_screenshot", keysym, &dgen_screenshot },
   { "key_reset", keysym, &dgen_reset },
   { "key_slot_0", keysym, &dgen_slot_0 },
@@ -387,6 +401,7 @@ struct rc_field {
   { "bool_frameskip", boolean, &dgen_frameskip },
   { "bool_show_carthead", boolean, &dgen_show_carthead },
   { "ctv_craptv_startup", ctv, &dgen_craptv },
+  { "scaling_startup", scaling, &dgen_scaling },
   { "emu_z80_startup", emu_z80, &dgen_emu_z80 },
   { "emu_m68k_startup", emu_m68k, &dgen_emu_m68k },
   { "bool_sound", boolean, &dgen_sound },
