@@ -866,6 +866,14 @@ static void rescale_any(bpp_t dst, unsigned int dst_pitch,
 			unsigned int ysize, unsigned int yscale,
 			unsigned int bpp)
 {
+	if ((xscale == 1) && (yscale == 1)) {
+		scaling = rescale_1x1;
+		rescale_1x1(dst, dst_pitch, src, src_pitch,
+			    xsize, xscale,
+			    ysize, yscale,
+			    bpp);
+		return;
+	}
 	switch (bpp) {
 	case 32:
 		rescale_32_any(dst.u32, dst_pitch, src.u32, src_pitch,
