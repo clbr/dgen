@@ -232,13 +232,7 @@ static void do_screenshot(void)
 #else
 	long pos;
 #endif
-	union {
-		uint8_t *u8;
-		uint16_t *u16;
-		uint32_t *u32;
-	} line = {
-		(mdscr.data + ((mdscr.pitch * 8) + 16))
-	};
+	bpp_t line = { (uint32_t *)(mdscr.data + ((mdscr.pitch * 8) + 16)) };
 	char name[64];
 	char msg[256];
 
@@ -339,12 +333,10 @@ retry:
 	case 24:
 		for (y = 0; (y < (unsigned int)ysize); ++y) {
 #ifdef WORDS_BIGENDIAN
-			for (x = 0; (x < xsize); ++x) {
-				uint8_t *rgb = &(line.u8[(x * 3)]);
-
-				out[x][0] = rgb[2];
-				out[x][1] = rgb[1];
-				out[x][2] = rgb[0];
+			for (x = 0; (x < (unsigned int)xsize); ++x) {
+				out[x][0] = line.u24[x][2];
+				out[x][1] = line.u24[x][1];
+				out[x][2] = line.u24[x][0];
 			}
 			fwrite(out, sizeof(out), 1, fp);
 #else
