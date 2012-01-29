@@ -58,6 +58,8 @@ key_fix_checksum = f1
 key_quit = escape
 # Toggle crap-tv
 key_craptv_toggle = f5
+# Toggle scaling algorithm.
+key_scaling_toggle = f6
 # Screenshot
 key_screenshot = f12
 # Reset Genesis
@@ -69,8 +71,14 @@ key_fullscreen_toggle = alt-enter
 # If you don't have multiple CPU cores, it won't do anything!
 key_cpu_toggle = f11
 
+# Same as above, for Z80 core.
+key_z80_toggle = f10
+
 # This pauses emulation :)
 key_stop = z
+
+# This prompts for a Game Genie code.
+key_game_genie = f9
 
 # Pick save slot
 key_slot_0 = 0
@@ -94,6 +102,10 @@ key_load = f3
 #  interlace - Unstable crappy television (I had one that looked like this ;), by me!
 ctv_craptv_startup = off
 
+# M68K and Z80 cores to use at startup.
+emu_m68k_startup = musa
+emu_z80_startup = cz80
+
 # These decide whether DGen should automatically load slot 0 on startup,
 # and/or autosave to slot 0 on exit.
 bool_autoload = no
@@ -103,8 +115,7 @@ bool_autosave = no
 # This doesn't matter if you have sound enabled, since the sound code has its
 # own frameskipping
 bool_frameskip = yes
-# Show cartridge header info at startup, like Snes9X? Causes a 3-second pause,
-# but might be interesting to hackers or other curious people (like me :)
+# Show cartridge header info at startup.
 bool_show_carthead = no
 
 # Sound?
@@ -139,6 +150,9 @@ bool_fullscreen = no
 # It currently must be a whole number.
 int_scale = 1
 
+# Algorithm to use when int_scale > 1. Currently either "default" or "hqx".
+scaling_startup = default
+
 # Use a joystick?
 bool_joystick = no
 int_joystick1_dev = 0
@@ -163,6 +177,12 @@ bool_opengl_32bit = false
 # Swap textures endianness. Sometimes useful when video output is located on a
 # different system.
 bool_opengl_swap = false
+
+# Use a square OpenGL texture. Wastes memory.
+bool_opengl_square = false
+
+# Height of the text area at the bottom of the screen, in pixels.
+int_info_height = -1
 
 # These are the joypad mappings for both controllers.  Defaults are
 # tailored for Gravis GamePad Pros. (10 button)  Configure the variables:
