@@ -17,10 +17,17 @@ SUFFIXES = .pbm
 PBM2DF = pbm2df$(EXEEXT_FOR_BUILD)
 DIR = $(top_srcdir)/sdl
 
-$(PBM2DF): $(DIR)/pbm2df.c $(DIR)/dgenfont.pbm
+$(PBM2DF):				\
+	$(DIR)/pbm2df.c			\
+	$(DIR)/dgenfont_16x26.pbm	\
+	$(DIR)/dgenfont_8x13.pbm	\
+	$(DIR)/dgenfont_7x5.pbm
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) -o $@ $(DIR)/pbm2df.c
 
-BUILT_SOURCES = dgenfont.cpp
+BUILT_SOURCES = 		\
+	dgenfont_16x26.cpp	\
+	dgenfont_8x13.cpp	\
+	dgenfont_7x5.cpp
 
 $(BUILT_SOURCES): $(PBM2DF)
 
@@ -30,8 +37,6 @@ libpd_a_SOURCES =	\
 	sdl.cpp		\
 	font.h		\
 	pd-defs.h	\
-	ogl_fonts.c	\
-	ogl_fonts.h	\
 	$(BUILT_SOURCES)
 libpd_a_DEPENDENCIES = $(PBM2DF)
 

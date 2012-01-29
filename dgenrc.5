@@ -121,6 +121,11 @@ must be a positive integer.
 .It key_fullscreen_toggle [alt-enter]
 Key to toggle fullscreen mode (this may do nothing if SDL doesn't support
 fullscreen toggling on your platform.)
+.It int_info_height [-1]
+Height of the text area at the bottom of the screen, in pixels. This also
+affects the font size. Values smaller than the minimum font size make DGen
+redirect text to stdout instead. The default value of -1 makes DGen choose the
+proper height.
 .El
 .Sh SAVE STATES
 .Bl -tag -width xxxx

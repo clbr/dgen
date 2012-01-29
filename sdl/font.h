@@ -1,13 +1,11 @@
 #ifndef __FONT_H__
 #define __FONT_H__
-// DGen/SDL v1.14+
-// Font routine interface
 
-#include <SDL.h>
+#include <stddef.h>
+#include <stdint.h>
 
-// Writes a string of text on the surface at given x any y coordinates
-void font_text(SDL_Surface *surf, int x, int y, const char *message);
-// Writes a string with given length
-void font_text_n(SDL_Surface *surf, int x, int y, const char *message, int n);
+extern size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
+			unsigned int bytes_per_pixel, unsigned int pitch,
+			const char *msg, size_t len);
 
 #endif /* __FONT_H__ */

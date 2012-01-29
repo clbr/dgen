@@ -410,6 +410,7 @@ struct rc_field {
   { "int_soundsamples", number, &dgen_soundsamples },
   { "int_nice", number, &dgen_nice },
   { "bool_fullscreen", boolean, &dgen_fullscreen },
+  { "int_info_height", number, &dgen_info_height },
   { "int_scale", number, &dgen_scale },
   { "int_depth", number, &dgen_depth },
   { "bool_opengl", boolean, &dgen_opengl },

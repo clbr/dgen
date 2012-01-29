@@ -1,41 +1,73 @@
 /* This converts a PBM to a C header file containing a DGen font made from the
- * PBM. The PBM should be 768x13, with 8x13 cells which from left to right
- * are the glyphs from 0x20 (space) to 0x7f (character after ~).
+ * PBM. The PBM width should be divisible by 96, with cells which from left to
+ * right are the glyphs from 0x20 (space) to 0x7f (character after ~).
  * The color 1 in the PBM is opaque, and 0 is transparent. */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 int main(int argc, char *argv[])
 {
   FILE *pbm, *df;
-  unsigned int pbm_contents[768][13];
   char magic[0x20], tmp[0x200];
   int x,y, i,j;
+  int width;
+  signed char w, h;
 
   /* Open the pbm and read it */
   if(argc < 3)
     { printf("Usage: %s pbmfile outfile\n", argv[0]); exit(2); }
   if(!(pbm = fopen(argv[1], "rb"))) exit(1);
 
-  if (fgets(magic, 0x20, pbm) == NULL)
-		goto invalid;
+	if (fgets(magic, 0x20, pbm) == NULL) {
+	error:
+		fclose(pbm);
+		return 1;
+	}
+
   /* Throw away possible comments */
   do {
-		if (fgets(tmp, 0x200, pbm) == NULL)
-			goto invalid;
+		if (fgets(tmp, 0x200, pbm) == NULL) {
+			printf("Invalid file contents\n");
+			goto error;
+		}
   } while(*tmp == '#');
-  sscanf(tmp, "%d%d", &x, &y);
-  /* Verify magic and dimensions */
-  if(strcmp(magic, "P1\n")) { printf("Bad magic\n"); return 1; }
-  if(x != 768) { printf("Bad X dimension\n"); return 1; }
-  if(y != 13) { printf("Bad Y dimension\n"); return 1; }
 
-  for(y = 0; y < 13; ++y)
-    for(x = 0; x < 768; ++x)
-			if (fscanf(pbm, "%u", &pbm_contents[x][y]) != 1)
+	sscanf(tmp, "%d%hhd", &width, &h);
+	/* Verify magic and dimensions */
+	if (strcmp(magic, "P1\n")) {
+		printf("Bad magic\n");
+		goto error;
+	}
+	if ((width < 0) || (width % 96) || ((w = (width / 96)) < 0)) {
+		printf("Bad X dimension\n");
+		goto error;
+	}
+	if (h < 0) {
+		printf("Bad Y dimension\n");
+		goto error;
+	}
+
+	unsigned char (*pbm_contents)[width][h];
+
+	if ((pbm_contents = malloc(sizeof(*pbm_contents))) == NULL)
+		goto invalid;
+	for (y = 0; (y < h); ++y)
+		for (x = 0; (x < width); ++x) {
+			char c;
+
+			do {
+				if (fread(&c, 1, 1, pbm) != 1)
+					goto invalid;
+			}
+			while (isspace(c));
+			if (!isdigit(c))
 				goto invalid;
+			(*pbm_contents)[x][y] = (c - 0x30);
+		}
+
   fclose(pbm);
 
   /* Start the header to our output file */
@@ -46,23 +78,23 @@ int main(int argc, char *argv[])
   /* Now do each cell */
   for(i = 0; i < 96; ++i)
     {
-      fprintf(df, "static int _glyph_%02X[] = {", i + 32);
+      fprintf(df, "static const short _glyph_%02X[] = {", i + 32);
       j = 0;
-      for(y = 0; y < 13; ++y)
-	for(x = (i << 3); x < ((i << 3) + 8); ++x)
+      for(y = 0; (y < h); ++y)
+	for(x = (i * w); x < ((i * w) + w); ++x)
 	  {
-	    if(pbm_contents[x][y]) { fprintf(df, "%d, ", j); j = 0; }
+	    if((*pbm_contents)[x][y]) { fprintf(df, "%d, ", j); j = 0; }
 	    ++j;
 	  }
       fprintf(df, "-1};\n");
     }
   /* Compile it all into one big mess ;) */
-  fprintf(df, "int *dgen_font[] = {\n"
+  fprintf(df, "const short *dgen_font_%hhdx%hhd[0x80] = {\n"
 	      "  /* Fill in for the control characters */\n"
 	      "  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,\n"
 	      "  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,\n"
 	      "  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,\n"
-	      "  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL");
+	      "  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL", w, h);
   for(i = 32; i < 128; ++i)
     fprintf(df, ",\n  _glyph_%02X", i);
 
@@ -72,8 +104,12 @@ int main(int argc, char *argv[])
 
   printf("Successfully generated dgen font source \"%s\" from \"%s\"\n",
 	 argv[2], argv[1]);
+
+	free(pbm_contents);
+
   return 0;
 invalid:
+	free(pbm_contents);
 	fclose(pbm);
 	printf("Invalid file contents\n");
 	return 1;

@@ -1,4 +1,4 @@
-// DGen/SDL v1.14+
+// DGen/SDL v1.29
 // by Joe Groff
 // How's my programming? E-mail <joe@pknet.com>
 
@@ -6,67 +6,68 @@
  * I hope it's pretty well detached from the DGen core, so you can use it in
  * any other SDL app you like. */
 
-/* Also note that these font renderers do no error detection, and absolutely
- * NO clipping whatsoever, so try to keep the glyphs on-screen. Thank you :-)
- */
-
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <SDL.h>
-
 #include "font.h"	/* The interface functions */
 
-extern int *dgen_font[];
+extern const short *dgen_font_8x13[0x80];
+extern const short *dgen_font_16x26[0x80];
+extern const short *dgen_font_7x5[0x80];
 
-// Support function
-// Put a glyph at the specified coordinates
-// THIS IS REALLY A MACRO - SDL_LockSurface should have been called already if
-// necessary
-static inline void _putglyph(char *p, int Bpp, int pitch, char which)
+const struct dgen_font {
+	unsigned int w;
+	unsigned int h;
+	const short *(*data)[0x80];
+} dgen_font[] = {
+	{ 16, 26, &dgen_font_16x26 },
+	{ 8, 13, &dgen_font_8x13 },
+	{ 7, 5, &dgen_font_7x5 },
+	{ 0, 0, NULL }
+};
+
+size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
+		 unsigned int bytes_per_pixel, unsigned int pitch,
+		 const char *msg, size_t len)
 {
-  int *glyph = dgen_font[(size_t)which];
-  int x = 0, i;
+	const struct dgen_font *font = dgen_font;
+	uint8_t *p_max;
+	size_t r;
+	unsigned int x;
 
-  for(; *glyph != -1; ++glyph)
-    {
-      p += (((x += *glyph) >> 3) * pitch); x &= 7;
-      for(i = 0; i < Bpp; ++i) p[(x * Bpp) + i] = (char)0xff;
-    }
+	if (len == 0)
+		return 0;
+	while ((font->data != NULL) && (font->h > height)) {
+		++font;
+		continue;
+	}
+	if (font->data == NULL) {
+		printf("info: %.*s\n", (unsigned int)len, msg);
+		return len;
+	}
+	p_max = (buf + (pitch * height));
+	for (x = 0, r = 0;
+	     ((msg[r] != '\0') && (r != len) && ((x + font->w) <= width));
+	     ++r, x += font->w) {
+		const short *glyph = (*font->data)[(msg[r] & 0x7f)];
+		uint8_t *p = (buf + (x * bytes_per_pixel));
+		unsigned int n = 0;
+		short g;
+
+		if (glyph == NULL)
+			continue;
+		while ((g = *glyph) != -1) {
+			unsigned int i;
+
+			p += (((n += g) / font->w) * pitch);
+			n %= font->w;
+			for (i = 0; (i < bytes_per_pixel); ++i) {
+				uint8_t *tmp = &p[((n * bytes_per_pixel) + i)];
+
+				if (tmp < p_max)
+					*tmp = 0xff;
+			}
+			++glyph;
+		}
+	}
+	return r;
 }
-
-// This writes a string of text at the given x and y coordinates
-void font_text(SDL_Surface *surf, int x, int y, const char *message)
-{
-  int pitch = surf->pitch, Bpp = surf->format->BytesPerPixel;
-  char *p = (char*)surf->pixels + (pitch * y) + (Bpp * x);
-
-  if(SDL_MUSTLOCK(surf))
-    if(SDL_LockSurface(surf) < 0)
-      {
-        fprintf(stderr, "font: Couldn't lock screen: %s!", SDL_GetError());
-	return;
-      }
-  for(; *message; p += (8 * Bpp), ++message)
-    _putglyph(p, Bpp, pitch, *message);
-  if(SDL_MUSTLOCK(surf)) SDL_UnlockSurface(surf);
-}
-
-// This writes a string of text of fixed length n
-void font_text_n(SDL_Surface *surf, int x, int y, const char *message, int n)
-{
-  int pitch = surf->pitch, Bpp = surf->format->BytesPerPixel;
-  char *p = (char*)surf->pixels + (pitch * y) + (Bpp * x);
-
-  if(SDL_MUSTLOCK(surf))
-    if(SDL_LockSurface(surf) < 0)
-      {
-        fprintf(stderr, "font: Couldn't lock screen: %s!", SDL_GetError());
-	return;
-      }
-  for(; n > 0; p += (8 * Bpp), ++message, --n)
-    _putglyph(p, Bpp, pitch, *message);
-  if(SDL_MUSTLOCK(surf)) SDL_UnlockSurface(surf);
-}
-

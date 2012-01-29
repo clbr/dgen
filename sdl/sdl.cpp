@@ -18,7 +18,6 @@
 
 #ifdef WITH_OPENGL
 # include <SDL_opengl.h>
-# include "ogl_fonts.h"
 #endif
 
 #ifdef HAVE_MEMCPY_H
@@ -165,8 +164,8 @@ size_t cbuf_read(uint8_t *dst, cbuf_t *cbuf, size_t size)
 static struct {
 	unsigned int displayed:1; // whether message is currently displayed
 	unsigned long since; // since this number of microseconds
-	size_t max; // maximum number of characters at once
 	size_t length; // remaining length to display
+	unsigned int height; // height of the text area
 	char message[2048];
 } info;
 
@@ -564,8 +563,8 @@ static uint32_t roundup2(uint32_t v)
 
 static int init_texture()
 {
-	const unsigned int vis_width = (xsize * x_scale); // FIXME
-	const unsigned int vis_height = ((ysize * y_scale) + 5); // FIXME
+	const unsigned int vis_width = (xsize * x_scale);
+	const unsigned int vis_height = ((ysize * y_scale) + info.height);
 	void *tmp;
 	size_t i;
 	GLenum error;
@@ -1239,9 +1238,18 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 
   // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
   // for the message bar.
-  // Set the maximum number of characters pd_message() can display at once.
 #ifdef WITH_OPENGL
 	if (opengl) {
+		if (dgen_info_height < 0) {
+			if (y_scale > 2)
+				info.height = 26;
+			else if (y_scale > 1)
+				info.height = 13;
+			else
+				info.height = 5;
+		}
+		else
+			info.height = dgen_info_height;
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
@@ -1251,18 +1259,18 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_OPENGL | SDL_RESIZABLE |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
-		// 5x5 (7x5) font in OpenGL mode.
-		info.max = (xsize / 7);
 	}
 	else
 #endif
 	{
-		screen = SDL_SetVideoMode(xs, (ys + 16), depth,
+		if (dgen_info_height < 0)
+			info.height = 16;
+		else
+			info.height = dgen_info_height;
+		screen = SDL_SetVideoMode(xs, (ys + info.height), depth,
 					  (SDL_HWPALETTE | SDL_HWSURFACE |
 					   SDL_DOUBLEBUF | SDL_ASYNCBLIT |
 					   (fullscreen ? SDL_FULLSCREEN : 0)));
-		// 8x13 font in non-OpenGL mode.
-		info.max = (xs / 8);
 	}
 
   if(!screen)
@@ -1368,7 +1376,7 @@ void pd_graphics_palette_update()
 }
 
 static void pd_message_process(void);
-static void pd_message_display(const char *msg, size_t len);
+static size_t pd_message_display(const char *msg, size_t len);
 static void pd_message_postpone(const char *msg);
 
 // Update screen
@@ -2075,102 +2083,56 @@ int pd_handle_events(md &megad)
   return 1;
 }
 
+static size_t pd_message_display(const char *msg, size_t len)
+{
+	uint8_t *buf;
+	unsigned int y;
+	unsigned int bytes_per_pixel;
+	unsigned int width;
+	unsigned int height = info.height;
+	unsigned int pitch;
+	size_t ret = 0;
+
 #ifdef WITH_OPENGL
-
-static void ogl_erase_text()
-{
-	union {
-		uint16_t *u16;
-		uint32_t *u32;
-	} buf;
-
-	if (texture.u32 == 0) {
-		buf.u16 = &texture.buf.u16[(texture.vis_width *
-					    (texture.vis_height - 5))];
-		memset(buf.u16, 0,
-		       ((texture.vis_width * sizeof(buf.u16[0])) * 5));
+	if (opengl) {
+		y = (texture.vis_height - height);
+		width = texture.vis_width;
+		bytes_per_pixel = (2 << texture.u32);
+		pitch = (width << (1 << texture.u32));
+		buf = ((uint8_t *)texture.buf.u32 + (pitch * y));
 	}
-	else {
-		buf.u32 = &texture.buf.u32[(texture.vis_width *
-					    (texture.vis_height - 5))];
-		memset(buf.u32, 0,
-		       ((texture.vis_width * sizeof(buf.u32[0])) * 5));
-	}
-	update_texture();
-}
-
-static void ogl_write_text(const char *msg, size_t len)
-{
-	unsigned int x = 0;
-	union {
-		uint16_t *u16;
-		uint32_t *u32;
-	} buf;
-
-	if (texture.u32 == 0) {
-		buf.u16 = &texture.buf.u16[(texture.vis_width *
-					    (texture.vis_height - 5))];
-		memset(buf.u16, 0,
-		       ((texture.vis_width * sizeof(buf.u16[0])) * 5));
-	}
-	else {
-		buf.u32 = &texture.buf.u32[(texture.vis_width *
-					    (texture.vis_height - 5))];
-		memset(buf.u32, 0,
-		       ((texture.vis_width * sizeof(buf.u32[0])) * 5));
-	}
-	while ((*msg != '\0') && (len != 0) &&
-	       ((x + 5) <= texture.vis_width)) {
-		unsigned int y;
-		unsigned char (*c)[5][5] =
-			&ogl_font_5x5[((unsigned char)*msg)];
-
-		for (y = 0; (y < 5); ++y) {
-			unsigned int cx;
-
-			for (cx = 0; (cx < 5); ++cx) {
-				unsigned int off;
-
-				if ((*c)[y][cx] == 0)
-					continue;
-				off = ((texture.vis_width * y) + (x + cx));
-				if (texture.u32 == 0)
-					buf.u16[off] = 0xffff;
-				else
-					buf.u32[off] = 0xffffffff;
-			}
-		}
-		--len;
-		++msg;
-		x += 7;
-	}
-	update_texture();
-}
-
-#endif // WITH_OPENGL
-
-static void pd_message_display(const char *msg, size_t len)
-{
-	if (len > info.max)
-		len = info.max;
-#ifdef WITH_OPENGL
-	if (opengl)
-		ogl_write_text(msg, len);
 	else
 #endif
 	{
-		size_t i;
-		uint8_t *p =
-			((uint8_t *)screen->pixels + (screen->pitch * ys));
-
-		/* Clear 16 lines after ys */
-		for (i = 0; (i < 16); ++i, p += screen->pitch)
-			memset(p, 0, screen->pitch);
-		font_text_n(screen, 0, ys, msg, len);
-		SDL_UpdateRect(screen, 0, ys, xs, 16);
+		if (SDL_MUSTLOCK(screen))
+			SDL_LockSurface(screen);
+		y = ys;
+		width = xs;
+		bytes_per_pixel = bytes_pixel;
+		pitch = screen->pitch;
+		buf = ((uint8_t *)screen->pixels + (pitch * y));
 	}
-	info.displayed = 1;
-	info.since = pd_usecs();
+	// Clear text area.
+	memset(buf, 0x00, (pitch * height));
+	// Write message.
+	if (len != 0)
+		ret = font_text(buf, width, height, bytes_per_pixel, pitch,
+				msg, len);
+#ifdef WITH_OPENGL
+	if (!opengl)
+#endif
+	{
+		SDL_UpdateRect(screen, 0, y, width, height);
+		if (SDL_MUSTLOCK(screen))
+			SDL_UnlockSurface(screen);
+	}
+	if (len == 0)
+		info.displayed = 0;
+	else {
+		info.displayed = 1;
+		info.since = pd_usecs();
+	}
+	return ret;
 }
 
 // Process status bar message
@@ -2178,20 +2140,20 @@ static void pd_message_process(void)
 {
 	size_t len = info.length;
 	size_t n;
+	size_t r;
 
 	if (len == 0) {
 		pd_clear_message();
 		return;
 	}
-	if (info.length > info.max)
-		len = info.max;
 	for (n = 0; (n < len); ++n)
 		if (info.message[n] == '\n') {
-			info.message[n] = 'X';
 			len = (n + 1);
 			break;
 		}
-	pd_message_display(info.message, n);
+	r = pd_message_display(info.message, n);
+	if (r < n)
+		len = r;
 	memmove(info.message, &(info.message[len]), (info.length - len));
 	info.length -= len;
 }
@@ -2215,20 +2177,7 @@ void pd_message(const char *msg)
 
 void pd_clear_message()
 {
-	size_t i;
-	uint8_t *p = ((uint8_t *)screen->pixels + (screen->pitch * ys));
-
-	info.displayed = 0;
-#ifdef WITH_OPENGL
-	if (opengl) {
-		ogl_erase_text();
-		return;
-	}
-#endif
-	/* Clear 16 lines after ys */
-	for (i = 0; (i < 16); ++i, p += screen->pitch)
-		memset(p, 0, screen->pitch);
-	SDL_UpdateRect(screen, 0, ys, xs, 16);
+	pd_message_display(NULL, 0);
 }
 
 void pd_show_carthead(md& megad)

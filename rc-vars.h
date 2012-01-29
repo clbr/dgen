@@ -83,6 +83,7 @@ RCVAR(dgen_joystick1_dev, 0);
 RCVAR(dgen_joystick2_dev, 1);
 
 RCVAR(dgen_fullscreen, 0);
+RCVAR(dgen_info_height, -1);
 RCVAR(dgen_scale, 1);
 RCVAR(dgen_depth, 0);
 RCVAR(dgen_opengl, 1);
