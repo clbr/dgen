@@ -421,6 +421,8 @@ struct rc_field {
   { "bool_opengl_swap", boolean, &dgen_opengl_swap },
   { "bool_opengl_square", boolean, &dgen_opengl_square },
   { "bool_joystick", boolean, &dgen_joystick },
+  { "int_joystick1_dev", number, &dgen_joystick1_dev },
+  { "int_joystick2_dev", number, &dgen_joystick2_dev },
   { "joypad1_b0", jsmap, &js_map_button[0][0] },
   { "joypad1_b1", jsmap, &js_map_button[0][1] },
   { "joypad1_b2", jsmap, &js_map_button[0][2] },

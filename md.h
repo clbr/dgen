@@ -402,7 +402,7 @@ public:
 
   // Added by Phillip K. Hornung <redx@pknet.com>
   // Linux joystick initialization and handling routines
-  void init_joysticks();
+  void init_joysticks(int, int);
   void read_joysticks();
 };
 

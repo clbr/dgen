@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "md.h"
 #include "md-phil.h"
@@ -38,16 +39,19 @@ int joypads[2] = {0};
 
 int js_fd[2] = {-1, -1};
 
-char *js_device [2] = {"/dev/js0", "/dev/js1"};
+#define JS_DEVICE_PATH "/dev/input/js"
 
-void md::init_joysticks() {
+void md::init_joysticks(int js1, int js2) {
 #ifdef JSIOCGVERSION
     int version;
     unsigned char axes, buttons;
+    char js_device[2][64];
 
-    if ((js_fd [0] = open (js_device [0], O_RDONLY | O_NONBLOCK)) < 0)
+    snprintf(js_device[0], sizeof(js_device[0]), JS_DEVICE_PATH "%d", js1);
+    snprintf(js_device[1], sizeof(js_device[1]), JS_DEVICE_PATH "%d", js2);
+    if ((js_fd [0] = open (js_device [0],  O_RDONLY | O_NONBLOCK)) < 0)
     {
-	perror (js_device [0]);
+	fprintf(stderr, "joystick: %s: %s\n", js_device[0], strerror(errno));
 	return;
     }
 
@@ -64,7 +68,7 @@ void md::init_joysticks() {
     bzero (name, 128);
     if (ioctl (js_fd [0], JSIOCGNAME(128), name) > 0)
     {
-        printf ("Using %s (%s) as pad1", name, js_device [0]);
+        printf ("joystick: Using %s (%s) as pad1", name, js_device [0]);
         if (js_fd [1] > 0)
 	{
 	    ioctl (js_fd [1], JSIOCGNAME(128), name);
@@ -77,7 +81,7 @@ void md::init_joysticks() {
     {
 	ioctl (js_fd [0], JSIOCGAXES, &axes);
 	ioctl (js_fd [0], JSIOCGBUTTONS, &buttons);
-	printf ("Using %d-axis %d-button joystick (%s) as pad1", axes, buttons, js_device [0]);
+	printf ("joystick: Using %d-axis %d-button joystick (%s) as pad1", axes, buttons, js_device [0]);
 	if (js_fd [1] > 0)
 	{
 	    ioctl (js_fd [0], JSIOCGAXES, &axes);
@@ -165,7 +169,7 @@ void md::read_joysticks()
 
 static SDL_Joystick *js_handle[2] = { NULL, NULL };
 
-void md::init_joysticks() {
+void md::init_joysticks(int js1, int js2) {
   // Initialize the joystick support
   // Thanks to Cameron Moore <cameron@unbeatenpath.net>
   if(SDL_Init(SDL_INIT_JOYSTICK) < 0)
@@ -175,8 +179,8 @@ void md::init_joysticks() {
     }
 
   // Open the first couple of joysticks, if possible
-  js_handle[0] = SDL_JoystickOpen(0);
-  js_handle[1] = SDL_JoystickOpen(1);
+  js_handle[0] = SDL_JoystickOpen(js1);
+  js_handle[1] = SDL_JoystickOpen(js2);
 
   // If neither opened, quit
   if(!(js_handle[0] || js_handle[1]))
@@ -186,10 +190,10 @@ void md::init_joysticks() {
     }
 
   // Print the joystick names
-  printf("Using ");
-  if(js_handle[0]) printf("%s (#0) as pad1 ", SDL_JoystickName(0));
+  printf("joystick: Using ");
+  if(js_handle[0]) printf("%s (#%d) as pad1 ", SDL_JoystickName(js1), js1);
   if(js_handle[0] && js_handle[1]) printf("and ");
-  if(js_handle[1]) printf("%s (#1) as pad2 ", SDL_JoystickName(1));
+  if(js_handle[1]) printf("%s (#%d) as pad2 ", SDL_JoystickName(js2), js2);
   printf("\n");
 
   // Enable joystick events

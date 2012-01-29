@@ -141,6 +141,8 @@ int_scale = 1
 
 # Use a joystick?
 bool_joystick = no
+int_joystick1_dev = 0
+int_joystick2_dev = 1
 
 # Use OpenGL mode?
 bool_opengl = yes

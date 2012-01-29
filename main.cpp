@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
   megad.pad[0] = megad.pad[1] = 0xF303F;
 #ifdef WITH_JOYSTICK
   if(dgen_joystick)
-    megad.init_joysticks();
+    megad.init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
 #endif
   // Load patches, if given
   if(patches)
