@@ -31,6 +31,11 @@ Daniel Robbins <drobbins@gentoo.org>
   - Helped fix timing problems on very fast machines.
 Andre Souza <asouza@olinux.com.br>
   - Added OpenGL rendering mode.
+Edd Barrett <vext0101@users.sourceforge.net>
+  - Improved joysticks configuration.
+Andrea Musuruane <musuruan@users.sourceforge.net>
+  - Submitted patches for non-executable stack in ASM files and warnings
+    in dgenrc.5.
 
 The following people involuntarily contributed to DGen:
 
@@ -49,3 +54,5 @@ David Korth
 The SpritesMind community
   - Especially Nemesis for the technical information he published.
     http://gendev.spritesmind.net/forum/
+Maxim Stepin & others
+  - See hqx/AUTHORS.
