@@ -539,7 +539,7 @@ parse:
 			break;
 		potential = rc_field->parser(ckvp.out);
 		/* If we got a bad value, discard and warn user */
-		if (potential == -1)
+		if ((rc_field->parser != number) && (potential == -1))
 			fprintf(stderr,
 				"rc: %s:%u:%u: invalid value for key"
 				" `%s': `%s'\n",
