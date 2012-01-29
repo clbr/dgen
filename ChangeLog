@@ -17,6 +17,14 @@ v1.29 <- v1.28
  * Fixed remaining bugs in Z80 and M68K hot swapping code.
  * Updated AUTHORS file.
  * Added BUGS file for unresolved emulation bugs.
+ * Imported hqx filters. hq2x is available for 15/16 and 32 bit, hq3x and
+   hq4x are only available for 32 bit modes.
+ * Refactored graphics output functions. Filtering and scaling are now
+   in separate functions and new filters can be added easily.
+ * Improved joystick devices configuration.
+ * Fixed ASM files to ensure non-executable stack on ELF targets.
+ * Merged OpenGL and normal fonts to remove redundant code. There are now
+   three fonts available: 7x5 (original OpenGL font), 8x13 and 16x26.
  * Fixed other minor bugs.
 
 v1.28 <- v1.27
