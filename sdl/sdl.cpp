@@ -2,10 +2,15 @@
 // SDL interface
 // OpenGL code added by Andre Duarte de Souza <asouza@olinux.com.br>
 
+#ifdef __MINGW32__
+#undef __STRICT_ANSI__
+#endif
+
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <SDL.h>
