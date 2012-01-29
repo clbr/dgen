@@ -2119,7 +2119,9 @@ static size_t pd_message_display(const char *msg, size_t len)
 		ret = font_text(buf, width, height, bytes_per_pixel, pitch,
 				msg, len);
 #ifdef WITH_OPENGL
-	if (!opengl)
+	if (opengl)
+		update_texture();
+	else
 #endif
 	{
 		SDL_UpdateRect(screen, 0, y, width, height);
