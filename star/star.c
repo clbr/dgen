@@ -2428,6 +2428,10 @@ static void prefixes(void) {
 ** the jump table / loop info table
 */
 static void suffixes(void) {
+	emit("\n");
+	emit("%%ifdef NASM_STACK_NOEXEC\n");
+	emit("section .note.GNU-stack noalloc noexec nowrite progbits\n");
+	emit("%%endif\n");
 }
 
 /****************************************************************************

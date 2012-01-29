@@ -7121,6 +7121,10 @@ void ProgramEnd(void)
 {
 	if (MZ80_ASSEMBLY_X86 == bWhat)
 	{
+		fprintf(fp, "\n");
+		fprintf(fp, "%%ifdef NASM_STACK_NOEXEC\n");
+		fprintf(fp, "section .note.GNU-stack noalloc noexec nowrite progbits\n");
+		fprintf(fp, "%%endif\n");
 	}
 	else
 	if (MZ80_C == bWhat)

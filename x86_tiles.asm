@@ -1088,3 +1088,7 @@ section .data
 	__highpal	dd 0
 
 ; ----------------------------------------
+
+%ifdef NASM_STACK_NOEXEC
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif

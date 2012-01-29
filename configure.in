@@ -299,6 +299,7 @@ please specify --with-nasm-format=format]
 )
 
 dnl Check for the need to prefix ASM globals with underscores.
+dnl For ELF, also add -DNASM_STACK_NOEXEC.
 AS_IF(
 	[! test -z "$NASM_FORMAT"],
 	[AC_MSG_CHECKING([whether ASM globals require an underscore])]
@@ -306,7 +307,8 @@ AS_IF(
 		[$NASM_FORMAT],
 
 		[elf*],
-		[AC_MSG_RESULT([no])],
+		[AC_MSG_RESULT([no])]
+		[NASM="$NASM -DNASM_STACK_NOEXEC"],
 
 		[AC_MSG_RESULT([yes])]
 		[NASM="$NASM --prefix _"]

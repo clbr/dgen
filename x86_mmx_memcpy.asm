@@ -40,3 +40,7 @@ popad			; clean up
 ret
 
 ; --------------------------------------
+
+%ifdef NASM_STACK_NOEXEC
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif
