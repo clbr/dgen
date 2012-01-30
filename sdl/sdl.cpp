@@ -2210,23 +2210,24 @@ void pd_show_carthead(md& megad)
 			continue;
 		// Filter out extra spaces.
 		for (j = 0; (j < data[i].len); ++j)
-			if (data[i].s[j] != ' ')
+			if (isgraph(data[i].s[j]))
 				break;
 		if (j == data[i].len)
 			continue;
-		while ((j < data[i].len) && (k < (sizeof(buf) - 1))) {
-			buf[(k++)] = data[i].s[j];
-			if (data[i].s[j] == ' ')
-				while ((j < data[i].len) &&
-				       (data[i].s[j] == ' '))
-					++j;
-			else
+		while ((j < data[i].len) && (k < (sizeof(buf) - 2))) {
+			if (isgraph(data[i].s[j])) {
+				buf[(k++)] = data[i].s[j];
+				++j;
+				continue;
+			}
+			buf[(k++)] = ' ';
+			while ((j < data[i].len) && (!isgraph(data[i].s[j])))
 				++j;
 		}
 		if (buf[(k - 1)] == ' ')
 			--k;
-		buf[(k++)] = '\n';
-		buf[k] = '\0';
+		buf[k] = '\n';
+		buf[(k + 1)] = '\0';
 		pd_message_postpone(buf);
 	}
 }
