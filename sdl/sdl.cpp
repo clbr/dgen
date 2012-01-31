@@ -236,11 +236,33 @@ static void do_screenshot(void)
 #else
 	long pos;
 #endif
-	bpp_t line = { (uint32_t *)(mdscr.data + ((mdscr.pitch * 8) + 16)) };
+	bpp_t line;
+	unsigned int width;
+	unsigned int height;
+	unsigned int pitch;
+	unsigned int bpp = mdscr.bpp;
+	uint8_t (*out)[3]; // 24 bpp
 	char name[64];
 	char msg[256];
 
-	switch (mdscr.bpp) {
+#ifdef WITH_OPENGL
+	if (opengl) {
+		width = texture.vis_width;
+		height = texture.vis_height;
+		pitch = (texture.vis_width << (1 << texture.u32));
+		line.u32 = texture.buf.u32;
+	}
+	else
+#endif
+	{
+		width = screen->w;
+		height = screen->h;
+		pitch = screen->pitch;
+		line.u8 = (uint8_t *)screen->pixels;
+		if (SDL_MUSTLOCK(screen))
+			SDL_LockSurface(screen);
+	}
+	switch (bpp) {
 	case 15:
 	case 16:
 	case 24:
@@ -248,7 +270,7 @@ static void do_screenshot(void)
 		break;
 	default:
 		snprintf(msg, sizeof(msg),
-			 "Screenshots unsupported in %d bpp.", mdscr.bpp);
+			 "Screenshots unsupported in %d bpp.", bpp);
 		pd_message(msg);
 		return;
 	}
@@ -273,6 +295,11 @@ retry:
 		n = ((n + 1) % 1000000);
 		goto retry;
 	}
+	// Allocate line buffer.
+	if ((out = (uint8_t (*)[3])malloc(sizeof(*out) * width)) == NULL) {
+		fclose(fp);
+		return;
+	}
 	// Header
 	{
 		uint8_t tmp[(3 + 5)] = {
@@ -288,8 +315,8 @@ retry:
 		uint16_t tmp[4] = {
 			0, // x-origin
 			0, // y-origin
-			h2le16(xsize), // width
-			h2le16(ysize) // height
+			h2le16(width), // width
+			h2le16(height) // height
 		};
 
 		fwrite(tmp, sizeof(tmp), 1, fp);
@@ -303,55 +330,54 @@ retry:
 		fwrite(tmp, sizeof(tmp), 1, fp);
 	}
 	// Data
-	switch (mdscr.bpp) {
+	switch (bpp) {
 		unsigned int y;
 		unsigned int x;
-		uint8_t out[xsize][3]; // 24 bpp
 
 	case 15:
-		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < (unsigned int)xsize); ++x) {
+		for (y = 0; (y < height); ++y) {
+			for (x = 0; (x < width); ++x) {
 				uint16_t v = line.u16[x];
 
 				out[x][0] = ((v << 3) & 0xf8);
 				out[x][1] = ((v >> 2) & 0xf8);
 				out[x][2] = ((v >> 7) & 0xf8);
 			}
-			fwrite(out, sizeof(out), 1, fp);
-			line.u8 += mdscr.pitch;
+			fwrite(out, (sizeof(*out) * width), 1, fp);
+			line.u8 += pitch;
 		}
 		break;
 	case 16:
-		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < (unsigned int)xsize); ++x) {
+		for (y = 0; (y < height); ++y) {
+			for (x = 0; (x < width); ++x) {
 				uint16_t v = line.u16[x];
 
 				out[x][0] = ((v << 3) & 0xf8);
 				out[x][1] = ((v >> 3) & 0xfc);
 				out[x][2] = ((v >> 8) & 0xf8);
 			}
-			fwrite(out, sizeof(out), 1, fp);
-			line.u8 += mdscr.pitch;
+			fwrite(out, (sizeof(*out) * width), 1, fp);
+			line.u8 += pitch;
 		}
 		break;
 	case 24:
-		for (y = 0; (y < (unsigned int)ysize); ++y) {
+		for (y = 0; (y < height); ++y) {
 #ifdef WORDS_BIGENDIAN
-			for (x = 0; (x < (unsigned int)xsize); ++x) {
+			for (x = 0; (x < width); ++x) {
 				out[x][0] = line.u24[x][2];
 				out[x][1] = line.u24[x][1];
 				out[x][2] = line.u24[x][0];
 			}
-			fwrite(out, sizeof(out), 1, fp);
+			fwrite(out, (sizeof(*out) * width), 1, fp);
 #else
-			fwrite(line.u8, sizeof(out), 1, fp);
+			fwrite(line.u8, (sizeof(*out) * width), 1, fp);
 #endif
-			line.u8 += mdscr.pitch;
+			line.u8 += pitch;
 		}
 		break;
 	case 32:
-		for (y = 0; (y < (unsigned int)ysize); ++y) {
-			for (x = 0; (x < (unsigned int)xsize); ++x) {
+		for (y = 0; (y < height); ++y) {
+			for (x = 0; (x < width); ++x) {
 #ifdef WORDS_BIGENDIAN
 				uint32_t rgb = h2le32(line.u32[x]);
 
@@ -360,14 +386,20 @@ retry:
 				memcpy(&(out[x]), &(line.u32[x]), 3);
 #endif
 			}
-			fwrite(out, sizeof(out), 1, fp);
-			line.u8 += mdscr.pitch;
+			fwrite(out, (sizeof(*out) * width), 1, fp);
+			line.u8 += pitch;
 		}
 		break;
 	}
 	snprintf(msg, sizeof(msg), "Screenshot written to %s", name);
 	pd_message(msg);
+	free(out);
 	fclose(fp);
+#ifdef WITH_OPENGL
+	if (!opengl)
+#endif
+		if (SDL_MUSTLOCK(screen))
+			SDL_UnlockSurface(screen);
 }
 
 static int do_videoresize(unsigned int width, unsigned int height)
