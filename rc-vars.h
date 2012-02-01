@@ -75,6 +75,7 @@ RCVAR(dgen_soundrate, 22050);
 RCVAR(dgen_soundsegs, 8);
 RCVAR(dgen_soundsamples, 0);
 
+RCVAR(dgen_raw_screenshots, 0);
 RCVAR(dgen_craptv, 0);
 RCVAR(dgen_scaling, 0);
 RCVAR(dgen_nice, 0);

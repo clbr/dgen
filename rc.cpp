@@ -400,6 +400,7 @@ struct rc_field {
   { "bool_autosave", boolean, &dgen_autosave },
   { "bool_frameskip", boolean, &dgen_frameskip },
   { "bool_show_carthead", boolean, &dgen_show_carthead },
+  { "bool_raw_screenshots", boolean, &dgen_raw_screenshots },
   { "ctv_craptv_startup", ctv, &dgen_craptv },
   { "scaling_startup", scaling, &dgen_scaling },
   { "emu_z80_startup", emu_z80, &dgen_emu_z80 },

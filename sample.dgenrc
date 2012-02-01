@@ -184,6 +184,9 @@ bool_opengl_square = false
 # Height of the text area at the bottom of the screen, in pixels.
 int_info_height = -1
 
+# Generate unfiltered screenshots.
+bool_raw_screenshots = false
+
 # These are the joypad mappings for both controllers.  Defaults are
 # tailored for Gravis GamePad Pros. (10 button)  Configure the variables:
 # joypadX_bY, where X is the joypad number (1 or 2) and Y is the

@@ -245,6 +245,13 @@ static void do_screenshot(void)
 	char name[64];
 	char msg[256];
 
+	if (dgen_raw_screenshots) {
+		width = xsize;
+		height = ysize;
+		pitch = mdscr.pitch;
+		line.u8 = ((uint8_t *)mdscr.data + (mdscr.pitch * 8) + 16);
+	}
+	else
 #ifdef WITH_OPENGL
 	if (opengl) {
 		width = texture.vis_width;
