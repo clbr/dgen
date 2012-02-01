@@ -684,6 +684,12 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 				  ((cram[(i + 1)] & 0xe0) << 16) |
 				  ((cram[i] & 0x0e) << 12));
 		break;
+#else
+		for (i = 0; (i < 128); i += 2)
+			*ptr++ = (((cram[(i + 1)] & 0x0e) << 4) |
+				  ((cram[(i + 1)] & 0xe0) << 16) |
+				  ((cram[i] & 0x0e) << 12));
+		break;
 #endif
 	case 32:
 	  for(i = 0; i < 128; i += 2)
