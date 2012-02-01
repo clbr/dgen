@@ -25,17 +25,23 @@
 
 static const char *fopen_mode(unsigned int mode)
 {
-	const char *fmode;
+	static const char *modes[4][2] = {
+		{ "ab", "a" },
+		{ "w+b", "w+" },
+		{ "rb", "r" },
+		{ NULL, NULL }
+	};
+	const char *(*cmode)[2] = &modes[0];
 
-	if (mode & DGEN_APPEND)
-		fmode = "ab";
-	else if (mode & DGEN_WRITE)
-		fmode = "w+b";
-	else if (mode & DGEN_READ)
-		fmode = "rb";
-	else
-		fmode = NULL;
-	return fmode;
+	if (!(mode & DGEN_APPEND)) {
+		++cmode;
+		if (!(mode & DGEN_WRITE)) {
+			++cmode;
+			if (!(mode & DGEN_READ))
+				++cmode;
+		}
+	}
+	return (*cmode)[(!!(mode & DGEN_TEXT))];
 }
 
 /*

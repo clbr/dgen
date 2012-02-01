@@ -34,8 +34,9 @@ SYSTEM_H_BEGIN_
 #define DGEN_WRITE 0x2
 #define DGEN_APPEND 0x4
 #define DGEN_CURRENT 0x8
+#define DGEN_TEXT 0x10
 
-#define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, (mode))
+#define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, ((mode) | DGEN_TEXT))
 extern FILE *dgen_fopen(const char *subdir, const char *file,
 			unsigned int mode);
 
