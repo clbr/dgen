@@ -52,6 +52,12 @@ static const char *fopen_mode(unsigned int mode)
 
 FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
 {
+	return dgen_freopen(dir, file, mode, NULL);
+}
+
+FILE *dgen_freopen(const char *dir, const char *file, unsigned int mode,
+		   FILE *f)
+{
 	size_t size;
 	size_t space;
 	const char *fmode = fopen_mode(mode);
@@ -67,8 +73,12 @@ FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
 	  is specified.
 	*/
 	if (mode & DGEN_CURRENT) {
-		FILE *fd = fopen(file, fmode);
+		FILE *fd;
 
+		if (f == NULL)
+			fd = fopen(file, fmode);
+		else
+			fd = freopen(file, fmode, f);
 		if (fd != NULL)
 			return fd;
 	}
@@ -104,7 +114,9 @@ FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
 	if (size >= sizeof(path))
 		goto error;
 	file = path;
-	return fopen(file, fmode);
+	if (f == NULL)
+		return fopen(file, fmode);
+	return freopen(file, fmode, f);
 error:
 	errno = EACCES;
 	return NULL;

@@ -39,7 +39,8 @@ SYSTEM_H_BEGIN_
 #define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, ((mode) | DGEN_TEXT))
 extern FILE *dgen_fopen(const char *subdir, const char *file,
 			unsigned int mode);
-
+extern FILE *dgen_freopen(const char *subdir, const char *file,
+			  unsigned int mode, FILE *f);
 extern char *dgen_basename(char *path);
 
 #define le2h16(v) h2le16(v)
