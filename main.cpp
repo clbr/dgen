@@ -14,6 +14,11 @@
 #include <limits.h>
 #include <errno.h>
 
+#ifdef __MINGW32__
+#include <windows.h>
+#include <wincon.h>
+#endif
+
 #define IS_MAIN_CPP
 #include "system.h"
 #include "md.h"
@@ -422,6 +427,21 @@ int main(int argc, char *argv[])
 
   // Start audio
   if(dgen_sound) pd_sound_start();
+
+#ifdef __MINGW32__
+	// Console isn't needed anymore. Redirect output to log file.
+	file = dgen_fopen(NULL, "log.txt", (DGEN_WRITE | DGEN_TEXT));
+	if (file != NULL) {
+		fflush(stdout);
+		fflush(stderr);
+		dup2(fileno(file), fileno(stdout));
+		dup2(fileno(file), fileno(stderr));
+		fclose(file);
+		setvbuf(stdout, NULL, _IONBF, 0);
+		setvbuf(stderr, NULL, _IONBF, 0);
+	}
+	FreeConsole();
+#endif
 
   // Show cartridge header
   if(dgen_show_carthead) pd_show_carthead(megad);
