@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include "font.h"	/* The interface functions */
 
+#ifndef FONT_VISIBLE
+#define FONT_VISIBLE 24
+#endif
+
 extern const short *dgen_font_8x13[0x80];
 extern const short *dgen_font_16x26[0x80];
 extern const short *dgen_font_7x5[0x80];
@@ -36,7 +40,8 @@ size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 
 	if (len == 0)
 		return 0;
-	while ((font->data != NULL) && (font->h > height)) {
+	while ((font->data != NULL) &&
+	       ((font->h > height) || ((width / font->w) < FONT_VISIBLE))) {
 		++font;
 		continue;
 	}
