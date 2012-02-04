@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <SDL.h>
@@ -243,7 +244,6 @@ static void do_screenshot(void)
 	unsigned int bpp = mdscr.bpp;
 	uint8_t (*out)[3]; // 24 bpp
 	char name[64];
-	char msg[256];
 
 	if (dgen_raw_screenshots) {
 		width = xsize;
@@ -276,9 +276,7 @@ static void do_screenshot(void)
 	case 32:
 		break;
 	default:
-		snprintf(msg, sizeof(msg),
-			 "Screenshots unsupported in %d bpp.", bpp);
-		pd_message(msg);
+		pd_message("Screenshots unsupported in %d bpp.", bpp);
 		return;
 	}
 	// Make take a long time, let the main loop know about it.
@@ -287,8 +285,7 @@ retry:
 	snprintf(name, sizeof(name), "shot%06u.tga", n);
 	fp = dgen_fopen("screenshots", name, DGEN_APPEND);
 	if (fp == NULL) {
-		snprintf(msg, sizeof(msg), "Can't open %s", name);
-		pd_message(msg);
+		pd_message("Can't open %s.", name);
 		return;
 	}
 	fseek(fp, 0, SEEK_END);
@@ -398,8 +395,7 @@ retry:
 		}
 		break;
 	}
-	snprintf(msg, sizeof(msg), "Screenshot written to %s", name);
-	pd_message(msg);
+	pd_message("Screenshot written to %s.", name);
 	free(out);
 	fclose(fp);
 #ifdef WITH_OPENGL
@@ -1726,9 +1722,15 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 	return KB_INPUT_IGNORED;
 }
 
-static void stop_events_msg(const char *msg)
+static void stop_events_msg(const char *msg, ...)
 {
-	pd_message_display(msg, strlen(msg));
+	va_list vl;
+	char buf[256];
+
+	va_start(vl, msg);
+	vsnprintf(buf, sizeof(buf), msg, vl);
+	va_end(vl);
+	pd_message_display(buf, strlen(buf));
 }
 
 // This is a small event loop to handle stuff when we're stopped.
@@ -1803,10 +1805,10 @@ gg:
 						stop_events_msg(buf);
 						continue;
 					}
-					pd_message(buf);
+					pd_message("%s", buf);
 					goto gg_resume;
 				case KB_INPUT_CONSUMED:
-					stop_events_msg(buf);
+					stop_events_msg("%s", buf);
 					continue;
 				case KB_INPUT_IGNORED:
 					break;
@@ -1950,28 +1952,19 @@ int pd_handle_events(md &megad)
 #ifdef WITH_CTV
 	  else if (ksym == dgen_craptv_toggle)
 	    {
-		char temp[256];
-
 		dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
-		snprintf(temp, sizeof(temp), "Crap TV mode \"%s\".",
-			 ctv_names[dgen_craptv]);
 		filters_prescale[0] = &filters_list[dgen_craptv];
-		pd_message(temp);
+		pd_message("Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
 	    }
 #endif // WITH_CTV
 	  else if (ksym == dgen_scaling_toggle) {
-		char temp[256];
-
 		dgen_scaling = ((dgen_scaling + 1) % NUM_SCALING);
 		if (set_scaling(scaling_names[dgen_scaling]))
-			snprintf(temp, sizeof(temp),
-				 "Scaling algorithm \"%s\" unavailable.",
-				 scaling_names[dgen_scaling]);
+			pd_message("Scaling algorithm \"%s\" unavailable.",
+				   scaling_names[dgen_scaling]);
 		else
-			snprintf(temp, sizeof(temp),
-				 "Using scaling algorithm \"%s\".",
-				 scaling_names[dgen_scaling]);
-		pd_message(temp);
+			pd_message("Using scaling algorithm \"%s\".",
+				   scaling_names[dgen_scaling]);
 	  }
 	  else if(ksym == dgen_reset)
 	    { megad.reset(); pd_message("Genesis reset."); }
@@ -2209,9 +2202,13 @@ static void pd_message_postpone(const char *msg)
 }
 
 // Write a message to the status bar
-void pd_message(const char *msg)
+void pd_message(const char *msg, ...)
 {
-	strncpy(info.message, msg, sizeof(info.message));
+	va_list vl;
+
+	va_start(vl, msg);
+	vsnprintf(info.message, sizeof(info.message), msg, vl);
+	va_end(vl);
 	info.length = strlen(info.message);
 	pd_message_process();
 }

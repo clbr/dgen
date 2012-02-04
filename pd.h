@@ -72,7 +72,7 @@ int pd_handle_events(md &megad);
 int pd_stopped();
 
 // These are called to display and clear game messages.
-void pd_message(const char *msg);
+void pd_message(const char *fmt, ...);
 void pd_clear_message();
 // This should display cartridge header info. You can do this any way you like,
 // I don't care. :)
