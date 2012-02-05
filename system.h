@@ -30,6 +30,8 @@ SYSTEM_H_BEGIN_
 #define DGEN_DIRSEP_ALT "/"
 #endif
 
+#define BITS_TO_BYTES(v) ((((v) + 7u) & ~7u) >> 3)
+
 #define DGEN_READ 0x1
 #define DGEN_WRITE 0x2
 #define DGEN_APPEND 0x4
