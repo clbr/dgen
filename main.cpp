@@ -31,6 +31,10 @@
 #include <OS.h>
 #endif
 
+#ifdef __MINGW32__
+static long dgen_mingw_detach = 1;
+#endif
+
 // Defined in ras.cpp, and set to true if the Genesis palette's changed.
 extern int pal_dirty;
 
@@ -96,6 +100,9 @@ static void help()
   "    -s SLOT         Load the saved state from the given slot at startup.\n"
 #ifdef WITH_JOYSTICK
   "    -j              Use joystick if detected.\n"
+#endif
+#ifdef __MINGW32__
+  "    -m              Do not detach from console.\n"
 #endif
   );
   // Display platform-specific options
@@ -221,7 +228,15 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "rc: %s: %s\n", DGEN_RC, strerror(errno));
 
   // Check all our options
-  snprintf(temp, sizeof(temp), "%s%s", "s:hvr:n:p:R:PH:jd:D:", pd_options);
+  snprintf(temp, sizeof(temp), "%s%s",
+#ifdef WITH_JOYTSICK
+	   "j"
+#endif
+#ifdef __MINGW32__
+	   "m"
+#endif
+	   "s:hvr:n:p:R:PH:d:D:",
+	   pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
     {
       switch(c)
@@ -291,6 +306,11 @@ int main(int argc, char *argv[])
 	  // Phil's joystick code
 	  dgen_joystick = 1;
 	  break;
+#endif
+#ifdef __MINGW32__
+	case 'm':
+		dgen_mingw_detach = 0;
+		break;
 #endif
 	case 'd':
 	  // Record demo
@@ -429,18 +449,20 @@ int main(int argc, char *argv[])
   if(dgen_sound) pd_sound_start();
 
 #ifdef __MINGW32__
-	// Console isn't needed anymore. Redirect output to log file.
-	file = dgen_fopen(NULL, "log.txt", (DGEN_WRITE | DGEN_TEXT));
-	if (file != NULL) {
-		fflush(stdout);
-		fflush(stderr);
-		dup2(fileno(file), fileno(stdout));
-		dup2(fileno(file), fileno(stderr));
-		fclose(file);
-		setvbuf(stdout, NULL, _IONBF, 0);
-		setvbuf(stderr, NULL, _IONBF, 0);
+	if (dgen_mingw_detach) {
+		// Console isn't needed anymore. Redirect output to log file.
+		file = dgen_fopen(NULL, "log.txt", (DGEN_WRITE | DGEN_TEXT));
+		if (file != NULL) {
+			fflush(stdout);
+			fflush(stderr);
+			dup2(fileno(file), fileno(stdout));
+			dup2(fileno(file), fileno(stderr));
+			fclose(file);
+			setvbuf(stdout, NULL, _IONBF, 0);
+			setvbuf(stderr, NULL, _IONBF, 0);
+		}
+		FreeConsole();
 	}
-	FreeConsole();
 #endif
 
   // Show cartridge header
