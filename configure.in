@@ -113,6 +113,17 @@ AC_CHECK_FUNCS([SDL_WM_ToggleFullScreen])
 dnl Check for ftello().
 AC_CHECK_FUNCS([ftello])
 
+dnl Debugging?
+AC_ARG_ENABLE(
+	[debug],
+	[AS_HELP_STRING(
+		[--enable-debug],
+		[enable debugging [default=no]]
+	)],
+	[USE_DEBUG=$enableval],
+	[USE_DEBUG=no]
+)
+
 dnl Check for joystick support.
 AC_ARG_ENABLE(
 	[joystick],
@@ -473,6 +484,7 @@ LIBS="$TOBIN_LIBS"
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
+AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
 AS_IF([test "x$USE_JOYSTICK" != x], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
@@ -530,6 +542,7 @@ Front-end
   Crap TV filters: $USE_CTV
   hqx filters: $USE_HQX
   Compressed ROMs: $USE_LIBARCHIVE
+  Debugging: $USE_DEBUG
 
 CPU cores
   Musashi M68K: $WITH_MUSA

@@ -39,6 +39,49 @@ extern "C" {
 
 #include "sn76496.h"
 
+// Debugging macros and support functions. They look like this because C++98
+// lacks support for variadic macros. Not my fault.
+#ifndef NDEBUG
+#include <stdarg.h>
+#include <stdio.h>
+
+static inline const char *debug_basename_(const char *name)
+{
+	const char *tmp;
+
+	for (tmp = name; (*tmp != '\0'); ++tmp)
+		if (*tmp == '/')
+			name = (tmp + 1);
+	return name;
+}
+
+static inline void debug_printf__()
+{
+	fputc('\n', stderr);
+}
+
+static inline void (*debug_printf_(const char *s, ...))()
+{
+	va_list vl;
+
+	va_start(vl, s);
+	vfprintf(stderr, s, vl);
+	va_end(vl);
+	return debug_printf__;
+}
+
+static inline void (*(*debug_(const char *file, unsigned int line,
+			      const char *func))(const char *, ...))()
+{
+	fprintf(stderr, "%s:%u: %s: ", debug_basename_(file), line, func);
+	return debug_printf_;
+}
+
+#define DEBUG(s) (((debug_(__FILE__, __LINE__, __func__))s)(), (void)0)
+#else
+#define DEBUG(s) (void)0
+#endif
+
 extern "C" int test_ctv(unsigned char *dest, int len);
 extern "C" int blur_bitmap_16(unsigned char *dest, int len);
 extern "C" int blur_bitmap_15(unsigned char *dest, int len);
