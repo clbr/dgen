@@ -85,12 +85,14 @@ RCVAR(dgen_joystick2_dev, 1);
 
 RCVAR(dgen_fullscreen, 0);
 RCVAR(dgen_info_height, -1);
-RCVAR(dgen_scale, 1);
+RCVAR(dgen_width, 640);
+RCVAR(dgen_height, 480);
+RCVAR(dgen_scale, -1);
+RCVAR(dgen_x_scale, -1);
+RCVAR(dgen_y_scale, -1);
 RCVAR(dgen_depth, 0);
 RCVAR(dgen_opengl, 1);
 RCVAR(dgen_opengl_aspect, 1);
-RCVAR(dgen_opengl_width, 640);
-RCVAR(dgen_opengl_height, 480);
 RCVAR(dgen_opengl_linear, 1);
 RCVAR(dgen_opengl_32bit, 0);
 RCVAR(dgen_opengl_swap, 0);

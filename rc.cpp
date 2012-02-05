@@ -412,12 +412,16 @@ struct rc_field {
   { "int_nice", number, &dgen_nice },
   { "bool_fullscreen", boolean, &dgen_fullscreen },
   { "int_info_height", number, &dgen_info_height },
+  { "int_width", number, &dgen_width },
+  { "int_height", number, &dgen_height },
   { "int_scale", number, &dgen_scale },
+  { "int_scale_x", number, &dgen_x_scale },
+  { "int_scale_y", number, &dgen_y_scale },
   { "int_depth", number, &dgen_depth },
   { "bool_opengl", boolean, &dgen_opengl },
   { "bool_opengl_aspect", boolean, &dgen_opengl_aspect },
-  { "int_opengl_width", number, &dgen_opengl_width },
-  { "int_opengl_height", number, &dgen_opengl_height },
+  { "int_opengl_width", number, &dgen_width }, // deprecated, use int_width
+  { "int_opengl_height", number, &dgen_height }, // deprecated, use int_height
   { "bool_opengl_linear", boolean, &dgen_opengl_linear },
   { "bool_opengl_32bit", boolean, &dgen_opengl_32bit },
   { "bool_opengl_swap", boolean, &dgen_opengl_swap },

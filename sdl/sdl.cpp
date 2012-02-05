@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <assert.h>
 #include <SDL.h>
 #include <SDL_audio.h>
 
@@ -36,6 +37,15 @@
 #include "hqx.h"
 #endif
 
+// Generic type for supported depths.
+typedef union {
+	uint32_t *u32;
+	uint24_t *u24;
+	uint16_t *u16;
+	uint16_t *u15;
+	uint8_t *u8;
+} bpp_t;
+
 #ifdef WITH_OPENGL
 
 // Framebuffer texture
@@ -55,20 +65,87 @@ static struct {
 	} buf; // 16 or 32-bit buffer
 } texture;
 
-// Is OpenGL mode enabled?
-static int opengl = dgen_opengl;
-static int xs = dgen_opengl_width;
-static int ys = dgen_opengl_height;
-
+static void release_texture();
 static int init_texture();
 static void update_texture();
 
-#else // WITH_OPENGL
-
-static int xs = 0;
-static int ys = 0;
-
 #endif // WITH_OPENGL
+
+static struct {
+	unsigned int width; // window width
+	unsigned int height; // window height
+	unsigned int bpp; // bits per pixel
+	unsigned int Bpp; // bytes per pixel
+	unsigned int x_offset; // horizontal offset
+	unsigned int y_offset; // vertical offset
+	unsigned int info_height; // message bar height
+	bpp_t buf; // generic pointer to pixel data
+	unsigned int pitch; // number of bytes per line in buf
+	SDL_Surface *surface; // SDL surface
+	unsigned int want_fullscreen: 1; // want fullscreen
+	unsigned int is_fullscreen: 1; // fullscreen enabled
+#ifdef WITH_OPENGL
+	unsigned int want_opengl: 1; // want OpenGL
+	unsigned int is_opengl: 1; // OpenGL enabled
+	unsigned int opengl_ok: 1; // if textures are initialized
+#endif
+	SDL_Color color[64]; // SDL colors for 8bpp modes
+} screen;
+
+static struct {
+	const unsigned int width; // 320
+	unsigned int height; // 224 or 240
+	unsigned int x_scale; // scale horizontally
+	unsigned int y_scale; // scale vertically
+	unsigned int hz; // refresh rate
+	unsigned int is_pal: 1; // PAL enabled
+	uint8_t palette[256]; // palette for 8bpp modes (mdpal)
+} video = {
+	320, // width is always 320
+	224, // NTSC height by default
+	2, // default scale for width
+	2, // default scale for height
+	60, // 60Hz
+	0, // NTSC is enabled
+	{ 0 }
+};
+
+// Call this before accessing screen.buf.
+// No syscalls allowed before screen_unlock().
+static int screen_lock()
+{
+#ifdef WITH_OPENGL
+	if (screen.is_opengl)
+		return 0;
+#endif
+	if (SDL_MUSTLOCK(screen.surface) == 0)
+		return 0;
+	return SDL_LockSurface(screen.surface);
+}
+
+// Call this after accessing screen.buf.
+static void screen_unlock()
+{
+#ifdef WITH_OPENGL
+	if (screen.is_opengl)
+		return;
+#endif
+	if (SDL_MUSTLOCK(screen.surface) == 0)
+		return;
+	SDL_UnlockSurface(screen.surface);
+}
+
+// Call this after writing into screen.buf.
+static void screen_update()
+{
+#ifdef WITH_OPENGL
+	if (screen.is_opengl) {
+		update_texture();
+		return;
+	}
+#endif
+	SDL_Flip(screen.surface);
+}
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
 extern int slot;
@@ -79,24 +156,11 @@ void md_load(md &megad);
 struct bmap mdscr;
 unsigned char *mdpal = NULL;
 struct sndinfo sndi;
-const char *pd_options = "fX:Y:S:"
+const char *pd_options =
 #ifdef WITH_OPENGL
-  "G:"
+	"g:"
 #endif
-  ;
-
-// Define our personal variables
-// Graphics
-static SDL_Surface *screen = NULL;
-static SDL_Color colors[64];
-static const int xsize = 320;
-static int ysize = 0;
-static int bytes_pixel = 0;
-static int pal_mode = 0;
-static unsigned int video_hz = 60;
-static int fullscreen = dgen_fullscreen;
-static int x_scale = dgen_scale;
-static int y_scale = dgen_scale;
+	"fX:Y:S:G:";
 
 // Sound
 typedef struct {
@@ -166,9 +230,29 @@ static struct {
 	unsigned int displayed:1; // whether message is currently displayed
 	unsigned long since; // since this number of microseconds
 	size_t length; // remaining length to display
-	unsigned int height; // height of the text area
 	char message[2048];
 } info;
+
+// Return ideal value for a given window height.
+static unsigned int info_height_hint(unsigned int y_scale, unsigned int height)
+{
+	// These guesses are based on video.height being 224 or 240.
+	assert(video.height <= 240);
+	if (dgen_info_height >= 0)
+		return dgen_info_height;
+#ifdef WITH_OPENGL
+	if (screen.want_opengl) {
+		// Always use the biggest font available, unless it's
+		// unreadable.
+		if (height < (video.height + 5))
+			return 0;
+		return 26;
+	}
+#endif
+	if (y_scale == 1)
+		return 16;
+	return 32;
+}
 
 // Stopped flag used by pd_stopped()
 static int stopped = 0;
@@ -189,15 +273,6 @@ extern long js_map_button[2][16];
 
 // Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
-
-// Generic type for supported depths.
-typedef union {
-	uint32_t *u32;
-	uint24_t *u24;
-	uint16_t *u16;
-	uint16_t *u15;
-	uint8_t *u8;
-} bpp_t;
 
 #ifdef WITH_CTV
 
@@ -246,28 +321,16 @@ static void do_screenshot(void)
 	char name[64];
 
 	if (dgen_raw_screenshots) {
-		width = xsize;
-		height = ysize;
+		width = video.width;
+		height = video.height;
 		pitch = mdscr.pitch;
-		line.u8 = ((uint8_t *)mdscr.data + (mdscr.pitch * 8) + 16);
+		line.u8 = ((uint8_t *)mdscr.data + (pitch * 8) + 16);
 	}
-	else
-#ifdef WITH_OPENGL
-	if (opengl) {
-		width = texture.vis_width;
-		height = texture.vis_height;
-		pitch = (texture.vis_width << (1 << texture.u32));
-		line.u32 = texture.buf.u32;
-	}
-	else
-#endif
-	{
-		width = screen->w;
-		height = screen->h;
-		pitch = screen->pitch;
-		line.u8 = (uint8_t *)screen->pixels;
-		if (SDL_MUSTLOCK(screen))
-			SDL_LockSurface(screen);
+	else {
+		width = screen.width;
+		height = screen.height;
+		pitch = screen.pitch;
+		line = screen.buf;
 	}
 	switch (bpp) {
 	case 15:
@@ -300,10 +363,8 @@ retry:
 		goto retry;
 	}
 	// Allocate line buffer.
-	if ((out = (uint8_t (*)[3])malloc(sizeof(*out) * width)) == NULL) {
-		fclose(fp);
-		return;
-	}
+	if ((out = (uint8_t (*)[3])malloc(sizeof(*out) * width)) == NULL)
+		goto error;
 	// Header
 	{
 		uint8_t tmp[(3 + 5)] = {
@@ -313,7 +374,8 @@ retry:
 			// 5 bytes of color map specification
 		};
 
-		fwrite(tmp, sizeof(tmp), 1, fp);
+		if (!fwrite(tmp, sizeof(tmp), 1, fp))
+			goto error;
 	}
 	{
 		uint16_t tmp[4] = {
@@ -323,7 +385,8 @@ retry:
 			h2le16(height) // height
 		};
 
-		fwrite(tmp, sizeof(tmp), 1, fp);
+		if (!fwrite(tmp, sizeof(tmp), 1, fp))
+			goto error;
 	}
 	{
 		uint8_t tmp[2] = {
@@ -331,7 +394,8 @@ retry:
 			(1 << 5) // top-left origin
 		};
 
-		fwrite(tmp, sizeof(tmp), 1, fp);
+		if (!fwrite(tmp, sizeof(tmp), 1, fp))
+			goto error;
 	}
 	// Data
 	switch (bpp) {
@@ -340,6 +404,8 @@ retry:
 
 	case 15:
 		for (y = 0; (y < height); ++y) {
+			if (screen_lock())
+				goto error;
 			for (x = 0; (x < width); ++x) {
 				uint16_t v = line.u16[x];
 
@@ -347,12 +413,16 @@ retry:
 				out[x][1] = ((v >> 2) & 0xf8);
 				out[x][2] = ((v >> 7) & 0xf8);
 			}
-			fwrite(out, (sizeof(*out) * width), 1, fp);
+			screen_unlock();
+			if (!fwrite(out, (sizeof(*out) * width), 1, fp))
+				goto error;
 			line.u8 += pitch;
 		}
 		break;
 	case 16:
 		for (y = 0; (y < height); ++y) {
+			if (screen_lock())
+				goto error;
 			for (x = 0; (x < width); ++x) {
 				uint16_t v = line.u16[x];
 
@@ -360,27 +430,35 @@ retry:
 				out[x][1] = ((v >> 3) & 0xfc);
 				out[x][2] = ((v >> 8) & 0xf8);
 			}
-			fwrite(out, (sizeof(*out) * width), 1, fp);
+			screen_unlock();
+			if (!fwrite(out, (sizeof(*out) * width), 1, fp))
+				goto error;
 			line.u8 += pitch;
 		}
 		break;
 	case 24:
 		for (y = 0; (y < height); ++y) {
+			if (screen_lock())
+				goto error;
 #ifdef WORDS_BIGENDIAN
 			for (x = 0; (x < width); ++x) {
 				out[x][0] = line.u24[x][2];
 				out[x][1] = line.u24[x][1];
 				out[x][2] = line.u24[x][0];
 			}
-			fwrite(out, (sizeof(*out) * width), 1, fp);
 #else
-			fwrite(line.u8, (sizeof(*out) * width), 1, fp);
+			memcpy(out, line.u24, (sizeof(*out) * width));
 #endif
+			screen_unlock();
+			if (!fwrite(out, (sizeof(*out) * width), 1, fp))
+				goto error;
 			line.u8 += pitch;
 		}
 		break;
 	case 32:
 		for (y = 0; (y < height); ++y) {
+			if (screen_lock())
+				goto error;
 			for (x = 0; (x < width); ++x) {
 #ifdef WORDS_BIGENDIAN
 				uint32_t rgb = h2le32(line.u32[x]);
@@ -390,7 +468,8 @@ retry:
 				memcpy(&(out[x]), &(line.u32[x]), 3);
 #endif
 			}
-			fwrite(out, (sizeof(*out) * width), 1, fp);
+			if (!fwrite(out, (sizeof(*out) * width), 1, fp))
+				goto error;
 			line.u8 += pitch;
 		}
 		break;
@@ -398,84 +477,25 @@ retry:
 	pd_message("Screenshot written to %s.", name);
 	free(out);
 	fclose(fp);
-#ifdef WITH_OPENGL
-	if (!opengl)
-#endif
-		if (SDL_MUSTLOCK(screen))
-			SDL_UnlockSurface(screen);
-}
-
-static int do_videoresize(unsigned int width, unsigned int height)
-{
-	SDL_Surface *tmp;
-
-	stopped = 1;
-#ifdef WITH_OPENGL
-	if (opengl) {
-		unsigned int w;
-		unsigned int h;
-		unsigned int x;
-		unsigned int y;
-
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		tmp = SDL_SetVideoMode(width, height, 0,
-				       (SDL_HWPALETTE | SDL_HWSURFACE |
-					SDL_OPENGL | SDL_RESIZABLE |
-					(fullscreen ? SDL_FULLSCREEN : 0)));
-		if (tmp == NULL)
-			return -1;
-		if (dgen_opengl_aspect) {
-			// We're asked to keep the original aspect ratio, so
-			// calculate the maximum usable size considering this.
-			w = ((height * dgen_opengl_width) /
-			     dgen_opengl_height);
-			h = ((width * dgen_opengl_height) /
-			     dgen_opengl_width);
-			if (w >= width) {
-				w = width;
-				if (h == 0)
-					++h;
-			}
-			else {
-				h = height;
-				if (w == 0)
-					++w;
-			}
-		}
-		else {
-			// Free aspect ratio.
-			w = width;
-			h = height;
-		}
-		x = ((width - w) / 2);
-		y = ((height - h) / 2);
-		glViewport(x, y, w, h);
-		screen = tmp;
-		return 0;
-	}
-#else
-	(void)tmp;
-	(void)width;
-	(void)height;
-#endif
-	return -1;
+	return;
+error:
+	pd_message("Error while generating screenshot %s.", name);
+	free(out);
+	fclose(fp);
 }
 
 // Document the -f switch
 void pd_help()
 {
   printf(
+#ifdef WITH_OPENGL
+  "    -g (1|0)        Enable/disable OpenGL.\n"
+#endif
   "    -f              Attempt to run fullscreen.\n"
   "    -X scale        Scale the screen in the X direction.\n"
   "    -Y scale        Scale the screen in the Y direction.\n"
   "    -S scale        Scale the screen by the same amount in both directions.\n"
-#ifdef WITH_OPENGL
-  "    -G XxY          Use OpenGL mode, with width X and height Y.\n"
-#endif
+  "    -G WxH          Desired window size.\n"
   );
 }
 
@@ -484,48 +504,49 @@ void pd_rc()
 {
 	// Set stuff up from the rcfile first, so we can override it with
 	// command-line options
-	fullscreen = dgen_fullscreen;
-	x_scale = y_scale = dgen_scale;
-#ifdef WITH_OPENGL
-	opengl = dgen_opengl;
-	if (opengl) {
-		xs = dgen_opengl_width;
-		ys = dgen_opengl_height;
+	if (dgen_scale >= 1) {
+		dgen_x_scale = dgen_scale;
+		dgen_y_scale = dgen_scale;
 	}
-#endif
 }
 
 // Handle the switches
 void pd_option(char c, const char *)
 {
+	int xs, ys;
+
 	switch (c) {
+#ifdef WITH_OPENGL
+	case 'g':
+		dgen_opengl = atoi(optarg);
+		break;
+#endif
 	case 'f':
-		fullscreen = !fullscreen;
+		dgen_fullscreen = 1;
 		break;
 	case 'X':
-		x_scale = atoi(optarg);
-#ifdef WITH_OPENGL
-		opengl = 0;
-#endif
+		if ((xs = atoi(optarg)) <= 0)
+			break;
+		dgen_x_scale = xs;
 		break;
 	case 'Y':
-		y_scale = atoi(optarg);
-#ifdef WITH_OPENGL
-		opengl = 0;
-#endif
+		if ((ys = atoi(optarg)) <= 0)
+			break;
+		dgen_y_scale = ys;
 		break;
 	case 'S':
-		x_scale = y_scale = atoi(optarg);
-#ifdef WITH_OPENGL
-		opengl = 0;
-#endif
+		if ((xs = atoi(optarg)) <= 0)
+			break;
+		dgen_x_scale = xs;
+		dgen_y_scale = xs;
 		break;
-#ifdef WITH_OPENGL
 	case 'G':
-		sscanf(optarg, " %d x %d ", &xs, &ys);
-		opengl = 1;
+		if ((sscanf(optarg, " %d x %d ", &xs, &ys) != 2) ||
+		    (xs < 0) || (ys < 0))
+			break;
+		dgen_width = xs;
+		dgen_height = ys;
 		break;
-#endif
 	}
 }
 
@@ -596,14 +617,27 @@ static uint32_t roundup2(uint32_t v)
 	return v;
 }
 
+static void release_texture()
+{
+	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
+		glDeleteTextures(1, &texture.id);
+		glDeleteLists(texture.dlist, 1);
+		texture.dlist = 0;
+	}
+	free(texture.buf.u32);
+	texture.buf.u32 = NULL;
+}
+
 static int init_texture()
 {
-	const unsigned int vis_width = (xsize * x_scale);
-	const unsigned int vis_height = ((ysize * y_scale) + info.height);
+	const unsigned int vis_width = (video.width * video.x_scale);
+	const unsigned int vis_height = ((video.height * video.y_scale) +
+					 screen.info_height);
 	void *tmp;
 	size_t i;
 	GLenum error;
 
+	DEBUG(("initializing for width=%u height=%u", vis_width, vis_height));
 	// Disable dithering
 	glDisable(GL_DITHER);
 	// Disable anti-aliasing
@@ -630,9 +664,12 @@ static int init_texture()
 	}
 	texture.vis_width = vis_width;
 	texture.vis_height = vis_height;
+	DEBUG(("texture width=%u height=%u", texture.width, texture.height));
 	if ((texture.width == 0) || (texture.height == 0))
 		return -1;
 	i = ((texture.width * texture.height) * (2 << texture.u32));
+	DEBUG(("texture size=%lu (%u Bpp)",
+	       (unsigned long)i, (2 << texture.u32)));
 	if ((tmp = realloc(texture.buf.u32, i)) == NULL)
 		return -1;
 	memset(tmp, 0, i);
@@ -641,6 +678,7 @@ static int init_texture()
 		glDeleteTextures(1, &texture.id);
 		glDeleteLists(texture.dlist, 1);
 	}
+	DEBUG(("texture buf=%p", (void *)texture.buf.u32));
 	if ((texture.dlist = glGenLists(1)) == 0)
 		return -1;
 	if ((glGenTextures(1, &texture.id), error = glGetError()) ||
@@ -649,6 +687,7 @@ static int init_texture()
 		// Do something with "error".
 		return -1;
 	}
+	DEBUG(("texture initialization OK"));
 	return 0;
 }
 
@@ -1208,11 +1247,353 @@ static int set_scaling(const char *name)
 	return -1;
 }
 
+// Initialize screen.
+static int screen_init(unsigned int width, unsigned int height)
+{
+	SDL_Surface *tmp;
+	unsigned int info_height;
+	uint32_t flags = (SDL_RESIZABLE | SDL_ANYFORMAT | SDL_HWPALETTE |
+			  SDL_HWSURFACE);
+	unsigned int y_scale;
+	unsigned int x_scale;
+	int ret = 0;
+
+	DEBUG(("want width=%u height=%u", width, height));
+	stopped = 1;
+	if (screen.want_fullscreen)
+		flags |= SDL_FULLSCREEN;
+#ifdef WITH_OPENGL
+	screen.want_opengl = dgen_opengl;
+	if (screen.want_opengl) {
+		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		flags |= SDL_OPENGL;
+	}
+	else
+#endif
+		flags |= (SDL_DOUBLEBUF | SDL_ASYNCBLIT);
+	// Don't allow screens smaller than original.
+	if (width < video.width) {
+		DEBUG(("fixing width %u => %u", width, video.width));
+		width = video.width;
+		ret = -1;
+	}
+	if (height < video.height) {
+		DEBUG(("fixing height %u => %u", height, video.height));
+		height = video.height;
+		ret = -1;
+	}
+	if (screen.want_fullscreen) {
+		SDL_Rect **modes;
+
+		// Check if we're going to be bound to a particular resolution.
+		modes = SDL_ListModes(NULL, (flags | SDL_FULLSCREEN));
+		if ((modes != NULL) && (modes != (SDL_Rect **)-1)) {
+			unsigned int i;
+			struct {
+				unsigned int i;
+				unsigned int w;
+				unsigned int h;
+			} best = { 0, (unsigned int)-1, (unsigned int)-1 };
+
+			// Find the best resolution available.
+			for (i = 0; (modes[i] != NULL); ++i) {
+				unsigned int w, h;
+
+				DEBUG(("checking mode %dx%d",
+				       modes[i]->w, modes[i]->h));
+				if ((modes[i]->w < width) ||
+				    (modes[i]->h < height))
+					continue;
+				w = (modes[i]->w - width);
+				h = (modes[i]->h - height);
+				if ((w <= best.w) && (h <= best.h)) {
+					best.i = i;
+					best.w = w;
+					best.h = h;
+				}
+			}
+			if ((best.w == (unsigned int)-1) ||
+			    (best.h == (unsigned int)-1))
+				DEBUG(("no mode looks good"));
+			else {
+				width = modes[(best.i)]->w;
+				height = modes[(best.i)]->h;
+				DEBUG(("mode %ux%u looks okay",
+				       width, height));
+			}
+		}
+		DEBUG(("adjusted fullscreen resolution to %ux%u",
+		       width, height));
+	}
+#ifdef WITH_OPENGL
+	if (screen.want_opengl) {
+		// Use whatever scale is thrown at us.
+		if (dgen_x_scale <= 0)
+			x_scale = video.x_scale;
+		else
+			x_scale = dgen_x_scale;
+		if (dgen_y_scale <= 0)
+			y_scale = video.y_scale;
+		else
+			y_scale = dgen_y_scale;
+		// In OpenGL modes, info_height can be anything as it's not
+		// part of the screen resolution.
+		info_height = info_height_hint(y_scale, height);
+		DEBUG(("OpenGL info_height: %u", info_height));
+	}
+	else
+#endif
+	{
+		unsigned int j;
+
+		// Set up scaling values.
+		if (dgen_x_scale <= 0) {
+			x_scale = (width / video.width);
+			if (x_scale == 0)
+				x_scale = 1;
+		}
+		else
+			x_scale = dgen_x_scale;
+		if (dgen_y_scale <= 0) {
+			y_scale = (height / video.height);
+			if (y_scale == 0)
+				y_scale = 1;
+		}
+		else
+			y_scale = dgen_y_scale;
+		DEBUG(("x_scale=%u (%ld) y_scale=%u (%ld)",
+		       x_scale, dgen_x_scale, y_scale, dgen_y_scale));
+		// Rescale if necessary.
+		if ((video.width * x_scale) > width)
+			x_scale = (width / video.width);
+		if ((video.height * y_scale) > height)
+			y_scale = (height / video.height);
+		DEBUG(("had to rescale to x_scale=%u y_scale=%u",
+		       x_scale, y_scale));
+		// Calculate how much room we have at the bottom.
+		info_height = (height - (video.height * y_scale));
+		// Set up info_height.
+		j = info_height_hint(y_scale, height);
+		if (j < info_height)
+			info_height = j;
+		DEBUG(("info_height: %u (configured value: %ld)",
+		       info_height, dgen_info_height));
+	}
+	// Set video mode.
+	DEBUG(("SDL_SetVideoMode(%u, %u, %ld, 0x%08x)",
+	       width, height, dgen_depth, flags));
+	if ((tmp = SDL_SetVideoMode(width, height, dgen_depth, flags)) == NULL)
+		return -1;
+	DEBUG(("SDL_SetVideoMode succeeded"));
+	// From now on, screen and mdscr must be considered unusable
+	// if partially initialized and -2 is returned.
+#ifdef WITH_OPENGL
+	if (screen.want_opengl) {
+		unsigned int x, y, w, h;
+		unsigned int orig_width, orig_height;
+
+		// Save old values.
+		orig_width = width;
+		orig_height = height;
+		// The OpenGL "screen" is actually a texture which may be
+		// bigger than the actual display. "width" and "height" now
+		// refer to that texture instead of the screen.
+		width = (video.width * x_scale);
+		height = ((video.height * y_scale) + info_height);
+		if (dgen_opengl_aspect) {
+			// We're asked to keep the original aspect ratio, so
+			// calculate the maximum usable size considering this.
+			w = ((orig_height * width) / height);
+			h = ((orig_width * height) / width);
+			if (w >= orig_width) {
+				w = orig_width;
+				if (h == 0)
+					++h;
+			}
+			else {
+				h = orig_height;
+				if (w == 0)
+					++w;
+			}
+		}
+		else {
+			// Free aspect ratio.
+			w = orig_width;
+			h = orig_height;
+		}
+		x = ((orig_width - w) / 2);
+		y = ((orig_height - h) / 2);
+		DEBUG(("glViewport(%u, %u, %u, %u)", x, y, w, h));
+		glViewport(x, y, w, h);
+		screen.width = width;
+		screen.height = height;
+		// Check whether we want to reinitialize the texture.
+		if ((screen.info_height != info_height) ||
+		    (video.x_scale != x_scale) ||
+		    (video.y_scale != y_scale) ||
+		    (screen.want_fullscreen != screen.is_fullscreen))
+			screen.opengl_ok = 0;
+		screen.x_offset = 0;
+		screen.y_offset = 0;
+	}
+	else
+#endif
+	{
+		unsigned int xs, ys;
+
+#ifdef WITH_OPENGL
+		// Free OpenGL resources.
+		DEBUG(("releasing OpenGL resources"));
+		release_texture();
+		screen.opengl_ok = 0;
+#endif
+		screen.width = tmp->w;
+		screen.height = tmp->h;
+		screen.bpp = tmp->format->BitsPerPixel;
+		screen.Bpp = tmp->format->BytesPerPixel;
+		screen.buf.u8 = (uint8_t *)tmp->pixels;
+		screen.pitch = tmp->pitch;
+		xs = (video.width * x_scale);
+		ys = ((video.height * y_scale) + info_height);
+		if (xs < width)
+			screen.x_offset = ((width - xs) / 2);
+		else
+			screen.x_offset = 0;
+		if (ys < height)
+			screen.y_offset = ((height - ys) / 2);
+		else
+			screen.y_offset = 0;
+	}
+	screen.info_height = info_height;
+	screen.surface = tmp;
+	screen.is_fullscreen = screen.want_fullscreen;
+	video.x_scale = x_scale;
+	video.y_scale = y_scale;
+	DEBUG(("video configuration: x_scale=%u y_scale=%u",
+	       video.x_scale, video.y_scale));
+	DEBUG(("screen configuration: width=%u height=%u bpp=%u Bpp=%u"
+	       " x_offset=%u y_offset=%u info_height=%u buf.u8=%p pitch=%u"
+	       " surface=%p want_fullscreen=%u is_fullscreen=%u",
+	       screen.width, screen.height, screen.bpp, screen.Bpp,
+	       screen.x_offset, screen.y_offset, screen.info_height,
+	       (void *)screen.buf.u8, screen.pitch, (void *)screen.surface,
+	       screen.want_fullscreen, screen.is_fullscreen));
+#ifdef WITH_OPENGL
+	if (screen.want_opengl) {
+		if ((screen.opengl_ok == 0) &&
+		    (init_texture())) {
+			// This is fatal.
+			screen.is_opengl = 0;
+			return -2;
+		}
+		screen.Bpp = (2 << texture.u32);
+		screen.bpp = (screen.Bpp * 8);
+		screen.buf.u32 = texture.buf.u32;
+		screen.pitch = (texture.vis_width << (1 << texture.u32));
+		screen.opengl_ok = 1;
+	}
+	screen.is_opengl = screen.want_opengl;
+	DEBUG(("OpenGL screen configuration: opengl_ok=%u is_opengl=%u"
+	       " buf.u32=%p pitch=%u",
+	       screen.opengl_ok, screen.is_opengl, (void *)screen.buf.u32,
+	       screen.pitch));
+#endif
+	// If we're in 8 bit mode, set color 0xff to white for the text,
+	// and make a palette buffer.
+	if (screen.bpp == 8) {
+		SDL_Color color = { 0xff, 0xff, 0xff, 0x00 };
+
+		SDL_SetColors(tmp, &color, 0xff, 1);
+		memset(video.palette, 0x00, sizeof(video.palette));
+		mdpal = video.palette;
+	}
+	else
+		mdpal = NULL;
+	// Set up the Mega Drive screen.
+	if ((mdscr.data == NULL) ||
+	    ((unsigned int)mdscr.bpp != screen.bpp) ||
+	    (mdscr.w != (video.width + 16)) ||
+	    (mdscr.h != (video.height + 16))) {
+		mdscr.bpp = screen.bpp;
+		mdscr.w = (video.width + 16);
+		mdscr.h = (video.height + 16);
+		mdscr.pitch = (mdscr.w * screen.Bpp);
+		free(mdscr.data);
+		mdscr.data = (uint8_t *)calloc(1, (mdscr.pitch * mdscr.h));
+		if (mdscr.data != NULL) {
+			uint8_t *buf = ((uint8_t *)mdscr.data +
+					(mdscr.pitch * 8) + 16);
+
+			// Screen is now blank.
+			font_text(buf, video.width, video.height,
+				  BITS_TO_BYTES(mdscr.bpp), mdscr.pitch,
+				  "_@__, DGen " VER " _@__,", 42);
+		}
+	}
+	DEBUG(("md screen configuration: w=%d h=%d bpp=%d pitch=%d data=%p",
+	       mdscr.w, mdscr.h, mdscr.bpp, mdscr.pitch, (void *)mdscr.data));
+	if (mdscr.data == NULL)
+		return -2;
+	// Initialize scaling.
+	if ((video.x_scale == 1) && (video.y_scale == video.x_scale))
+		scaling = rescale_1x1;
+	else
+		set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
+	DEBUG(("using scaling algorithm \"%s\"",
+	       scaling_names[(dgen_scaling % NUM_SCALING)]));
+	DEBUG(("ret=%d", ret));
+	return ret;
+}
+
+static int set_fullscreen(int toggle)
+{
+	unsigned int w;
+	unsigned int h;
+
+	if (((!toggle) && (!screen.is_fullscreen)) ||
+	    ((toggle) && (screen.is_fullscreen))) {
+		// Already in the desired mode.
+		DEBUG(("already %s fullscreen mode, ret=-1",
+		       (toggle ? "in" : "not in")));
+		return -1;
+	}
+#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
+	// Try this first.
+	DEBUG(("trying SDL_WM_ToggleFullScreen(%p)", (void *)screen.surface));
+	if (SDL_WM_ToggleFullScreen(screen.surface))
+		return 0;
+	DEBUG(("falling back to screen_init()"));
+#endif
+	screen.want_fullscreen = toggle;
+	if (screen.surface != NULL) {
+		// Try to keep the current mode.
+		w = screen.surface->w;
+		h = screen.surface->h;
+	}
+	else if ((dgen_width > 0) && (dgen_height > 0)) {
+		// Use configured mode.
+		w = dgen_width;
+		h = dgen_height;
+	}
+	else {
+		// Try to make a guess.
+		w = (video.width * video.x_scale);
+		h = (video.height * video.y_scale);
+		h += info_height_hint(video.y_scale, h);
+	}
+	DEBUG(("reinitializing screen with want_fullscreen=%u,"
+	       " screen_init(%u, %u)",
+	       screen.want_fullscreen, w, h));
+	return screen_init(w, h);
+}
+
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
-  SDL_Color color;
-	int depth = dgen_depth;
 #ifdef WITH_HQX
 	static int hqx_initialized = 0;
 
@@ -1221,193 +1602,95 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		hqx_initialized = 1;
 	}
 #endif
-
-	switch (depth) {
-	case 0:
-	case 8:
-	case 15:
-	case 16:
-	case 24:
-	case 32:
-		break;
-	default:
-		fprintf(stderr, "sdl: invalid color depth (%d)\n", depth);
-		return 0;
-	}
-
 	if ((hz <= 0) || (hz > 1000)) {
+		// You may as well disable bool_frameskip.
 		fprintf(stderr, "sdl: invalid frame rate (%d)\n", hz);
 		return 0;
 	}
-	video_hz = hz;
-
-  pal_mode = want_pal;
-
-  /* Neither scale value may be 0 or negative */
-  if(x_scale <= 0) x_scale = 1;
-  if(y_scale <= 0) y_scale = 1;
-
-  if(SDL_Init(want_sound? (SDL_INIT_VIDEO | SDL_INIT_AUDIO) : (SDL_INIT_VIDEO)))
-    {
-      fprintf(stderr, "sdl: Couldn't init SDL: %s!\n", SDL_GetError());
-      return 0;
-    }
-  // Required for text input.
-  SDL_EnableUNICODE(1);
-
-  ysize = (want_pal? 240 : 224);
-
-  // Ignore events besides quit and keyboard, this must be done before calling
-  // SDL_SetVideoMode(), otherwise we may lose the first resize event.
-  SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
-  SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
-  SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
-
-  // Set screen size vars
-#ifdef WITH_OPENGL
-  if(!opengl)
-#endif
-    xs = (xsize * x_scale), ys = (ysize * y_scale);
-
-  // Make a 320x224 or 320x240 display for the MegaDrive, with an extra 16 lines
-  // for the message bar.
-#ifdef WITH_OPENGL
-	if (opengl) {
-		if (dgen_info_height < 0) {
-			if (y_scale > 2)
-				info.height = 26;
-			else if (y_scale > 1)
-				info.height = 13;
-			else
-				info.height = 5;
-		}
-		else
-			info.height = dgen_info_height;
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		screen = SDL_SetVideoMode(xs, ys, 0,
-					  (SDL_HWPALETTE | SDL_HWSURFACE |
-					   SDL_OPENGL | SDL_RESIZABLE |
-					   (fullscreen ? SDL_FULLSCREEN : 0)));
+	video.hz = hz;
+	if (want_pal) {
+		// PAL
+		video.is_pal = 1;
+		video.height = 240;
 	}
-	else
-#endif
-	{
-		if (dgen_info_height < 0)
-			info.height = 16;
-		else
-			info.height = dgen_info_height;
-		screen = SDL_SetVideoMode(xs, (ys + info.height), depth,
-					  (SDL_HWPALETTE | SDL_HWSURFACE |
-					   SDL_DOUBLEBUF | SDL_ASYNCBLIT |
-					   (fullscreen ? SDL_FULLSCREEN : 0)));
+	else {
+		// NTSC
+		video.is_pal = 0;
+		video.height = 224;
 	}
-
-  if(!screen)
-    {
-		fprintf(stderr, "sdl: Unable to set video mode: %s\n",
-			SDL_GetError());
+	if (SDL_Init(SDL_INIT_VIDEO | (want_sound ? SDL_INIT_AUDIO : 0))) {
+		fprintf(stderr, "sdl: can't init SDL: %s\n", SDL_GetError());
 		return 0;
-    }
-  fprintf(stderr, "video: %dx%d, %d bpp (%d Bpp), %uHz\n",
-	  screen->w, screen->h,
-	  screen->format->BitsPerPixel, screen->format->BytesPerPixel,
-	  video_hz);
-#ifndef __MINGW32__
-  // We don't need setuid priveledges anymore
-  if(getuid() != geteuid())
-    setuid(getuid());
-#endif
-
-  // Set the titlebar
-  SDL_WM_SetCaption("DGen "VER, "dgen");
-  // Hide the cursor
-  SDL_ShowCursor(0);
-
-#ifdef WITH_OPENGL
-	if (opengl) {
-		if (init_texture() != 0) {
-			fprintf(stderr,
-				"video: OpenGL texture initialization"
-				" failure.\n");
-			return 0;
-		}
-		fprintf(stderr,
-			"video: OpenGL texture %ux%ux%u (%ux%u)\n",
-			texture.width, texture.height, (2 << texture.u32),
-			texture.vis_width, texture.vis_height);
 	}
-	else
-#endif
-    // If we're in 8 bit mode, set color 0xff to white for the text,
-    // and make a palette buffer
-    if(screen->format->BitsPerPixel == 8)
-      {
-        color.r = color.g = color.b = 0xff;
-        SDL_SetColors(screen, &color, 0xff, 1);
-        mdpal = (unsigned char*)malloc(256);
-        if(!mdpal)
-          {
-	    fprintf(stderr, "sdl: Couldn't allocate palette!\n");
-	    return 0;
-	  }
-      }
+	// Required for text input.
+	SDL_EnableUNICODE(1);
+	// Ignore events besides quit and keyboard, this must be done before
+	// calling SDL_SetVideoMode(), otherwise we may lose the first resize
+	// event.
+	SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
+	SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
+	SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
+	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
+	SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
+	// Set the titlebar.
+	SDL_WM_SetCaption("DGen " VER, "DGen " VER);
+	// Hide the cursor.
+	SDL_ShowCursor(0);
+	// Initialize screen.
+	if ((dgen_width > 0) && (dgen_height > 0)) {
+		if (screen_init(dgen_width, dgen_height) < -1)
+			goto fail;
+	}
+	else {
+		unsigned int x_scale;
+		unsigned int y_scale;
 
-  // Set up the MegaDrive screen
-#ifdef WITH_OPENGL
-  if(opengl)
-    bytes_pixel = (2 << texture.u32);
-  else
+		x_scale = ((dgen_x_scale <= 0) ? video.x_scale : dgen_x_scale);
+		y_scale = ((dgen_y_scale <= 0) ? video.y_scale : dgen_y_scale);
+		if (screen_init((video.width * x_scale),
+				((video.height * y_scale) +
+				 info_height_hint
+				 (y_scale, (video.height * y_scale)))) < -1)
+			goto fail;
+	}
+	DEBUG(("screen initialized"));
+#ifndef __MINGW32__
+	// We don't need setuid privileges anymore
+	if (getuid() != geteuid())
+		setuid(getuid());
+	DEBUG(("setuid privileges dropped"));
 #endif
-    bytes_pixel = screen->format->BytesPerPixel;
-  mdscr.w = xsize + 16;
-  mdscr.h = ysize + 16;
-#ifdef WITH_OPENGL
-  if(opengl)
-    mdscr.bpp = (16 << texture.u32);
-  else
-#endif
-    mdscr.bpp = screen->format->BitsPerPixel;
-  mdscr.pitch = mdscr.w * bytes_pixel;
-  mdscr.data = (unsigned char*) malloc(mdscr.pitch * mdscr.h);
-  if(!mdscr.data)
-    {
-      fprintf(stderr, "sdl: Couldn't allocate screen!\n");
-      return 0;
-    }
-
-	if ((x_scale == 1) && (y_scale == x_scale))
-		scaling = rescale_1x1;
-	else
-		set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
-
 #ifdef WITH_CTV
 	filters_prescale[0] = &filters_list[(dgen_craptv % NUM_CTV)];
 #endif // WITH_CTV
-
-  // And that's it! :D
-  return 1;
+	DEBUG(("ret=1"));
+	fprintf(stderr, "video: %dx%d, %u bpp (%u Bpp), %uHz\n",
+		screen.surface->w, screen.surface->h, screen.bpp,
+		screen.Bpp, video.hz);
+	if (screen.is_opengl)
+		fprintf(stderr, "video: OpenGL texture %ux%ux%u (%ux%u)\n",
+			texture.width, texture.height, (2 << texture.u32),
+			texture.vis_width, texture.vis_height);
+	return 1;
+fail:
+	fprintf(stderr, "sdl: can't initialize graphics.\n");
+	return 0;
 }
 
 // Update palette
 void pd_graphics_palette_update()
 {
-  int i;
-  for(i = 0; i < 64; ++i)
-    {
-      colors[i].r = mdpal[(i << 2)  ];
-      colors[i].g = mdpal[(i << 2)+1];
-      colors[i].b = mdpal[(i << 2)+2];
-    }
+	unsigned int i;
+
+	for (i = 0; (i < 64); ++i) {
+		screen.color[i].r = mdpal[(i << 2)];
+		screen.color[i].g = mdpal[((i << 2) + 1)];
+		screen.color[i].b = mdpal[((i << 2) + 2)];
+	}
 #ifdef WITH_OPENGL
-  if(!opengl)
+	if (!screen.is_opengl)
 #endif
-    SDL_SetColors(screen, colors, 0, 64);
+		SDL_SetColors(screen.surface, screen.color, 0, 64);
 }
 
 static void pd_message_process(void);
@@ -1427,26 +1710,14 @@ void pd_graphics_update()
 	const struct filter **filter;
 #endif
 
-	// If you need to do any sort of locking before writing to the buffer,
-	// do so here.
-	if (SDL_MUSTLOCK(screen))
-		SDL_LockSurface(screen);
 	// Check whether the message must be processed.
 	if (((info.displayed) || (info.length))  &&
 	    ((pd_usecs() - info.since) >= MESSAGE_LIFE))
 		pd_message_process();
 	// Set destination buffer.
-#ifdef WITH_OPENGL
-	if (opengl) {
-		dst_pitch = (texture.vis_width << (1 << texture.u32));
-		dst.u32 = texture.buf.u32;
-	}
-	else
-#endif
-	{
-		dst_pitch = screen->pitch;
-		dst.u8 = (uint8_t *)screen->pixels;
-	}
+	dst_pitch = screen.pitch;
+	dst.u8 = &screen.buf.u8[(screen.x_offset * screen.Bpp)];
+	dst.u8 += (screen.pitch * screen.y_offset);
 	// Use the same formula as draw_scanline() in ras.cpp to avoid the
 	// messy border once and for all. This one works with any supported
 	// depth.
@@ -1454,30 +1725,28 @@ void pd_graphics_update()
 	src.u8 = ((uint8_t *)mdscr.data + (src_pitch * 8) + 16);
 #ifdef WITH_CTV
 	// Apply prescale filters.
-	xsize2 = (xsize * x_scale);
-	ysize2 = (ysize * y_scale);
+	xsize2 = (video.width * video.x_scale);
+	ysize2 = (video.height * video.y_scale);
 	for (filter = filters_prescale; (*filter != NULL); ++filter)
-		(*filter)->func(src, src_pitch, xsize, ysize, mdscr.bpp);
+		(*filter)->func(src, src_pitch, video.width, video.height,
+				mdscr.bpp);
 #endif
+	// Lock screen.
+	if (screen_lock())
+		return;
 	// Copy/rescale output.
 	scaling(dst, dst_pitch, src, src_pitch,
-		xsize, x_scale, ysize, y_scale,
-		mdscr.bpp);
+		video.width, video.x_scale, video.height, video.y_scale,
+		screen.bpp);
 #ifdef WITH_CTV
 	// Apply postscale filters.
 	for (filter = filters_postscale; (*filter != NULL); ++filter)
-		(*filter)->func(dst, dst_pitch, xsize2, ysize2, mdscr.bpp);
+		(*filter)->func(dst, dst_pitch, xsize2, ysize2, screen.bpp);
 #endif
-	// Unlock when you're done!
-	if (SDL_MUSTLOCK(screen))
-		SDL_UnlockSurface(screen);
-	// Update the screen
-#ifdef WITH_OPENGL
-	if (opengl)
-		update_texture();
-	else
-#endif
-		SDL_Flip(screen);
+	// Unlock screen.
+	screen_unlock();
+	// Update the screen.
+	screen_update();
 }
 
 // Callback for sound
@@ -1531,7 +1800,7 @@ int pd_sound_init(long &freq, unsigned int &samples)
 
 	// Set things as they really are
 	sound.rate = freq = spec.freq;
-	sndi.len = (spec.freq / video_hz);
+	sndi.len = (spec.freq / video.hz);
 	sound.samples = spec.samples;
 	samples += sound.samples;
 
@@ -1739,15 +2008,14 @@ static int stop_events(md &megad, int gg)
 	SDL_Event event;
 	char buf[128] = "";
 	kb_input_t input = { 0, 0, 0 };
-#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
 	int fullscreen = 0;
 
 	// Switch out of fullscreen mode (assuming this is supported)
-	if (screen->flags & SDL_FULLSCREEN) {
+	if (screen.is_fullscreen) {
 		fullscreen = 1;
-		SDL_WM_ToggleFullScreen(screen);
+		if (set_fullscreen(0) < -1)
+			return 0;
 	}
-#endif
 	stopped = 1;
 	SDL_PauseAudio(1);
 gg:
@@ -1822,7 +2090,13 @@ gg:
 		case SDL_QUIT:
 			return 0;
 		case SDL_VIDEORESIZE:
-			do_videoresize(event.resize.w, event.resize.h);
+			if (screen_init(event.resize.w, event.resize.h) < -1) {
+				fprintf(stderr,
+					"sdl: fatal error while trying to"
+					" change screen resolution.\n");
+				return 0;
+			}
+			pd_graphics_update();
 		case SDL_VIDEOEXPOSE:
 			stop_events_msg(buf);
 			break;
@@ -1833,10 +2107,12 @@ gg:
 resume:
 	pd_message("RUNNING.");
 gg_resume:
-#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
-	if (fullscreen)
-		SDL_WM_ToggleFullScreen(screen);
-#endif
+	if (fullscreen) {
+		if (set_fullscreen(1) < -1) {
+			SDL_PauseAudio(0);
+			return 0;
+		}
+	}
 	SDL_PauseAudio(0);
 	return 1;
 }
@@ -2041,13 +2317,20 @@ int pd_handle_events(md &megad)
 			return stop_events(megad, 0);
 		else if (ksym == dgen_game_genie)
 			return stop_events(megad, 1);
-
-#ifdef HAVE_SDL_WM_TOGGLEFULLSCREEN
 	  else if(ksym == dgen_fullscreen_toggle) {
-	    SDL_WM_ToggleFullScreen(screen);
-	    pd_message("Fullscreen mode toggled.");
+		switch (set_fullscreen(!screen.is_fullscreen)) {
+		case -2:
+			fprintf(stderr,
+				"sdl: fatal error while trying to change screen"
+				" resolution.\n");
+			return 0;
+		case -1:
+			pd_message("Failed to toggle fullscreen mode.");
+			break;
+		default:
+			pd_message("Fullscreen mode toggled.");
+		}
 	  }
-#endif
 	  else if(ksym == dgen_fix_checksum) {
 	    pd_message("Checksum fixed.");
 	    megad.fix_rom_checksum();
@@ -2058,18 +2341,23 @@ int pd_handle_events(md &megad)
 	  break;
 	case SDL_VIDEORESIZE:
 	{
-		char buf[64];
-
-		if (do_videoresize(event.resize.w, event.resize.h) == -1)
-			snprintf(buf, sizeof(buf),
-				 "Failed to resize video to %dx%d.\n",
-				 event.resize.w, event.resize.h);
-		else
-			snprintf(buf, sizeof(buf),
-				 "Video resized to %dx%d.\n",
-				 event.resize.w, event.resize.h);
-		stop_events_msg(buf);
-		break;
+		switch (screen_init(event.resize.w, event.resize.h)) {
+		case 0:
+			stop_events_msg("Video resized to %ux%u.",
+					screen.surface->w,
+					screen.surface->h);
+			break;
+		case -1:
+			stop_events_msg("Failed to resize video to %ux%u.",
+					event.resize.w,
+					event.resize.h);
+			break;
+		default:
+			fprintf(stderr,
+				"sdl: fatal error while trying to change screen"
+				" resolution.\n");
+			return 0;
+		}
 	}
 	case SDL_KEYUP:
 	  ksym = event.key.keysym.sym;
@@ -2117,49 +2405,19 @@ int pd_handle_events(md &megad)
 
 static size_t pd_message_display(const char *msg, size_t len)
 {
-	uint8_t *buf;
-	unsigned int y;
-	unsigned int bytes_per_pixel;
-	unsigned int width;
-	unsigned int height = info.height;
-	unsigned int pitch;
+	uint8_t *buf = (screen.buf.u8 +
+			(screen.pitch * (screen.height - screen.info_height)));
 	size_t ret = 0;
 
-#ifdef WITH_OPENGL
-	if (opengl) {
-		y = (texture.vis_height - height);
-		width = texture.vis_width;
-		bytes_per_pixel = (2 << texture.u32);
-		pitch = (width << (1 << texture.u32));
-		buf = ((uint8_t *)texture.buf.u32 + (pitch * y));
-	}
-	else
-#endif
-	{
-		if (SDL_MUSTLOCK(screen))
-			SDL_LockSurface(screen);
-		y = ys;
-		width = xs;
-		bytes_per_pixel = bytes_pixel;
-		pitch = screen->pitch;
-		buf = ((uint8_t *)screen->pixels + (pitch * y));
-	}
+	screen_lock();
 	// Clear text area.
-	memset(buf, 0x00, (pitch * height));
+	memset(buf, 0x00, (screen.pitch * screen.info_height));
 	// Write message.
 	if (len != 0)
-		ret = font_text(buf, width, height, bytes_per_pixel, pitch,
-				msg, len);
-#ifdef WITH_OPENGL
-	if (opengl)
-		update_texture();
-	else
-#endif
-	{
-		SDL_UpdateRect(screen, 0, y, width, height);
-		if (SDL_MUSTLOCK(screen))
-			SDL_UnlockSurface(screen);
-	}
+		ret = font_text(buf, screen.width, screen.info_height,
+				screen.Bpp, screen.pitch, msg, len);
+	screen_unlock();
+	screen_update();
 	if (len == 0)
 		info.displayed = 0;
 	else {
@@ -2283,18 +2541,10 @@ void pd_quit()
 	memset(&sound, 0, sizeof(sound));
 	free((void*)sndi.lr);
 	sndi.lr = NULL;
-	if (mdpal) {
-		free((void*)mdpal);
+	if (mdpal)
 		mdpal = NULL;
-	}
 #ifdef WITH_OPENGL
-	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
-		glDeleteTextures(1, &texture.id);
-		glDeleteLists(texture.dlist, 1);
-		texture.dlist = 0;
-	}
-	free(texture.buf.u32);
-	texture.buf.u32 = NULL;
+	release_texture();
 #endif
 	SDL_Quit();
 }
