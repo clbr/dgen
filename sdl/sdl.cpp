@@ -2023,6 +2023,7 @@ static int stop_events(md &megad, int gg)
 		fullscreen = 1;
 		if (set_fullscreen(0) < -1)
 			return 0;
+		pd_graphics_update();
 	}
 	stopped = 1;
 	SDL_PauseAudio(1);
