@@ -359,10 +359,28 @@ int main(int argc, char *argv[])
   dgen_nice /= 1000;
 #endif
 
-  // There should be a romname after all those options. If not, show help and
-  // exit.
-  if(optind >= argc)
-    help();
+#ifdef __MINGW32__
+	if (dgen_mingw_detach) {
+		FILE *cons;
+
+		fprintf(stderr,
+			"main: Detaching from console, use -m to prevent"
+			" this.\n");
+		// Console isn't needed anymore. Redirect output to log file.
+		cons = dgen_fopen(NULL, "log.txt", (DGEN_WRITE | DGEN_TEXT));
+		if (cons != NULL) {
+			fflush(stdout);
+			fflush(stderr);
+			dup2(fileno(cons), fileno(stdout));
+			dup2(fileno(cons), fileno(stderr));
+			fclose(cons);
+			setvbuf(stdout, NULL, _IONBF, 0);
+			setvbuf(stderr, NULL, _IONBF, 0);
+			cons = NULL;
+		}
+		FreeConsole();
+	}
+#endif
 
 	// Start up the sound chips.
 	if (YM2612Init(1,
@@ -447,23 +465,6 @@ int main(int argc, char *argv[])
 
   // Start audio
   if(dgen_sound) pd_sound_start();
-
-#ifdef __MINGW32__
-	if (dgen_mingw_detach) {
-		// Console isn't needed anymore. Redirect output to log file.
-		file = dgen_fopen(NULL, "log.txt", (DGEN_WRITE | DGEN_TEXT));
-		if (file != NULL) {
-			fflush(stdout);
-			fflush(stderr);
-			dup2(fileno(file), fileno(stdout));
-			dup2(fileno(file), fileno(stderr));
-			fclose(file);
-			setvbuf(stdout, NULL, _IONBF, 0);
-			setvbuf(stderr, NULL, _IONBF, 0);
-		}
-		FreeConsole();
-	}
-#endif
 
   // Show cartridge header
   if(dgen_show_carthead) pd_show_carthead(megad);
