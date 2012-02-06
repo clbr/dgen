@@ -102,7 +102,9 @@ static inline uint24_t *u24cpy(uint24_t *dst, const uint24_t *src)
 	return dst;
 }
 
-extern uint8_t *load(size_t *file_size, FILE *file, size_t max_size);
+extern uint8_t *load(void **context,
+		     size_t *file_size, FILE *file, size_t max_size);
+extern void load_finish(void **context);
 extern void unload(uint8_t *data);
 
 SYSTEM_H_END_

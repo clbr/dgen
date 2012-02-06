@@ -169,6 +169,21 @@ void unload(uint8_t *data)
 #endif
 
 /*
+  Call this when you're done with your file.
+*/
+
+void load_finish(void **context)
+{
+#ifdef WITH_LIBARCHIVE
+	struct archive *archive = *context;
+
+	if (archive != NULL)
+		archive_read_finish(archive);
+#endif
+	*context = NULL;
+}
+
+/*
   Return the file size from the current file offset.
 */
 
@@ -192,9 +207,14 @@ static size_t load_size(FILE *file)
   if libarchive is available. If file_size is non-NULL, store the final size
   there. If max_size is nonzero, refuse to load anything bigger.
   In case the returned value is NULL, errno should contain the error.
+
+  If an error is returned but errno is 0, EOF has been reached.
+
+  The first time load() is called, "context" must point to a NULL value.
 */
 
-uint8_t *load(size_t *file_size, FILE *file, size_t max_size)
+uint8_t *load(void **context,
+	      size_t *file_size, FILE *file, size_t max_size)
 {
 	size_t pos;
 	size_t size = 0;
@@ -203,22 +223,37 @@ uint8_t *load(size_t *file_size, FILE *file, size_t max_size)
 	size_t chunk_size = load_size(file);
 	int error = 0;
 #ifdef WITH_LIBARCHIVE
-	struct archive *archive;
+	struct archive *archive = *context;
 	struct archive_entry *archive_entry;
 
+	if (archive != NULL)
+		goto init_ok;
 	archive = archive_read_new();
+	*context = archive;
 	if (archive == NULL) {
 		error = ENOMEM;
 		goto error;
 	}
 	archive_read_support_compression_all(archive);
+	archive_read_support_format_all(archive);
 	archive_read_support_format_raw(archive);
-	if ((archive_read_open_FILE(archive, file) != ARCHIVE_OK) ||
-	    (archive_read_next_header(archive,
-				      &archive_entry) != ARCHIVE_OK)) {
+	if (archive_read_open_FILE(archive, file) != ARCHIVE_OK) {
 		error = EIO;
 		goto error;
 	}
+init_ok:
+	switch (archive_read_next_header(archive, &archive_entry)) {
+	case ARCHIVE_OK:
+		break;
+	case ARCHIVE_EOF:
+		error = 0;
+		goto error;
+	default:
+		error = EIO;
+		goto error;
+	}
+#else
+	*context = (void *)0xffff;
 #endif
 	if (chunk_size == 0)
 		chunk_size = CHUNK_SIZE;
@@ -278,9 +313,6 @@ uint8_t *load(size_t *file_size, FILE *file, size_t max_size)
 		chunk_size = CHUNK_SIZE;
 	}
 process:
-#ifdef WITH_LIBARCHIVE
-	archive_read_finish(archive);
-#endif
 	chunk = realloc(head.next, (sizeof(*chunk) + size));
 	if (chunk == NULL) {
 		error = errno;
@@ -309,8 +341,7 @@ process:
 	return chunk->data;
 error:
 #ifdef WITH_LIBARCHIVE
-	if (archive != NULL)
-		archive_read_finish(archive);
+	load_finish(context);
 #endif
 	chunk = head.next;
 	while (chunk != &head) {

@@ -43,27 +43,34 @@ uint8_t *load_rom(size_t *rom_size, const char *name)
 	size_t size;
 	uint8_t *rom;
 	int error;
+	void *context = NULL;
 
 	if (name == NULL)
 		return NULL;
 	file = dgen_fopen("roms", name, (DGEN_READ | DGEN_CURRENT));
 	if (file == NULL) {
-		fprintf(stderr, "%s: Can't open ROM file\n", name);
+		fprintf(stderr, "%s: can't open ROM file.\n", name);
 		return NULL;
 	}
+retry:
 	/* A valid ROM will surely not be bigger than 64MB. */
-	rom = load(&size, file, (64 * 1024 * 1024));
+	rom = load(&context, &size, file, (64 * 1024 * 1024));
 	error = errno;
-	fclose(file);
 	if (rom == NULL) {
-		fprintf(stderr, "%s: Unable to load ROM: %s\n", name,
-			strerror(error));
+		if (error)
+			fprintf(stderr, "%s: unable to load ROM: %s.\n", name,
+				strerror(error));
+		else
+			fprintf(stderr, "%s: no valid ROM found.\n",
+				name);
+		load_finish(&context);
+		fclose(file);
 		return NULL;
 	}
 	if (size < 512) {
-		fprintf(stderr, "%s: ROM file too small\n", name);
+		/* ROM file too small */
 		unload(rom);
-		return NULL;
+		goto retry;
 	}
 	/*
 	  If "SEGA" isn't found at 0x100 and the total size minus 512 is a
@@ -80,7 +87,7 @@ uint8_t *load_rom(size_t *rom_size, const char *name)
 		/* Corrupt ROM? Complain and continue anyway. */
 		if (((rom[0] != 0x00) && (rom[0] != chunks)) ||
 		    (rom[8] != 0xaa) || (rom[9] != 0xbb))
-			fprintf(stderr, "%s: Corrupt SMD header\n", name);
+			fprintf(stderr, "%s: corrupt SMD header.\n", name);
 		/*
 		  De-interleave ROM, overwrite SMD header with the result.
 		*/
@@ -99,11 +106,13 @@ uint8_t *load_rom(size_t *rom_size, const char *name)
 		/* Does it look like a valid ROM now? */
 		if (memcmp(&rom[0x100], "SEGA", 4)) {
 		bad_rom:
-			fprintf(stderr, "%s: Invalid ROM\n", name);
+			/* Invalid ROM */
 			unload(rom);
-			return NULL;
+			goto retry;
 		}
 	}
+	load_finish(&context);
+	fclose(file);
 	if (rom_size != NULL)
 		*rom_size = size;
 	return rom;
