@@ -573,7 +573,7 @@ static void texture_init_id()
 	else
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 			     texture.width, texture.height,
-			     0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
+			     0, GL_BGRA, GL_UNSIGNED_BYTE,
 			     texture.buf.u32);
 }
 
@@ -711,7 +711,7 @@ static void update_texture()
 		}
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
-				GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
+				GL_BGRA, GL_UNSIGNED_BYTE,
 				texture.buf.u32);
 	}
 	glCallList(texture.dlist);
@@ -1667,10 +1667,16 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	fprintf(stderr, "video: %dx%d, %u bpp (%u Bpp), %uHz\n",
 		screen.surface->w, screen.surface->h, screen.bpp,
 		screen.Bpp, video.hz);
-	if (screen.is_opengl)
-		fprintf(stderr, "video: OpenGL texture %ux%ux%u (%ux%u)\n",
+	if (screen.is_opengl) {
+		DEBUG(("GL_VENDOR=\"%s\" GL_RENDERER=\"%s\""
+		       " GL_VERSION=\"%s\"",
+		       glGetString(GL_VENDOR), glGetString(GL_RENDERER),
+		       glGetString(GL_VERSION)));
+		fprintf(stderr,
+			"video: OpenGL texture %ux%ux%u (%ux%u)\n",
 			texture.width, texture.height, (2 << texture.u32),
 			texture.vis_width, texture.vis_height);
+	}
 	return 1;
 fail:
 	fprintf(stderr, "sdl: can't initialize graphics.\n");

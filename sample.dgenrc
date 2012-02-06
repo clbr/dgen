@@ -170,9 +170,9 @@ bool_opengl_aspect = true
 # Use GL_LINEAR for textures filtering instead of GL_NEAREST.
 bool_opengl_linear = true
 
-# Use 32 bit textures. The only reason you may want to try this option is if
-# somehow 16 bit textures don't work properly.
-bool_opengl_32bit = false
+# Use 32 bit textures. They require more memory but are usually faster than
+# 16 bit textures.
+bool_opengl_32bit = true
 
 # Swap textures endianness. Sometimes useful when video output is located on a
 # different system.
