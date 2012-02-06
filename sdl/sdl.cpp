@@ -523,6 +523,8 @@ void pd_option(char c, const char *)
 #endif
 	case 'f':
 		dgen_fullscreen = 1;
+		// XXX screen.want_fullscreen must match dgen_fullscreen.
+		screen.want_fullscreen = dgen_fullscreen;
 		break;
 	case 'X':
 		if ((xs = atoi(optarg)) <= 0)
