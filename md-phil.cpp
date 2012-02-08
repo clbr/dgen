@@ -94,6 +94,18 @@ void md::init_joysticks(int js1, int js2) {
 #endif // JSIOCGVERSION
 }
 
+void md::deinit_joysticks()
+{
+	if (js_fd[0] != -1) {
+		close(js_fd[0]);
+		js_fd[0] = -1;
+	}
+	if (js_fd[1] != -1) {
+		close(js_fd[1]);
+		js_fd[1] = -1;
+	}
+}
+
 void md::read_joysticks()
 {
 #ifdef JSIOCGVERSION
@@ -198,6 +210,18 @@ void md::init_joysticks(int js1, int js2) {
 
   // Enable joystick events
   SDL_JoystickEventState(SDL_ENABLE);
+}
+
+void md::deinit_joysticks()
+{
+	if (js_handle[0] != NULL) {
+		SDL_JoystickClose(js_handle[0]);
+		js_handle[0] = NULL;
+	}
+	if (js_handle[1] != NULL) {
+		SDL_JoystickClose(js_handle[1]);
+		js_handle[1] = NULL;
+	}
 }
 
 // This does nothing; SDL joystick handling is in the main event loop in

@@ -451,6 +451,7 @@ public:
   // Added by Phillip K. Hornung <redx@pknet.com>
   // Linux joystick initialization and handling routines
   void init_joysticks(int, int);
+  void deinit_joysticks();
   void read_joysticks();
 };
 
