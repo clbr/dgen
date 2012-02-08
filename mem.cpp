@@ -108,7 +108,8 @@ uint8_t md::misc_readbyte(uint32_t a)
 				  The region to emulate hasn't been defined,
 				  get it from the ROM header.
 				*/
-				c = rom[(0x1f0 ^ 1)];
+				if ((0x1f0 ^ 1) < romlen)
+					c = rom[(0x1f0 ^ 1)];
 			}
 			switch (c) {
 			case 'U':
