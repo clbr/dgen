@@ -371,11 +371,13 @@ md::md(bool pal, char region):
 
 // Dave: Rich said doing point star stuff is done after s68000init
 // in Asgard68000, so just in case...
-  fetch= new STARSCREAM_PROGRAMREGION[6]; if (!fetch)     return;
-  readbyte= new STARSCREAM_DATAREGION[5]; if (!readbyte)  return;
-  readword= new STARSCREAM_DATAREGION[5]; if (!readword)  return;
-  writebyte=new STARSCREAM_DATAREGION[5]; if (!writebyte) return;
-  writeword=new STARSCREAM_DATAREGION[5]; if (!writeword) return;
+	if (((fetch = new STARSCREAM_PROGRAMREGION [6]) == NULL) ||
+	    ((readbyte = new STARSCREAM_DATAREGION [5]) == NULL) ||
+	    ((readword = new STARSCREAM_DATAREGION [5]) == NULL) ||
+	    ((writebyte = new STARSCREAM_DATAREGION [5]) == NULL) ||
+	    ((writeword = new STARSCREAM_DATAREGION [5]) == NULL))
+		goto cleanup;
+
   memory_map();
 
   // point star stuff
@@ -446,6 +448,13 @@ cleanup:
 #ifdef WITH_MUSA
 	free(ctx_musa);
 #endif
+#ifdef WITH_STAR
+	delete [] fetch;
+	delete [] readbyte;
+	delete [] readword;
+	delete [] writebyte;
+	delete [] writeword;
+#endif
 	free(mem);
 	memset(this, 0, sizeof(*this));
 	lock = false;
@@ -463,11 +472,11 @@ md::~md()
 	free(ctx_musa);
 #endif
 #ifdef WITH_STAR
-  if (fetch)     delete[] fetch;
-  if (readbyte)  delete[] readbyte;
-  if (readword)  delete[] readword;
-  if (writebyte) delete[] writebyte;
-  if (writeword) delete[] writeword;
+	delete [] fetch;
+	delete [] readbyte;
+	delete [] readword;
+	delete [] writebyte;
+	delete [] writeword;
 #endif
 
 	while (patch_elem != NULL) {
