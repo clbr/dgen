@@ -235,8 +235,13 @@ public:
 	unsigned int vblank(); // Return first vblank line
 
 private:
+	static bool lock; // Prevent other MD objects
+
+	unsigned int ok: 1;
+	unsigned int ok_ym2612: 1; // YM2612
+	unsigned int ok_sn76496: 1; // SN76496
+
   unsigned int romlen;
-  int ok;
   unsigned char *mem,*rom,*ram,*z80ram;
   // Saveram stuff:
   unsigned char *saveram; // The actual saveram buffer

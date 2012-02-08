@@ -261,6 +261,8 @@ void md::z80_reset()
 #endif
 }
 
+bool md::lock = false;
+
 md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	md_musa_ref(0), md_musa_prev(0),
@@ -274,6 +276,11 @@ md::md(bool pal, char region):
 	pal(pal), vdp(*this), region(region)
 {
 	unsigned int hc;
+
+	// Only one MD object is allowed to exist at once.
+	if (lock)
+		return;
+	lock = true;
 
 	if (pal) {
 		mclk = PAL_MCLK;
@@ -295,6 +302,18 @@ md::md(bool pal, char region):
 		hc_table[hc][1] = (((hc * 205) / M68K_CYCLES_PER_LINE) - 0x1c);
 	}
 
+	// Start up the sound chips.
+	if (YM2612Init(1,
+		       (((pal) ? PAL_MCLK : NTSC_MCLK) / 7),
+		       dgen_soundrate, NULL, NULL))
+		goto cleanup;
+	ok_ym2612 = 1;
+	if (SN76496_init(0,
+			 (((pal) ? PAL_MCLK : NTSC_MCLK) / 15),
+			 dgen_soundrate, 16))
+		goto cleanup;
+	ok_sn76496 = 1;
+
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
@@ -307,7 +326,7 @@ md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	ctx_musa = calloc(1, m68k_context_size());
 	if (ctx_musa == NULL)
-		return;
+		goto cleanup;
 #endif
 
 #ifdef WITH_STAR
@@ -420,11 +439,16 @@ md::md(bool pal, char region):
 
 	return;
 cleanup:
+	if (ok_ym2612)
+		YM2612Shutdown();
+	if (ok_sn76496)
+		(void)0;
 #ifdef WITH_MUSA
 	free(ctx_musa);
 #endif
 	free(mem);
 	memset(this, 0, sizeof(*this));
+	lock = false;
 }
 
 
@@ -453,7 +477,13 @@ md::~md()
 		patch_elem = next;
 	}
 
-  ok=0;
+	if (ok_ym2612)
+		YM2612Shutdown();
+	if (ok_sn76496)
+		(void)0;
+	ok=0;
+	memset(this, 0, sizeof(*this));
+	lock = false;
 }
 
 // Byteswaps memory

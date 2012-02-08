@@ -382,21 +382,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	// Start up the sound chips.
-	if (YM2612Init(1,
-		       (((pal_mode) ? PAL_MCLK : NTSC_MCLK) / 7),
-		       dgen_soundrate, NULL, NULL))
-		goto ym2612_fail;
-	if (SN76496_init(0,
-			 (((pal_mode) ? PAL_MCLK : NTSC_MCLK) / 15),
-			 dgen_soundrate, 16)) {
-		YM2612Shutdown();
-	ym2612_fail:
-		fprintf(stderr,
-			"main: Couldn't start sound chipset emulators!\n");
-		return 1;
-	}
-
   // Initialize the platform-dependent stuff.
   if (!pd_graphics_init(dgen_sound, pal_mode, hz))
     {
@@ -575,7 +560,6 @@ int main(int argc, char *argv[])
   if(dgen_autosave) { slot = 0; md_save(megad); }
   megad.unplug();
   pd_quit();
-  YM2612Shutdown();
 
   // Come back anytime :)
   return 0;
