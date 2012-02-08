@@ -479,13 +479,6 @@ md::~md()
 	delete [] writeword;
 #endif
 
-	while (patch_elem != NULL) {
-		struct patch_elem *next = patch_elem->next;
-
-		free(patch_elem);
-		patch_elem = next;
-	}
-
 	if (ok_ym2612)
 		YM2612Shutdown();
 	if (ok_sn76496)
@@ -555,13 +548,22 @@ int md::unplug()
 {
   if (rom==NULL) return 1; if (romlen<=0) return 1;
   unload_rom(rom);
+  rom = NULL;
   free(saveram);
   romlen = save_start = save_len = 0;
 #ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
 #endif
   memset(romname, 0, sizeof(romname));
+  memset(&cart_head, 0, sizeof(cart_head));
   reset();
+
+	while (patch_elem != NULL) {
+		struct patch_elem *next = patch_elem->next;
+
+		free(patch_elem);
+		patch_elem = next;
+	}
 
   return 0;
 }

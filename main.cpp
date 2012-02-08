@@ -83,7 +83,7 @@ static void help()
 {
   printf(
   "DGen/SDL v"VER"\n"
-  "Usage: dgen [options] romname\n\n"
+  "Usage: dgen [options] [romname [...]]\n\n"
   "Where options are:\n"
   "    -v              Print version number and exit.\n"
   "    -r RCFILE       Read in the file RCFILE after parsing\n"
@@ -199,7 +199,7 @@ fail:
 int main(int argc, char *argv[])
 {
   int c = 0, pal_mode = 0, running = 1, usec = 0, start_slot = -1;
-  unsigned long frames = 0, frames_old = 0, fps = 0;
+  unsigned long frames, frames_old, fps;
   char *patches = NULL, *rom = NULL;
   unsigned long oldclk, newclk, startclk, fpsclk;
   FILE *file = NULL;
@@ -207,6 +207,8 @@ int main(int argc, char *argv[])
   unsigned int samples;
   unsigned int hz = 60;
   char region = '\0';
+  class md *megad;
+  bool first = true;
 
 	// Parse the RC file
 	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
@@ -396,65 +398,76 @@ int main(int argc, char *argv[])
       dgen_sound = pd_sound_init(dgen_soundrate, samples);
     }
 
-  rom = argv[optind];
-
-  // Create the megadrive object
-  md megad(pal_mode, region);
-  if(!megad.okay())
-    {
-      fprintf(stderr, "main: Megadrive init failed!\n");
-      return 1;
-    }
-  // Load the requested ROM
-  if(megad.load(rom))
-    {
-      fprintf(stderr, "main: Couldn't load ROM file %s!\n", rom);
-      return 1;
-    }
-  // Set untouched pads
-  megad.pad[0] = megad.pad[1] = 0xF303F;
+	rom = argv[optind];
+	// Create the megadrive object.
+	megad = new md(pal_mode, region);
+	if ((megad == NULL) || (!megad->okay())) {
+		fprintf(stderr, "main: Mega Drive initialization failed.\n");
+		goto clean_up;
+	}
+next_rom:
+	// Load the requested ROM.
+	if (rom != NULL) {
+		if (megad->load(rom)) {
+			pd_message("Unable to load \"%s\".", rom);
+			if ((first) && ((optind + 1) == argc))
+				goto clean_up;
+		}
+		else
+			pd_message("Loaded \"%s\".", rom);
+	}
+	else
+		pd_message("No cartridge.");
+	first = false;
+	// Set untouched pads.
+	megad->pad[0] = 0xf303f;
+	megad->pad[1] = 0xf303f;
 #ifdef WITH_JOYSTICK
-  if(dgen_joystick)
-    megad.init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
+	if (dgen_joystick)
+		megad->init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
 #endif
-  // Load patches, if given
-  if(patches)
-    {
-      printf("main: Using patch codes %s\n", patches);
-      megad.patch(patches, NULL, NULL, NULL);
-    }
-  // Fix checksum
-  megad.fix_rom_checksum();
-  // Reset
-  megad.reset();
+	// Load patches, if given.
+	if (patches) {
+		printf("main: Using patch codes \"%s\".\n", patches);
+		megad->patch(patches, NULL, NULL, NULL);
+		// Use them only once.
+		patches = NULL;
+	}
+	// Fix checksum
+	megad->fix_rom_checksum();
+	// Reset
+	megad->reset();
 
-  // Load up save RAM
-  ram_load(megad);
-  // If autoload is on, load save state 0
-  if(dgen_autoload)
-    {
-      slot = 0;
-      md_load(megad);
-    }
-  // If -s option was given, load the requested slot
-  if(start_slot >= 0)
-    {
-      slot = start_slot;
-      md_load(megad);
-    }
+	// Load up save RAM
+	ram_load(*megad);
+	// If -s option was given, load the requested slot
+	if (start_slot >= 0) {
+		slot = start_slot;
+		md_load(*megad);
+	}
+	// If autoload is on, load save state 0
+	else if (dgen_autoload) {
+		slot = 0;
+		md_load(*megad);
+	}
 
-  // Start the timing refs
-  startclk = pd_usecs();
-  oldclk = startclk;
-  fpsclk = startclk;
+	// Start the timing refs
+	startclk = pd_usecs();
+	oldclk = startclk;
+	fpsclk = startclk;
 
-  // Start audio
-  if(dgen_sound) pd_sound_start();
+	// Start audio
+	if (dgen_sound)
+		pd_sound_start();
 
-  // Show cartridge header
-  if(dgen_show_carthead) pd_show_carthead(megad);
+	// Show cartridge header
+	if (dgen_show_carthead)
+		pd_show_carthead(*megad);
 
 	// Go around, and around, and around, and around... ;)
+	frames = 0;
+	frames_old = 0;
+	fps = 0;
 	while (running) {
 		const unsigned int usec_frame = (1000000 / hz);
 		unsigned long tmp;
@@ -509,25 +522,25 @@ int main(int argc, char *argv[])
 		else {
 			// Draw frames.
 			while (frames_todo != 1) {
-				do_demo(megad, file, &demo_status);
+				do_demo(*megad, file, &demo_status);
 				if (dgen_sound) {
 					// Skip this frame, keep sound going.
-					megad.one_frame(NULL, NULL, &sndi);
+					megad->one_frame(NULL, NULL, &sndi);
 					pd_sound_write();
 				}
 				else
-					megad.one_frame(NULL, NULL, NULL);
+					megad->one_frame(NULL, NULL, NULL);
 				--frames_todo;
 			}
 			--frames_todo;
 		do_not_skip:
-			do_demo(megad, file, &demo_status);
+			do_demo(*megad, file, &demo_status);
 			if (dgen_sound) {
-				megad.one_frame(&mdscr, mdpal, &sndi);
+				megad->one_frame(&mdscr, mdpal, &sndi);
 				pd_sound_write();
 			}
 			else
-				megad.one_frame(&mdscr, mdpal, NULL);
+				megad->one_frame(&mdscr, mdpal, NULL);
 			if ((mdpal) && (pal_dirty)) {
 				pd_graphics_palette_update();
 				pal_dirty = 0;
@@ -536,7 +549,7 @@ int main(int argc, char *argv[])
 			++frames;
 		}
 
-		running = pd_handle_events(megad);
+		running = pd_handle_events(*megad);
 
 		if (dgen_nice) {
 #ifdef __BEOS__
@@ -547,6 +560,15 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// Pause audio.
+	if (dgen_sound)
+		pd_sound_pause();
+
+#ifdef WITH_JOYSTICK
+	if (dgen_joystick)
+		megad->deinit_joysticks();
+#endif
+
 	// Print fps
 	fpsclk = ((pd_usecs() - startclk) / 1000000);
 	if (fpsclk == 0)
@@ -554,13 +576,25 @@ int main(int argc, char *argv[])
 	printf("%lu frames per second (average %lu, optimal %d)\n",
 	       fps, (frames / fpsclk), hz);
 
-  // Cleanup
-  if(file) fclose(file);
-  ram_save(megad);
-  if(dgen_autosave) { slot = 0; md_save(megad); }
-  megad.unplug();
-  pd_quit();
-
-  // Come back anytime :)
-  return 0;
+	ram_save(*megad);
+	if (dgen_autosave) {
+		slot = 0;
+		md_save(*megad);
+	}
+	megad->unplug();
+	if (file) {
+		fclose(file);
+		file = NULL;
+	}
+	if ((++optind) < argc) {
+		rom = argv[optind];
+		running = 1;
+		goto next_rom;
+	}
+clean_up:
+	// Cleanup
+	delete megad;
+	pd_quit();
+	// Come back anytime :)
+	return 0;
 }
