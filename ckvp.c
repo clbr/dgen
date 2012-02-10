@@ -47,7 +47,7 @@ enum {
 	ACTION_STORE_HEX2 = 0x8000  /* store second hex digit */
 };
 
-#define	HEX_INDEXES(st)						\
+#define	HEX_INDICES(st)						\
 	['0'] = (st), ['1'] = (st), ['2'] = (st), ['3'] = (st),	\
 	['4'] = (st), ['5'] = (st), ['6'] = (st), ['7'] = (st),	\
 	['8'] = (st), ['9'] = (st), ['a'] = (st), ['b'] = (st),	\
@@ -135,12 +135,12 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_KEYBSX1] = {
-			HEX_INDEXES(STATE_KEYBSX2 | ACTION_STORE_HEX1),
+			HEX_INDICES(STATE_KEYBSX2 | ACTION_STORE_HEX1),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_KEYBSX2] = {
-			HEX_INDEXES(STATE_KEY | ACTION_STORE_HEX2),
+			HEX_INDICES(STATE_KEY | ACTION_STORE_HEX2),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
@@ -167,12 +167,12 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_KEYDQBSX1] = {
-			HEX_INDEXES(STATE_KEYDQBSX2 | ACTION_STORE_HEX1),
+			HEX_INDICES(STATE_KEYDQBSX2 | ACTION_STORE_HEX1),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_KEYDQBSX2] = {
-			HEX_INDEXES(STATE_KEYDQ | ACTION_STORE_HEX2),
+			HEX_INDICES(STATE_KEYDQ | ACTION_STORE_HEX2),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
@@ -231,12 +231,12 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_VALBSX1] = {
-			HEX_INDEXES(STATE_VALBSX2 | ACTION_STORE_HEX1),
+			HEX_INDICES(STATE_VALBSX2 | ACTION_STORE_HEX1),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_VALBSX2] = {
-			HEX_INDEXES(STATE_VALUE | ACTION_STORE_HEX2),
+			HEX_INDICES(STATE_VALUE | ACTION_STORE_HEX2),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
@@ -263,12 +263,12 @@ size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_VALDQBSX1] = {
-			HEX_INDEXES(STATE_VALDQBSX2 | ACTION_STORE_HEX1),
+			HEX_INDICES(STATE_VALDQBSX2 | ACTION_STORE_HEX1),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
 		[STATE_VALDQBSX2] = {
-			HEX_INDEXES(STATE_VALDQ | ACTION_STORE_HEX2),
+			HEX_INDICES(STATE_VALDQ | ACTION_STORE_HEX2),
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
 			[0x101] = ACTION_ERROR
 		},
