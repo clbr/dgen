@@ -2555,6 +2555,7 @@ int pd_handle_events(md &megad)
 				" resolution.\n");
 			return 0;
 		}
+		break;
 	}
 	case SDL_KEYUP:
 	  ksym = event.key.keysym.sym;
