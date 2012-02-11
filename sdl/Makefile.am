@@ -37,6 +37,8 @@ libpd_a_SOURCES =	\
 	sdl.cpp		\
 	font.h		\
 	pd-defs.h	\
+	prompt.h	\
+	prompt.c	\
 	$(BUILT_SOURCES)
 libpd_a_DEPENDENCIES = $(PBM2DF)
 

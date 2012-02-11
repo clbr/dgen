@@ -27,4 +27,14 @@ extern const char *scaling_names[];
 // Provide a prototype to the parse_rc function in rc.cpp
 extern void parse_rc(FILE *file, const char *name);
 
+extern long number(const char *value);
+
+struct rc_field {
+	const char *fieldname;
+	long (*parser)(const char *);
+	long *variable;
+};
+
+extern struct rc_field rc_fields[];
+
 #endif // RC_H_

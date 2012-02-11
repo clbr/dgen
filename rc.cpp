@@ -337,18 +337,14 @@ static long emu_m68k(const char *value)
 	return -1;
 }
 
-static long number(const char *value)
+long number(const char *value)
 {
   return atoi(value);
 }
 
 /* This is a table of all the RC options, the variables they affect, and the
  * functions to parse their values. */
-struct rc_field {
-  const char *fieldname;
-  long (*parser)(const char*);
-  long *variable;
-} rc_fields[] = {
+struct rc_field rc_fields[] = {
   { "key_pad1_up", keysym, &pad1_up },
   { "key_pad1_down", keysym, &pad1_down },
   { "key_pad1_left", keysym, &pad1_left },
@@ -396,6 +392,7 @@ struct rc_field {
   { "key_stop", keysym, &dgen_stop },
   { "key_game_genie", keysym, &dgen_game_genie },
   { "key_fullscreen_toggle", keysym, &dgen_fullscreen_toggle },
+  { "key_prompt", keysym, &dgen_prompt },
   { "bool_autoload", boolean, &dgen_autoload },
   { "bool_autosave", boolean, &dgen_autosave },
   { "bool_frameskip", boolean, &dgen_frameskip },

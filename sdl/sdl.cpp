@@ -32,6 +32,7 @@
 #include "pd-defs.h"
 #include "font.h"
 #include "system.h"
+#include "prompt.h"
 
 #ifdef WITH_HQX
 #include "hqx.h"
@@ -2010,6 +2011,147 @@ static void stop_events_msg(const char *msg, ...)
 	pd_message_display(buf, strlen(buf));
 }
 
+static size_t prompt_complete_cmd(const char *prefix, size_t length,
+				  unsigned int skip)
+{
+	size_t i;
+
+	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
+		if (strncasecmp(rc_fields[i].fieldname, prefix, length))
+			continue;
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	return i;
+}
+
+static int prompt(struct prompt *p, unsigned int *complete_skip,
+		  SDL_keysym *ks)
+{
+	struct prompt::prompt_history *ph;
+	struct prompt_parse pp;
+	long potential;
+	unsigned int i;
+	char *s;
+	char c = ' ';
+	size_t j;
+	int printed = 0;
+	int ret = 2;
+
+	if (ks == NULL)
+		goto end;
+	if (((ks->unicode & 0xff80) == 0) &&
+	    (isprint((c = (ks->unicode & 0x7f))))) {
+		prompt_put(p, c);
+		goto end;
+	}
+	switch (ks->sym) {
+	case SDLK_UP:
+		prompt_older(p);
+		break;
+	case SDLK_DOWN:
+		prompt_newer(p);
+		break;
+	case SDLK_LEFT:
+		prompt_left(p);
+		break;
+	case SDLK_RIGHT:
+		prompt_right(p);
+		break;
+	case SDLK_HOME:
+		prompt_begin(p);
+		break;
+	case SDLK_END:
+		prompt_end(p);
+		break;
+	case SDLK_BACKSPACE:
+		prompt_backspace(p);
+		break;
+	case SDLK_DELETE:
+		prompt_delete(p);
+		break;
+	case SDLK_RETURN:
+	case SDLK_KP_ENTER:
+		if (prompt_parse(p, &pp) == NULL)
+			break;
+		if (pp.argc == 0)
+			goto key_enter_end;
+		for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
+			if (strcasecmp(rc_fields[i].fieldname,
+				       (char *)pp.argv[0]))
+				continue;
+			if (pp.argv[1] == NULL) {
+				stop_events_msg("%s: missing value",
+						(char *)pp.argv[0]);
+				printed = 1;
+				break;
+			}
+			potential = rc_fields[i].parser((char *)pp.argv[1]);
+			if ((rc_fields[i].parser != number) &&
+			    (potential == -1)) {
+				stop_events_msg("%s: invalid value",
+						(char *)pp.argv[0]);
+				printed = 1;
+				break;
+			}
+			*(rc_fields[i].variable) = potential;
+			break;
+		}
+		if (rc_fields[i].fieldname == NULL) {
+			stop_events_msg("%s: unknown command",
+					(char *)pp.argv[0]);
+			printed = 1;
+		}
+	key_enter_end:
+		prompt_parse_clean(&pp);
+		prompt_push(p);
+		ret = 1;
+		break;
+	case SDLK_ESCAPE:
+		ret = 0;
+		break;
+	case SDLK_TAB:
+		if (prompt_parse(p, &pp) == NULL)
+			break;
+		if (pp.argv[pp.index] == NULL)
+			goto key_tab_end;
+		if (pp.index != 0)
+			goto key_tab_end;
+		// Command completion.
+	key_tab_retry:
+		j = prompt_complete_cmd((char *)pp.argv[0], pp.cursor,
+					*complete_skip);
+		if (rc_fields[j].fieldname == NULL) {
+			if (*complete_skip == 0)
+				goto key_tab_end;
+			*complete_skip = 0;
+			goto key_tab_retry;
+		}
+		s = backslashify((uint8_t *)rc_fields[j].fieldname,
+				 strlen(rc_fields[j].fieldname));
+		if (s == NULL)
+			goto key_tab_end;
+		prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
+			       (uint8_t *)s, strlen(s));
+		free(s);
+		++(*complete_skip);
+	key_tab_end:
+		prompt_parse_clean(&pp);
+		break;
+	default:
+		break;
+	}
+	if (c != SDLK_TAB)
+		*complete_skip = 0;
+end:
+	if (!printed) {
+		ph = &p->history[(p->current)];
+		stop_events_msg(":%.*s", ph->length, ph->line);
+	}
+	return ret;
+}
+
 // This is a small event loop to handle stuff when we're stopped.
 static int stop_events(md &megad, int gg)
 {
@@ -2017,7 +2159,10 @@ static int stop_events(md &megad, int gg)
 	char buf[128] = "";
 	kb_input_t input = { 0, 0, 0 };
 	int fullscreen = 0;
+	struct prompt p;
+	unsigned int complete_skip = 0;
 
+	prompt_init(&p);
 	// Switch out of fullscreen mode (assuming this is supported)
 	if (screen.is_fullscreen) {
 		fullscreen = 1;
@@ -2028,7 +2173,9 @@ static int stop_events(md &megad, int gg)
 	stopped = 1;
 	SDL_PauseAudio(1);
 gg:
-	if (gg) {
+	if (gg >= 3)
+		prompt(&p, &complete_skip, NULL);
+	else if (gg) {
 		size_t len;
 
 		strncpy(buf, "Enter Game Genie/Hex code: ", sizeof(buf));
@@ -2038,20 +2185,56 @@ gg:
 		input.size = (sizeof(buf) - len);
 		if (input.size > 12)
 			input.size = 12;
+		stop_events_msg(buf);
 	}
-	else
+	else {
 		strncpy(buf, "STOPPED.", sizeof(buf));
-	stop_events_msg(buf);
+		stop_events_msg(buf);
+	}
 	// We still check key events, but we can wait for them
 	while (SDL_WaitEvent(&event)) {
 		switch (event.type) {
+			int ksym;
+
 		case SDL_KEYDOWN:
-			if ((gg == 0) &&
-			    (event.key.keysym.sym == dgen_game_genie)) {
-				gg = 2;
-				goto gg;
+			ksym = event.key.keysym.sym;
+			if (event.key.keysym.mod & KMOD_SHIFT)
+				ksym |= KEYSYM_MOD_SHIFT;
+			if (event.key.keysym.mod & KMOD_CTRL)
+				ksym |= KEYSYM_MOD_CTRL;
+			if (event.key.keysym.mod & KMOD_ALT)
+				ksym |= KEYSYM_MOD_ALT;
+			if (event.key.keysym.mod & KMOD_META)
+				ksym |= KEYSYM_MOD_META;
+			if (gg == 0) {
+				if (ksym == dgen_game_genie) {
+					gg = 2;
+					goto gg;
+				}
+				if (ksym == dgen_prompt) {
+					gg = 4;
+					goto gg;
+				}
 			}
-			if (gg)
+			if (gg >= 3) {
+				switch (prompt(&p, &complete_skip,
+					       &event.key.keysym)) {
+				case 2:
+					continue;
+				case 0:
+					if (gg == 4) {
+						// Return to stopped mode.
+						gg = 0;
+						goto gg;
+					}
+					break;
+				case 1:
+					if (gg == 4)
+						continue;
+					goto gg_resume;
+				}
+			}
+			else if (gg)
 				switch (kb_input(&input, &event.key.keysym)) {
 					unsigned int errors;
 					unsigned int applied;
@@ -2107,7 +2290,10 @@ gg:
 			}
 			pd_graphics_update();
 		case SDL_VIDEOEXPOSE:
-			stop_events_msg(buf);
+			if (gg >= 3)
+				prompt(&p, &complete_skip, NULL);
+			else
+				stop_events_msg(buf);
 			break;
 		}
 	}
@@ -2324,6 +2510,8 @@ int pd_handle_events(md &megad)
 		}
 		else if (ksym == dgen_stop)
 			return stop_events(megad, 0);
+		else if (ksym == dgen_prompt)
+			return stop_events(megad, 3);
 		else if (ksym == dgen_game_genie)
 			return stop_events(megad, 1);
 	  else if(ksym == dgen_fullscreen_toggle) {
