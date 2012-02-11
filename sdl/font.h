@@ -6,6 +6,6 @@
 
 extern size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 			unsigned int bytes_per_pixel, unsigned int pitch,
-			const char *msg, size_t len);
+			const char *msg, size_t len, unsigned int mark);
 
 #endif /* __FONT_H__ */

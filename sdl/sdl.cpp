@@ -1534,7 +1534,7 @@ static int screen_init(unsigned int width, unsigned int height)
 			// Screen is now blank.
 			font_text(buf, video.width, video.height,
 				  BITS_TO_BYTES(mdscr.bpp), mdscr.pitch,
-				  "_@__, DGen " VER " _@__,", 42);
+				  "_@__, DGen " VER " _@__,", 42, ~0u);
 		}
 	}
 	DEBUG(("md screen configuration: w=%d h=%d bpp=%d pitch=%d data=%p",
@@ -1703,7 +1703,8 @@ void pd_graphics_palette_update()
 }
 
 static void pd_message_process(void);
-static size_t pd_message_display(const char *msg, size_t len);
+static size_t pd_message_display(const char *msg, size_t len,
+				 unsigned int mark);
 static void pd_message_postpone(const char *msg);
 
 // Update screen
@@ -2000,15 +2001,15 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 	return KB_INPUT_IGNORED;
 }
 
-static void stop_events_msg(const char *msg, ...)
+static void stop_events_msg(unsigned int mark, const char *msg, ...)
 {
 	va_list vl;
-	char buf[256];
+	char buf[1024];
 
 	va_start(vl, msg);
 	vsnprintf(buf, sizeof(buf), msg, vl);
 	va_end(vl);
-	pd_message_display(buf, strlen(buf));
+	pd_message_display(buf, strlen(buf), mark);
 }
 
 static size_t prompt_complete_cmd(const char *prefix, size_t length,
@@ -2082,7 +2083,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 				       (char *)pp.argv[0]))
 				continue;
 			if (pp.argv[1] == NULL) {
-				stop_events_msg("%s: missing value",
+				stop_events_msg(~0u, "%s: missing value",
 						(char *)pp.argv[0]);
 				printed = 1;
 				break;
@@ -2090,7 +2091,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 			potential = rc_fields[i].parser((char *)pp.argv[1]);
 			if ((rc_fields[i].parser != number) &&
 			    (potential == -1)) {
-				stop_events_msg("%s: invalid value",
+				stop_events_msg(~0u, "%s: invalid value",
 						(char *)pp.argv[0]);
 				printed = 1;
 				break;
@@ -2099,7 +2100,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 			break;
 		}
 		if (rc_fields[i].fieldname == NULL) {
-			stop_events_msg("%s: unknown command",
+			stop_events_msg(~0u, "%s: unknown command",
 					(char *)pp.argv[0]);
 			printed = 1;
 		}
@@ -2147,7 +2148,8 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 end:
 	if (!printed) {
 		ph = &p->history[(p->current)];
-		stop_events_msg(":%.*s", ph->length, ph->line);
+		stop_events_msg((p->cursor + 1),
+				":%.*s", ph->length, ph->line);
 	}
 	return ret;
 }
@@ -2185,11 +2187,11 @@ gg:
 		input.size = (sizeof(buf) - len);
 		if (input.size > 12)
 			input.size = 12;
-		stop_events_msg(buf);
+		stop_events_msg(~0u, buf);
 	}
 	else {
 		strncpy(buf, "STOPPED.", sizeof(buf));
-		stop_events_msg(buf);
+		stop_events_msg(~0u, buf);
 	}
 	// We still check key events, but we can wait for them
 	while (SDL_WaitEvent(&event)) {
@@ -2262,13 +2264,13 @@ gg:
 					if (gg == 2) {
 						// Return to stopped mode.
 						gg = 0;
-						stop_events_msg(buf);
+						stop_events_msg(~0u, buf);
 						continue;
 					}
 					pd_message("%s", buf);
 					goto gg_resume;
 				case KB_INPUT_CONSUMED:
-					stop_events_msg("%s", buf);
+					stop_events_msg(~0u, "%s", buf);
 					continue;
 				case KB_INPUT_IGNORED:
 					break;
@@ -2293,7 +2295,7 @@ gg:
 			if (gg >= 3)
 				prompt(&p, &complete_skip, NULL);
 			else
-				stop_events_msg(buf);
+				stop_events_msg(~0u, buf);
 			break;
 		}
 	}
@@ -2540,12 +2542,14 @@ int pd_handle_events(md &megad)
 	{
 		switch (screen_init(event.resize.w, event.resize.h)) {
 		case 0:
-			stop_events_msg("Video resized to %ux%u.",
+			stop_events_msg(~0u,
+					"Video resized to %ux%u.",
 					screen.surface->w,
 					screen.surface->h);
 			break;
 		case -1:
-			stop_events_msg("Failed to resize video to %ux%u.",
+			stop_events_msg(~0u,
+					"Failed to resize video to %ux%u.",
 					event.resize.w,
 					event.resize.h);
 			break;
@@ -2601,7 +2605,8 @@ int pd_handle_events(md &megad)
   return 1;
 }
 
-static size_t pd_message_display(const char *msg, size_t len)
+static size_t pd_message_display(const char *msg, size_t len,
+				 unsigned int mark)
 {
 	uint8_t *buf = (screen.buf.u8 +
 			(screen.pitch * (screen.height - screen.info_height)));
@@ -2613,7 +2618,8 @@ static size_t pd_message_display(const char *msg, size_t len)
 	// Write message.
 	if (len != 0)
 		ret = font_text(buf, screen.width, screen.info_height,
-				screen.Bpp, screen.pitch, msg, len);
+				screen.Bpp, screen.pitch, msg, len,
+				mark);
 	screen_unlock();
 	screen_update();
 	if (len == 0)
@@ -2641,7 +2647,7 @@ static void pd_message_process(void)
 			len = (n + 1);
 			break;
 		}
-	r = pd_message_display(info.message, n);
+	r = pd_message_display(info.message, n, ~0u);
 	if (r < n)
 		len = r;
 	memmove(info.message, &(info.message[len]), (info.length - len));
@@ -2671,7 +2677,7 @@ void pd_message(const char *msg, ...)
 
 void pd_clear_message()
 {
-	pd_message_display(NULL, 0);
+	pd_message_display(NULL, 0, ~0u);
 }
 
 void pd_show_carthead(md& megad)

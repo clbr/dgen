@@ -8,6 +8,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include "font.h"	/* The interface functions */
 
 #ifndef FONT_VISIBLE
@@ -29,9 +30,29 @@ const struct dgen_font {
 	{ 0, 0, NULL }
 };
 
+static void font_mark(uint8_t *buf, unsigned int width, unsigned int height,
+		      unsigned int bytes_per_pixel, unsigned int pitch,
+		      unsigned int mark_x,
+		      unsigned int font_w, unsigned int font_h)
+{
+	unsigned int y;
+
+	if (((mark_x + font_w) > width) || (height < font_h))
+		return;
+	buf += (mark_x * bytes_per_pixel);
+	for (y = 0; (y != font_h); ++y) {
+		unsigned int x;
+		unsigned int len = (bytes_per_pixel * font_w);
+
+		for (x = 0; (x < len); ++x)
+			buf[x] ^= 0xff;
+		buf += pitch;
+	}
+}
+
 size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 		 unsigned int bytes_per_pixel, unsigned int pitch,
-		 const char *msg, size_t len)
+		 const char *msg, size_t len, unsigned int mark)
 {
 	const struct dgen_font *font = dgen_font;
 	uint8_t *p_max;
@@ -47,6 +68,12 @@ size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 	}
 	if (font->data == NULL) {
 		printf("info: %.*s\n", (unsigned int)len, msg);
+		if (mark <= len) {
+			printf("      ");
+			for (x = 0; (x != mark); ++x)
+				putchar(' ');
+			puts("^");
+		}
 		return len;
 	}
 	p_max = (buf + (pitch * height));
@@ -73,6 +100,12 @@ size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 			}
 			++glyph;
 		}
+		if (r == mark)
+			font_mark(buf, width, height, bytes_per_pixel, pitch,
+				  x, font->w, font->h);
 	}
+	if (r == mark)
+		font_mark(buf, width, height, bytes_per_pixel, pitch,
+			  x, font->w, font->h);
 	return r;
 }
