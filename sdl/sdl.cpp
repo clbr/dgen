@@ -2167,6 +2167,7 @@ static int stop_events(md &megad, int gg)
 	int fullscreen = 0;
 	struct prompt *p = &stop_events_prompt;
 	unsigned int complete_skip = 0;
+	size_t gg_len = 0;
 
 	// Switch out of fullscreen mode (assuming this is supported)
 	if (screen.is_fullscreen) {
@@ -2187,12 +2188,13 @@ gg:
 
 		strncpy(buf, "Enter Game Genie/Hex code: ", sizeof(buf));
 		len = strlen(buf);
+		gg_len = len;
 		input.buf = &(buf[len]);
 		input.pos = 0;
 		input.size = (sizeof(buf) - len);
 		if (input.size > 12)
 			input.size = 12;
-		stop_events_msg(~0u, buf);
+		stop_events_msg(gg_len, buf);
 	}
 	else {
 		strncpy(buf, "STOPPED.", sizeof(buf));
@@ -2275,7 +2277,8 @@ gg:
 					pd_message("%s", buf);
 					goto gg_resume;
 				case KB_INPUT_CONSUMED:
-					stop_events_msg(~0u, "%s", buf);
+					stop_events_msg((gg_len + input.pos),
+							"%s", buf);
 					continue;
 				case KB_INPUT_IGNORED:
 					break;
