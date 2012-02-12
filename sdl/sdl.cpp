@@ -2336,6 +2336,8 @@ static size_t prompt_complete_cmd(const char *prefix, size_t length,
 {
 	size_t i;
 
+	if (prefix == NULL)
+		return skip;
 	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
 		if (strncasecmp(rc_fields[i].fieldname, prefix, length))
 			continue;
@@ -2434,8 +2436,6 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 	case SDLK_TAB:
 		if (prompt_parse(p, &pp) == NULL)
 			break;
-		if (pp.argv[pp.index] == NULL)
-			goto key_tab_end;
 		if (pp.index != 0)
 			goto key_tab_end;
 		// Command completion.
