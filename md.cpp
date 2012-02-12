@@ -586,11 +586,11 @@ int md::unplug()
   return 0;
 }
 
-int md::load(char *name)
+int md::load(const char *name)
 {
 	uint8_t *temp;
 	size_t size;
-	char *b_name;
+	const char *b_name;
 
 	if ((name == NULL) ||
 	    ((b_name = dgen_basename(name)) == NULL))

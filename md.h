@@ -379,7 +379,7 @@ public:
   bool init_sound();
   int plug_in(unsigned char *cart,int len);
   int unplug();
-  int load(char *name);
+  int load(const char *name);
 
   int reset();
 
@@ -422,8 +422,6 @@ public:
 #ifdef WITH_MZ80
   mz80context&   z80_context() {return z80;}
 #endif
-  int load(FILE *hand,char *desc);
-  int save(FILE *hand,char *desc);
   int import_gst(FILE *hand);
   int export_gst(FILE *hand);
 

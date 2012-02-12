@@ -159,7 +159,7 @@ void md_load(md& megad)
 }
 
 // Load/save states from file
-static void ram_save(md& megad)
+void ram_save(md& megad)
 {
 	FILE *save;
 	int ret;
@@ -177,7 +177,7 @@ fail:
 	fprintf(stderr, "Couldn't save battery RAM to `%s'\n", megad.romname);
 }
 
-static void ram_load(md& megad)
+void ram_load(md& megad)
 {
 	FILE *load;
 	int ret;

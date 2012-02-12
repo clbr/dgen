@@ -43,7 +43,7 @@ extern FILE *dgen_fopen(const char *subdir, const char *file,
 			unsigned int mode);
 extern FILE *dgen_freopen(const char *subdir, const char *file,
 			  unsigned int mode, FILE *f);
-extern char *dgen_basename(char *path);
+extern const char *dgen_basename(const char *path);
 
 #define le2h16(v) h2le16(v)
 static inline uint16_t h2le16(uint16_t v)

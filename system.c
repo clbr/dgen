@@ -127,7 +127,7 @@ error:
   nor modifying the argument.
 */
 
-char *dgen_basename(char *path)
+const char *dgen_basename(const char *path)
 {
 	char *tmp;
 
