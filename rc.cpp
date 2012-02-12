@@ -171,6 +171,7 @@ struct rc_keysym rc_keysyms[] = {
   { "META_L", PDK_LMETA },
   { "RMETA", PDK_RMETA },
   { "META_R", PDK_RMETA },
+  { "", PDK_INVALID },
   { NULL, 0 } // Terminator
 }; // Phew! ;)
 

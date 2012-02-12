@@ -112,6 +112,7 @@
 #define PDK_RALT SDLK_RALT
 #define PDK_LMETA SDLK_LMETA
 #define PDK_RMETA SDLK_RMETA
+#define PDK_INVALID -42
 
 // There, that wasn't so hard, was it? :)
 // If you want to inline any pd_ functions, put their bodies here.
