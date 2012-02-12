@@ -261,6 +261,32 @@ void md::z80_reset()
 #endif
 }
 
+// Return true when successful.
+bool md::init_sound()
+{
+	if (lock == false)
+		return false;
+	if (ok_ym2612) {
+		YM2612Shutdown();
+		ok_ym2612 = false;
+	}
+	if (ok_sn76496) {
+		(void)0;
+		ok_sn76496 = false;
+	}
+	if (YM2612Init(1,
+		       (((pal) ? PAL_MCLK : NTSC_MCLK) / 7),
+		       dgen_soundrate, NULL, NULL))
+		return false;
+	ok_ym2612 = true;
+	if (SN76496_init(0,
+			 (((pal) ? PAL_MCLK : NTSC_MCLK) / 15),
+			 dgen_soundrate, 16))
+		return false;
+	ok_sn76496 = true;
+	return true;
+}
+
 bool md::lock = false;
 
 md::md(bool pal, char region):
@@ -273,7 +299,8 @@ md::md(bool pal, char region):
 #ifdef WITH_MZ80
 	md_mz80_ref(0), md_mz80_prev(0),
 #endif
-	pal(pal), vdp(*this), region(region)
+	pal(pal), ok_ym2612(false), ok_sn76496(false),
+	vdp(*this), region(region)
 {
 	unsigned int hc;
 
@@ -303,16 +330,8 @@ md::md(bool pal, char region):
 	}
 
 	// Start up the sound chips.
-	if (YM2612Init(1,
-		       (((pal) ? PAL_MCLK : NTSC_MCLK) / 7),
-		       dgen_soundrate, NULL, NULL))
+	if (init_sound() == false)
 		goto cleanup;
-	ok_ym2612 = 1;
-	if (SN76496_init(0,
-			 (((pal) ? PAL_MCLK : NTSC_MCLK) / 15),
-			 dgen_soundrate, 16))
-		goto cleanup;
-	ok_sn76496 = 1;
 
   romlen=0;
   mem=rom=ram=z80ram=saveram=NULL;
@@ -459,7 +478,6 @@ cleanup:
 	memset(this, 0, sizeof(*this));
 	lock = false;
 }
-
 
 md::~md()
 {

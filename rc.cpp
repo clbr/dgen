@@ -397,34 +397,34 @@ struct rc_field rc_fields[] = {
   { "bool_frameskip", rc_boolean, &dgen_frameskip },
   { "bool_show_carthead", rc_boolean, &dgen_show_carthead },
   { "bool_raw_screenshots", rc_boolean, &dgen_raw_screenshots },
-  { "ctv_craptv_startup", rc_ctv, &dgen_craptv },
-  { "scaling_startup", rc_scaling, &dgen_scaling },
-  { "emu_z80_startup", rc_emu_z80, &dgen_emu_z80 },
-  { "emu_m68k_startup", rc_emu_m68k, &dgen_emu_m68k },
-  { "bool_sound", rc_boolean, &dgen_sound },
-  { "int_soundrate", rc_number, &dgen_soundrate },
-  { "int_soundsegs", rc_number, &dgen_soundsegs },
-  { "int_soundsamples", rc_number, &dgen_soundsamples },
+  { "ctv_craptv_startup", rc_ctv, &dgen_craptv }, // SH
+  { "scaling_startup", rc_scaling, &dgen_scaling }, // SH
+  { "emu_z80_startup", rc_emu_z80, &dgen_emu_z80 }, // SH
+  { "emu_m68k_startup", rc_emu_m68k, &dgen_emu_m68k }, // SH
+  { "bool_sound", rc_boolean, &dgen_sound }, // SH
+  { "int_soundrate", rc_number, &dgen_soundrate }, // SH
+  { "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
+  { "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
   { "int_nice", rc_number, &dgen_nice },
-  { "bool_fullscreen", rc_boolean, &dgen_fullscreen },
-  { "int_info_height", rc_number, &dgen_info_height },
-  { "int_width", rc_number, &dgen_width },
-  { "int_height", rc_number, &dgen_height },
-  { "int_scale", rc_number, &dgen_scale },
-  { "int_scale_x", rc_number, &dgen_x_scale },
-  { "int_scale_y", rc_number, &dgen_y_scale },
-  { "int_depth", rc_number, &dgen_depth },
-  { "bool_opengl", rc_boolean, &dgen_opengl },
-  { "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect },
+  { "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
+  { "int_info_height", rc_number, &dgen_info_height }, // SH
+  { "int_width", rc_number, &dgen_width }, // SH
+  { "int_height", rc_number, &dgen_height }, // SH
+  { "int_scale", rc_number, &dgen_scale }, // SH
+  { "int_scale_x", rc_number, &dgen_x_scale }, // SH
+  { "int_scale_y", rc_number, &dgen_y_scale }, // SH
+  { "int_depth", rc_number, &dgen_depth }, // SH
+  { "bool_opengl", rc_boolean, &dgen_opengl }, // SH
+  { "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect }, // SH
   { "int_opengl_width", rc_number, &dgen_width }, // deprecated, use int_width
   { "int_opengl_height", rc_number, &dgen_height }, // and int_height
-  { "bool_opengl_linear", rc_boolean, &dgen_opengl_linear },
-  { "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit },
-  { "bool_opengl_swap", rc_boolean, &dgen_opengl_swap },
-  { "bool_opengl_square", rc_boolean, &dgen_opengl_square },
+  { "bool_opengl_linear", rc_boolean, &dgen_opengl_linear }, // SH
+  { "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit }, // SH
+  { "bool_opengl_swap", rc_boolean, &dgen_opengl_swap }, // SH
+  { "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
   { "bool_joystick", rc_boolean, &dgen_joystick },
-  { "int_joystick1_dev", rc_number, &dgen_joystick1_dev },
-  { "int_joystick2_dev", rc_number, &dgen_joystick2_dev },
+  { "int_joystick1_dev", rc_number, &dgen_joystick1_dev }, // SH
+  { "int_joystick2_dev", rc_number, &dgen_joystick2_dev }, // SH
   { "joypad1_b0", rc_jsmap, &js_map_button[0][0] },
   { "joypad1_b1", rc_jsmap, &js_map_button[0][1] },
   { "joypad1_b2", rc_jsmap, &js_map_button[0][2] },

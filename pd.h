@@ -40,6 +40,7 @@ extern struct sndinfo sndi;
 // stuff being initialized. :)
 // It should return 1 on successful setup, or 0 if something wrong happened.
 int pd_sound_init(long &freq, unsigned int &samples);
+void pd_sound_deinit();
 // Sound, if any, should be paused at first. Sound should start when this
 // function is called.
 void pd_sound_start();

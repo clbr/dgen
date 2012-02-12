@@ -658,7 +658,7 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
   // Set the destination in the bmap
   dest = bits->data + (bits->pitch * (line + 8) + 16);
   // If bytes per pixel hasn't yet been set, do it
-  if(!Bpp)
+  if ((Bpp == 0) || (Bpp != BITS_TO_BYTES(bits->bpp)))
     {
            if(bits->bpp <= 8)  Bpp = 1;
       else if(bits->bpp <= 16) Bpp = 2;

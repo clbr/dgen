@@ -691,6 +691,13 @@ static int init_texture()
 		// Do something with "error".
 		return -1;
 	}
+	// Swap textures if necessary.
+	DEBUG(("swap textures? %s", ((texture.swap) ? "yes" : "no" )));
+	if (texture.swap)
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+	else
+		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+	glPixelStorei(GL_PACK_ROW_LENGTH, (2 << texture.u32));
 	DEBUG(("texture initialization OK"));
 	return 0;
 }
@@ -698,26 +705,16 @@ static int init_texture()
 static void update_texture()
 {
 	glBindTexture(GL_TEXTURE_2D, texture.id);
-	if (texture.u32 == 0) {
-		if (texture.swap) {
-			glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-			glPixelStorei(GL_PACK_ROW_LENGTH, 2);
-		}
+	if (texture.u32 == 0)
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
 				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
 				texture.buf.u16);
-	}
-	else {
-		if (texture.swap) {
-			glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-			glPixelStorei(GL_PACK_ROW_LENGTH, 4);
-		}
+	else
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
 				GL_BGRA, GL_UNSIGNED_BYTE,
 				texture.buf.u32);
-	}
 	glCallList(texture.dlist);
 	SDL_GL_SwapBuffers();
 }
@@ -1549,6 +1546,8 @@ static int screen_init(unsigned int width, unsigned int height)
 		set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
 	DEBUG(("using scaling algorithm \"%s\"",
 	       scaling_names[(dgen_scaling % NUM_SCALING)]));
+	// Update screen.
+	pd_graphics_update();
 	DEBUG(("ret=%d", ret));
 	return ret;
 }
@@ -1795,6 +1794,11 @@ int pd_sound_init(long &freq, unsigned int &samples)
 	wanted.callback = snd_callback;
 	wanted.userdata = NULL;
 
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+		fprintf(stderr, "sdl: unable to initialize audio\n");
+		return 0;
+	}
+
 	// Open audio, and get the real spec
 	if (SDL_OpenAudio(&wanted, &spec) < 0) {
 		fprintf(stderr,
@@ -1849,6 +1853,18 @@ snd_error:
 	sound.cbuf.data.i16 = NULL;
 	memset(&sound, 0, sizeof(sound));
 	return 0;
+}
+
+// Deinitialize sound subsystem.
+void pd_sound_deinit()
+{
+	if (sound.cbuf.data.i16 != NULL) {
+		SDL_CloseAudio();
+		free((void *)sound.cbuf.data.i16);
+	}
+	memset(&sound, 0, sizeof(sound));
+	free((void*)sndi.lr);
+	sndi.lr = NULL;
 }
 
 // Start/stop audio processing
@@ -2031,6 +2047,181 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 			   (mark - ((mark - disp_len) + 1)));
 }
 
+// Rehash rc vars that require special handling (see "SH" in rc.cpp).
+static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
+{
+	bool fail = false;
+	bool init_video = false;
+	bool init_sound = false;
+	bool init_joystick = false;
+	int printed = 0;
+
+	if (rc->variable == &dgen_craptv) {
+#ifdef WITH_CTV
+		filters_prescale[0] = &filters_list[dgen_craptv];
+#else
+		fail = true;
+#endif
+	}
+	else if (rc->variable == &dgen_scaling) {
+		if (set_scaling(scaling_names[dgen_scaling]) == 0)
+			fail = true;
+	}
+	else if (rc->variable == &dgen_emu_z80) {
+		megad.z80_state_dump();
+		// Z80: 0 = none, 1 = CZ80, 2 = MZ80
+		switch (dgen_emu_z80) {
+#ifdef WITH_MZ80
+		case 1:
+			megad.z80_core = md::Z80_CORE_MZ80;
+			break;
+#endif
+#ifdef WITH_CZ80
+		case 2:
+			megad.z80_core = md::Z80_CORE_CZ80;
+			break;
+#endif
+		default:
+			megad.z80_core = md::Z80_CORE_NONE;
+			break;
+		}
+		megad.z80_state_restore();
+	}
+	else if (rc->variable == &dgen_emu_m68k) {
+		megad.m68k_state_dump();
+		// M68K: 0 = none, 1 = StarScream, 2 = Musashi
+		switch (dgen_emu_m68k) {
+#ifdef WITH_STAR
+		case 1:
+			megad.cpu_emu = md::CPU_EMU_STAR;
+			break;
+#endif
+#ifdef WITH_MUSA
+		case 2:
+			megad.cpu_emu = md::CPU_EMU_MUSA;
+			break;
+#endif
+		default:
+			megad.cpu_emu = md::CPU_EMU_NONE;
+			break;
+		}
+		megad.m68k_state_restore();
+	}
+	else if ((rc->variable == &dgen_sound) ||
+		 (rc->variable == &dgen_soundrate) ||
+		 (rc->variable == &dgen_soundsegs) ||
+		 (rc->variable == &dgen_soundsamples))
+		init_sound = true;
+	else if (rc->variable == &dgen_fullscreen) {
+		if (screen.want_fullscreen != (!!dgen_fullscreen)) {
+			screen.want_fullscreen = dgen_fullscreen;
+			init_video = true;
+		}
+	}
+	else if ((rc->variable == &dgen_info_height) ||
+		 (rc->variable == &dgen_width) ||
+		 (rc->variable == &dgen_height) ||
+		 (rc->variable == &dgen_x_scale) ||
+		 (rc->variable == &dgen_y_scale) ||
+		 (rc->variable == &dgen_depth))
+		init_video = true;
+	else if (rc->variable == &dgen_scale) {
+		dgen_x_scale = dgen_scale;
+		dgen_y_scale = dgen_scale;
+		init_video = true;
+	}
+	else if ((rc->variable == &dgen_opengl) ||
+		 (rc->variable == &dgen_opengl_aspect) ||
+		 (rc->variable == &dgen_opengl_linear) ||
+		 (rc->variable == &dgen_opengl_32bit) ||
+		 (rc->variable == &dgen_opengl_swap) ||
+		 (rc->variable == &dgen_opengl_square)) {
+		screen.opengl_ok = false;
+		init_video = true;
+	}
+	else if ((rc->variable == &dgen_joystick1_dev) ||
+		 (rc->variable == &dgen_joystick2_dev))
+		init_joystick = true;
+	if (init_video) {
+		// This is essentially what pd_graphics_init() does.
+		if ((dgen_width > 0) && (dgen_height > 0)) {
+			switch (screen_init(dgen_width, dgen_height)) {
+			case 0:
+				break;
+			case -1:
+				goto video_warn;
+			default:
+				goto video_fail;
+			}
+		}
+		else {
+			unsigned int x_scale;
+			unsigned int y_scale;
+
+			x_scale = ((dgen_x_scale <= 0) ?
+				   video.x_scale : dgen_x_scale);
+			y_scale = ((dgen_y_scale <= 0) ?
+				   video.y_scale : dgen_y_scale);
+			switch (screen_init((video.width * x_scale),
+					((video.height * y_scale) +
+					 info_height_hint
+					 (y_scale,
+					  (video.height * y_scale))))) {
+			case 0:
+				break;
+			case -1:
+				goto video_warn;
+			default:
+				goto video_fail;
+			}
+		}
+	}
+	if (init_sound) {
+		unsigned int samples;
+
+		if (video.hz == 0)
+			fail = true;
+		else if (dgen_sound == 0)
+			pd_sound_deinit();
+		else {
+			uint8_t ym2612_buf[512];
+			uint8_t sn76496_buf[16];
+
+			pd_sound_deinit();
+			samples = (dgen_soundsegs *
+				   (dgen_soundrate / video.hz));
+			dgen_sound = pd_sound_init(dgen_soundrate, samples);
+			if (dgen_sound == 0)
+				fail = true;
+			YM2612_dump(0, ym2612_buf);
+			SN76496_dump(0, sn76496_buf);
+			megad.init_sound();
+			SN76496_restore(0, sn76496_buf);
+			YM2612_restore(0, ym2612_buf);
+		}
+	}
+	if (init_joystick) {
+#ifdef WITH_JOYSTICK
+		megad.deinit_joysticks();
+		megad.init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
+#else
+		fail = true;
+#endif
+	}
+	if (fail) {
+		stop_events_msg(~0u, "Failed to rehash value.");
+		printed = 1;
+	}
+	return printed;
+video_warn:
+	stop_events_msg(~0u, "Failed to reinitialize video.");
+	return 1;
+video_fail:
+	fprintf(stderr, "sdl: fatal error while trying to change screen"
+		" resolution.\n");
+	return 1;
+}
+
 static void prompt_show_rc_field(const struct rc_field *rc)
 {
 	size_t i;
@@ -2156,7 +2347,7 @@ static size_t prompt_complete_cmd(const char *prefix, size_t length,
 }
 
 static int prompt(struct prompt *p, unsigned int *complete_skip,
-		  SDL_keysym *ks)
+		  SDL_keysym *ks, md& megad)
 {
 	struct prompt::prompt_history *ph;
 	struct prompt_parse pp;
@@ -2224,6 +2415,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 				break;
 			}
 			*(rc_fields[i].variable) = potential;
+			printed = prompt_rehash_rc_field(&rc_fields[i], megad);
 			break;
 		}
 		if (rc_fields[i].fieldname == NULL) {
@@ -2287,14 +2479,12 @@ static int stop_events(md &megad, int gg)
 	SDL_Event event;
 	char buf[128] = "";
 	kb_input_t input = { 0, 0, 0 };
-	int fullscreen = 0;
 	struct prompt *p = &stop_events_prompt;
 	unsigned int complete_skip = 0;
 	size_t gg_len = 0;
 
 	// Switch out of fullscreen mode (assuming this is supported)
 	if (screen.is_fullscreen) {
-		fullscreen = 1;
 		if (set_fullscreen(0) < -1)
 			return 0;
 		pd_graphics_update();
@@ -2305,7 +2495,7 @@ static int stop_events(md &megad, int gg)
 	SDL_PauseAudio(1);
 gg:
 	if (gg >= 3)
-		prompt(p, &complete_skip, NULL);
+		prompt(p, &complete_skip, NULL, megad);
 	else if (gg) {
 		size_t len;
 
@@ -2350,7 +2540,7 @@ gg:
 			}
 			if (gg >= 3) {
 				switch (prompt(p, &complete_skip,
-					       &event.key.keysym)) {
+					       &event.key.keysym, megad)) {
 				case 2:
 					continue;
 				case 0:
@@ -2429,7 +2619,7 @@ gg:
 			pd_graphics_update();
 		case SDL_VIDEOEXPOSE:
 			if (gg >= 3)
-				prompt(p, &complete_skip, NULL);
+				prompt(p, &complete_skip, NULL, megad);
 			else
 				stop_events_msg(~0u, buf);
 			break;
@@ -2440,7 +2630,7 @@ gg:
 resume:
 	pd_message("RUNNING.");
 gg_resume:
-	if (fullscreen) {
+	if (screen.want_fullscreen) {
 		if (set_fullscreen(1) < -1) {
 			SDL_EnableKeyRepeat(0, 0);
 			SDL_PauseAudio(0);
@@ -2876,13 +3066,7 @@ void pd_quit()
 		mdscr.data = NULL;
 	}
 	SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-	if (sound.cbuf.data.i16 != NULL) {
-		SDL_CloseAudio();
-		free((void *)sound.cbuf.data.i16);
-	}
-	memset(&sound, 0, sizeof(sound));
-	free((void*)sndi.lr);
-	sndi.lr = NULL;
+	pd_sound_deinit();
 	if (mdpal)
 		mdpal = NULL;
 #ifdef WITH_OPENGL
