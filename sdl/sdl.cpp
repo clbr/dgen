@@ -33,6 +33,7 @@
 #include "font.h"
 #include "system.h"
 #include "prompt.h"
+#include "md-phil.h"
 
 #ifdef WITH_HQX
 #include "hqx.h"
@@ -2030,6 +2031,115 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 			   (mark - ((mark - disp_len) + 1)));
 }
 
+static void prompt_show_rc_field(const struct rc_field *rc)
+{
+	size_t i;
+	long val = *rc->variable;
+
+	if (rc->parser == rc_number)
+		stop_events_msg(~0u, "%s is %ld", rc->fieldname,
+				*(rc->variable));
+	else if (rc->parser == rc_keysym) {
+		const char *mod;
+
+		if (val & KEYSYM_MOD_SHIFT)
+			(mod = "shift-", val &= ~KEYSYM_MOD_SHIFT);
+		else if (val & KEYSYM_MOD_CTRL)
+			(mod = "ctrl-", val &= ~KEYSYM_MOD_CTRL);
+		else if (val & KEYSYM_MOD_ALT)
+			(mod = "alt-", val &= ~KEYSYM_MOD_ALT);
+		else if (val & KEYSYM_MOD_META)
+			(mod = "meta-", val &= ~KEYSYM_MOD_META);
+		else
+			mod = "";
+		for (i = 0; (rc_keysyms[i].name != NULL); ++i)
+			if (rc_keysyms[i].keysym == val)
+				break;
+		if (rc_keysyms[i].name == NULL)
+			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is bound to %s%s",
+					rc->fieldname, mod,
+					rc_keysyms[i].name);
+	}
+	else if (rc->parser == rc_boolean)
+		stop_events_msg(~0u, "%s is %s", rc->fieldname,
+				((*(rc->variable)) ? "true" : "false"));
+	else if (rc->parser == rc_jsmap) {
+		const char *pad;
+
+		if (val == MD_UP_MASK)
+			pad = "up";
+		else if (val == MD_DOWN_MASK)
+			pad = "down";
+		else if (val == MD_LEFT_MASK)
+			pad = "left";
+		else if (val == MD_RIGHT_MASK)
+			pad = "right";
+		else if (val == MD_B_MASK)
+			pad = "B";
+		else if (val == MD_C_MASK)
+			pad = "C";
+		else if (val == MD_A_MASK)
+			pad = "A";
+		else if (val == MD_START_MASK)
+			pad = "start";
+		else if (val == MD_Z_MASK)
+			pad = "Z";
+		else if (val == MD_Y_MASK)
+			pad = "Y";
+		else if (val == MD_X_MASK)
+			pad = "X";
+		else if (val == MD_MODE_MASK)
+			pad = "mode";
+		else
+			pad = NULL;
+		if (pad == NULL)
+			stop_events_msg(~0u, "%s isn't mapped", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is mapped to \"%s\"",
+					rc->fieldname, pad);
+	}
+	else if (rc->parser == rc_ctv) {
+		i = val;
+		if (i >= NUM_CTV)
+			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
+					ctv_names[i]);
+	}
+	else if (rc->parser == rc_scaling) {
+		i = val;
+		if (i >= NUM_SCALING)
+			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
+					scaling_names[i]);
+	}
+	else if (rc->parser == rc_emu_z80) {
+		for (i = 0; (emu_z80_names[i] != NULL); ++i)
+			if (i == (size_t)val)
+				break;
+		if (emu_z80_names[i] == NULL)
+			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
+					emu_z80_names[i]);
+	}
+	else if (rc->parser == rc_emu_m68k) {
+		for (i = 0; (emu_m68k_names[i] != NULL); ++i)
+			if (i == (size_t)val)
+				break;
+		if (emu_m68k_names[i] == NULL)
+			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
+					emu_m68k_names[i]);
+	}
+	else
+		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
+}
+
 static size_t prompt_complete_cmd(const char *prefix, size_t length,
 				  unsigned int skip)
 {
@@ -2101,13 +2211,12 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 				       (char *)pp.argv[0]))
 				continue;
 			if (pp.argv[1] == NULL) {
-				stop_events_msg(~0u, "%s: missing value",
-						(char *)pp.argv[0]);
+				prompt_show_rc_field(&rc_fields[i]);
 				printed = 1;
 				break;
 			}
 			potential = rc_fields[i].parser((char *)pp.argv[1]);
-			if ((rc_fields[i].parser != number) &&
+			if ((rc_fields[i].parser != rc_number) &&
 			    (potential == -1)) {
 				stop_events_msg(~0u, "%s: invalid value",
 						(char *)pp.argv[0]);
