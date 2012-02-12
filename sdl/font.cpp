@@ -50,6 +50,20 @@ static void font_mark(uint8_t *buf, unsigned int width, unsigned int height,
 	}
 }
 
+size_t font_text_len(unsigned int width, unsigned int height)
+{
+	const struct dgen_font *font = dgen_font;
+
+	while ((font->data != NULL) &&
+	       ((font->h > height) || ((width / font->w) < FONT_VISIBLE))) {
+		++font;
+		continue;
+	}
+	if (font->data == NULL)
+		return ~(size_t)0;
+	return (width / font->w);
+}
+
 size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 		 unsigned int bytes_per_pixel, unsigned int pitch,
 		 const char *msg, size_t len, unsigned int mark)

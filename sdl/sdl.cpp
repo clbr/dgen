@@ -2009,11 +2009,25 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 {
 	va_list vl;
 	char buf[1024];
+	size_t len;
+	size_t disp_len;
 
 	va_start(vl, msg);
-	vsnprintf(buf, sizeof(buf), msg, vl);
+	len = (size_t)vsnprintf(buf, sizeof(buf), msg, vl);
 	va_end(vl);
-	pd_message_display(buf, strlen(buf), mark);
+	buf[(sizeof(buf) - 1)] = '\0';
+	disp_len = font_text_len(screen.width, screen.info_height);
+	if ((disp_len > len) || (mark < disp_len)) {
+		pd_message_display(buf, len, mark);
+		return;
+	}
+	if (mark > len) {
+		mark -= (len - disp_len);
+		pd_message_display(&buf[(len - disp_len)], disp_len, mark);
+		return;
+	}
+	pd_message_display(&buf[((mark - disp_len) + 1)], disp_len,
+			   (mark - ((mark - disp_len) + 1)));
 }
 
 static size_t prompt_complete_cmd(const char *prefix, size_t length,
