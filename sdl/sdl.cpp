@@ -1594,6 +1594,9 @@ static int set_fullscreen(int toggle)
 	return screen_init(w, h);
 }
 
+// Used by stop_events().
+static struct prompt stop_events_prompt;
+
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
@@ -1605,6 +1608,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		hqx_initialized = 1;
 	}
 #endif
+	prompt_init(&stop_events_prompt);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
 		fprintf(stderr, "sdl: invalid frame rate (%d)\n", hz);
@@ -2161,10 +2165,9 @@ static int stop_events(md &megad, int gg)
 	char buf[128] = "";
 	kb_input_t input = { 0, 0, 0 };
 	int fullscreen = 0;
-	struct prompt p;
+	struct prompt *p = &stop_events_prompt;
 	unsigned int complete_skip = 0;
 
-	prompt_init(&p);
 	// Switch out of fullscreen mode (assuming this is supported)
 	if (screen.is_fullscreen) {
 		fullscreen = 1;
@@ -2173,10 +2176,12 @@ static int stop_events(md &megad, int gg)
 		pd_graphics_update();
 	}
 	stopped = 1;
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
+			    SDL_DEFAULT_REPEAT_INTERVAL);
 	SDL_PauseAudio(1);
 gg:
 	if (gg >= 3)
-		prompt(&p, &complete_skip, NULL);
+		prompt(p, &complete_skip, NULL);
 	else if (gg) {
 		size_t len;
 
@@ -2219,7 +2224,7 @@ gg:
 				}
 			}
 			if (gg >= 3) {
-				switch (prompt(&p, &complete_skip,
+				switch (prompt(p, &complete_skip,
 					       &event.key.keysym)) {
 				case 2:
 					continue;
@@ -2276,24 +2281,29 @@ gg:
 					break;
 				}
 			// We can still quit :)
-			if (event.key.keysym.sym == dgen_quit)
+			if (event.key.keysym.sym == dgen_quit) {
+				SDL_EnableKeyRepeat(0, 0);
 				return 0;
+			}
 			if (event.key.keysym.sym == dgen_stop)
 				goto resume;
 			break;
-		case SDL_QUIT:
+		case SDL_QUIT: {
+			SDL_EnableKeyRepeat(0, 0);
 			return 0;
+		}
 		case SDL_VIDEORESIZE:
 			if (screen_init(event.resize.w, event.resize.h) < -1) {
 				fprintf(stderr,
 					"sdl: fatal error while trying to"
 					" change screen resolution.\n");
+				SDL_EnableKeyRepeat(0, 0);
 				return 0;
 			}
 			pd_graphics_update();
 		case SDL_VIDEOEXPOSE:
 			if (gg >= 3)
-				prompt(&p, &complete_skip, NULL);
+				prompt(p, &complete_skip, NULL);
 			else
 				stop_events_msg(~0u, buf);
 			break;
@@ -2306,10 +2316,12 @@ resume:
 gg_resume:
 	if (fullscreen) {
 		if (set_fullscreen(1) < -1) {
+			SDL_EnableKeyRepeat(0, 0);
 			SDL_PauseAudio(0);
 			return 0;
 		}
 	}
+	SDL_EnableKeyRepeat(0, 0);
 	SDL_PauseAudio(0);
 	return 1;
 }
