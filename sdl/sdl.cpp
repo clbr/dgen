@@ -1604,8 +1604,8 @@ static int screen_init(unsigned int width, unsigned int height)
 	// Set up the Mega Drive screen.
 	if ((mdscr.data == NULL) ||
 	    ((unsigned int)mdscr.bpp != screen.bpp) ||
-	    (mdscr.w != (video.width + 16)) ||
-	    (mdscr.h != (video.height + 16))) {
+	    ((unsigned int)mdscr.w != (video.width + 16)) ||
+	    ((unsigned int)mdscr.h != (video.height + 16))) {
 		mdscr.bpp = screen.bpp;
 		mdscr.w = (video.width + 16);
 		mdscr.h = (video.height + 16);
