@@ -376,6 +376,7 @@ public:
   int okay() {return ok;}
   md(bool pal, char region);
   ~md();
+  void init_pal();
   bool init_sound();
   int plug_in(unsigned char *cart,int len);
   int unplug();

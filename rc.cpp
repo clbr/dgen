@@ -336,6 +336,19 @@ long rc_emu_m68k(const char *value)
 	return -1;
 }
 
+long rc_region(const char *value)
+{
+	if (strlen(value) != 1)
+		return -1;
+	switch (value[0] | 0x20) {
+	case 'u':
+	case 'j':
+	case 'e':
+		return (value[0] & ~0x20);
+	}
+	return -1;
+}
+
 long rc_number(const char *value)
 {
   return atoi(value);
@@ -406,6 +419,9 @@ struct rc_field rc_fields[] = {
   { "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
   { "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
   { "int_nice", rc_number, &dgen_nice },
+  { "int_hz", rc_number, &dgen_hz }, // SH
+  { "bool_pal", rc_boolean, &dgen_pal }, // SH
+  { "region", rc_region, &dgen_region },
   { "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
   { "int_info_height", rc_number, &dgen_info_height }, // SH
   { "int_width", rc_number, &dgen_width }, // SH

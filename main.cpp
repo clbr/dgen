@@ -198,15 +198,13 @@ fail:
 
 int main(int argc, char *argv[])
 {
-  int c = 0, pal_mode = 0, running = 1, usec = 0, start_slot = -1;
+  int c = 0, running = 1, usec = 0, start_slot = -1;
   unsigned long frames, frames_old, fps;
   char *patches = NULL, *rom = NULL;
   unsigned long oldclk, newclk, startclk, fpsclk;
   FILE *file = NULL;
   enum demo_status demo_status = DEMO_OFF;
   unsigned int samples;
-  unsigned int hz = 60;
-  char region = '\0';
   class md *megad;
   bool first = true;
 
@@ -287,20 +285,20 @@ int main(int argc, char *argv[])
 				optarg);
 			return EXIT_FAILURE;
 		}
-		region = (optarg[0] & ~(0x20));
+		dgen_region = (optarg[0] & ~(0x20));
 		break;
 	case 'P':
 		// PAL mode
-		hz = 50;
-		pal_mode = 1;
+		dgen_hz = 50;
+		dgen_pal = 1;
 		break;
 	case 'H':
 		// Custom frame rate
-		hz = atoi(optarg);
-		if ((hz <= 0) || (hz > 1000)) {
-			fprintf(stderr, "main: invalid frame rate (%d).\n",
-				hz);
-			hz = (pal_mode ? 50 : 60);
+		dgen_hz = atoi(optarg);
+		if ((dgen_hz <= 0) || (dgen_hz > 1000)) {
+			fprintf(stderr, "main: invalid frame rate (%ld).\n",
+				dgen_hz);
+			dgen_hz = (dgen_pal ? 50 : 60);
 		}
 		break;
 #ifdef WITH_JOYSTICK
@@ -385,7 +383,7 @@ int main(int argc, char *argv[])
 #endif
 
   // Initialize the platform-dependent stuff.
-  if (!pd_graphics_init(dgen_sound, pal_mode, hz))
+  if (!pd_graphics_init(dgen_sound, dgen_pal, dgen_hz))
     {
       fprintf(stderr, "main: Couldn't initialize graphics!\n");
       return 1;
@@ -394,13 +392,13 @@ int main(int argc, char *argv[])
     {
       if (dgen_soundsegs < 0)
 	      dgen_soundsegs = 0;
-      samples = (dgen_soundsegs * (dgen_soundrate / hz));
+      samples = (dgen_soundsegs * (dgen_soundrate / dgen_hz));
       dgen_sound = pd_sound_init(dgen_soundrate, samples);
     }
 
 	rom = argv[optind];
 	// Create the megadrive object.
-	megad = new md(pal_mode, region);
+	megad = new md(dgen_pal, dgen_region);
 	if ((megad == NULL) || (!megad->okay())) {
 		fprintf(stderr, "main: Mega Drive initialization failed.\n");
 		goto clean_up;
@@ -469,7 +467,7 @@ next_rom:
 	frames_old = 0;
 	fps = 0;
 	while (running) {
-		const unsigned int usec_frame = (1000000 / hz);
+		const unsigned int usec_frame = (1000000 / dgen_hz);
 		unsigned long tmp;
 		int frames_todo;
 
@@ -573,8 +571,8 @@ next_rom:
 	fpsclk = ((pd_usecs() - startclk) / 1000000);
 	if (fpsclk == 0)
 		fpsclk = 1;
-	printf("%lu frames per second (average %lu, optimal %d)\n",
-	       fps, (frames / fpsclk), hz);
+	printf("%lu frames per second (average %lu, optimal %ld)\n",
+	       fps, (frames / fpsclk), dgen_hz);
 
 	ram_save(*megad);
 	if (dgen_autosave) {

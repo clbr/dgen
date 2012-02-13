@@ -287,27 +287,10 @@ bool md::init_sound()
 	return true;
 }
 
-bool md::lock = false;
-
-md::md(bool pal, char region):
-#ifdef WITH_MUSA
-	md_musa_ref(0), md_musa_prev(0),
-#endif
-#ifdef WITH_STAR
-	md_star_ref(0), md_star_prev(0),
-#endif
-#ifdef WITH_MZ80
-	md_mz80_ref(0), md_mz80_prev(0),
-#endif
-	pal(pal), ok_ym2612(false), ok_sn76496(false),
-	vdp(*this), region(region)
+// PAL or NTSC mode.
+void md::init_pal()
 {
 	unsigned int hc;
-
-	// Only one MD object is allowed to exist at once.
-	if (lock)
-		return;
-	lock = true;
 
 	if (pal) {
 		mclk = PAL_MCLK;
@@ -328,6 +311,30 @@ md::md(bool pal, char region):
 		// H40
 		hc_table[hc][1] = (((hc * 205) / M68K_CYCLES_PER_LINE) - 0x1c);
 	}
+}
+
+bool md::lock = false;
+
+md::md(bool pal, char region):
+#ifdef WITH_MUSA
+	md_musa_ref(0), md_musa_prev(0),
+#endif
+#ifdef WITH_STAR
+	md_star_ref(0), md_star_prev(0),
+#endif
+#ifdef WITH_MZ80
+	md_mz80_ref(0), md_mz80_prev(0),
+#endif
+	pal(pal), ok_ym2612(false), ok_sn76496(false),
+	vdp(*this), region(region)
+{
+	// Only one MD object is allowed to exist at once.
+	if (lock)
+		return;
+	lock = true;
+
+	// PAL or NTSC.
+	init_pal();
 
 	// Start up the sound chips.
 	if (init_sound() == false)

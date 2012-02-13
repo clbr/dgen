@@ -39,6 +39,7 @@ extern long rc_ctv(const char *value);
 extern long rc_scaling(const char *value);
 extern long rc_emu_z80(const char *value);
 extern long rc_emu_m68k(const char *value);
+extern long rc_region(const char *value);
 
 struct rc_field {
 	const char *fieldname;

@@ -96,7 +96,7 @@ static struct {
 
 static struct {
 	const unsigned int width; // 320
-	unsigned int height; // 224 or 240
+	unsigned int height; // 224 or 240 (NTSC_VBLANK or PAL_VBLANK)
 	unsigned int x_scale; // scale horizontally
 	unsigned int y_scale; // scale vertically
 	unsigned int hz; // refresh rate
@@ -104,10 +104,10 @@ static struct {
 	uint8_t palette[256]; // palette for 8bpp modes (mdpal)
 } video = {
 	320, // width is always 320
-	224, // NTSC height by default
+	NTSC_VBLANK, // NTSC height by default
 	2, // default scale for width
 	2, // default scale for height
-	60, // 60Hz
+	NTSC_HZ, // 60Hz
 	0, // NTSC is enabled
 	{ 0 }
 };
@@ -2234,6 +2234,44 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	else if ((rc->variable == &dgen_joystick1_dev) ||
 		 (rc->variable == &dgen_joystick2_dev))
 		init_joystick = true;
+	else if (rc->variable == &dgen_hz) {
+		// See md::md().
+		if (dgen_hz <= 0)
+			dgen_hz = 1;
+		else if (dgen_hz > 1000)
+			dgen_hz = 1000;
+		if ((dgen_hz != video.hz) ||
+		    (dgen_hz != megad.vhz)) {
+			video.hz = dgen_hz;
+			init_video = true;
+			init_sound = true;
+		}
+	}
+	else if (rc->variable == &dgen_pal) {
+		// See md::md().
+		if ((dgen_pal) &&
+		    ((video.is_pal == false) ||
+		     (megad.pal == 0) ||
+		     (video.height != PAL_VBLANK))) {
+			megad.pal = 1;
+			megad.init_pal();
+			video.is_pal = true;
+			video.height = PAL_VBLANK;
+			init_video = true;
+		}
+		else if ((!dgen_pal) &&
+			 ((video.is_pal == true) ||
+			  (megad.pal == 1) ||
+			  (video.height != NTSC_VBLANK))) {
+			megad.pal = 0;
+			megad.init_pal();
+			video.is_pal = false;
+			video.height = NTSC_VBLANK;
+			init_video = true;
+		}
+	}
+	else if (rc->variable == &dgen_region)
+		megad.region = dgen_region;
 	if (init_video) {
 		// This is essentially what pd_graphics_init() does.
 		if ((dgen_width > 0) && (dgen_height > 0)) {
@@ -2418,6 +2456,20 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		else
 			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
 					emu_m68k_names[i]);
+	}
+	else if (rc->parser == rc_region) {
+		const char *s;
+
+		if (val == 'U')
+			s = "America";
+		else if (val == 'E')
+			s = "Europe";
+		else if (val == 'J')
+			s = "Japan";
+		else
+			s = "Auto";
+		stop_events_msg(~0u, "%s is \"%c\" (%s)", rc->fieldname,
+				(val ? (char)val : (char)' '), s);
 	}
 	else
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
