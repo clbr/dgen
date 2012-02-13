@@ -2979,12 +2979,21 @@ int pd_handle_events(md &megad)
 			}
 			pd_message(msg);
 		}
-		else if (ksym == dgen_stop)
+		else if (ksym == dgen_stop) {
+			megad.pad[0] = 0xf303f;
+			megad.pad[1] = 0xf303f;
 			return stop_events(megad, 0);
-		else if (ksym == dgen_prompt)
+		}
+		else if (ksym == dgen_prompt) {
+			megad.pad[0] = 0xf303f;
+			megad.pad[1] = 0xf303f;
 			return stop_events(megad, 3);
-		else if (ksym == dgen_game_genie)
+		}
+		else if (ksym == dgen_game_genie) {
+			megad.pad[0] = 0xf303f;
+			megad.pad[1] = 0xf303f;
 			return stop_events(megad, 1);
+		}
 	  else if(ksym == dgen_fullscreen_toggle) {
 		switch (set_fullscreen(!screen.is_fullscreen)) {
 		case -2:
