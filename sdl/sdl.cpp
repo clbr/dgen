@@ -1732,7 +1732,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	SDL_ShowCursor(0);
 	// Initialize screen.
 	if ((dgen_width > 0) && (dgen_height > 0)) {
-		if (screen_init(dgen_width, dgen_height) < -1)
+		if (screen_init(dgen_width, dgen_height))
 			goto fail;
 	}
 	else {
@@ -1744,7 +1744,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		if (screen_init((video.width * x_scale),
 				((video.height * y_scale) +
 				 info_height_hint
-				 (y_scale, (video.height * y_scale)))) < -1)
+				 (y_scale, (video.height * y_scale)))))
 			goto fail;
 	}
 	DEBUG(("screen initialized"));
