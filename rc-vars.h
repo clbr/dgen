@@ -90,8 +90,8 @@ RCVAR(dgen_joystick2_dev, 1);
 
 RCVAR(dgen_fullscreen, 0);
 RCVAR(dgen_info_height, -1);
-RCVAR(dgen_width, 640);
-RCVAR(dgen_height, 480);
+RCVAR(dgen_width, -1);
+RCVAR(dgen_height, -1);
 RCVAR(dgen_scale, -1);
 RCVAR(dgen_x_scale, -1);
 RCVAR(dgen_y_scale, -1);
