@@ -2251,8 +2251,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 			dgen_hz = 1;
 		else if (dgen_hz > 1000)
 			dgen_hz = 1000;
-		if ((dgen_hz != video.hz) ||
-		    (dgen_hz != megad.vhz)) {
+		if (((unsigned int)dgen_hz != video.hz) ||
+		    ((unsigned int)dgen_hz != megad.vhz)) {
 			video.hz = dgen_hz;
 			init_video = true;
 			init_sound = true;
