@@ -235,27 +235,6 @@ static struct {
 	char message[2048];
 } info;
 
-// Return ideal value for a given window height.
-static unsigned int info_height_hint(unsigned int y_scale, unsigned int height)
-{
-	// These guesses are based on video.height being 224 or 240.
-	assert(video.height <= 240);
-	if (dgen_info_height >= 0)
-		return dgen_info_height;
-#ifdef WITH_OPENGL
-	if (screen.want_opengl) {
-		// Always use the biggest font available, unless it's
-		// unreadable.
-		if (height < (video.height + 5))
-			return 0;
-		return 26;
-	}
-#endif
-	if (y_scale == 1)
-		return 16;
-	return 32;
-}
-
 // Stopped flag used by pd_stopped()
 static int stopped = 0;
 
@@ -1363,16 +1342,44 @@ static int screen_init(unsigned int width, unsigned int height)
 	else
 #endif
 		flags |= (SDL_DOUBLEBUF | SDL_ASYNCBLIT);
-	// Don't allow screens smaller than original.
-	if (width < video.width) {
+	// Disallow screens smaller than original.
+	if (width == 0) {
+		if (dgen_width > 0)
+			width = dgen_width;
+		else {
+			width = video.width;
+			if (dgen_x_scale > 0)
+				width *= dgen_x_scale;
+			else
+				width *= video.x_scale;
+		}
+		DEBUG(("width was 0, now %u", width));
+	}
+	else if (width < video.width) {
 		DEBUG(("fixing width %u => %u", width, video.width));
 		width = video.width;
-		ret = -1;
+		// Return a warning only if it's not the first initialization.
+		if (screen.surface != NULL)
+			ret = -1;
 	}
-	if (height < video.height) {
+	if (height == 0) {
+		if (dgen_height > 0)
+			height = dgen_height;
+		else {
+			height = video.height;
+			if (dgen_y_scale > 0)
+				height *= dgen_y_scale;
+			else
+				height *= video.y_scale;
+		}
+		DEBUG(("height was 0, now %u", height));
+	}
+	else if (height < video.height) {
 		DEBUG(("fixing height %u => %u", height, video.height));
 		height = video.height;
-		ret = -1;
+		// Return a warning only if it's not the first initialization.
+		if (screen.surface != NULL)
+			ret = -1;
 	}
 	if (screen.want_fullscreen) {
 		SDL_Rect **modes;
@@ -1430,14 +1437,19 @@ static int screen_init(unsigned int width, unsigned int height)
 			y_scale = dgen_y_scale;
 		// In OpenGL modes, info_height can be anything as it's not
 		// part of the screen resolution.
-		info_height = info_height_hint(y_scale, height);
+		if (dgen_info_height >= 0)
+			info_height = dgen_info_height;
+		else if ((y_scale == 1) || (x_scale == 1))
+			info_height = 5;
+		else if (y_scale == 2)
+			info_height = 16;
+		else
+			info_height = 26;
 		DEBUG(("OpenGL info_height: %u", info_height));
 	}
 	else
 #endif
 	{
-		unsigned int j;
-
 		// Set up scaling values.
 		if (dgen_x_scale <= 0) {
 			x_scale = (width / video.width);
@@ -1462,12 +1474,20 @@ static int screen_init(unsigned int width, unsigned int height)
 			y_scale = (height / video.height);
 		DEBUG(("had to rescale to x_scale=%u y_scale=%u",
 		       x_scale, y_scale));
-		// Calculate how much room we have at the bottom.
-		info_height = (height - (video.height * y_scale));
-		// Set up info_height.
-		j = info_height_hint(y_scale, height);
-		if (j < info_height)
-			info_height = j;
+		// Calculate info_height.
+		if (dgen_info_height >= 0)
+			info_height = dgen_info_height;
+		else {
+			// Calculate how much room we have at the bottom.
+			info_height = (height - (video.height * y_scale));
+			if (info_height > 26)
+				info_height = 26;
+			else if ((info_height == 0) &&
+			    (screen.want_fullscreen == false)) {
+				height += 16;
+				info_height = 16;
+			}
+		}
 		DEBUG(("info_height: %u (configured value: %ld)",
 		       info_height, dgen_info_height));
 	}
@@ -1673,7 +1693,6 @@ static int set_fullscreen(int toggle)
 		// Try to make a guess.
 		w = (video.width * video.x_scale);
 		h = (video.height * video.y_scale);
-		h += info_height_hint(video.y_scale, h);
 	}
 	DEBUG(("reinitializing screen with want_fullscreen=%u,"
 	       " screen_init(%u, %u)",
@@ -1731,22 +1750,8 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	// Hide the cursor.
 	SDL_ShowCursor(0);
 	// Initialize screen.
-	if ((dgen_width > 0) && (dgen_height > 0)) {
-		if (screen_init(dgen_width, dgen_height))
-			goto fail;
-	}
-	else {
-		unsigned int x_scale;
-		unsigned int y_scale;
-
-		x_scale = ((dgen_x_scale <= 0) ? video.x_scale : dgen_x_scale);
-		y_scale = ((dgen_y_scale <= 0) ? video.y_scale : dgen_y_scale);
-		if (screen_init((video.width * x_scale),
-				((video.height * y_scale) +
-				 info_height_hint
-				 (y_scale, (video.height * y_scale)))))
-			goto fail;
-	}
+	if (screen_init(0, 0))
+		goto fail;
 	DEBUG(("screen initialized"));
 #ifndef __MINGW32__
 	// We don't need setuid privileges anymore
@@ -2280,36 +2285,14 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		megad.region = dgen_region;
 	if (init_video) {
 		// This is essentially what pd_graphics_init() does.
-		if ((dgen_width > 0) && (dgen_height > 0)) {
-			switch (screen_init(dgen_width, dgen_height)) {
-			case 0:
-				break;
-			case -1:
-				goto video_warn;
-			default:
-				goto video_fail;
-			}
-		}
-		else {
-			unsigned int x_scale;
-			unsigned int y_scale;
-
-			x_scale = ((dgen_x_scale <= 0) ?
-				   video.x_scale : dgen_x_scale);
-			y_scale = ((dgen_y_scale <= 0) ?
-				   video.y_scale : dgen_y_scale);
-			switch (screen_init((video.width * x_scale),
-					((video.height * y_scale) +
-					 info_height_hint
-					 (y_scale,
-					  (video.height * y_scale))))) {
-			case 0:
-				break;
-			case -1:
-				goto video_warn;
-			default:
-				goto video_fail;
-			}
+		memset(megad.vdp.dirt, 0xff, 0x35);
+		switch (screen_init(0, 0)) {
+		case 0:
+			break;
+		case -1:
+			goto video_warn;
+		default:
+			goto video_fail;
 		}
 	}
 	if (init_sound) {
