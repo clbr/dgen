@@ -1761,6 +1761,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	fprintf(stderr, "video: %dx%d, %u bpp (%u Bpp), %uHz\n",
 		screen.surface->w, screen.surface->h, screen.bpp,
 		screen.Bpp, video.hz);
+#ifdef WITH_OPENGL
 	if (screen.is_opengl) {
 		DEBUG(("GL_VENDOR=\"%s\" GL_RENDERER=\"%s\""
 		       " GL_VERSION=\"%s\"",
@@ -1771,6 +1772,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 			texture.width, texture.height, (2 << texture.u32),
 			texture.vis_width, texture.vis_height);
 	}
+#endif
 	return 1;
 fail:
 	fprintf(stderr, "sdl: can't initialize graphics.\n");
@@ -2228,8 +2230,12 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		 (rc->variable == &dgen_opengl_32bit) ||
 		 (rc->variable == &dgen_opengl_swap) ||
 		 (rc->variable == &dgen_opengl_square)) {
+#ifdef WITH_OPENGL
 		screen.opengl_ok = false;
 		init_video = true;
+#else
+		(void)0;
+#endif
 	}
 	else if ((rc->variable == &dgen_joystick1_dev) ||
 		 (rc->variable == &dgen_joystick2_dev))
