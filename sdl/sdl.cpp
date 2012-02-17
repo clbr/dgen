@@ -2242,7 +2242,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		(void)0;
 #endif
 	}
-	else if ((rc->variable == &dgen_joystick1_dev) ||
+	else if ((rc->variable == &dgen_joystick) ||
+		 (rc->variable == &dgen_joystick1_dev) ||
 		 (rc->variable == &dgen_joystick2_dev))
 		init_joystick = true;
 	else if (rc->variable == &dgen_hz) {
@@ -2322,7 +2323,9 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	if (init_joystick) {
 #ifdef WITH_JOYSTICK
 		megad.deinit_joysticks();
-		megad.init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
+		if (dgen_joystick)
+			megad.init_joysticks(dgen_joystick1_dev,
+					     dgen_joystick2_dev);
 #else
 		fail = true;
 #endif
