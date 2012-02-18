@@ -65,7 +65,7 @@ again:
 			break;
 		}
 		if (dst != NULL)
-			strcpy(&dst[j], tmp);
+			strncpy(&dst[j], tmp, strlen(tmp));
 		j += strlen(tmp);
 	}
 	if (dst == NULL) {
@@ -463,8 +463,15 @@ argv_ok:
 				parsing.num = 0;
 				parsing.tmp = 0;
 			}
-			if (parsing.last)
+			if ((i == p->cursor) && (type == TYPE_SPACE))
+				index = argc;
+			if (parsing.last) {
+				if (temp != NULL) {
+					argo[argc].pos = p->cursor;
+					argo[argc].len = 0;
+				}
 				goto end;
+			}
 		}
 		act = prompt_parse_state[cur].next[ma].action;
 		type = prompt_parse_state[cur].next[ma].type;
@@ -644,7 +651,7 @@ void prompt_replace(struct prompt *p, unsigned int pos,
 
 	assert(ph->length <= sizeof(ph->line));
 	assert(p->cursor <= ph->length);
-	if (pos >= sizeof(ph->line))
+	if (pos > ph->length)
 		return;
 	dest = &ph->line[pos];
 	dest_len = (ph->length - pos);
@@ -665,12 +672,17 @@ void prompt_replace(struct prompt *p, unsigned int pos,
 	else if (with_len < len) {
 		unsigned int dec = (len - with_len);
 
-		ph->length -= dec;
+		if (dec > ph->length)
+			ph->length = pos;
+		else
+			ph->length -= dec;
 		memmove(&dest[with_len], &dest[len], dest_len);
 	}
 	memcpy(dest, with, with_len);
 	if (p->cursor > ph->length)
 		p->cursor = ph->length;
+	assert(ph->length <= sizeof(ph->line));
+	assert(p->cursor <= ph->length);
 }
 
 void prompt_left(struct prompt *p)
