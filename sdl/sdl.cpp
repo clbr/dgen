@@ -249,7 +249,7 @@ unsigned long pd_usecs(void)
 
 #ifdef WITH_SDL_JOYSTICK
 // Extern joystick stuff
-extern long js_map_button[2][16];
+extern intptr_t js_map_button[2][16];
 #endif
 
 // Number of microseconds to sustain messages
@@ -2297,8 +2297,6 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		}
 	}
 	if (init_sound) {
-		unsigned int samples;
-
 		if (video.hz == 0)
 			fail = true;
 		else if (dgen_sound == 0)
@@ -2306,11 +2304,12 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		else {
 			uint8_t ym2612_buf[512];
 			uint8_t sn76496_buf[16];
+			unsigned int samples;
+			long rate = dgen_soundrate;
 
 			pd_sound_deinit();
-			samples = (dgen_soundsegs *
-				   (dgen_soundrate / video.hz));
-			dgen_sound = pd_sound_init(dgen_soundrate, samples);
+			samples = (dgen_soundsegs * (rate / video.hz));
+			dgen_sound = pd_sound_init(rate, samples);
 			if (dgen_sound == 0)
 				fail = true;
 			YM2612_dump(0, ym2612_buf);
@@ -2350,8 +2349,7 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	long val = *rc->variable;
 
 	if (rc->parser == rc_number)
-		stop_events_msg(~0u, "%s is %ld", rc->fieldname,
-				*(rc->variable));
+		stop_events_msg(~0u, "%s is %ld", rc->fieldname, val);
 	else if (rc->parser == rc_keysym) {
 		const char *mod;
 
@@ -2377,7 +2375,7 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	}
 	else if (rc->parser == rc_boolean)
 		stop_events_msg(~0u, "%s is %s", rc->fieldname,
-				((*(rc->variable)) ? "true" : "false"));
+				((val) ? "true" : "false"));
 	else if (rc->parser == rc_jsmap) {
 		const char *pad;
 
@@ -2463,6 +2461,15 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		stop_events_msg(~0u, "%s is \"%c\" (%s)", rc->fieldname,
 				(val ? (char)val : (char)' '), s);
 	}
+	else if (rc->parser == rc_string) {
+		struct rc_str *rs = (struct rc_str *)rc->variable;
+
+		if (rs->val == NULL)
+			stop_events_msg(~0u, "%s has no value", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
+					rs->val);
+	}
 	else
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
 }
@@ -2500,7 +2507,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 {
 	struct prompt::prompt_history *ph;
 	struct prompt_parse pp;
-	long potential;
+	intptr_t potential;
 	unsigned int i;
 	const char *cs;
 	char *s;
@@ -2581,7 +2588,25 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 				ret |= PROMPT_RET_MSG;
 				break;
 			}
-			*(rc_fields[i].variable) = potential;
+			if (rc_fields[i].parser == rc_string) {
+				struct rc_str *rs;
+
+				rs = (struct rc_str *)rc_fields[i].variable;
+				free(rs->alloc);
+				rs->alloc = (char *)potential;
+				rs->val = rs->alloc;
+				if (rc_str_list != NULL) {
+					if ((rc_str_list != rs) &&
+					    (rs->next == NULL)) {
+						rs->next = rc_str_list;
+						rc_str_list = rs;
+					}
+				}
+				else if (!atexit(rc_str_cleanup))
+					rc_str_list = rs;
+			}
+			else
+				*(rc_fields[i].variable) = potential;
 			ret |= prompt_rehash_rc_field(&rc_fields[i], megad);
 			break;
 		}

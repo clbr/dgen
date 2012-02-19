@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 		dgen_hz = atoi(optarg);
 		if ((dgen_hz <= 0) || (dgen_hz > 1000)) {
 			fprintf(stderr, "main: invalid frame rate (%ld).\n",
-				dgen_hz);
+				(long)dgen_hz);
 			dgen_hz = (dgen_pal ? 50 : 60);
 		}
 		break;
@@ -390,10 +390,12 @@ int main(int argc, char *argv[])
     }
   if(dgen_sound)
     {
+      long rate = dgen_soundrate;
+
       if (dgen_soundsegs < 0)
 	      dgen_soundsegs = 0;
-      samples = (dgen_soundsegs * (dgen_soundrate / dgen_hz));
-      dgen_sound = pd_sound_init(dgen_soundrate, samples);
+      samples = (dgen_soundsegs * (rate / dgen_hz));
+      dgen_sound = pd_sound_init(rate, samples);
     }
 
 	rom = argv[optind];
@@ -572,7 +574,7 @@ next_rom:
 	if (fpsclk == 0)
 		fpsclk = 1;
 	printf("%lu frames per second (average %lu, optimal %ld)\n",
-	       fps, (frames / fpsclk), dgen_hz);
+	       fps, (frames / fpsclk), (long)dgen_hz);
 
 	ram_save(*megad);
 	if (dgen_autosave) {

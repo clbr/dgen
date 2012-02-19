@@ -178,7 +178,7 @@ struct rc_keysym rc_keysyms[] = {
 /* Define all the external RC variables */
 #include "rc-vars.h"
 
-long js_map_button[2][16] = {
+intptr_t js_map_button[2][16] = {
     {
 	MD_A_MASK, MD_C_MASK, MD_A_MASK,
 	MD_B_MASK, MD_Y_MASK, MD_Z_MASK,
@@ -196,7 +196,7 @@ long js_map_button[2][16] = {
 /* Parse a keysym.
  * If the string matches one of the strings in the keysym table above,
  * return the keysym, otherwise -1. */
-long rc_keysym(const char *code)
+intptr_t rc_keysym(const char *code)
 {
   struct rc_keysym *s = rc_keysyms;
   long r = 0;
@@ -237,7 +237,7 @@ long rc_keysym(const char *code)
  * If the string is "yes" or "true", return 1.
  * If the string is "no" or "false", return 0.
  * Otherwise, just return atoi(value). */
-long rc_boolean(const char *value)
+intptr_t rc_boolean(const char *value)
 {
   if(!strcasecmp(value, "yes") || !strcasecmp(value, "true"))
     return 1;
@@ -248,7 +248,7 @@ long rc_boolean(const char *value)
 
 // Made GCC happy about unused things when we don't want a joystick.  :) [PKH]
 // Cheesy hack to set joystick mappings from the RC file. [PKH]
-long rc_jsmap(const char *value)
+intptr_t rc_jsmap(const char *value)
 {
   if(!strcasecmp(value, "mode"))
     snprintf((char*)value, 2, "%c", 'm');
@@ -298,14 +298,14 @@ long rc_jsmap(const char *value)
  *  blur     - blur bitmap (from DirectX DGen), by Dave <dave@dtmnt.com>
  *  scanline - attenuates every other line, looks cool! by Phillip K. Hornung <redx@pknet.com>
  */
-long rc_ctv(const char *value)
+intptr_t rc_ctv(const char *value)
 {
   for(int i = 0; i < NUM_CTV; ++i)
     if(!strcasecmp(value, ctv_names[i])) return i;
   return -1;
 }
 
-long rc_scaling(const char *value)
+intptr_t rc_scaling(const char *value)
 {
 	int i;
 
@@ -316,7 +316,7 @@ long rc_scaling(const char *value)
 }
 
 /* Parse CPU types */
-long rc_emu_z80(const char *value)
+intptr_t rc_emu_z80(const char *value)
 {
 	unsigned int i;
 
@@ -326,7 +326,7 @@ long rc_emu_z80(const char *value)
 	return -1;
 }
 
-long rc_emu_m68k(const char *value)
+intptr_t rc_emu_m68k(const char *value)
 {
 	unsigned int i;
 
@@ -336,7 +336,7 @@ long rc_emu_m68k(const char *value)
 	return -1;
 }
 
-long rc_region(const char *value)
+intptr_t rc_region(const char *value)
 {
 	if (strlen(value) != 1)
 		return -1;
@@ -349,7 +349,21 @@ long rc_region(const char *value)
 	return -1;
 }
 
-long rc_number(const char *value)
+intptr_t rc_string(const char *value)
+{
+	char *val;
+
+	if ((val = strdup(value)) == NULL)
+		return -1;
+	/* Just in case... */
+	if ((intptr_t)val == -1) {
+		free(val);
+		return -1;
+	}
+	return (intptr_t)val;
+}
+
+intptr_t rc_number(const char *value)
 {
   return atoi(value);
 }
@@ -487,11 +501,27 @@ static char *strclean(char *s)
 	return s;
 }
 
+/* This is for cleaning up rc_str fields at exit */
+struct rc_str *rc_str_list = NULL;
+
+void rc_str_cleanup(void)
+{
+	struct rc_str *rs = rc_str_list;
+
+	while (rs != NULL) {
+		if (rs->val == rs->alloc)
+			rs->val = NULL;
+		free(rs->alloc);
+		rs->alloc = NULL;
+		rs = rs->next;
+	}
+}
+
 /* Parse the rc file */
 void parse_rc(FILE *file, const char *name)
 {
 	struct rc_field *rc_field = NULL;
-	long potential;
+	intptr_t potential;
 	int overflow = 0;
 	size_t len;
 	size_t parse;
@@ -562,6 +592,23 @@ parse:
 				" `%s': `%s'\n",
 				name, ckvp.line, ckvp.column,
 				rc_field->fieldname, strclean(ckvp.out));
+		else if (rc_field->parser == rc_string) {
+			struct rc_str *rs =
+				(struct rc_str *)rc_field->variable;
+
+			free(rs->alloc);
+			rs->alloc = (char *)potential;
+			rs->val = rs->alloc;
+			if (rc_str_list != NULL) {
+				if ((rc_str_list != rs) &&
+				    (rs->next == NULL)) {
+					rs->next = rc_str_list;
+					rc_str_list = rs;
+				}
+			}
+			else if (!atexit(rc_str_cleanup))
+				rc_str_list = rs;
+		}
 		else
 			*(rc_field->variable) = potential;
 		break;

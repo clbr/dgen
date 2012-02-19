@@ -2,7 +2,9 @@
 #ifndef RC_H_
 #define RC_H_
 
+#include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 
 // Define the different craptv types
 #define NUM_CTV 4 // Include CTV_OFF
@@ -31,20 +33,24 @@ extern const char *emu_m68k_names[];
 // Provide a prototype to the parse_rc function in rc.cpp
 extern void parse_rc(FILE *file, const char *name);
 
-extern long rc_number(const char *value);
-extern long rc_keysym(const char *code);
-extern long rc_boolean(const char *value);
-extern long rc_jsmap(const char *value);
-extern long rc_ctv(const char *value);
-extern long rc_scaling(const char *value);
-extern long rc_emu_z80(const char *value);
-extern long rc_emu_m68k(const char *value);
-extern long rc_region(const char *value);
+extern intptr_t rc_number(const char *value);
+extern intptr_t rc_keysym(const char *code);
+extern intptr_t rc_boolean(const char *value);
+extern intptr_t rc_jsmap(const char *value);
+extern intptr_t rc_ctv(const char *value);
+extern intptr_t rc_scaling(const char *value);
+extern intptr_t rc_emu_z80(const char *value);
+extern intptr_t rc_emu_m68k(const char *value);
+extern intptr_t rc_region(const char *value);
+extern intptr_t rc_string(const char *value);
+
+extern struct rc_str *rc_str_list;
+extern void rc_str_cleanup(void);
 
 struct rc_field {
 	const char *fieldname;
-	long (*parser)(const char *);
-	long *variable;
+	intptr_t (*parser)(const char *);
+	intptr_t *variable;
 };
 
 extern struct rc_field rc_fields[];
@@ -55,6 +61,6 @@ struct rc_keysym {
 };
 
 extern struct rc_keysym rc_keysyms[];
-extern long js_map_button[2][16];
+extern intptr_t js_map_button[2][16];
 
 #endif // RC_H_

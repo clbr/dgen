@@ -4,14 +4,24 @@
 // DGen/SDL v1.17+
 // RC-modified variables listed here
 
+#include <stdint.h>
 #include "pd-defs.h" // Keysyms are defined in here
 
 // main.cpp defines IS_MAIN_CPP, which means we actually define the variables.
 // Otherwise, we just declare them as externs
+
+struct rc_str {
+	const char *val;
+	char *alloc;
+	struct rc_str *next;
+};
+
 #ifdef IS_MAIN_CPP
-#define RCVAR(name, def) long name = def
+#define RCVAR(name, def) intptr_t name = def
+#define RCSTR(name, def) struct rc_str name = { def, NULL, NULL }
 #else
-#define RCVAR(name, def) extern long name
+#define RCVAR(name, def) extern intptr_t name
+#define RCSTR(name, def) extern struct rc_str name
 #endif
 
 RCVAR(pad1_up, PDK_UP);
