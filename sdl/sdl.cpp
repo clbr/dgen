@@ -2917,13 +2917,6 @@ gg:
 resume:
 	pd_message("RUNNING.");
 gg_resume:
-	if (screen.want_fullscreen) {
-		if (set_fullscreen(1) < -1) {
-			SDL_EnableKeyRepeat(0, 0);
-			SDL_PauseAudio(0);
-			return 0;
-		}
-	}
 	SDL_EnableKeyRepeat(0, 0);
 	SDL_PauseAudio(0);
 	return 1;
