@@ -546,7 +546,11 @@ int md::plug_in(unsigned char *cart,int len)
         if(save_start & 1) --save_start;
         if(!(save_len & 1)) ++save_len;
         save_len -= (save_start - 1);
-        saveram = (unsigned char*)malloc(save_len);
+        saveram = (unsigned char*)calloc(1, save_len);
+	if (saveram == NULL) {
+	  save_len = 0;
+	  save_start = 0;
+	}
 	// If save RAM does not overlap main ROM, set it active by default since
 	// a few games can't manage to properly switch it on/off.
 	if(save_start >= (unsigned int)romlen)
@@ -575,6 +579,7 @@ int md::unplug()
   unload_rom(rom);
   rom = NULL;
   free(saveram);
+  saveram = NULL;
   romlen = save_start = save_len = 0;
 #ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
