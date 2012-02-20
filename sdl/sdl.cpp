@@ -2553,6 +2553,11 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 	case SDLK_DELETE:
 		prompt_delete(p);
 		break;
+	case SDLK_k:
+		if ((ks->mod & KMOD_CTRL) == 0)
+			break;
+		prompt_replace(p, p->cursor, ~0u, NULL, 0);
+		break;
 	case SDLK_RETURN:
 	case SDLK_KP_ENTER:
 		if (prompt_parse(p, &pp) == NULL) {
