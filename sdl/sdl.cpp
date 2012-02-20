@@ -2480,6 +2480,33 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
 }
 
+static char *prompt_complete_rom(const char *prefix, size_t length,
+				 unsigned int skip)
+{
+	size_t i;
+	char *ret;
+	char **cp;
+
+	if (prefix == NULL)
+		cp = complete_path("", 0, dgen_rom_path.val);
+	else
+		cp = complete_path(prefix, length, dgen_rom_path.val);
+	if (cp == NULL)
+		return NULL;
+	for (i = 0; (cp[i] != NULL); ++i) {
+		if (skip == 0)
+			break;
+		free(cp[i]);
+		--skip;
+	}
+	ret = cp[i];
+	if (ret != NULL)
+		while (cp[(++i)] != NULL)
+			free(cp[i]);
+	free(cp);
+	return ret;
+}
+
 static void prompt_complete(const char *prefix, size_t length,
 			    unsigned int skip, size_t& var, size_t& cmd)
 {
@@ -2517,6 +2544,7 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 	unsigned int i;
 	const char *cs;
 	char *s;
+	char *t;
 	char c = ' ';
 	size_t var, cmd;
 	int ret = PROMPT_RET_CONT;
@@ -2639,8 +2667,14 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 			ret |= PROMPT_RET_ERROR;
 			break;
 		}
-		if (pp.index != 0)
+		switch (pp.index) {
+		case 0:
+			break;
+		case 1:
+			goto key_tab_arg;
+		default:
 			goto key_tab_end;
+		}
 		// Command completion.
 	key_tab_retry:
 		prompt_complete((char *)pp.argv[0], pp.cursor,
@@ -2658,6 +2692,32 @@ static int prompt(struct prompt *p, unsigned int *complete_skip,
 		s = backslashify((const uint8_t *)cs, strlen(cs));
 		if (s == NULL)
 			goto key_tab_end;
+		prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
+			       (const uint8_t *)s, strlen(s));
+		free(s);
+		++(*complete_skip);
+		goto key_tab_end;
+		// Argument completion.
+	key_tab_arg:
+		if ((strcasecmp((char *)pp.argv[0], "load")) &&
+		    (strcasecmp((char *)pp.argv[0], "open")) &&
+		    (strcasecmp((char *)pp.argv[0], "plug")))
+			goto key_tab_end;
+		// ROM pathname completion.
+		t = prompt_complete_rom((char *)pp.argv[1], pp.cursor,
+					*complete_skip);
+		if (t == NULL) {
+			if (*complete_skip == 0)
+				goto key_tab_end;
+			*complete_skip = 0;
+			goto key_tab_arg;
+		}
+		s = backslashify((const uint8_t *)t, strlen(t));
+		if (s == NULL) {
+			free(t);
+			goto key_tab_end;
+		}
+		free(t);
 		prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
 			       (const uint8_t *)s, strlen(s));
 		free(s);
