@@ -1428,6 +1428,7 @@ static int screen_init(unsigned int width, unsigned int height)
 		       width, height));
 	}
 #ifdef WITH_OPENGL
+opengl_failed:
 	if (screen.want_opengl) {
 		// Use whatever scale is thrown at us.
 		if (dgen_x_scale <= 0)
@@ -1599,7 +1600,12 @@ static int screen_init(unsigned int width, unsigned int height)
 		    (init_texture())) {
 			// This is fatal.
 			screen.is_opengl = 0;
-			return -2;
+			DEBUG(("OpenGL initialization failed, retrying"
+			       " without it."));
+			screen.want_opengl = 0;
+			dgen_opengl = 0;
+			flags &= ~SDL_OPENGL;
+			goto opengl_failed;
 		}
 		screen.Bpp = (2 << texture.u32);
 		screen.bpp = (screen.Bpp * 8);
