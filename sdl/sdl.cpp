@@ -336,8 +336,10 @@ struct prompt_command prompt_command[] = {
 	{ "quit", cmd_exit },
 	{ "exit", cmd_exit },
 	{ "load", cmd_load },
+	{ "open", cmd_load },
 	{ "plug", cmd_load },
 	{ "unload", cmd_unload },
+	{ "close", cmd_unload },
 	{ "unplug", cmd_unload },
 	{ "reset", cmd_reset },
 	{ NULL, NULL }
