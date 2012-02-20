@@ -43,6 +43,7 @@ extern FILE *dgen_freopen(const char *relative, const char *file,
 			  unsigned int mode, FILE *f);
 extern const char *dgen_basename(const char *path);
 extern char *dgen_dir(char *buf, size_t *size, const char *sub);
+extern char *dgen_userdir(char *buf, size_t *size);
 
 #define le2h16(v) h2le16(v)
 static inline uint16_t h2le16(uint16_t v)
@@ -105,6 +106,10 @@ extern uint8_t *load(void **context,
 		     size_t *file_size, FILE *file, size_t max_size);
 extern void load_finish(void **context);
 extern void unload(uint8_t *data);
+
+extern char **complete_path(const char *prefix, size_t len,
+			    const char *relative);
+extern void complete_path_free(char **cp);
 
 SYSTEM_H_END_
 

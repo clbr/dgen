@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -5,11 +6,15 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <dirent.h>
 #ifndef __MINGW32__
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
 #include <unistd.h>
+#ifdef HAVE_GLOB_H
+#include <glob.h>
+#endif
 #else
 #include <io.h>
 #include <shlobj.h>
@@ -55,35 +60,40 @@ enum path_type {
 
 #ifdef __MINGW32__
 
-enum path_type path_type(const char *path)
+enum path_type path_type(const char *path, size_t len)
 {
-	if (path[0] == '\0')
+	if ((len == 0) || (path[0] == '\0'))
 		return PATH_TYPE_UNSPECIFIED;
 	if ((path[0] == '\\') || (path[0] == '/'))
 		return PATH_TYPE_ABSOLUTE;
 	if ((path[0] == '.') &&
-	    (((path[1] == '\0') || (path[1] == '\\') || (path[1] == '/')) ||
+	    (((len == 1) ||
+	      (path[1] == '\0') || (path[1] == '\\') || (path[1] == '/')) ||
 	     ((path[1] == '.') &&
-	      ((path[2] == '\0') || (path[2] == '\\') || (path[2] == '/')))))
+	      ((len == 2) ||
+	       (path[2] == '\0') || (path[2] == '\\') || (path[2] == '/')))))
 		return PATH_TYPE_RELATIVE;
 	do {
 		if (*(++path) == ':')
 			return PATH_TYPE_ABSOLUTE;
+		--len;
 	}
-	while ((*path != '\0') && (*path != '\\') && (*path != '/'));
+	while ((len) && (*path != '\0') && (*path != '\\') && (*path != '/'));
 	return PATH_TYPE_UNSPECIFIED;
 }
 
 #else /* __MINGW32__ */
 
-enum path_type path_type(const char *path)
+enum path_type path_type(const char *path, size_t len)
 {
+	if ((len == 0) || (path[0] == '\0'))
+		return PATH_TYPE_UNSPECIFIED;
 	if (path[0] == '/')
 		return PATH_TYPE_ABSOLUTE;
 	if ((path[0] == '.') &&
-	    (((path[1] == '\0') || (path[1] == '/')) ||
+	    (((len == 1) || (path[1] == '\0') || (path[1] == '/')) ||
 	     ((path[1] == '.') &&
-	      ((path[2] == '\0') || (path[2] == '/')))))
+	      ((len == 2) || (path[2] == '\0') || (path[2] == '/')))))
 		return PATH_TYPE_RELATIVE;
 	return PATH_TYPE_UNSPECIFIED;
 }
@@ -91,9 +101,69 @@ enum path_type path_type(const char *path)
 #endif /* __MINGW32__ */
 
 /*
-  Return user's DGen directory with an optional subdirectory (or file).
-  The returned value doesn't have a trailing '/' and must be freed using
-  free().
+  Return user's home directory.
+  The returned string doesn't have a trailing '/' and must be freed using
+  free() (unless buf is provided).
+*/
+
+char *dgen_userdir(char *buf, size_t *size)
+{
+	char *path;
+	size_t sz_dir;
+	size_t sz;
+#ifndef __MINGW32__
+	struct passwd *pwd = getpwuid(geteuid());
+
+	if ((pwd == NULL) || (pwd->pw_dir == NULL))
+		return NULL;
+	sz_dir = strlen(pwd->pw_dir);
+#endif
+	if (buf != NULL) {
+		sz = *size;
+#ifdef __MINGW32__
+		if (sz < PATH_MAX)
+			return NULL;
+#else
+		if (sz < (sz_dir + 1))
+			return NULL;
+#endif
+		path = buf;
+	}
+	else {
+#ifdef __MINGW32__
+		sz = PATH_MAX;
+#else
+		sz = (sz_dir + 1);
+#endif
+		if ((path = malloc(sz)) == NULL)
+			return NULL;
+	}
+#ifndef __MINGW32__
+	strncpy(path, pwd->pw_dir, sz_dir);
+#else
+	if (SHGetFolderPath(NULL, (CSIDL_PROFILE | CSIDL_FLAG_CREATE),
+			    0, 0, path) != S_OK) {
+		if (buf == NULL)
+			free(path);
+		return NULL;
+	}
+	sz_dir = strlen(path);
+	if (sz < (sz_dir + 1)) {
+		if (buf == NULL)
+			free(path);
+		return NULL;
+	}
+#endif
+	path[sz_dir] = '\0';
+	if (size != NULL)
+		*size = sz_dir;
+	return path;
+}
+
+/*
+  Return DGen's home directory with an optional subdirectory (or file).
+  The returned string doesn't have a trailing '/' and must be freed using
+  free() (unless buf is provided).
 */
 
 char *dgen_dir(char *buf, size_t *size, const char *sub)
@@ -165,7 +235,7 @@ char *dgen_dir(char *buf, size_t *size, const char *sub)
 }
 
 /*
-  Open a file relative to user's DGen directory (when "relative" is NULL or
+  Open a file relative to DGen's home directory (when "relative" is NULL or
   path_type(relative) returns PATH_TYPE_UNSPECIFIED) and create the directory
   hierarchy if necessary, unless the file name is already relative to
   something or found in the current directory if mode contains DGEN_CURRENT.
@@ -202,10 +272,10 @@ FILE *dgen_freopen(const char *relative, const char *file, unsigned int mode,
 		if (fd != NULL)
 			return fd;
 	}
-	if (path_type(file) != PATH_TYPE_UNSPECIFIED)
+	if (path_type(file, ~0u) != PATH_TYPE_UNSPECIFIED)
 		size = 0;
 	else if ((relative == NULL) ||
-		 (path_type(relative) == PATH_TYPE_UNSPECIFIED)) {
+		 (path_type(relative, ~0u) == PATH_TYPE_UNSPECIFIED)) {
 		if ((path = dgen_dir(NULL, &size, relative)) == NULL)
 			goto error;
 	}
@@ -470,4 +540,428 @@ error:
 	}
 	errno = error;
 	return NULL;
+}
+
+/*
+  Free NULL-terminated list of strings and set source pointer to NULL.
+  This function can skip a given number of indices (starting from 0)
+  which won't be freed.
+*/
+
+static void free_pppc(char ***pppc, size_t skip)
+{
+	char **p = *pppc;
+	size_t i;
+
+	if (p == NULL)
+		return;
+	*pppc = NULL;
+	for (i = 0; (p[i] != NULL); ++i) {
+		if (skip == 0)
+			free(p[i]);
+		else
+			--skip;
+	}
+	free(p);
+}
+
+/*
+  Return a list of pathnames that match "len" characters of "path" on the
+  file system, or NULL if none was found or if an error occured.
+*/
+
+static char **complete_path_simple(const char *path, size_t len)
+{
+	size_t rlen;
+	const char *cpl;
+	char *root;
+	struct dirent *dent;
+	DIR *dir;
+	char **ret = NULL;
+	size_t ret_size = 256;
+	size_t ret_used = 0;
+	struct stat st;
+
+	if ((rlen = strlen(path)) < len)
+		len = rlen;
+	cpl = path;
+	while (((root = strpbrk(cpl, DGEN_DIRSEP)) != NULL) &&
+	       (root < (path + len)))
+		cpl = (root + 1);
+	rlen = (cpl - path);
+	len -= rlen;
+	if (rlen == 0) {
+		path = "." DGEN_DIRSEP;
+		rlen = 2;
+	}
+	if ((root = malloc(rlen + 1)) == NULL)
+		return NULL;
+	memcpy(root, path, rlen);
+	root[rlen] = '\0';
+	if (((dir = opendir(root)) == NULL) ||
+	    ((ret = malloc(sizeof(*ret) * ret_size)) == NULL))
+		goto error;
+	ret[(ret_used++)] = NULL;
+	while ((dent = readdir(dir)) != NULL) {
+		size_t i;
+		char *t;
+
+		if ((cpl[0] != '\0') && (strncmp(cpl, dent->d_name, len)))
+			continue;
+		/* Remove "." and ".." entries. */
+		if ((dent->d_name[0] == '.') &&
+		    ((dent->d_name[1] == '\0') ||
+		     ((dent->d_name[1] == '.') && (dent->d_name[2] == '\0'))))
+			continue;
+		if (ret_used == ret_size) {
+			char **rt;
+
+			ret_size *= 2;
+			if ((rt = realloc(ret,
+					  (sizeof(*rt) * ret_size))) == NULL)
+				break;
+			ret = rt;
+		}
+		i = strlen(dent->d_name);
+		/* Allocate one extra char in case it's a directory. */
+		if ((t = malloc(rlen + i + 1 + 1)) == NULL)
+			break;
+		memcpy(t, root, rlen);
+		memcpy(&t[rlen], dent->d_name, i);
+		t[(rlen + i)] = '\0';
+		if ((stat(t, &st) != -1) && (S_ISDIR(st.st_mode))) {
+			t[(rlen + (i++))] = DGEN_DIRSEP[0];
+			t[(rlen + i)] = '\0';
+		}
+		for (i = 0; (ret[i] != NULL); ++i)
+			if (strcmp(dent->d_name, &ret[i][rlen]) < 0)
+				break;
+		memmove(&ret[(i + 1)], &ret[i],
+			(sizeof(*ret) * (ret_used - i)));
+		ret[i] = t;
+		++ret_used;
+	}
+	closedir(dir);
+	free(root);
+	if (ret[0] != NULL)
+		return ret;
+	free(ret);
+	return NULL;
+error:
+	if (dir != NULL)
+		closedir(dir);
+	free(root);
+	if (ret != NULL) {
+		while (*ret != NULL)
+			free(*(ret++));
+		free(ret);
+	}
+	return NULL;
+}
+
+#if defined(HAVE_GLOB_H) && !defined(__MINGW32__)
+
+#define COMPLETE_USERDIR_TILDE 0x01
+#define COMPLETE_USERDIR_EXACT 0x02
+#define COMPLETE_USERDIR_ALL 0x04
+
+/*
+  Return the list of home directories that match "len" characters of a
+  user's name ("prefix").
+  COMPLETE_USERDIR_TILDE - Instead of directories, the returned strings are
+  tilde-prefixed user names.
+  COMPLETE_USERDIR_EXACT - Prefix must exactly match a user name.
+  COMPLETE_USERDIR_ALL - When prefix length is 0, return all user names
+  instead of the current user only.
+*/
+
+static char **complete_userdir(const char *prefix, size_t len, int flags)
+{
+	char **ret = NULL;
+	char *s;
+	struct passwd *pwd;
+	size_t n;
+	size_t i;
+	int tilde = !!(flags & COMPLETE_USERDIR_TILDE);
+	int exact = !!(flags & COMPLETE_USERDIR_EXACT);
+	int all = !!(flags & COMPLETE_USERDIR_ALL);
+
+	setpwent();
+	if ((!all) && (len == 0)) {
+		if (((pwd = getpwuid(geteuid())) == NULL) ||
+		    ((ret = calloc(2, sizeof(ret[0]))) == NULL))
+			goto err;
+		if (tilde)
+			s = pwd->pw_name;
+		else
+			s = pwd->pw_dir;
+		i = strlen(s);
+		if ((ret[0] = calloc((tilde + i + 1),
+				     sizeof(*ret[0]))) == NULL)
+			goto err;
+		if (tilde)
+			ret[0][0] = '~';
+		memcpy(&ret[0][tilde], s, i);
+		ret[0][(tilde + i)] = '\0';
+		goto end;
+	}
+	n = 64;
+	if ((ret = calloc(n, sizeof(ret[0]))) == NULL)
+		goto err;
+	i = 0;
+	while ((pwd = getpwent()) != NULL) {
+		size_t j;
+
+		if (exact) {
+			if (strncmp(pwd->pw_name, prefix,
+				    strlen(pwd->pw_name)))
+				continue;
+		}
+		else if (strncmp(pwd->pw_name, prefix, len))
+			continue;
+		if (i == (n - 1)) {
+			char **tmp;
+
+			n += 64;
+			if ((tmp = realloc(ret, (sizeof(ret[0]) * n))) == NULL)
+				goto end;
+			ret = tmp;
+		}
+		if (tilde)
+			s = pwd->pw_name;
+		else
+			s = pwd->pw_dir;
+		j = strlen(s);
+		if ((ret[i] = calloc((tilde + j + 1),
+				     sizeof(*ret[0]))) == NULL)
+			break;
+		if (tilde)
+			ret[i][0] = '~';
+		memcpy(&ret[i][tilde], s, j);
+		ret[i][(tilde + j)] = '\0';
+		++i;
+	}
+	if (i == 0) {
+		free(ret);
+		ret = NULL;
+	}
+end:
+	endpwent();
+	return ret;
+err:
+	endpwent();
+	free_pppc(&ret, 0);
+	return NULL;
+}
+
+/*
+  Return a list of pathnames that match "len" characters of "prefix" on the
+  file system, or NULL if none was found or if an error occured. This is done
+  using glob() in order to handle wildcard characters in "prefix".
+
+  When "prefix" isn't explicitly relative nor absolute, if "relative" is
+  non-NULL, then the path will be completed as if "prefix" was a subdirectory
+  of "relative". If "relative" is NULL, DGen's home directory will be used.
+
+  If "relative" isn't explicitly relative nor absolute, it will be considered
+  a subdirectory of DGen's home directory.
+*/
+
+char **complete_path(const char *prefix, size_t len, const char *relative)
+{
+	char *s;
+	char **ret;
+	size_t i;
+	glob_t g;
+	size_t strip;
+
+	(void)complete_path_simple; /* unused */
+	if ((i = strlen(prefix)) < len)
+		len = i;
+	else
+		i = len;
+	if (((s = strchr(prefix, '/')) != NULL) && ((i = (s - prefix)) > len))
+		i = len;
+	if ((len == 0) ||
+	    ((prefix[0] != '~') &&
+	     (strncmp(prefix, ".", i)) &&
+	     (strncmp(prefix, "..", i)))) {
+		size_t n;
+
+		if ((relative == NULL) ||
+		    (path_type(relative, ~0u) == PATH_TYPE_UNSPECIFIED)) {
+			char *x = dgen_dir(NULL, &n, relative);
+
+			if ((x == NULL) ||
+			    ((s = realloc(x, (n + 1 + len + 2))) == NULL)) {
+				free(x);
+				return NULL;
+			}
+		}
+		else {
+			n = strlen(relative);
+			if ((s = malloc(n + 1 + len + 2)) == NULL)
+				return NULL;
+			memcpy(s, relative, n);
+		}
+		s[(n++)] = '/';
+		strip = n;
+		memcpy(&s[n], prefix, len);
+		len += n;
+		s[(len++)] = '*';
+		s[len] = '\0';
+	}
+	else if (prefix[0] == '~') {
+		char **ud;
+		size_t n;
+
+		if (s == NULL)
+			return complete_userdir(&prefix[1], (i - 1),
+						(COMPLETE_USERDIR_TILDE |
+						 COMPLETE_USERDIR_ALL));
+		ud = complete_userdir(&prefix[1], (i - 1),
+				      COMPLETE_USERDIR_EXACT);
+		if (ud == NULL)
+			goto no_userdir;
+		n = strlen(ud[0]);
+		if ((s = realloc(ud[0], (n + (len - i) + 2))) == NULL) {
+			free_pppc(&ud, 0);
+			goto no_userdir;
+		}
+		free_pppc(&ud, 1);
+		len -= i;
+		strip = 0;
+		memcpy(&s[n], &prefix[i], len);
+		len += n;
+		s[(len++)] = '*';
+		s[len] = '\0';
+	}
+	else {
+	no_userdir:
+		if ((s = malloc(len + 2)) == NULL)
+			return NULL;
+		memcpy(s, prefix, len);
+		s[(len++)] = '*';
+		s[len] = '\0';
+		strip = 0;
+	}
+	switch (glob(s, (GLOB_MARK | GLOB_NOESCAPE), NULL, &g)) {
+	case 0:
+		break;
+	case GLOB_NOSPACE:
+	case GLOB_ABORTED:
+	case GLOB_NOMATCH:
+	default:
+		free(s);
+		return NULL;
+	}
+	free(s);
+	if ((ret = calloc((g.gl_pathc + 1), sizeof(ret[0]))) == NULL)
+		goto err;
+	for (i = 0; (g.gl_pathv[i] != NULL); ++i) {
+		size_t j;
+
+		len = strlen(g.gl_pathv[i]);
+		if (strip > len)
+			break;
+		j = (len - strip);
+		if ((ret[i] = calloc((j + 1), sizeof(ret[i][0]))) == NULL)
+			break;
+		memcpy(ret[i], &(g.gl_pathv[i][strip]), j);
+		ret[i][j] = '\0';
+	}
+	if (i == 0)
+		goto err;
+	globfree(&g);
+	return ret;
+err:
+	globfree(&g);
+	free_pppc(&ret, 0);
+	return NULL;
+}
+
+#else /* defined(HAVE_GLOB_H) && !defined(__MINGW32__) */
+
+/*
+  Return a list of pathnames that match "len" characters of "prefix" on the
+  file system, or NULL if none was found or if an error occured.
+
+  When "prefix" isn't explicitly relative nor absolute, if "relative" is
+  non-NULL, then the path will be completed as if "prefix" was a subdirectory
+  of "relative". If "relative" is NULL, DGen's home directory will be used.
+
+  If "relative" isn't explicitly relative nor absolute, it will be considered
+  a subdirectory of DGen's home directory.
+*/
+
+char **complete_path(const char *prefix, size_t len, const char *relative)
+{
+	char *s;
+	char **ret;
+	size_t i;
+	size_t n;
+	size_t strip;
+	enum path_type pt;
+
+	if ((i = strlen(prefix)) < len)
+		len = i;
+	if (((pt = path_type(prefix, len)) == PATH_TYPE_ABSOLUTE) ||
+	    (pt == PATH_TYPE_RELATIVE))
+		return complete_path_simple(prefix, len);
+	if ((len != 0) && (prefix[0] == '~') &&
+	    ((len == 1) ||
+	     (prefix[1] == '\0') ||
+	     (strpbrk(prefix, DGEN_DIRSEP) == &prefix[1]))) {
+		char *x = dgen_userdir(NULL, &n);
+
+		if ((x == NULL) ||
+		    ((s = realloc(x, (n + 1 + 2 + len + 1))) == NULL)) {
+			free(x);
+			return NULL;
+		}
+		++prefix;
+		--len;
+		strip = 0;
+	}
+	else if ((relative == NULL) ||
+		 (path_type(relative, ~0u) == PATH_TYPE_UNSPECIFIED)) {
+		char *x = dgen_dir(NULL, &n, relative);
+
+		if ((x == NULL) ||
+		    ((s = realloc(x, (n + 1 + len + 1))) == NULL)) {
+			free(x);
+			return NULL;
+		}
+		strip = (n + 1);
+	}
+	else {
+		n = strlen(relative);
+		if ((s = malloc(n + 1 + len + 1)) == NULL)
+			return NULL;
+		memcpy(s, relative, n);
+		strip = (n + 1);
+	}
+	s[(n++)] = DGEN_DIRSEP[0];
+	memcpy(&s[n], prefix, len);
+	len += n;
+	s[len] = '\0';
+	ret = complete_path_simple(s, len);
+	free(s);
+	if (ret == NULL)
+		return NULL;
+	if (strip == 0)
+		return ret;
+	for (i = 0; (ret[i] != NULL); ++i)
+		memmove(ret[i], &ret[i][strip],
+			((strlen(ret[i]) - strip) + 1));
+	return ret;
+}
+
+#endif /* defined(HAVE_GLOB_H) && !defined(__MINGW32__) */
+
+/* Free return value of complete*() functions. */
+
+void complete_path_free(char **cp)
+{
+	free_pppc(&cp, 0);
 }

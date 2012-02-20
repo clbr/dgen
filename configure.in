@@ -229,6 +229,9 @@ AS_IF(
 	)]
 )
 
+dnl Check for glob.h.
+AC_CHECK_HEADERS([glob.h])
+
 dnl Try to add shell32.
 AC_CHECK_LIB([shell32], [main])
 
