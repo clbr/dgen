@@ -43,6 +43,7 @@ extern intptr_t rc_emu_z80(const char *value);
 extern intptr_t rc_emu_m68k(const char *value);
 extern intptr_t rc_region(const char *value);
 extern intptr_t rc_string(const char *value);
+extern intptr_t rc_rom_path(const char *value);
 
 extern struct rc_str *rc_str_list;
 extern void rc_str_cleanup(void);

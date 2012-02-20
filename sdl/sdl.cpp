@@ -34,6 +34,7 @@
 #include "system.h"
 #include "prompt.h"
 #include "md-phil.h"
+#include "romload.h"
 
 #ifdef WITH_HQX
 #include "hqx.h"
@@ -2284,6 +2285,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	}
 	else if (rc->variable == &dgen_region)
 		megad.region = dgen_region;
+	else if (rc->variable == (intptr_t *)&dgen_rom_path)
+		set_rom_path(dgen_rom_path.val);
 	if (init_video) {
 		// This is essentially what pd_graphics_init() does.
 		memset(megad.vdp.dirt, 0xff, 0x35);
@@ -2461,7 +2464,8 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		stop_events_msg(~0u, "%s is \"%c\" (%s)", rc->fieldname,
 				(val ? (char)val : (char)' '), s);
 	}
-	else if (rc->parser == rc_string) {
+	else if ((rc->parser == rc_string) ||
+		 (rc->parser == rc_rom_path)) {
 		struct rc_str *rs = (struct rc_str *)rc->variable;
 
 		if (rs->val == NULL)

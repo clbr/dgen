@@ -16,6 +16,7 @@ ROMLOAD_DECL_BEGIN__
 
 extern uint8_t *load_rom(size_t *rom_size, const char *name);
 extern void unload_rom(uint8_t *rom);
+extern void set_rom_path(const char *path);
 
 ROMLOAD_DECL_END__
 

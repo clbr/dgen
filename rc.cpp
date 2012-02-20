@@ -19,6 +19,7 @@
 #include "ckvp.h"
 #include "pd-defs.h"
 #include "md-phil.h"
+#include "romload.h"
 
 // CTV names
 const char *ctv_names[NUM_CTV] = { "off", "blur", "scanline", "interlace" };
@@ -363,6 +364,16 @@ intptr_t rc_string(const char *value)
 	return (intptr_t)val;
 }
 
+intptr_t rc_rom_path(const char *value)
+{
+	intptr_t r = rc_string(value);
+
+	if (r == -1)
+		return -1;
+	set_rom_path((char *)r);
+	return r;
+}
+
 intptr_t rc_number(const char *value)
 {
   return atoi(value);
@@ -423,6 +434,7 @@ struct rc_field rc_fields[] = {
   { "bool_autosave", rc_boolean, &dgen_autosave },
   { "bool_frameskip", rc_boolean, &dgen_frameskip },
   { "bool_show_carthead", rc_boolean, &dgen_show_carthead },
+  { "str_rom_path", rc_rom_path, (intptr_t *)&dgen_rom_path }, // SH
   { "bool_raw_screenshots", rc_boolean, &dgen_raw_screenshots },
   { "ctv_craptv_startup", rc_ctv, &dgen_craptv }, // SH
   { "scaling_startup", rc_scaling, &dgen_scaling }, // SH

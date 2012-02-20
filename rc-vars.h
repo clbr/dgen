@@ -80,6 +80,7 @@ RCVAR(dgen_autoload, 0);
 RCVAR(dgen_autosave, 0);
 RCVAR(dgen_frameskip, 1);
 RCVAR(dgen_show_carthead, 0);
+RCSTR(dgen_rom_path, "roms"); /* synchronize with romload.c */
 
 RCVAR(dgen_sound, 1);
 RCVAR(dgen_soundrate, 22050);

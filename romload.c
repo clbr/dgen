@@ -11,6 +11,13 @@
 #include "romload.h"
 #include "system.h"
 
+static const char *rom_path = "roms";
+
+void set_rom_path(const char *path)
+{
+	rom_path = path;
+}
+
 /*
   WHAT YOU FIND IN THE 512 BYTES HEADER:
 
@@ -47,7 +54,7 @@ uint8_t *load_rom(size_t *rom_size, const char *name)
 
 	if (name == NULL)
 		return NULL;
-	file = dgen_fopen("roms", name, (DGEN_READ | DGEN_CURRENT));
+	file = dgen_fopen(rom_path, name, (DGEN_READ | DGEN_CURRENT));
 	if (file == NULL) {
 		fprintf(stderr, "%s: can't open ROM file.\n", name);
 		return NULL;
