@@ -21,6 +21,9 @@
 
 #ifdef __MINGW32__
 #define mkdir(a, b) mkdir(a)
+#if MAX_PATH < PATH_MAX
+#error MAX_PATH < PATH_MAX. You should use MAX_PATH.
+#endif
 #endif
 
 static const char *fopen_mode(unsigned int mode)
@@ -44,27 +47,144 @@ static const char *fopen_mode(unsigned int mode)
 	return (*cmode)[(!!(mode & DGEN_TEXT))];
 }
 
+enum path_type {
+	PATH_TYPE_UNSPECIFIED,
+	PATH_TYPE_RELATIVE,
+	PATH_TYPE_ABSOLUTE
+};
+
+#ifdef __MINGW32__
+
+enum path_type path_type(const char *path)
+{
+	if (path[0] == '\0')
+		return PATH_TYPE_UNSPECIFIED;
+	if ((path[0] == '\\') || (path[0] == '/'))
+		return PATH_TYPE_ABSOLUTE;
+	if ((path[0] == '.') &&
+	    (((path[1] == '\0') || (path[1] == '\\') || (path[1] == '/')) ||
+	     ((path[1] == '.') &&
+	      ((path[2] == '\0') || (path[2] == '\\') || (path[2] == '/')))))
+		return PATH_TYPE_RELATIVE;
+	do {
+		if (*(++path) == ':')
+			return PATH_TYPE_ABSOLUTE;
+	}
+	while ((*path != '\0') && (*path != '\\') && (*path != '/'));
+	return PATH_TYPE_UNSPECIFIED;
+}
+
+#else /* __MINGW32__ */
+
+enum path_type path_type(const char *path)
+{
+	if (path[0] == '/')
+		return PATH_TYPE_ABSOLUTE;
+	if ((path[0] == '.') &&
+	    (((path[1] == '\0') || (path[1] == '/')) ||
+	     ((path[1] == '.') &&
+	      ((path[2] == '\0') || (path[2] == '/')))))
+		return PATH_TYPE_RELATIVE;
+	return PATH_TYPE_UNSPECIFIED;
+}
+
+#endif /* __MINGW32__ */
+
 /*
-  Open a file relative to user's DGen directory and create the directory
+  Return user's DGen directory with an optional subdirectory (or file).
+  The returned value doesn't have a trailing '/' and must be freed using
+  free().
+*/
+
+char *dgen_dir(char *buf, size_t *size, const char *sub)
+{
+	char *path;
+	size_t sz_dir;
+	size_t sz_sub;
+	const size_t sz_bd = strlen(DGEN_BASEDIR);
+	size_t sz;
+#ifndef __MINGW32__
+	struct passwd *pwd = getpwuid(geteuid());
+
+	if ((pwd == NULL) || (pwd->pw_dir == NULL))
+		return NULL;
+	sz_dir = strlen(pwd->pw_dir);
+#endif
+	if (sub != NULL)
+		sz_sub = strlen(sub);
+	else
+		sz_sub = 0;
+	if (buf != NULL) {
+		sz = *size;
+#ifdef __MINGW32__
+		if (sz < PATH_MAX)
+			return NULL;
+#else
+		if (sz < (sz_dir + 1 + sz_bd + !!sz_sub + sz_sub + 1))
+			return NULL;
+#endif
+		path = buf;
+	}
+	else {
+#ifdef __MINGW32__
+		sz = PATH_MAX;
+#else
+		sz = (sz_dir + 1 + sz_bd + !!sz_sub + sz_sub + 1);
+#endif
+		if ((path = malloc(sz)) == NULL)
+			return NULL;
+	}
+#ifndef __MINGW32__
+	strncpy(path, pwd->pw_dir, sz_dir);
+#else
+	if (SHGetFolderPath(NULL, (CSIDL_APPDATA | CSIDL_FLAG_CREATE),
+			    0, 0, path) != S_OK) {
+		if (buf == NULL)
+			free(path);
+		return NULL;
+	}
+	sz_dir = strlen(path);
+	if (sz < (sz_dir + 1 + sz_bd + !!sz_sub + sz_sub + 1)) {
+		if (buf == NULL)
+			free(path);
+		return NULL;
+	}
+#endif
+	path[(sz_dir++)] = DGEN_DIRSEP[0];
+	memcpy(&path[sz_dir], DGEN_BASEDIR, sz_bd);
+	sz_dir += sz_bd;
+	if (sz_sub) {
+		path[(sz_dir++)] = DGEN_DIRSEP[0];
+		memcpy(&path[sz_dir], sub, sz_sub);
+		sz_dir += sz_sub;
+	}
+	path[sz_dir] = '\0';
+	if (size != NULL)
+		*size = sz_dir;
+	return path;
+}
+
+/*
+  Open a file relative to user's DGen directory (when "relative" is NULL or
+  path_type(relative) returns PATH_TYPE_UNSPECIFIED) and create the directory
   hierarchy if necessary, unless the file name is already relative to
   something or found in the current directory if mode contains DGEN_CURRENT.
 */
 
-FILE *dgen_fopen(const char *dir, const char *file, unsigned int mode)
+FILE *dgen_fopen(const char *relative, const char *file, unsigned int mode)
 {
-	return dgen_freopen(dir, file, mode, NULL);
+	return dgen_freopen(relative, file, mode, NULL);
 }
 
-FILE *dgen_freopen(const char *dir, const char *file, unsigned int mode,
+FILE *dgen_freopen(const char *relative, const char *file, unsigned int mode,
 		   FILE *f)
 {
 	size_t size;
-	size_t space;
+	size_t file_size;
+	char *tmp;
+	int e = errno;
 	const char *fmode = fopen_mode(mode);
-#ifndef __MINGW32__
-	struct passwd *pwd = getpwuid(geteuid());
-#endif
-	char path[PATH_MAX];
+	char *path = NULL;
 
 	if ((file == NULL) || (file[0] == '\0') || (fmode == NULL))
 		goto error;
@@ -82,42 +202,40 @@ FILE *dgen_freopen(const char *dir, const char *file, unsigned int mode,
 		if (fd != NULL)
 			return fd;
 	}
-#ifndef __MINGW32__
-	if ((pwd == NULL) || (pwd->pw_dir == NULL))
-		goto error;
-	strncpy(path, pwd->pw_dir, sizeof(path));
-#else /* __MINGW32__ */
-	if (SHGetFolderPath(NULL, (CSIDL_APPDATA | CSIDL_FLAG_CREATE),
-			    0, 0, path) != S_OK)
-		goto error;
-#endif /* __MINGW32__ */
-	path[(sizeof(path) - 1)] = '\0';
-	size = strlen(path);
-	space = (sizeof(path) - size);
-	size += (size_t)snprintf(&path[size], space,
-				 DGEN_DIRSEP DGEN_BASEDIR DGEN_DIRSEP);
-	if (size >= sizeof(path))
-		goto error;
-	space = (sizeof(path) - size);
-	if (mode & (DGEN_WRITE | DGEN_APPEND))
-		mkdir(path, 0777);
-	if (dir != NULL) {
-		size += (size_t)snprintf(&path[size], space,
-					 "%s" DGEN_DIRSEP, dir);
-		if (size >= sizeof(path))
+	if (path_type(file) != PATH_TYPE_UNSPECIFIED)
+		size = 0;
+	else if ((relative == NULL) ||
+		 (path_type(relative) == PATH_TYPE_UNSPECIFIED)) {
+		if ((path = dgen_dir(NULL, &size, relative)) == NULL)
 			goto error;
-		space = (sizeof(path) - size);
-		if (mode & (DGEN_WRITE | DGEN_APPEND))
-			mkdir(path, 0777);
 	}
-	size += (size_t)snprintf(&path[size], space, "%s", file);
-	if (size >= sizeof(path))
+	else {
+		if ((path = strdup(relative)) == NULL)
+			goto error;
+		size = strlen(path);
+	}
+	if (mode & (DGEN_WRITE | DGEN_APPEND))
+		mkdir(path, 0777); /* XXX make that recursive */
+	file_size = strlen(file);
+	if ((tmp = realloc(path, (size + !!size + file_size + 1))) == NULL)
 		goto error;
-	file = path;
+	path = tmp;
+	if (size)
+		path[(size++)] = DGEN_DIRSEP[0];
+	memcpy(&path[size], file, file_size);
+	size += file_size;
+	path[size] = '\0';
+	errno = e;
 	if (f == NULL)
-		return fopen(file, fmode);
-	return freopen(file, fmode, f);
+		f = fopen(path, fmode);
+	else
+		f = freopen(path, fmode, f);
+	e = errno;
+	free(path);
+	errno = e;
+	return f;
 error:
+	free(path);
 	errno = EACCES;
 	return NULL;
 }
@@ -131,7 +249,7 @@ const char *dgen_basename(const char *path)
 {
 	char *tmp;
 
-	while ((tmp = strpbrk(path, DGEN_DIRSEP DGEN_DIRSEP_ALT)) != NULL)
+	while ((tmp = strpbrk(path, DGEN_DIRSEP)) != NULL)
 		path = (tmp + 1);
 	return path;
 }

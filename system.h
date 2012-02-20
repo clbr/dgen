@@ -22,12 +22,10 @@ SYSTEM_H_BEGIN_
 #define DGEN_BASEDIR ".dgen"
 #define DGEN_RC "dgenrc"
 #define DGEN_DIRSEP "/"
-#define DGEN_DIRSEP_ALT ""
 #else
 #define DGEN_BASEDIR "DGen"
 #define DGEN_RC "dgen.cfg"
-#define DGEN_DIRSEP "\\"
-#define DGEN_DIRSEP_ALT "/"
+#define DGEN_DIRSEP "\\/"
 #endif
 
 #define BITS_TO_BYTES(v) ((((v) + 7u) & ~7u) >> 3)
@@ -39,11 +37,12 @@ SYSTEM_H_BEGIN_
 #define DGEN_TEXT 0x10
 
 #define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, ((mode) | DGEN_TEXT))
-extern FILE *dgen_fopen(const char *subdir, const char *file,
+extern FILE *dgen_fopen(const char *relative, const char *file,
 			unsigned int mode);
-extern FILE *dgen_freopen(const char *subdir, const char *file,
+extern FILE *dgen_freopen(const char *relative, const char *file,
 			  unsigned int mode, FILE *f);
 extern const char *dgen_basename(const char *path);
+extern char *dgen_dir(char *buf, size_t *size, const char *sub);
 
 #define le2h16(v) h2le16(v)
 static inline uint16_t h2le16(uint16_t v)
