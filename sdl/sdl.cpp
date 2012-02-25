@@ -2826,6 +2826,7 @@ static int handle_prompt(SDL_keysym *ks, md& megad)
 	char c = ' ';
 	int ret = PROMPT_RET_CONT;
 	struct prompt *p = &prompt.status;
+	struct prompt_parse pp;
 
 	if (ks == NULL)
 		goto end;
@@ -2869,10 +2870,34 @@ static int handle_prompt(SDL_keysym *ks, md& megad)
 		prompt_delete(p);
 		break;
 	case SDLK_k:
+		// ^K
 		if ((ks->mod & KMOD_CTRL) == 0)
 			break;
 		handle_prompt_complete_clear();
 		prompt_replace(p, p->cursor, ~0u, NULL, 0);
+		break;
+	case SDLK_w:
+		// ^W
+		if (((ks->mod & KMOD_CTRL) == 0) ||
+		    (prompt_parse(p, &pp) == NULL))
+			break;
+		if (pp.argv[pp.index] == NULL) {
+			if (pp.index == 0) {
+				prompt_parse_clean(&pp);
+				break;
+			}
+			--pp.index;
+		}
+		handle_prompt_complete_clear();
+		if (pp.argv[(pp.index + 1)] != NULL)
+			prompt_replace(p, pp.argo[pp.index].pos,
+				       (pp.argo[(pp.index + 1)].pos -
+					pp.argo[pp.index].pos),
+				       NULL, 0);
+		else
+			prompt_replace(p, pp.argo[pp.index].pos, ~0u, NULL, 0);
+		p->cursor = pp.argo[pp.index].pos;
+		prompt_parse_clean(&pp);
 		break;
 	case SDLK_RETURN:
 	case SDLK_KP_ENTER:
