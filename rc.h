@@ -7,12 +7,13 @@
 #include <stdint.h>
 
 // Define the different craptv types
-#define NUM_CTV 4 // Include CTV_OFF
+#define NUM_CTV 5 // Include CTV_OFF
 #define NUM_SCALING 2
 #define CTV_OFF       0
 #define CTV_BLUR      1
 #define CTV_SCANLINE  2
 #define CTV_INTERLACE 3
+#define CTV_SWAB      4
 
 // Define OR masks for key modifiers
 #define KEYSYM_MOD_ALT		0x40000000

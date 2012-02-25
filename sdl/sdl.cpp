@@ -60,7 +60,6 @@ static struct {
 	GLuint id; // texture identifier
 	GLuint dlist; // display list
 	unsigned int u32: 1; // texture is 32-bit
-	unsigned int swap: 1; // texture is byte-swapped
 	unsigned int linear: 1; // linear filtering is enabled
 	union {
 		uint16_t *u16;
@@ -424,6 +423,8 @@ struct filter {
 static const struct filter *filters_prescale[64];
 static const struct filter *filters_postscale[64];
 
+static void set_swab();
+
 #endif // WITH_CTV
 
 struct scaling {
@@ -646,6 +647,9 @@ void pd_rc()
 		dgen_x_scale = dgen_scale;
 		dgen_y_scale = dgen_scale;
 	}
+#ifdef WITH_CTV
+	set_swab();
+#endif
 }
 
 // Handle the switches
@@ -791,7 +795,6 @@ static int init_texture()
 
 	// Initialize and allocate texture.
 	texture.u32 = (!!dgen_opengl_32bit);
-	texture.swap = (!!dgen_opengl_swap);
 	texture.linear = (!!dgen_opengl_linear);
 	texture.width = roundup2(vis_width);
 	texture.height = roundup2(vis_height);
@@ -827,13 +830,6 @@ static int init_texture()
 		// Do something with "error".
 		return -1;
 	}
-	// Swap textures if necessary.
-	DEBUG(("swap textures? %s", ((texture.swap) ? "yes" : "no" )));
-	if (texture.swap)
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
-	else
-		glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
-	glPixelStorei(GL_PACK_ROW_LENGTH, (2 << texture.u32));
 	DEBUG(("texture initialization OK"));
 	return 0;
 }
@@ -1316,7 +1312,6 @@ static void filter_scanline_frame(bpp_t buf, unsigned int buf_pitch,
 		}
 		buf.u8 += (buf_pitch * 2);
 	}
-
 }
 
 static void filter_scanline(bpp_t buf, unsigned int buf_pitch,
@@ -1334,6 +1329,51 @@ static void filter_interlace(bpp_t buf, unsigned int buf_pitch,
 
 	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, frame);
 	frame ^= 0x1;
+}
+
+// Byte swap filter.
+static void filter_swab(bpp_t buf, unsigned int buf_pitch,
+			unsigned int xsize, unsigned int ysize,
+			unsigned int bpp)
+{
+	unsigned int y;
+
+	for (y = 0; (y < ysize); ++y) {
+		switch (bpp) {
+			unsigned int x;
+
+		case 32:
+			for (x = 0; (x < xsize); ++x) {
+				union {
+					uint32_t u32;
+					uint8_t u8[4];
+				} tmp[2];
+
+				tmp[0].u32 = buf.u32[x];
+				tmp[1].u8[0] = tmp[0].u8[3];
+				tmp[1].u8[1] = tmp[0].u8[2];
+				tmp[1].u8[2] = tmp[0].u8[1];
+				tmp[1].u8[3] = tmp[0].u8[0];
+				buf.u32[x] = tmp[1].u32;
+			}
+			break;
+		case 24:
+			for (x = 0; (x < xsize); ++x) {
+				uint8_t tmp = buf.u24[x][0];
+
+				buf.u24[x][0] = buf.u24[x][2];
+				buf.u24[x][2] = tmp;
+			}
+			break;
+		case 16:
+		case 15:
+			for (x = 0; (x < xsize); ++x)
+				buf.u16[x] = ((buf.u16[x] << 8) |
+					      (buf.u16[x] >> 8));
+			break;
+		}
+		buf.u8 += buf_pitch;
+	}
 }
 
 // No-op filter.
@@ -1355,8 +1395,30 @@ static const struct filter filters_list[] = {
 	{ "blur", filter_blur },
 	{ "scanline", filter_scanline },
 	{ "interlace", filter_interlace },
+	{ "swab", filter_swab },
 	{ NULL, NULL }
 };
+
+static void set_swab()
+{
+	const struct filter *f = filters_list;
+
+	while (f->func != NULL) {
+		if (f->func == filter_swab)
+			break;
+		++f;
+	}
+	if (f->func == NULL)
+		return;
+	if (filters_prescale[0] == NULL)
+		filters_prescale[0] = &filters_list[0];
+	if (dgen_swab)
+		filters_prescale[1] = f;
+	else if (filters_prescale[2] != NULL)
+		filters_prescale[1] = &filters_list[0];
+	else
+		filters_prescale[1] = NULL;
+}
 
 #endif // WITH_CTV
 
@@ -2291,6 +2353,13 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		 (rc->variable == &dgen_y_scale) ||
 		 (rc->variable == &dgen_depth))
 		init_video = true;
+	else if (rc->variable == &dgen_swab) {
+#ifdef WITH_CTV
+		set_swab();
+#else
+		fail = true;
+#endif
+	}
 	else if (rc->variable == &dgen_scale) {
 		dgen_x_scale = dgen_scale;
 		dgen_y_scale = dgen_scale;
@@ -2300,7 +2369,6 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		 (rc->variable == &dgen_opengl_aspect) ||
 		 (rc->variable == &dgen_opengl_linear) ||
 		 (rc->variable == &dgen_opengl_32bit) ||
-		 (rc->variable == &dgen_opengl_swap) ||
 		 (rc->variable == &dgen_opengl_square)) {
 #ifdef WITH_OPENGL
 		screen.opengl_ok = false;

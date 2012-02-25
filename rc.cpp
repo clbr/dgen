@@ -22,7 +22,10 @@
 #include "romload.h"
 
 // CTV names
-const char *ctv_names[] = { "off", "blur", "scanline", "interlace", NULL };
+const char *ctv_names[] = {
+	"off", "blur", "scanline", "interlace", "swab",
+	NULL
+};
 
 // Scaling algorithms names
 const char *scaling_names[] = { "default", "hqx", NULL };
@@ -456,13 +459,14 @@ struct rc_field rc_fields[] = {
   { "int_scale_x", rc_number, &dgen_x_scale }, // SH
   { "int_scale_y", rc_number, &dgen_y_scale }, // SH
   { "int_depth", rc_number, &dgen_depth }, // SH
+  { "bool_swab", rc_boolean, &dgen_swab }, // SH
   { "bool_opengl", rc_boolean, &dgen_opengl }, // SH
   { "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect }, // SH
   { "int_opengl_width", rc_number, &dgen_width }, // deprecated, use int_width
   { "int_opengl_height", rc_number, &dgen_height }, // and int_height
   { "bool_opengl_linear", rc_boolean, &dgen_opengl_linear }, // SH
   { "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit }, // SH
-  { "bool_opengl_swap", rc_boolean, &dgen_opengl_swap }, // SH
+  { "bool_opengl_swap", rc_boolean, &dgen_swab }, // SH deprecated -> bool_swab
   { "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
   { "bool_joystick", rc_boolean, &dgen_joystick },
   { "int_joystick1_dev", rc_number, &dgen_joystick1_dev }, // SH
