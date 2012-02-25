@@ -2483,7 +2483,7 @@ video_fail:
 static void prompt_show_rc_field(const struct rc_field *rc)
 {
 	size_t i;
-	long val = *rc->variable;
+	intptr_t val = *rc->variable;
 
 	if (rc->parser == rc_number)
 		stop_events_msg(~0u, "%s is %ld", rc->fieldname, val);

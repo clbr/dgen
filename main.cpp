@@ -209,6 +209,11 @@ int main(int argc, char *argv[])
   bool first = true;
 
 	// Parse the RC file
+	if ((dgen_autoconf) &&
+	    ((file = dgen_fopen_autorc(DGEN_READ)) != NULL)) {
+		parse_rc(file, DGEN_AUTORC);
+		fclose(file);
+	}
 	if ((file = dgen_fopen_rc(DGEN_READ)) != NULL) {
 		parse_rc(file, DGEN_RC);
 		fclose(file);
@@ -595,6 +600,20 @@ clean_up:
 	// Cleanup
 	delete megad;
 	pd_quit();
+	// Save configuration.
+	if (dgen_autoconf) {
+		if ((file = dgen_fopen_autorc(DGEN_WRITE)) == NULL)
+			fputs("main: can't write " DGEN_AUTORC ".\n", stderr);
+		else {
+			fprintf(file,
+				"# DGen/SDL v" VER "\n"
+				"# This file is automatically overwritten.\n"
+				"\n");
+			dump_rc(file);
+			fclose(file);
+			file = NULL;
+		}
+	}
 	// Come back anytime :)
 	return 0;
 }

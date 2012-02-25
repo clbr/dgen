@@ -20,6 +20,7 @@
 #include "pd-defs.h"
 #include "md-phil.h"
 #include "romload.h"
+#include "sdl/prompt.h" // for backslashify()
 
 // CTV names
 const char *ctv_names[] = {
@@ -348,6 +349,8 @@ intptr_t rc_region(const char *value)
 	case 'u':
 	case 'j':
 	case 'e':
+	case '\0':
+	case ' ':
 		return (value[0] & ~0x20);
 	}
 	return -1;
@@ -435,6 +438,7 @@ struct rc_field rc_fields[] = {
   { "key_prompt", rc_keysym, &dgen_prompt },
   { "bool_autoload", rc_boolean, &dgen_autoload },
   { "bool_autosave", rc_boolean, &dgen_autosave },
+  { "bool_autoconf", rc_boolean, &dgen_autoconf },
   { "bool_frameskip", rc_boolean, &dgen_frameskip },
   { "bool_show_carthead", rc_boolean, &dgen_show_carthead },
   { "str_rom_path", rc_rom_path, (intptr_t *)((void *)&dgen_rom_path) }, // SH
@@ -644,4 +648,111 @@ parse:
 	/* If len != 0, try to read once again */
 	if (len != 0)
 		goto read;
+}
+
+/* Dump the rc file */
+void dump_rc(FILE *file)
+{
+	const struct rc_field *rc = rc_fields;
+
+	while (rc->fieldname != NULL) {
+		intptr_t val = *rc->variable;
+
+		fprintf(file, "%s = ", rc->fieldname);
+		if (rc->parser == rc_number)
+			fprintf(file, "%ld", (long)val);
+		else if (rc->parser == rc_keysym) {
+			const char *mod;
+			size_t i;
+			char *s;
+
+			if (val & KEYSYM_MOD_SHIFT)
+				(mod = "shift-", val &= ~KEYSYM_MOD_SHIFT);
+			else if (val & KEYSYM_MOD_CTRL)
+				(mod = "ctrl-", val &= ~KEYSYM_MOD_CTRL);
+			else if (val & KEYSYM_MOD_ALT)
+				(mod = "alt-", val &= ~KEYSYM_MOD_ALT);
+			else if (val & KEYSYM_MOD_META)
+				(mod = "meta-", val &= ~KEYSYM_MOD_META);
+			else
+				mod = "";
+			for (i = 0; (rc_keysyms[i].name != NULL); ++i)
+				if (rc_keysyms[i].keysym == val)
+					break;
+			if ((rc_keysyms[i].name != NULL) &&
+			    ((s = backslashify
+			      ((const uint8_t *)rc_keysyms[i].name,
+			       strlen(rc_keysyms[i].name))) != NULL)) {
+				fprintf(file, "\"%s%s\"", mod, s);
+				free(s);
+			}
+		}
+		else if (rc->parser == rc_boolean)
+			fprintf(file, "%s", ((val) ? "true" : "false"));
+		else if (rc->parser == rc_jsmap) {
+			const char *pad;
+
+			if (val == MD_UP_MASK)
+				pad = "up";
+			else if (val == MD_DOWN_MASK)
+				pad = "down";
+			else if (val == MD_LEFT_MASK)
+				pad = "left";
+			else if (val == MD_RIGHT_MASK)
+				pad = "right";
+			else if (val == MD_B_MASK)
+				pad = "B";
+			else if (val == MD_C_MASK)
+				pad = "C";
+			else if (val == MD_A_MASK)
+				pad = "A";
+			else if (val == MD_START_MASK)
+				pad = "start";
+			else if (val == MD_Z_MASK)
+				pad = "Z";
+			else if (val == MD_Y_MASK)
+				pad = "Y";
+			else if (val == MD_X_MASK)
+				pad = "X";
+			else if (val == MD_MODE_MASK)
+				pad = "mode";
+			else
+				pad = NULL;
+			if (pad != NULL)
+				fprintf(file, "%s", pad);
+			else
+				fputs("''", file);
+		}
+		else if (rc->parser == rc_ctv)
+			fprintf(file, "%s", ctv_names[val]);
+		else if (rc->parser == rc_scaling)
+			fprintf(file, "%s", scaling_names[val]);
+		else if (rc->parser == rc_emu_z80)
+			fprintf(file, "%s", emu_z80_names[val]);
+		else if (rc->parser == rc_emu_m68k)
+			fprintf(file, "%s", emu_m68k_names[val]);
+		else if (rc->parser == rc_region) {
+			if (isgraph((char)val))
+				fputc((char)val, file);
+			else
+				fputs("' '", file);
+		}
+		else if ((rc->parser == rc_string) ||
+			 (rc->parser == rc_rom_path)) {
+			struct rc_str *rs = (struct rc_str *)rc->variable;
+			char *s;
+
+			if ((rs->val == NULL) ||
+			    ((s = backslashify
+			      ((const uint8_t *)rs->val,
+			       strlen(rs->val))) == NULL))
+				fprintf(file, "\"\"");
+			else {
+				fprintf(file, "\"%s\"", s);
+				free(s);
+			}
+		}
+		fputs("\n", file);
+		++rc;
+	}
 }

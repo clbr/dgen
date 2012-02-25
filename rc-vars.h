@@ -80,6 +80,7 @@ RCVAR(dgen_load, PDK_F3);
 
 RCVAR(dgen_autoload, 0);
 RCVAR(dgen_autosave, 0);
+RCVAR(dgen_autoconf, 1);
 RCVAR(dgen_frameskip, 1);
 RCVAR(dgen_show_carthead, 0);
 RCSTR(dgen_rom_path, "roms"); /* synchronize with romload.c */

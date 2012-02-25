@@ -34,6 +34,8 @@ extern const char *emu_m68k_names[];
 // Provide a prototype to the parse_rc function in rc.cpp
 extern void parse_rc(FILE *file, const char *name);
 
+extern void dump_rc(FILE *file);
+
 extern intptr_t rc_number(const char *value);
 extern intptr_t rc_keysym(const char *code);
 extern intptr_t rc_boolean(const char *value);

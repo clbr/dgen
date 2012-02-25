@@ -21,10 +21,12 @@ SYSTEM_H_BEGIN_
 #ifndef __MINGW32__
 #define DGEN_BASEDIR ".dgen"
 #define DGEN_RC "dgenrc"
+#define DGEN_AUTORC "dgenrc.auto"
 #define DGEN_DIRSEP "/"
 #else
 #define DGEN_BASEDIR "DGen"
 #define DGEN_RC "dgen.cfg"
+#define DGEN_AUTORC "dgen_auto.cfg"
 #define DGEN_DIRSEP "\\/"
 #endif
 
@@ -37,6 +39,8 @@ SYSTEM_H_BEGIN_
 #define DGEN_TEXT 0x10
 
 #define dgen_fopen_rc(mode) dgen_fopen(NULL, DGEN_RC, ((mode) | DGEN_TEXT))
+#define dgen_fopen_autorc(mode)					\
+	dgen_fopen(NULL, DGEN_AUTORC, ((mode) | DGEN_TEXT))
 extern FILE *dgen_fopen(const char *relative, const char *file,
 			unsigned int mode);
 extern FILE *dgen_freopen(const char *relative, const char *file,
