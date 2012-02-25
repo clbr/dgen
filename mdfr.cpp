@@ -522,6 +522,7 @@ inline int md::may_want_to_get_pic(struct bmap *bm,unsigned char retpal[256],int
 
 int md::may_want_to_get_sound(struct sndinfo *sndi)
 {
+  extern intptr_t dgen_volume;
   unsigned int i, len = sndi->len;
   int in_dac, cur_dac = 0;
   unsigned int acc_dac = len;
@@ -545,7 +546,7 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
     }
 
   // Add in the stereo FM buffer
-  YM2612UpdateOne(0, sndi->lr, len);
+  YM2612UpdateOne(0, sndi->lr, len, dgen_volume);
 
   // Clear the dac for next frame
   dac_clear();

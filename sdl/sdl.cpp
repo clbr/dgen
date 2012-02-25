@@ -3384,6 +3384,18 @@ int pd_handle_events(md &megad)
 			megad.pad[1] = 0xf303f;
 			return stop_events(megad, 1);
 		}
+		else if ((ksym == dgen_volume_inc) ||
+			 (ksym == dgen_volume_dec)) {
+			if (ksym == dgen_volume_inc)
+				++dgen_volume;
+			else
+				--dgen_volume;
+			if (dgen_volume < 0)
+				dgen_volume = 0;
+			else if (dgen_volume > 100)
+				dgen_volume = 100;
+			pd_message("Volume %d%%.", (int)dgen_volume);
+		}
 	  else if(ksym == dgen_fullscreen_toggle) {
 		switch (set_fullscreen(!screen.is_fullscreen)) {
 		case -2:

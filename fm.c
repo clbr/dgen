@@ -4736,7 +4736,8 @@ static YM2612 *FM2612=NULL;	/* array of YM2612's */
 static int dacen;
 
 /* Generate samples for one of the YM2612s */
-void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
+void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length,
+		     unsigned int volume)
 {
 	YM2612 *F2612 = &(FM2612[num]);
 	FM_OPN *OPN   = &(FM2612[num].OPN);
@@ -4847,12 +4848,17 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length)
 			lt += *buffer;
 			/* Make it louder. */
 			lt = ((lt * 3) >> 1);
+			/* Lower volume? */
+			if (volume != 100)
+				lt = ((lt * (int)volume) / 100);
 			/* Hard clipping for signed 16-bit output. */
 			lt = ((abs(lt + 32767) - abs(lt - 32767)) >> 1);
 			*(buffer++) = lt;
 
 			rt += *buffer;
 			rt = ((rt * 3) >> 1);
+			if (volume != 100)
+				rt = ((rt * (int)volume) / 100);
 			rt = ((abs(rt + 32767) - abs(rt - 32767)) >> 1);
 			*(buffer++) = rt;
 		}

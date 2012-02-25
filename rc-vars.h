@@ -62,6 +62,8 @@ RCVAR(dgen_stop, PDK_z);
 RCVAR(dgen_prompt, (KEYSYM_MOD_SHIFT | PDK_SEMICOLON));
 RCVAR(dgen_game_genie, PDK_F9);
 RCVAR(dgen_fullscreen_toggle, KEYSYM_MOD_ALT | PDK_RETURN);
+RCVAR(dgen_volume_inc, PDK_EQUALS);
+RCVAR(dgen_volume_dec, PDK_MINUS);
 
 RCVAR(dgen_slot_0, PDK_0);
 RCVAR(dgen_slot_1, PDK_1);
@@ -86,6 +88,7 @@ RCVAR(dgen_sound, 1);
 RCVAR(dgen_soundrate, 22050);
 RCVAR(dgen_soundsegs, 8);
 RCVAR(dgen_soundsamples, 0);
+RCVAR(dgen_volume, 100);
 
 RCVAR(dgen_hz, 60);
 RCVAR(dgen_pal, 0);
