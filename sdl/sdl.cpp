@@ -2350,7 +2350,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	}
 	else if (rc->variable == &dgen_region)
 		megad.region = dgen_region;
-	else if (rc->variable == (intptr_t *)&dgen_rom_path)
+	else if (rc->variable == (intptr_t *)((void *)&dgen_rom_path))
 		set_rom_path(dgen_rom_path.val);
 	if (init_video) {
 		// This is essentially what pd_graphics_init() does.
