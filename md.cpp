@@ -326,7 +326,7 @@ md::md(bool pal, char region):
 	md_mz80_ref(0), md_mz80_prev(0),
 #endif
 	pal(pal), ok_ym2612(false), ok_sn76496(false),
-	vdp(*this), region(region)
+	vdp(*this), region(region), plugged(false)
 {
 	// Only one MD object is allowed to exist at once.
 	if (lock)
@@ -594,6 +594,7 @@ int md::unplug()
 		free(patch_elem);
 		patch_elem = next;
 	}
+	plugged = false;
 
   return 0;
 }
@@ -648,7 +649,7 @@ int md::load(const char *name)
 
 	// Plug it into the memory map
 	plug_in(temp, size); // md then deallocates it when it's done
-
+	plugged = true;
 	return 0;
 }
 

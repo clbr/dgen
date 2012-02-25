@@ -550,7 +550,7 @@ next_rom:
 				pd_graphics_palette_update();
 				pal_dirty = 0;
 			}
-			pd_graphics_update();
+			pd_graphics_update(megad->plugged);
 			++frames;
 		}
 

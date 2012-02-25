@@ -374,6 +374,7 @@ public:
 // invblank, inhblank, dma busy, pal
   unsigned char coo4,coo5;
   int okay() {return ok;}
+  bool plugged;
   md(bool pal, char region);
   ~md();
   void init_pal();

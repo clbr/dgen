@@ -35,6 +35,7 @@
 #include "prompt.h"
 #include "md-phil.h"
 #include "romload.h"
+#include "splash.h"
 
 #ifdef WITH_HQX
 #include "hqx.h"
@@ -163,6 +164,8 @@ const char *pd_options =
 	"g:"
 #endif
 	"fX:Y:S:G:";
+
+static void mdscr_splash();
 
 // Sound
 typedef struct {
@@ -328,6 +331,7 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	md.unplug();
 	pd_message("");
 	if (md.load(av[1])) {
+		mdscr_splash();
 		stop_events_msg(~0u, "Unable to load \"%s\"", av[1]);
 		return (CMD_FAIL | CMD_MSG);
 	}
@@ -402,6 +406,7 @@ static int prompt_cmd_unload(class md& md, unsigned int, const char**)
 	}
 	if (md.unplug())
 		return (CMD_FAIL | CMD_MSG);
+	mdscr_splash();
 	return (CMD_OK | CMD_MSG);
 }
 
@@ -1446,6 +1451,84 @@ static int set_scaling(const char *name)
 	return -1;
 }
 
+// Display splash screen.
+static void mdscr_splash()
+{
+	unsigned int x;
+	unsigned int y;
+	bpp_t src;
+	unsigned int src_pitch = (dgen_splash_data.width *
+				  dgen_splash_data.bytes_per_pixel);
+	unsigned int sw = dgen_splash_data.width;
+	unsigned int sh = dgen_splash_data.height;
+	bpp_t dst;
+	unsigned int dst_pitch = mdscr.pitch;
+	unsigned int dw = video.width;
+	unsigned int dh = video.height;
+
+	if ((dgen_splash_data.bytes_per_pixel != 3) || (sw != dw))
+		return;
+	src.u8 = (uint8_t *)dgen_splash_data.pixel_data;
+	dst.u8 = ((uint8_t *)mdscr.data + (dst_pitch * 8) + 16);
+	// Center it.
+	if (sh < dh) {
+		unsigned int off = ((dh - sh) / 2);
+
+		memset(dst.u8, 0x00, (dst_pitch * off));
+		memset(&dst.u8[(dst_pitch * (off + sh))], 0x00,
+		       (dst_pitch * (dh - (off + sh))));
+		dst.u8 += (dst_pitch * off);
+	}
+	switch (mdscr.bpp) {
+	case 32:
+		for (y = 0; ((y != dh) && (y != sh)); ++y) {
+			for (x = 0; ((x != dw) && (x != sw)); ++x) {
+				dst.u32[x] = ((src.u24[x][0] << 16) |
+					      (src.u24[x][1] << 8) |
+					      (src.u24[x][2] << 0));
+			}
+			src.u8 += src_pitch;
+			dst.u8 += dst_pitch;
+		}
+		break;
+	case 24:
+		for (y = 0; ((y != dh) && (y != sh)); ++y) {
+			for (x = 0; ((x != dw) && (x != sw)); ++x) {
+				dst.u24[x][0] = src.u24[x][2];
+				dst.u24[x][1] = src.u24[x][1];
+				dst.u24[x][2] = src.u24[x][0];
+			}
+			src.u8 += src_pitch;
+			dst.u8 += dst_pitch;
+		}
+		break;
+	case 16:
+		for (y = 0; ((y != dh) && (y != sh)); ++y) {
+			for (x = 0; ((x != dw) && (x != sw)); ++x) {
+				dst.u16[x] = (((src.u24[x][0] & 0xf8) << 8) |
+					      ((src.u24[x][1] & 0xfc) << 3) |
+					      ((src.u24[x][2] & 0xf8) >> 3));
+			}
+			src.u8 += src_pitch;
+			dst.u8 += dst_pitch;
+		}
+		break;
+	case 15:
+		for (y = 0; ((y != dh) && (y != sh)); ++y) {
+			for (x = 0; ((x != dw) && (x != sw)); ++x) {
+				dst.u16[x] = (((src.u24[x][0] & 0xf8) << 7) |
+					      ((src.u24[x][1] & 0xf8) << 2) |
+					      ((src.u24[x][2] & 0xf8) >> 3));
+			}
+			src.u8 += src_pitch;
+			dst.u8 += dst_pitch;
+		}
+		break;
+	case 8:
+		break;
+	}
+}
+
 // Initialize screen.
 static int screen_init(unsigned int width, unsigned int height)
 {
@@ -1770,15 +1853,8 @@ opengl_failed:
 		mdscr.pitch = (mdscr.w * screen.Bpp);
 		free(mdscr.data);
 		mdscr.data = (uint8_t *)calloc(1, (mdscr.pitch * mdscr.h));
-		if (mdscr.data != NULL) {
-			uint8_t *buf = ((uint8_t *)mdscr.data +
-					(mdscr.pitch * 8) + 16);
-
-			// Screen is now blank.
-			font_text(buf, video.width, video.height,
-				  BITS_TO_BYTES(mdscr.bpp), mdscr.pitch,
-				  "_@__, DGen " VER " _@__,", 42, ~0u);
-		}
+		if (mdscr.data != NULL)
+			mdscr_splash();
 	}
 	DEBUG(("md screen configuration: w=%d h=%d bpp=%d pitch=%d data=%p",
 	       mdscr.w, mdscr.h, mdscr.bpp, mdscr.pitch, (void *)mdscr.data));
@@ -1792,7 +1868,7 @@ opengl_failed:
 	DEBUG(("using scaling algorithm \"%s\"",
 	       scaling_names[(dgen_scaling % NUM_SCALING)]));
 	// Update screen.
-	pd_graphics_update();
+	pd_graphics_update(true);
 	DEBUG(("ret=%d", ret));
 	return ret;
 }
@@ -1941,7 +2017,7 @@ static size_t pd_message_display(const char *msg, size_t len,
 static void pd_message_postpone(const char *msg);
 
 // Update screen
-void pd_graphics_update()
+void pd_graphics_update(bool update)
 {
 	bpp_t src;
 	bpp_t dst;
@@ -1966,6 +2042,8 @@ void pd_graphics_update()
 	// depth.
 	src_pitch = mdscr.pitch;
 	src.u8 = ((uint8_t *)mdscr.data + (src_pitch * 8) + 16);
+	if (update == false)
+		mdscr_splash();
 #ifdef WITH_CTV
 	// Apply prescale filters.
 	xsize2 = (video.width * video.x_scale);
@@ -3006,7 +3084,7 @@ static int stop_events(md &megad, int gg)
 	if (screen.is_fullscreen) {
 		if (set_fullscreen(0) < -1)
 			return 0;
-		pd_graphics_update();
+		pd_graphics_update(true);
 	}
 	stopped = 1;
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
@@ -3153,7 +3231,7 @@ gg:
 				SDL_EnableKeyRepeat(0, 0);
 				return 0;
 			}
-			pd_graphics_update();
+			pd_graphics_update(true);
 		case SDL_VIDEOEXPOSE:
 			if (gg >= 3)
 				handle_prompt(NULL, megad);

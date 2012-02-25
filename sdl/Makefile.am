@@ -39,6 +39,7 @@ libpd_a_SOURCES =	\
 	pd-defs.h	\
 	prompt.h	\
 	prompt.c	\
+	splash.h	\
 	$(BUILT_SOURCES)
 libpd_a_DEPENDENCIES = $(PBM2DF)
 
