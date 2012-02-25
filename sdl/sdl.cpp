@@ -2688,7 +2688,6 @@ static int handle_prompt_complete(class md& md, bool rwd)
 			goto complete_cmd_found;
 		}
 		// Variables.
-		skip = prompt.skip;
 		for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
 			if (strncasecmp(rc_fields[i].fieldname, arg, alen))
 				continue;
