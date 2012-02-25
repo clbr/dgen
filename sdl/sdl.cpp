@@ -394,6 +394,7 @@ static int prompt_cmd_unload(class md& md, unsigned int, const char**)
 	extern int slot;
 	extern void ram_save(class md&);
 
+	info.length = 0; // clear postponed messages
 	stop_events_msg(~0u, "No cartridge.");
 	ram_save(md);
 	if (dgen_autosave) {
