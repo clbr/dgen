@@ -99,7 +99,11 @@ RCVAR(dgen_raw_screenshots, 0);
 RCVAR(dgen_craptv, 0);
 RCVAR(dgen_scaling, 0);
 RCVAR(dgen_nice, 0);
+#ifdef WITH_JOYSTICK
+RCVAR(dgen_joystick, 1);
+#else
 RCVAR(dgen_joystick, 0);
+#endif
 RCVAR(dgen_joystick1_dev, 0);
 RCVAR(dgen_joystick2_dev, 1);
 
