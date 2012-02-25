@@ -22,10 +22,10 @@
 #include "romload.h"
 
 // CTV names
-const char *ctv_names[NUM_CTV] = { "off", "blur", "scanline", "interlace" };
+const char *ctv_names[] = { "off", "blur", "scanline", "interlace", NULL };
 
 // Scaling algorithms names
-const char *scaling_names[NUM_SCALING] = { "default", "hqx" };
+const char *scaling_names[] = { "default", "hqx", NULL };
 
 // CPU names, keep index in sync with rc-vars.h and enums in md.h
 const char *emu_z80_names[] = { "none", "mz80", "cz80", NULL };
@@ -604,7 +604,8 @@ parse:
 				" `%s': `%s'\n",
 				name, ckvp.line, ckvp.column,
 				rc_field->fieldname, strclean(ckvp.out));
-		else if (rc_field->parser == rc_string) {
+		else if ((rc_field->parser == rc_string) ||
+			 (rc_field->parser == rc_rom_path)) {
 			struct rc_str *rs =
 				(struct rc_str *)rc_field->variable;
 

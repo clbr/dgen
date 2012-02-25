@@ -236,6 +236,56 @@ static struct {
 	char message[2048];
 } info;
 
+// Prompt
+static struct {
+	struct prompt status; // prompt status
+	char** complete; // completion results array
+	unsigned int skip; // number of entries to skip in the array
+} prompt;
+
+// Prompt return values.
+#define PROMPT_RET_CONT 0x01 // waiting for more input
+#define PROMPT_RET_EXIT 0x02 // leave prompt normally
+#define PROMPT_RET_ERROR 0x04 // leave prompt with error
+#define PROMPT_RET_ENTER 0x10 // previous line entered
+#define PROMPT_RET_MSG 0x80 // stop_events_msg() has been used
+
+struct prompt_command {
+	const char* name;
+	// command function pointer
+        int (*cmd)(class md&, unsigned int, const char**);
+	// completion function shoud complete the last entry in the array
+	char* (*cmpl)(class md&, unsigned int, const char**, unsigned int);
+};
+
+// Extra commands usable from prompt.
+static int prompt_cmd_exit(class md&, unsigned int, const char**);
+static int prompt_cmd_load(class md&, unsigned int, const char**);
+static char* prompt_cmpl_load(class md&, unsigned int, const char**,
+			      unsigned int);
+static int prompt_cmd_unload(class md&, unsigned int, const char**);
+static int prompt_cmd_reset(class md&, unsigned int, const char**);
+
+static const struct prompt_command prompt_command[] = {
+	{ "quit", prompt_cmd_exit, NULL },
+	{ "exit", prompt_cmd_exit, NULL },
+	{ "load", prompt_cmd_load, prompt_cmpl_load },
+	{ "open", prompt_cmd_load, prompt_cmpl_load },
+	{ "plug", prompt_cmd_load, prompt_cmpl_load },
+	{ "unload", prompt_cmd_unload, NULL },
+	{ "close", prompt_cmd_unload, NULL },
+	{ "unplug", prompt_cmd_unload, NULL },
+	{ "reset", prompt_cmd_reset, NULL },
+	{ NULL, NULL, NULL }
+};
+
+// Extra commands return values.
+#define CMD_OK 0x00 // command successful
+#define CMD_EINVAL 0x01 // invalid argument
+#define CMD_FAIL 0x02 // command failed
+#define CMD_ERROR 0x03 // fatal error, DGen should exit
+#define CMD_MSG 0x80 // stop_events_msg() has been used
+
 // Stopped flag used by pd_stopped()
 static int stopped = 0;
 
@@ -256,32 +306,20 @@ extern intptr_t js_map_button[2][16];
 // Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
 
-// Extra commands usable from prompt.
-#define CMD_OK 0x00 // command successful
-#define CMD_EINVAL 0x01 // invalid argument
-#define CMD_FAIL 0x02 // command failed
-#define CMD_ERROR 0x03 // fatal error, DGen should exit
-#define CMD_MSG 0x80 // something has been displayed with stop_events_msg()
-
-struct prompt_command {
-	const char *name;
-        int (*func)(class md&, unsigned int, const char**);
-};
-
 static void stop_events_msg(unsigned int mark, const char *msg, ...);
 
-static int cmd_exit(class md&, unsigned int, const char**)
+static int prompt_cmd_exit(class md&, unsigned int, const char**)
 {
 	return CMD_ERROR;
 }
 
-static int cmd_load(class md& md, unsigned int ac, const char** av)
+static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 {
 	extern int slot;
 	extern void ram_save(class md&);
 	extern void ram_load(class md&);
 
-	if (ac < 2)
+	if (ac != 2)
 		return CMD_EINVAL;
 	ram_save(md);
 	if (dgen_autosave) {
@@ -310,7 +348,48 @@ static int cmd_load(class md& md, unsigned int ac, const char** av)
 	return (CMD_OK | CMD_MSG);
 }
 
-static int cmd_unload(class md& md, unsigned int, const char**)
+static char* prompt_cmpl_load(class md& md, unsigned int ac, const char** av,
+			      unsigned int len)
+{
+	const char *prefix;
+	size_t i;
+	unsigned int skip;
+
+	(void)md;
+	assert(ac != 0);
+	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
+		prefix = "";
+		len = 0;
+	}
+	else
+		prefix = av[(ac - 1)];
+	if (prompt.complete == NULL) {
+		// Rebuild cache.
+		prompt.skip = 0;
+		prompt.complete = complete_path(prefix, len,
+						dgen_rom_path.val);
+		if (prompt.complete == NULL)
+			return NULL;
+	}
+	skip = prompt.skip;
+retry:
+	for (i = 0; (prompt.complete[i] != NULL); ++i) {
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	if (prompt.complete[i] == NULL) {
+		if (prompt.skip != 0) {
+			prompt.skip = 0;
+			goto retry;
+		}
+		return NULL;
+	}
+	++prompt.skip;
+	return strdup(prompt.complete[i]);
+}
+
+static int prompt_cmd_unload(class md& md, unsigned int, const char**)
 {
 	extern int slot;
 	extern void ram_save(class md&);
@@ -326,24 +405,11 @@ static int cmd_unload(class md& md, unsigned int, const char**)
 	return (CMD_OK | CMD_MSG);
 }
 
-static int cmd_reset(class md& md, unsigned int, const char**)
+static int prompt_cmd_reset(class md& md, unsigned int, const char**)
 {
 	md.reset();
 	return CMD_OK;
 }
-
-struct prompt_command prompt_command[] = {
-	{ "quit", cmd_exit },
-	{ "exit", cmd_exit },
-	{ "load", cmd_load },
-	{ "open", cmd_load },
-	{ "plug", cmd_load },
-	{ "unload", cmd_unload },
-	{ "close", cmd_unload },
-	{ "unplug", cmd_unload },
-	{ "reset", cmd_reset },
-	{ NULL, NULL }
-};
 
 #ifdef WITH_CTV
 
@@ -1709,9 +1775,6 @@ static int set_fullscreen(int toggle)
 	return screen_init(w, h);
 }
 
-// Used by stop_events().
-static struct prompt stop_events_prompt;
-
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
@@ -1723,7 +1786,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		hqx_initialized = 1;
 	}
 #endif
-	prompt_init(&stop_events_prompt);
+	prompt_init(&prompt.status);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
 		fprintf(stderr, "sdl: invalid frame rate (%d)\n", hz);
@@ -2150,12 +2213,6 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 			   (mark - ((mark - disp_len) + 1)));
 }
 
-#define PROMPT_RET_CONT 0x01 // waiting for more input
-#define PROMPT_RET_EXIT 0x02 // leave prompt normally
-#define PROMPT_RET_ERROR 0x04 // leave prompt with error
-#define PROMPT_RET_ENTER 0x10 // previous line entered
-#define PROMPT_RET_MSG 0x80 // stop_events_msg() has been used
-
 // Rehash rc vars that require special handling (see "SH" in rc.cpp).
 static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 {
@@ -2475,267 +2532,366 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	else if ((rc->parser == rc_string) ||
 		 (rc->parser == rc_rom_path)) {
 		struct rc_str *rs = (struct rc_str *)rc->variable;
+		char *s;
 
 		if (rs->val == NULL)
 			stop_events_msg(~0u, "%s has no value", rc->fieldname);
+		else if ((s = backslashify((const uint8_t *)rs->val,
+					   strlen(rs->val))) != NULL) {
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
+			free(s);
+		}
 		else
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
-					rs->val);
+			stop_events_msg(~0u, "%s can't be displayed",
+					rc->fieldname);
 	}
 	else
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
 }
 
-static char *prompt_complete_rom(const char *prefix, size_t length,
-				 unsigned int skip)
+static int handle_prompt_enter(class md& md)
 {
+	struct prompt_parse pp;
+	struct prompt *p = &prompt.status;
 	size_t i;
-	char *ret;
-	char **cp;
+	int ret;
 
-	if (prefix == NULL)
-		cp = complete_path("", 0, dgen_rom_path.val);
-	else
-		cp = complete_path(prefix, length, dgen_rom_path.val);
-	if (cp == NULL)
-		return NULL;
-	for (i = 0; (cp[i] != NULL); ++i) {
-		if (skip == 0)
-			break;
-		free(cp[i]);
-		--skip;
+	if (prompt_parse(p, &pp) == NULL)
+		return PROMPT_RET_ERROR;
+	if (pp.argc == 0) {
+		ret = PROMPT_RET_EXIT;
+		goto end;
 	}
-	ret = cp[i];
-	if (ret != NULL)
-		while (cp[(++i)] != NULL)
-			free(cp[i]);
-	free(cp);
+	ret = 0;
+	// Look for a command with that name.
+	for (i = 0; (prompt_command[i].name != NULL); ++i) {
+		int cret;
+
+		if (strcasecmp(prompt_command[i].name, (char *)pp.argv[0]))
+			continue;
+		cret = prompt_command[i].cmd(md, pp.argc,
+					     (const char **)pp.argv);
+		if ((cret & ~CMD_MSG) == CMD_ERROR)
+			ret |= PROMPT_RET_ERROR;
+		if (cret & CMD_MSG)
+			ret |= PROMPT_RET_MSG;
+		else if (cret & CMD_FAIL) {
+			stop_events_msg(~0u, "%s: command failed",
+					(char *)pp.argv[0]);
+			ret |= PROMPT_RET_MSG;
+		}
+		else if (cret & CMD_EINVAL) {
+			stop_events_msg(~0u, "%s: invalid argument",
+					(char *)pp.argv[0]);
+			ret |= PROMPT_RET_MSG;
+		}
+		goto end;
+	}
+	// Look for a variable with that name.
+	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
+		intptr_t potential;
+
+		if (strcasecmp(rc_fields[i].fieldname, (char *)pp.argv[0]))
+			continue;
+		// Display current value?
+		if (pp.argv[1] == NULL) {
+			prompt_show_rc_field(&rc_fields[i]);
+			ret |= PROMPT_RET_MSG;
+			break;
+		}
+		// Parse and set value.
+		potential = rc_fields[i].parser((char *)pp.argv[1]);
+		if ((rc_fields[i].parser != rc_number) && (potential == -1)) {
+			stop_events_msg(~0u, "%s: invalid value",
+					(char *)pp.argv[0]);
+			ret |= PROMPT_RET_MSG;
+			break;
+		}
+		if ((rc_fields[i].parser == rc_string) ||
+		    (rc_fields[i].parser == rc_rom_path)) {
+			struct rc_str *rs;
+
+			rs = (struct rc_str *)rc_fields[i].variable;
+			free(rs->alloc);
+			rs->alloc = (char *)potential;
+			rs->val = rs->alloc;
+			if (rc_str_list != NULL) {
+				if ((rc_str_list != rs) &&
+				    (rs->next == NULL)) {
+					rs->next = rc_str_list;
+					rc_str_list = rs;
+				}
+			}
+			else if (!atexit(rc_str_cleanup))
+				rc_str_list = rs;
+		}
+		else
+			*(rc_fields[i].variable) = potential;
+		ret |= prompt_rehash_rc_field(&rc_fields[i], md);
+		break;
+	}
+	if (rc_fields[i].fieldname == NULL) {
+		stop_events_msg(~0u, "%s: unknown command",
+				(char *)pp.argv[0]);
+		ret |= PROMPT_RET_MSG;
+	}
+end:
+	prompt_parse_clean(&pp);
+	prompt_push(p);
+	ret |= PROMPT_RET_ENTER;
 	return ret;
 }
 
-static void prompt_complete(const char *prefix, size_t length,
-			    unsigned int skip, size_t& var, size_t& cmd)
+static void handle_prompt_complete_clear()
 {
-	size_t i;
-
-	if (prefix == NULL) {
-		var = 0;
-		cmd = 0;
-		return;
-	}
-	for (i = 0; (prompt_command[i].name != NULL); ++i) {
-		if (strncasecmp(prompt_command[i].name, prefix, length))
-			continue;
-		if (skip == 0)
-			break;
-		--skip;
-	}
-	cmd = i;
-	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
-		if (strncasecmp(rc_fields[i].fieldname, prefix, length))
-			continue;
-		if (skip == 0)
-			break;
-		--skip;
-	}
-	var = i;
+	complete_path_free(prompt.complete);
+	prompt.complete = NULL;
+	prompt.skip = 0;
 }
 
-static int prompt(struct prompt *p, unsigned int *complete_skip,
-		  SDL_keysym *ks, md& megad)
+static int handle_prompt_complete(class md& md, bool rwd)
+{
+	struct prompt_parse pp;
+	struct prompt *p = &prompt.status;
+	unsigned int skip;
+	size_t i;
+	const char *arg;
+	unsigned int alen;
+	char *s = NULL;
+
+	if (prompt_parse(p, &pp) == NULL)
+		return PROMPT_RET_ERROR;
+	if (rwd)
+		prompt.skip -= 2;
+	if (pp.index == 0) {
+		const char *cs = NULL;
+
+		assert(prompt.complete == NULL);
+		// The first argument needs to be completed. This is either
+		// a command or a variable name.
+		arg = (const char *)pp.argv[0];
+		alen = pp.cursor;
+		if ((arg == NULL) || (alen == ~0u)) {
+			arg = "";
+			alen = 0;
+		}
+	complete_cmd_var:
+		skip = prompt.skip;
+		for (i = 0; (prompt_command[i].name != NULL); ++i) {
+			if (strncasecmp(prompt_command[i].name, arg, alen))
+				continue;
+			if (skip != 0) {
+				--skip;
+				continue;
+			}
+			cs = prompt_command[i].name;
+			goto complete_cmd_found;
+		}
+		// Variables.
+		skip = prompt.skip;
+		for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
+			if (strncasecmp(rc_fields[i].fieldname, arg, alen))
+				continue;
+			if (skip != 0) {
+				--skip;
+				continue;
+			}
+			cs = rc_fields[i].fieldname;
+			break;
+		}
+		if (cs == NULL) {
+			// Nothing matched, try again if possible.
+			if (prompt.skip) {
+				prompt.skip = 0;
+				goto complete_cmd_var;
+			}
+			goto end;
+		}
+	complete_cmd_found:
+		++prompt.skip;
+		s = backslashify((const uint8_t *)cs, strlen(cs));
+		if (s == NULL)
+			goto end;
+		goto replace;
+	}
+	// Complete function arguments.
+	for (i = 0; (prompt_command[i].name != NULL); ++i) {
+		char *t;
+
+		if (strcasecmp(prompt_command[i].name,
+			       (const char *)pp.argv[0]))
+			continue;
+		t = prompt_command[i].cmpl(md, pp.argc, (const char **)pp.argv,
+					   pp.cursor);
+		if (t == NULL)
+			goto end;
+		s = backslashify((const uint8_t *)t, strlen(t));
+		free(t);
+		if (s == NULL)
+			goto end;
+		goto replace;
+	}
+	// Variable value completion.
+	arg = (const char *)pp.argv[pp.index];
+	alen = pp.cursor;
+	if ((arg == NULL) || (alen == ~0u)) {
+		arg = "";
+		alen = 0;
+	}
+	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
+		struct rc_field *rc = &rc_fields[i];
+		const char **names;
+
+		if (strcasecmp(rc->fieldname, (const char *)pp.argv[0]))
+			continue;
+		// Boolean values.
+		if (rc->parser == rc_boolean)
+			s = strdup((prompt.skip & 1) ? "true" : "false");
+		// ROM path.
+		else if (rc->parser == rc_rom_path) {
+			char **ret = complete_path(arg, alen, NULL);
+
+			if (ret != NULL) {
+			rc_rom_path_retry:
+				skip = prompt.skip;
+				for (i = 0; (ret[i] != NULL); ++i) {
+					if (skip == 0)
+						break;
+					--skip;
+				}
+				if (ret[i] == NULL) {
+					if (prompt.skip != 0) {
+						prompt.skip = 0;
+						goto rc_rom_path_retry;
+					}
+				}
+				else
+					s = backslashify
+						((const uint8_t *)ret[i],
+						 strlen(ret[i]));
+				complete_path_free(ret);
+			}
+		}
+		// Numbers.
+		else if (rc->parser == rc_number) {
+			char buf[10];
+
+		rc_number_retry:
+			if (snprintf(buf, sizeof(buf), "%d",
+				     (int)prompt.skip) >= (int)sizeof(buf)) {
+				prompt.skip = 0;
+				goto rc_number_retry;
+			}
+			s = strdup(buf);
+		}
+		// CTV filters, scaling algorithms, Z80, M68K.
+		else if ((names = ctv_names, rc->parser == rc_ctv) ||
+			 (names = scaling_names, rc->parser == rc_scaling) ||
+			 (names = emu_z80_names, rc->parser == rc_emu_z80) ||
+			 (names = emu_m68k_names, rc->parser == rc_emu_m68k)) {
+		rc_names_retry:
+			skip = prompt.skip;
+			for (i = 0; (names[i] != NULL); ++i) {
+				if (skip == 0)
+					break;
+				--skip;
+			}
+			if (names[i] == NULL) {
+				if (prompt.skip != 0) {
+					prompt.skip = 0;
+					goto rc_names_retry;
+				}
+			}
+			else
+				s = strdup(names[i]);
+		}
+		if (s == NULL)
+			break;
+		++prompt.skip;
+		goto replace;
+	}
+	goto end;
+replace:
+	prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
+		       (const uint8_t *)s, strlen(s));
+end:
+	free(s);
+	prompt_parse_clean(&pp);
+	return 0;
+}
+
+static int handle_prompt(SDL_keysym *ks, md& megad)
 {
 	struct prompt::prompt_history *ph;
-	struct prompt_parse pp;
-	intptr_t potential;
-	unsigned int i;
-	const char *cs;
-	char *s;
-	char *t;
 	char c = ' ';
-	size_t var, cmd;
 	int ret = PROMPT_RET_CONT;
+	struct prompt *p = &prompt.status;
 
 	if (ks == NULL)
 		goto end;
 	if (((ks->unicode & 0xff80) == 0) &&
 	    (isprint((c = (ks->unicode & 0x7f))))) {
+		handle_prompt_complete_clear();
 		prompt_put(p, c);
 		goto end;
 	}
 	switch (ks->sym) {
 	case SDLK_UP:
+		handle_prompt_complete_clear();
 		prompt_older(p);
 		break;
 	case SDLK_DOWN:
+		handle_prompt_complete_clear();
 		prompt_newer(p);
 		break;
 	case SDLK_LEFT:
+		handle_prompt_complete_clear();
 		prompt_left(p);
 		break;
 	case SDLK_RIGHT:
+		handle_prompt_complete_clear();
 		prompt_right(p);
 		break;
 	case SDLK_HOME:
+		handle_prompt_complete_clear();
 		prompt_begin(p);
 		break;
 	case SDLK_END:
+		handle_prompt_complete_clear();
 		prompt_end(p);
 		break;
 	case SDLK_BACKSPACE:
+		handle_prompt_complete_clear();
 		prompt_backspace(p);
 		break;
 	case SDLK_DELETE:
+		handle_prompt_complete_clear();
 		prompt_delete(p);
 		break;
 	case SDLK_k:
 		if ((ks->mod & KMOD_CTRL) == 0)
 			break;
+		handle_prompt_complete_clear();
 		prompt_replace(p, p->cursor, ~0u, NULL, 0);
 		break;
 	case SDLK_RETURN:
 	case SDLK_KP_ENTER:
-		if (prompt_parse(p, &pp) == NULL) {
-			ret |= PROMPT_RET_ERROR;
-			break;
-		}
-		if (pp.argc == 0) {
-			ret |= PROMPT_RET_EXIT;
-			goto key_enter_end;
-		}
-		for (i = 0; (prompt_command[i].name != NULL); ++i) {
-			int cret;
-
-			if (strcasecmp(prompt_command[i].name,
-				       (char *)pp.argv[0]))
-				continue;
-			cret = prompt_command[i].func(megad, pp.argc,
-						      (const char **)pp.argv);
-			if ((cret & ~CMD_MSG) == CMD_ERROR)
-				ret |= PROMPT_RET_ERROR;
-			if (cret & CMD_MSG)
-				ret |= PROMPT_RET_MSG;
-			goto key_enter_end;
-		}
-		for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
-			if (strcasecmp(rc_fields[i].fieldname,
-				       (char *)pp.argv[0]))
-				continue;
-			if (pp.argv[1] == NULL) {
-				prompt_show_rc_field(&rc_fields[i]);
-				ret |= PROMPT_RET_MSG;
-				break;
-			}
-			potential = rc_fields[i].parser((char *)pp.argv[1]);
-			if ((rc_fields[i].parser != rc_number) &&
-			    (potential == -1)) {
-				stop_events_msg(~0u, "%s: invalid value",
-						(char *)pp.argv[0]);
-				ret |= PROMPT_RET_MSG;
-				break;
-			}
-			if (rc_fields[i].parser == rc_string) {
-				struct rc_str *rs;
-
-				rs = (struct rc_str *)rc_fields[i].variable;
-				free(rs->alloc);
-				rs->alloc = (char *)potential;
-				rs->val = rs->alloc;
-				if (rc_str_list != NULL) {
-					if ((rc_str_list != rs) &&
-					    (rs->next == NULL)) {
-						rs->next = rc_str_list;
-						rc_str_list = rs;
-					}
-				}
-				else if (!atexit(rc_str_cleanup))
-					rc_str_list = rs;
-			}
-			else
-				*(rc_fields[i].variable) = potential;
-			ret |= prompt_rehash_rc_field(&rc_fields[i], megad);
-			break;
-		}
-		if (rc_fields[i].fieldname == NULL) {
-			stop_events_msg(~0u, "%s: unknown command",
-					(char *)pp.argv[0]);
-			ret |= PROMPT_RET_MSG;
-		}
-	key_enter_end:
-		prompt_parse_clean(&pp);
-		prompt_push(p);
-		ret |= PROMPT_RET_ENTER;
+		handle_prompt_complete_clear();
+		ret |= handle_prompt_enter(megad);
 		break;
 	case SDLK_ESCAPE:
+		handle_prompt_complete_clear();
 		ret |= PROMPT_RET_EXIT;
 		break;
 	case SDLK_TAB:
-		if (prompt_parse(p, &pp) == NULL) {
-			ret |= PROMPT_RET_ERROR;
-			break;
-		}
-		switch (pp.index) {
-		case 0:
-			break;
-		case 1:
-			goto key_tab_arg;
-		default:
-			goto key_tab_end;
-		}
-		// Command completion.
-	key_tab_retry:
-		prompt_complete((char *)pp.argv[0], pp.cursor,
-				*complete_skip, var, cmd);
-		if (prompt_command[cmd].name != NULL)
-			cs = prompt_command[cmd].name;
-		else if (rc_fields[var].fieldname != NULL)
-			cs = rc_fields[var].fieldname;
-		else if (*complete_skip == 0)
-			goto key_tab_end;
-		else {
-			*complete_skip = 0;
-			goto key_tab_retry;
-		}
-		s = backslashify((const uint8_t *)cs, strlen(cs));
-		if (s == NULL)
-			goto key_tab_end;
-		prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
-			       (const uint8_t *)s, strlen(s));
-		free(s);
-		++(*complete_skip);
-		goto key_tab_end;
-		// Argument completion.
-	key_tab_arg:
-		if ((strcasecmp((char *)pp.argv[0], "load")) &&
-		    (strcasecmp((char *)pp.argv[0], "open")) &&
-		    (strcasecmp((char *)pp.argv[0], "plug")))
-			goto key_tab_end;
-		// ROM pathname completion.
-		t = prompt_complete_rom((char *)pp.argv[1], pp.cursor,
-					*complete_skip);
-		if (t == NULL) {
-			if (*complete_skip == 0)
-				goto key_tab_end;
-			*complete_skip = 0;
-			goto key_tab_arg;
-		}
-		s = backslashify((const uint8_t *)t, strlen(t));
-		if (s == NULL) {
-			free(t);
-			goto key_tab_end;
-		}
-		free(t);
-		prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
-			       (const uint8_t *)s, strlen(s));
-		free(s);
-		++(*complete_skip);
-	key_tab_end:
-		prompt_parse_clean(&pp);
+		if (ks->mod & KMOD_SHIFT)
+			ret |= handle_prompt_complete(megad, true);
+		else
+			ret |= handle_prompt_complete(megad, false);
 		break;
 	default:
 		break;
 	}
-	if (c != SDLK_TAB)
-		*complete_skip = 0;
 end:
 	if ((ret & ~(PROMPT_RET_CONT | PROMPT_RET_ENTER)) == 0) {
 		ph = &p->history[(p->current)];
@@ -2751,8 +2907,6 @@ static int stop_events(md &megad, int gg)
 	SDL_Event event;
 	char buf[128] = "";
 	kb_input_t input = { 0, 0, 0 };
-	struct prompt *p = &stop_events_prompt;
-	unsigned int complete_skip = 0;
 	size_t gg_len = 0;
 
 	// Switch out of fullscreen mode (assuming this is supported)
@@ -2767,7 +2921,7 @@ static int stop_events(md &megad, int gg)
 	SDL_PauseAudio(1);
 gg:
 	if (gg >= 3)
-		prompt(p, &complete_skip, NULL, megad);
+		handle_prompt(NULL, megad);
 	else if (gg) {
 		size_t len;
 
@@ -2813,10 +2967,10 @@ gg:
 			if (gg >= 3) {
 				int ret;
 
-				ret = prompt(p, &complete_skip,
-					     &event.key.keysym, megad);
+				ret = handle_prompt(&event.key.keysym, megad);
 				if (ret & PROMPT_RET_ERROR) {
 					// XXX
+					handle_prompt_complete_clear();
 					SDL_EnableKeyRepeat(0, 0);
 					return 0;
 				}
@@ -2885,6 +3039,7 @@ gg:
 				}
 			// We can still quit :)
 			if (event.key.keysym.sym == dgen_quit) {
+				handle_prompt_complete_clear();
 				SDL_EnableKeyRepeat(0, 0);
 				return 0;
 			}
@@ -2892,11 +3047,13 @@ gg:
 				goto resume;
 			break;
 		case SDL_QUIT: {
+			handle_prompt_complete_clear();
 			SDL_EnableKeyRepeat(0, 0);
 			return 0;
 		}
 		case SDL_VIDEORESIZE:
 			if (screen_init(event.resize.w, event.resize.h) < -1) {
+				handle_prompt_complete_clear();
 				fprintf(stderr,
 					"sdl: fatal error while trying to"
 					" change screen resolution.\n");
@@ -2906,7 +3063,7 @@ gg:
 			pd_graphics_update();
 		case SDL_VIDEOEXPOSE:
 			if (gg >= 3)
-				prompt(p, &complete_skip, NULL, megad);
+				handle_prompt(NULL, megad);
 			else
 				stop_events_msg(~0u, buf);
 			break;
@@ -2917,6 +3074,7 @@ gg:
 resume:
 	pd_message("RUNNING.");
 gg_resume:
+	handle_prompt_complete_clear();
 	SDL_EnableKeyRepeat(0, 0);
 	SDL_PauseAudio(0);
 	return 1;
