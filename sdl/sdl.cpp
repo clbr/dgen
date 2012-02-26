@@ -1778,6 +1778,9 @@ opengl_failed:
 		screen.width = tmp->w;
 		screen.height = tmp->h;
 		screen.bpp = tmp->format->BitsPerPixel;
+		// Force 15 bpp?
+		if ((screen.bpp == 16) && (dgen_depth == 15))
+			screen.bpp = 15;
 		screen.Bpp = tmp->format->BytesPerPixel;
 		screen.buf.u8 = (uint8_t *)tmp->pixels;
 		screen.pitch = tmp->pitch;
