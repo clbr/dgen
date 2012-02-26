@@ -69,6 +69,14 @@ dgen_SOURCES =		\
 	md-phil.cpp	\
 	system.c
 
+# debugger
+if WITH_DEBUGGER
+dgen_SOURCES +=			\
+	debug.cpp		\
+	linenoise/linenoise.h	\
+	linenoise/linenoise.c
+endif
+
 # CZ80
 if WITH_CZ80
 AM_CPPFLAGS += -I$(top_srcdir)/cz80

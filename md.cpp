@@ -11,6 +11,7 @@
 #include "system.h"
 #include "romload.h"
 #include "rc-vars.h"
+#include "debug.h"
 
 extern FILE *debug_log;
 
@@ -458,6 +459,10 @@ md::md(bool pal, char region):
 #endif
 
   z80_init();
+
+#ifdef WITH_DEBUGGER
+  debug_init();
+#endif
 
   reset(); // reset megadrive
 

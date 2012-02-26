@@ -18,7 +18,13 @@ $(BUILT_SOURCES): $(M68KMAKE)
 	./$(M68KMAKE) . $(DIR)/m68k_in.c
 
 noinst_LIBRARIES = libmusa68.a
-libmusa68_a_SOURCES = m68kcpu.c m68kcpu.h m68k.h m68kconf.h $(BUILT_SOURCES)
+libmusa68_a_SOURCES =	\
+	m68kcpu.c	\
+	m68kcpu.h	\
+	m68k.h		\
+	m68kconf.h	\
+	m68kdasm.c	\
+	$(BUILT_SOURCES)
 libmusa68_a_DEPENDENCIES = $(M68KMAKE)
 EXTRA_libmusa68_a_SOURCES = m68k_in.c m68kmake.c
 

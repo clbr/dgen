@@ -95,6 +95,9 @@ key_slot_9 = 9
 key_save = f2
 key_load = f3
 
+# Enter debugger with this keypress.
+key_debug_enter = `
+
 # There are now multiple CTV effects to try. Pick your favorite:
 #  off       - No CTV
 #  blur      - Blur bitmap (this is the CTV from older versions)

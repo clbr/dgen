@@ -38,6 +38,7 @@ extern "C" {
 }
 
 #include "sn76496.h"
+#include "system.h"
 
 // Debugging macros and support functions. They look like this because C++98
 // lacks support for variadic macros. Not my fault.
@@ -454,6 +455,63 @@ public:
   void init_joysticks(int, int);
   void deinit_joysticks();
   void read_joysticks();
+
+  // Debugger stuff
+#ifdef WITH_DEBUGGER
+private:
+// M68K FLAGS
+// user byte
+#define	M68K_SR_CARRY		(1<<0)
+#define M68K_SR_OVERFLOW	(1<<1)
+#define M68K_SR_ZERO		(1<<2)
+#define M68K_SR_NEGATIVE	(1<<3)
+#define M68K_SR_EXTEND		(1<<4)
+// system byte
+#define M68K_SR_IP_MASK1	(1<<8)
+#define M68K_SR_IP_MASK2	(1<<9)
+#define M68K_SR_IP_MASK3	(1<<10)
+#define M68K_SR_MI_STATE	(1<<12)
+#define M68K_SR_SUP_STATE	(1<<13)
+#define M68K_SR_TRACE_EN1	(1<<14)
+#define M68K_SR_TRACE_EN2	(1<<15)
+// Z80 FLAGS
+#define Z80_SR_CARRY		(1<<0)
+#define Z80_SR_ADD_SUB		(1<<1)
+#define Z80_SR_PARITY_OVERFLOW	(1<<2)
+#define Z80_SR_HALF_CARRY	(1<<4)
+#define Z80_SR_ZERO		(1<<6)
+#define Z80_SR_SIGN		(1<<7)
+public:
+  struct dgen_debugger_cmd {
+	  char		*cmd;
+	  int		n_args;
+	  int		(md::*handler)(int, char **);
+  };
+  const static struct md::dgen_debugger_cmd debug_cmd_list[];
+  // commands
+  int debug_despatch_cmd(int n_toks, char **args);
+  int debug_cmd_cont(int n_args, char **args);
+  int debug_cmd_reg(int n_args, char **args);
+  int debug_cmd_help(int n_args, char **args);
+  int debug_cmd_break(int n_args, char **args);
+  int debug_cmd_quit(int n_args, char **args);
+  int debug_cmd_step(int n_args, char **args);
+  int debug_cmd_minus_break(int n_args, char **args);
+  int debug_cmd_cpu(int n_args, char **args);
+  int debug_cmd_dis(int n_args, char **args);
+  int debug_cmd_mem(int n_args, char **args);
+  int debug_cmd_watch(int n_args, char **args);
+  int debug_cmd_minus_watch(int n_args, char **args);
+  // misc
+  void debug_enter(void);
+  void debug_update_wp_cache(struct dgen_wp *w);
+  void debug_update_fired_wps(void);
+  void debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr);
+  void debug_print_disassemble(uint32_t from, int len);
+  void debug_show_m68k_regs(void);
+  void debug_show_z80_regs(void);
+  void debug_dump_mem(uint32_t addr, uint32_t len);
+#endif
 };
 
 inline int md::has_save_ram()

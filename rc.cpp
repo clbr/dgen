@@ -435,6 +435,7 @@ struct rc_field rc_fields[] = {
   { "key_stop", rc_keysym, &dgen_stop },
   { "key_game_genie", rc_keysym, &dgen_game_genie },
   { "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle },
+  { "key_debug_enter", rc_keysym, &dgen_debug_enter },
   { "key_prompt", rc_keysym, &dgen_prompt },
   { "bool_autoload", rc_boolean, &dgen_autoload },
   { "bool_autosave", rc_boolean, &dgen_autosave },

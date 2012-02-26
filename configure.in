@@ -118,7 +118,7 @@ AC_ARG_ENABLE(
 	[debug],
 	[AS_HELP_STRING(
 		[--enable-debug],
-		[enable debugging [default=no]]
+		[enable internal debugging [default=no]]
 	)],
 	[USE_DEBUG=$enableval],
 	[USE_DEBUG=no]
@@ -480,6 +480,21 @@ AC_ARG_WITH(
 	[WITH_CZ80=yes]
 )
 
+dnl Check if debugger should be enabled.
+AC_ARG_ENABLE(
+	[debugger],
+	[AS_HELP_STRING(
+		[--enable-debugger],
+		[enable debugger [default=no]]
+	)],
+	[USE_DEBUGGER=$enableval],
+	[USE_DEBUGGER=no]
+)
+AS_IF(
+	[test "x$WITH_MUSA" != xyes -a "x$USE_DEBUGGER" = xyes],
+	[AC_MSG_FAILURE([debugger support requires Musashi CPU core])]
+)
+
 dnl Prevent dgen_tobin from being linked with unnecessary libraries.
 DGEN_LIBS="$LIBS"
 LIBS="$TOBIN_LIBS"
@@ -487,6 +502,7 @@ LIBS="$TOBIN_LIBS"
 dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
+AS_IF([test "x$USE_DEBUGGER" = xyes], [AC_DEFINE([WITH_DEBUGGER])])
 AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
 AS_IF([test "x$USE_JOYSTICK" != xno], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
@@ -508,6 +524,7 @@ AS_IF([test "x$USE_X86_MMX" = xyes], [AC_DEFINE([WITH_X86_MMX])])
 AS_IF([test "x$USE_X86_CTV" = xyes], [AC_DEFINE([WITH_X86_CTV])])
 AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 
+AM_CONDITIONAL([WITH_DEBUGGER], [test "x$USE_DEBUGGER" = xyes])
 AM_CONDITIONAL([WITH_CTV], [test "x$USE_CTV" = xyes])
 AM_CONDITIONAL([WITH_HQX], [test "x$USE_HQX" = xyes])
 AM_CONDITIONAL([WITH_MUSA], [test "x$WITH_MUSA" = xyes])
@@ -545,6 +562,7 @@ Front-end
   Crap TV filters: $USE_CTV
   hqx filters: $USE_HQX
   Compressed ROMs: $USE_LIBARCHIVE
+  Debugger: $USE_DEBUGGER
   Debugging: $USE_DEBUG
 
 CPU cores

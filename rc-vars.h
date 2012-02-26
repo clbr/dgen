@@ -62,6 +62,7 @@ RCVAR(dgen_stop, PDK_z);
 RCVAR(dgen_prompt, (KEYSYM_MOD_SHIFT | PDK_SEMICOLON));
 RCVAR(dgen_game_genie, PDK_F9);
 RCVAR(dgen_fullscreen_toggle, KEYSYM_MOD_ALT | PDK_RETURN);
+RCVAR(dgen_debug_enter, PDK_BACKQUOTE);
 RCVAR(dgen_volume_inc, PDK_EQUALS);
 RCVAR(dgen_volume_dec, PDK_MINUS);
 
