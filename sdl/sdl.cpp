@@ -312,7 +312,7 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...);
 
 static int prompt_cmd_exit(class md&, unsigned int, const char**)
 {
-	return CMD_ERROR;
+	return (CMD_ERROR | CMD_MSG);
 }
 
 static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
