@@ -107,7 +107,9 @@
 #include <fcntl.h>
 #define USE_WINCONSOLE
 #ifdef __MINGW32__
+#ifndef HAVE_UNISTD_H
 #define HAVE_UNISTD_H
+#endif
 #else
 /* Microsoft headers don't like old POSIX names */
 #define strdup _strdup
