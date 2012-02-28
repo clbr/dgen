@@ -17,6 +17,7 @@ int md::patch(const char *list, unsigned int *errors,
   char *worklist, *tok;
   struct patch p;
   int ret = 0;
+  size_t wl_sz;
 
   if (errors != NULL)
     *errors = 0;
@@ -24,11 +25,13 @@ int md::patch(const char *list, unsigned int *errors,
     *applied = 0;
   if (reverted != NULL)
     *reverted = 0;
+
   // Copy the given list to a working list so we can strtok it
-  worklist = (char*)malloc(strlen(list)+1);
+  wl_sz = strlen(list) + 1;
+  worklist = (char *)malloc(wl_sz);
   if (worklist == NULL)
     return -1;
-  strcpy(worklist, list);
+  strncpy(worklist, list, wl_sz);
 
   for(tok = strtok(worklist, delims); tok; tok = strtok(NULL, delims))
     {
