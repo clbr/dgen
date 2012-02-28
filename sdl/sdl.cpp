@@ -3276,56 +3276,62 @@ int pd_handle_events(md &megad)
       switch(event.type)
 	{
 #ifdef WITH_SDL_JOYSTICK
-       case SDL_JOYAXISMOTION:
-         // x-axis
-         if(event.jaxis.axis == 0)
-           {
-             if(event.jaxis.value < -16384)
-               {
-                 megad.pad[event.jaxis.which] &= ~0x04;
-                 megad.pad[event.jaxis.which] |=  0x08;
-                 break;
-               }
-             if(event.jaxis.value > 16384)
-               {
-                 megad.pad[event.jaxis.which] |=  0x04;
-                 megad.pad[event.jaxis.which] &= ~0x08;
-                 break;
-               }
-             megad.pad[event.jaxis.which] |= 0xC;
-             break;
-           }
-         // y-axis
-         if(event.jaxis.axis == 1)
-           {
-             if(event.jaxis.value < -16384)
-               {
-                 megad.pad[event.jaxis.which] &= ~0x01;
-                 megad.pad[event.jaxis.which] |=  0x02;
-                 break;
-               }
-             if(event.jaxis.value > 16384)
-               {
-                 megad.pad[event.jaxis.which] |=  0x01;
-                 megad.pad[event.jaxis.which] &= ~0x02;
-                 break;
-               }
-             megad.pad[event.jaxis.which] |= 0x3;
-             break;
-           }
-         break;
-       case SDL_JOYBUTTONDOWN:
-         // Ignore more than 16 buttons (a reasonable limit :)
-         if(event.jbutton.button > 15) break;
-         megad.pad[event.jbutton.which] &= ~js_map_button[event.jbutton.which]
-                                                         [event.jbutton.button];
-         break;
-       case SDL_JOYBUTTONUP:
-         // Ignore more than 16 buttons (a reasonable limit :)
-         if(event.jbutton.button > 15) break;
-         megad.pad[event.jbutton.which] |= js_map_button[event.jbutton.which]
-                                                        [event.jbutton.button];
-         break;
+		extern int js_index[2];
+		int pad;
+
+	case SDL_JOYAXISMOTION:
+		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
+		    (pad = 1, event.jaxis.which != js_index[pad]))
+			break;
+		// x-axis
+		if (event.jaxis.axis == 0) {
+			if (event.jaxis.value < -16384) {
+				megad.pad[pad] &= ~0x04;
+				megad.pad[pad] |=  0x08;
+				break;
+			}
+			if (event.jaxis.value > 16384) {
+				megad.pad[pad] |=  0x04;
+				megad.pad[pad] &= ~0x08;
+				break;
+			}
+			megad.pad[pad] |= 0xc;
+			break;
+		}
+		// y-axis
+		else if (event.jaxis.axis == 1) {
+			if (event.jaxis.value < -16384) {
+				megad.pad[pad] &= ~0x01;
+				megad.pad[pad] |=  0x02;
+				break;
+			}
+			if (event.jaxis.value > 16384) {
+				megad.pad[pad] |=  0x01;
+				megad.pad[pad] &= ~0x02;
+				break;
+			}
+			megad.pad[pad] |= 0x3;
+			break;
+		}
+		break;
+	case SDL_JOYBUTTONDOWN:
+		// Ignore more than 16 buttons (a reasonable limit :)
+		if (event.jbutton.button > 15)
+			break;
+		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
+		    (pad = 1, event.jaxis.which != js_index[pad]))
+			break;
+		megad.pad[pad] &= ~js_map_button[pad][event.jbutton.button];
+		break;
+	case SDL_JOYBUTTONUP:
+		// Ignore more than 16 buttons (a reasonable limit :)
+		if (event.jbutton.button > 15)
+			break;
+		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
+		    (pad = 1, event.jaxis.which != js_index[pad]))
+			break;
+		megad.pad[pad] |= js_map_button[pad][event.jbutton.button];
+		break;
 #endif // WITH_SDL_JOYSTICK
 	case SDL_KEYDOWN:
 	  ksym = event.key.keysym.sym;

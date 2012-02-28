@@ -488,7 +488,7 @@ dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
 AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
-AS_IF([test "x$USE_JOYSTICK" != x], [AC_DEFINE([WITH_JOYSTICK])])
+AS_IF([test "x$USE_JOYSTICK" != xno], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
 AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
