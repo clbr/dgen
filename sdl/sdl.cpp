@@ -2171,8 +2171,9 @@ void pd_graphics_palette_update()
 }
 
 static void pd_message_process(void);
+static size_t pd_message_write(const char *msg, size_t len, unsigned int mark);
 static size_t pd_message_display(const char *msg, size_t len,
-				 unsigned int mark);
+				 unsigned int mark, bool update);
 static void pd_message_postpone(const char *msg);
 
 // Update screen
@@ -2501,16 +2502,17 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 	buf[(sizeof(buf) - 1)] = '\0';
 	disp_len = font_text_len(screen.width, screen.info_height);
 	if ((disp_len > len) || (mark < disp_len)) {
-		pd_message_display(buf, len, mark);
+		pd_message_display(buf, len, mark, true);
 		return;
 	}
 	if (mark > len) {
 		mark -= (len - disp_len);
-		pd_message_display(&buf[(len - disp_len)], disp_len, mark);
+		pd_message_display(&buf[(len - disp_len)], disp_len, mark,
+				   true);
 		return;
 	}
 	pd_message_display(&buf[((mark - disp_len) + 1)], disp_len,
-			   (mark - ((mark - disp_len) + 1)));
+			   (mark - ((mark - disp_len) + 1)), true);
 }
 
 // Rehash rc vars that require special handling (see "SH" in rc.cpp).
@@ -3737,8 +3739,7 @@ int pd_handle_events(md &megad)
   return 1;
 }
 
-static size_t pd_message_display(const char *msg, size_t len,
-				 unsigned int mark)
+static size_t pd_message_write(const char *msg, size_t len, unsigned int mark)
 {
 	uint8_t *buf = (screen.buf.u8 +
 			(screen.pitch * (screen.height - screen.info_height)));
@@ -3753,7 +3754,16 @@ static size_t pd_message_display(const char *msg, size_t len,
 				screen.Bpp, screen.pitch, msg, len,
 				mark);
 	screen_unlock();
-	screen_update();
+	return ret;
+}
+
+static size_t pd_message_display(const char *msg, size_t len,
+				 unsigned int mark, bool update)
+{
+	size_t ret = pd_message_write(msg, len, mark);
+
+	if (update)
+		screen_update();
 	if (len == 0)
 		info.displayed = 0;
 	else {
@@ -3779,7 +3789,7 @@ static void pd_message_process(void)
 			len = (n + 1);
 			break;
 		}
-	r = pd_message_display(info.message, n, ~0u);
+	r = pd_message_display(info.message, n, ~0u, false);
 	if (r < n)
 		len = r;
 	memmove(info.message, &(info.message[len]), (info.length - len));
@@ -3809,7 +3819,7 @@ void pd_message(const char *msg, ...)
 
 void pd_clear_message()
 {
-	pd_message_display(NULL, 0, ~0u);
+	pd_message_display(NULL, 0, ~0u, false);
 }
 
 void pd_show_carthead(md& megad)
