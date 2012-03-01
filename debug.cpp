@@ -991,6 +991,8 @@ void md::debug_enter()
 		if ((cmd = linenoise(prompt)) == NULL)
 			return;
 
+		linenoiseHistoryAdd((const char *)cmd);
+
 		// tokenise
 		next = p = cmd;
 		n_toks = 0;
@@ -999,8 +1001,6 @@ void md::debug_enter()
 			toks[n_toks++] = p;
 			next = NULL;
 		}
-
-		linenoiseHistoryAdd((const char *) cmd);
 
 		again = debug_despatch_cmd(n_toks,  toks);
 		free(cmd);
