@@ -2179,6 +2179,9 @@ static void pd_message_postpone(const char *msg);
 // Update screen
 void pd_graphics_update(bool update)
 {
+	static unsigned long fps_since = 0;
+	static unsigned long frames_old = 0;
+	static unsigned long frames = 0;
 	bpp_t src;
 	bpp_t dst;
 	unsigned int src_pitch;
@@ -2188,11 +2191,33 @@ void pd_graphics_update(bool update)
 	unsigned int ysize2;
 	const struct filter **filter;
 #endif
+	unsigned long usecs = pd_usecs();
 
 	// Check whether the message must be processed.
 	if (((info.displayed) || (info.length))  &&
-	    ((pd_usecs() - info.since) >= MESSAGE_LIFE))
+	    ((usecs - info.since) >= MESSAGE_LIFE))
 		pd_message_process();
+	else if (dgen_fps) {
+		unsigned long tmp = ((usecs - fps_since) & 0x3fffff);
+
+		++frames;
+		if (tmp >= 1000000) {
+			unsigned long fps;
+
+			fps_since = usecs;
+			if (frames_old > frames)
+				fps = (frames_old - frames);
+			else
+				fps = (frames - frames_old);
+			frames_old = frames;
+			if (!info.displayed) {
+				char buf[16];
+
+				snprintf(buf, sizeof(buf), "%lu FPS", fps);
+				pd_message_write(buf, strlen(buf), ~0u);
+			}
+		}
+	}
 	// Set destination buffer.
 	dst_pitch = screen.pitch;
 	dst.u8 = &screen.buf.u8[(screen.x_offset * screen.Bpp)];
