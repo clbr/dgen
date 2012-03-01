@@ -2870,6 +2870,8 @@ static int handle_prompt_complete(class md& md, bool rwd)
 		if (strcasecmp(prompt_command[i].name,
 			       (const char *)pp.argv[0]))
 			continue;
+		if (prompt_command[i].cmpl == NULL)
+			goto end;
 		t = prompt_command[i].cmpl(md, pp.argc, (const char **)pp.argv,
 					   pp.cursor);
 		if (t == NULL)
