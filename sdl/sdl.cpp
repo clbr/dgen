@@ -267,6 +267,13 @@ static char* prompt_cmpl_load(class md&, unsigned int, const char**,
 			      unsigned int);
 static int prompt_cmd_unload(class md&, unsigned int, const char**);
 static int prompt_cmd_reset(class md&, unsigned int, const char**);
+#ifdef WITH_CTV
+static int prompt_cmd_filter_push(class md&, unsigned int, const char**);
+static char* prompt_cmpl_filter_push(class md&, unsigned int, const char**,
+				     unsigned int);
+static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
+static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
+#endif
 
 static const struct prompt_command prompt_command[] = {
 	{ "quit", prompt_cmd_exit, NULL },
@@ -278,6 +285,11 @@ static const struct prompt_command prompt_command[] = {
 	{ "close", prompt_cmd_unload, NULL },
 	{ "unplug", prompt_cmd_unload, NULL },
 	{ "reset", prompt_cmd_reset, NULL },
+#ifdef WITH_CTV
+	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
+	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
+	{ "ctv_none", prompt_cmd_filter_none, NULL },
+#endif
 	{ NULL, NULL, NULL }
 };
 
@@ -427,6 +439,86 @@ struct filter {
 
 static const struct filter *filters_prescale[64];
 static const struct filter *filters_postscale[64];
+
+// Add filter to stack.
+static void filters_push(const struct filter **stack, const struct filter *f)
+{
+	size_t i;
+
+	if ((stack != filters_prescale) && (stack != filters_postscale))
+		return;
+	for (i = 0; (i != 64); ++i) {
+		if (stack[i] != NULL)
+			continue;
+		stack[i] = f;
+		break;
+	}
+}
+
+// Add filter to stack if not already in it.
+static void filters_push_once(const struct filter **stack,
+			      const struct filter *f)
+{
+	size_t i;
+
+	if ((stack != filters_prescale) && (stack != filters_postscale))
+		return;
+	for (i = 0; (i != 64); ++i) {
+		if (stack[i] == f)
+			return;
+		if (stack[i] != NULL)
+			continue;
+		stack[i] = f;
+		return;
+	}
+}
+
+// Remove last filter from stack.
+static void filters_pop(const struct filter **stack)
+{
+	size_t i;
+
+	if ((stack != filters_prescale) && (stack != filters_postscale))
+		return;
+	for (i = 0; (i != 64); ++i) {
+		if (stack[i] != NULL)
+			continue;
+		break;
+	}
+	if (i == 0)
+		return;
+	stack[(i - 1)] = NULL;
+}
+
+// Remove all occurences of filter from the stack.
+static void filters_pluck(const struct filter **stack, const struct filter *f)
+{
+	size_t i, j;
+
+	if ((stack != filters_prescale) && (stack != filters_postscale))
+		return;
+	for (i = 0, j = 0; (i != 64); ++i) {
+		if (stack[i] == NULL)
+			break;
+		if (stack[i] == f)
+			continue;
+		stack[j] = stack[i];
+		++j;
+	}
+	if (j != i)
+		stack[j] = NULL;
+}
+
+// Empty stack.
+static void filters_empty(const struct filter **stack)
+{
+	size_t i;
+
+	if ((stack != filters_prescale) && (stack != filters_postscale))
+		return;
+	for (i = 0; (i != 64); ++i)
+		stack[i] = NULL;
+}
 
 static void set_swab();
 
@@ -1415,14 +1507,78 @@ static void set_swab()
 	}
 	if (f->func == NULL)
 		return;
-	if (filters_prescale[0] == NULL)
-		filters_prescale[0] = &filters_list[0];
+	filters_pluck(filters_prescale, f);
 	if (dgen_swab)
-		filters_prescale[1] = f;
-	else if (filters_prescale[2] != NULL)
-		filters_prescale[1] = &filters_list[0];
+		filters_push_once(filters_prescale, f);
+}
+
+static int prompt_cmd_filter_push(class md&, unsigned int ac, const char** av)
+{
+	unsigned int i;
+
+	if (ac < 2)
+		return CMD_EINVAL;
+	for (i = 1; (i != ac); ++i) {
+		const struct filter *f;
+
+		for (f = filters_list; (f->name != NULL); ++f)
+			if (!strcasecmp(f->name, av[i]))
+				break;
+		if (f->name == NULL)
+			return CMD_EINVAL;
+		filters_push(filters_prescale, f);
+	}
+	return CMD_OK;
+}
+
+static char* prompt_cmpl_filter_push(class md&, unsigned int ac,
+				     const char** av, unsigned int len)
+{
+	const struct filter *f;
+	const char *prefix;
+	unsigned int skip;
+
+	assert(ac != 0);
+	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
+		prefix = "";
+		len = 0;
+	}
 	else
-		filters_prescale[1] = NULL;
+		prefix = av[(ac - 1)];
+	skip = prompt.skip;
+retry:
+	for (f = filters_list; (f->func != NULL); ++f) {
+		if (strncasecmp(prefix, f->name, len))
+			continue;
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	if (f->name == NULL) {
+		if (prompt.skip != 0) {
+			prompt.skip = 0;
+			goto retry;
+		}
+		return NULL;
+	}
+	++prompt.skip;
+	return strdup(f->name);
+}
+
+static int prompt_cmd_filter_pop(class md&, unsigned int ac, const char**)
+{
+	if (ac != 1)
+		return CMD_EINVAL;
+	filters_pop(filters_prescale);
+	return CMD_OK;
+}
+
+static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
+{
+	if (ac != 1)
+		return CMD_EINVAL;
+	filters_empty(filters_prescale);
+	return CMD_OK;
 }
 
 #endif // WITH_CTV
