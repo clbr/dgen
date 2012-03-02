@@ -3,6 +3,7 @@
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
 
+#include <stddef.h>
 #include <stdio.h>
 #include <limits.h>
 #include <stdint.h>
@@ -114,6 +115,16 @@ extern void unload(uint8_t *data);
 extern char **complete_path(const char *prefix, size_t len,
 			    const char *relative);
 extern void complete_path_free(char **cp);
+
+static inline size_t strcommon(const char *s1, const char *s2)
+{
+	size_t i;
+
+	for (i = 0; ((s1[i] != '\0') && (s2[i] != '\0')); ++i)
+		if (s1[i] != s2[i])
+			break;
+	return i;
+}
 
 SYSTEM_H_END_
 

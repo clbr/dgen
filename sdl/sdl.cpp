@@ -243,6 +243,7 @@ static struct {
 	struct prompt status; // prompt status
 	char** complete; // completion results array
 	unsigned int skip; // number of entries to skip in the array
+	unsigned int common; // common length of all entries
 } prompt;
 
 // Prompt return values.
@@ -363,6 +364,27 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	return (CMD_OK | CMD_MSG);
 }
 
+static void rehash_prompt_complete_common()
+{
+	size_t i;
+	unsigned int common;
+
+	prompt.common = 0;
+	if ((prompt.complete == NULL) || (prompt.complete[0] == NULL))
+		return;
+	common = strlen(prompt.complete[0]);
+	for (i = 1; (prompt.complete[i] != NULL); ++i) {
+		unsigned int tmp;
+
+		tmp = strcommon(prompt.complete[i], prompt.complete[(i - 1)]);
+		if (tmp < common)
+			common = tmp;
+		if (common == 0)
+			break;
+	}
+	prompt.common = common;
+}
+
 static char* prompt_cmpl_load(class md& md, unsigned int ac, const char** av,
 			      unsigned int len)
 {
@@ -385,9 +407,10 @@ static char* prompt_cmpl_load(class md& md, unsigned int ac, const char** av,
 						dgen_rom_path.val);
 		if (prompt.complete == NULL)
 			return NULL;
+		rehash_prompt_complete_common();
 	}
-	skip = prompt.skip;
 retry:
+	skip = prompt.skip;
 	for (i = 0; (prompt.complete[i] != NULL); ++i) {
 		if (skip == 0)
 			break;
@@ -2980,6 +3003,7 @@ static void handle_prompt_complete_clear()
 	complete_path_free(prompt.complete);
 	prompt.complete = NULL;
 	prompt.skip = 0;
+	prompt.common = 0;
 }
 
 static int handle_prompt_complete(class md& md, bool rwd)
@@ -2998,6 +3022,9 @@ static int handle_prompt_complete(class md& md, bool rwd)
 		prompt.skip -= 2;
 	if (pp.index == 0) {
 		const char *cs = NULL;
+		const char *cm = NULL;
+		unsigned int common;
+		unsigned int tmp;
 
 		assert(prompt.complete == NULL);
 		// The first argument needs to be completed. This is either
@@ -3008,28 +3035,47 @@ static int handle_prompt_complete(class md& md, bool rwd)
 			arg = "";
 			alen = 0;
 		}
+		common = ~0u;
 	complete_cmd_var:
 		skip = prompt.skip;
 		for (i = 0; (prompt_command[i].name != NULL); ++i) {
 			if (strncasecmp(prompt_command[i].name, arg, alen))
 				continue;
+			if (cm == NULL)
+				tmp = strlen(prompt_command[i].name);
+			else
+				tmp = strcommon(prompt_command[i].name, cm);
+			cm = prompt_command[i].name;
+			if (tmp < common)
+				common = tmp;
 			if (skip != 0) {
 				--skip;
 				continue;
 			}
-			cs = prompt_command[i].name;
-			goto complete_cmd_found;
+			if (cs == NULL)
+				cs = prompt_command[i].name;
+			if (common == 0)
+				goto complete_cmd_found;
 		}
 		// Variables.
 		for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
 			if (strncasecmp(rc_fields[i].fieldname, arg, alen))
 				continue;
+			if (cm == NULL)
+				tmp = strlen(rc_fields[i].fieldname);
+			else
+				tmp = strcommon(rc_fields[i].fieldname, cm);
+			cm = rc_fields[i].fieldname;
+			if (tmp < common)
+				common = tmp;
 			if (skip != 0) {
 				--skip;
 				continue;
 			}
-			cs = rc_fields[i].fieldname;
-			break;
+			if (cs == NULL)
+				cs = rc_fields[i].fieldname;
+			if (common == 0)
+				break;
 		}
 		if (cs == NULL) {
 			// Nothing matched, try again if possible.
@@ -3044,6 +3090,8 @@ static int handle_prompt_complete(class md& md, bool rwd)
 		s = backslashify((const uint8_t *)cs, strlen(cs));
 		if (s == NULL)
 			goto end;
+		if (common != ~0u)
+			prompt.common = common;
 		goto replace;
 	}
 	// Complete function arguments.
@@ -3083,9 +3131,15 @@ static int handle_prompt_complete(class md& md, bool rwd)
 			s = strdup((prompt.skip & 1) ? "true" : "false");
 		// ROM path.
 		else if (rc->parser == rc_rom_path) {
-			char **ret = complete_path(arg, alen, NULL);
+			if (prompt.complete == NULL) {
+				prompt.complete =
+					complete_path(arg, alen, NULL);
+				prompt.skip = 0;
+				rehash_prompt_complete_common();
+			}
+			if (prompt.complete != NULL) {
+				char **ret = prompt.complete;
 
-			if (ret != NULL) {
 			rc_rom_path_retry:
 				skip = prompt.skip;
 				for (i = 0; (ret[i] != NULL); ++i) {
@@ -3103,7 +3157,6 @@ static int handle_prompt_complete(class md& md, bool rwd)
 					s = backslashify
 						((const uint8_t *)ret[i],
 						 strlen(ret[i]));
-				complete_path_free(ret);
 			}
 		}
 		// Numbers.
@@ -3148,6 +3201,17 @@ static int handle_prompt_complete(class md& md, bool rwd)
 replace:
 	prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
 		       (const uint8_t *)s, strlen(s));
+	if (prompt.common) {
+		unsigned int cursor;
+
+		cursor = (pp.argo[pp.index].pos + prompt.common);
+		if (cursor > p->history[(p->current)].length)
+			cursor = p->history[(p->current)].length;
+		if (cursor != p->cursor) {
+			p->cursor = cursor;
+			handle_prompt_complete_clear();
+		}
+	}
 end:
 	free(s);
 	prompt_parse_clean(&pp);
