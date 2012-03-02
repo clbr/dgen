@@ -3691,7 +3691,10 @@ int pd_handle_events(md &megad)
           }
 	  else if (ksym == dgen_debug_enter) {
 #ifdef WITH_DEBUGGER
+		stopped = 1;
+		SDL_PauseAudio(1);
 		megad.debug_enter();
+		SDL_PauseAudio(0);
 #else
 		stop_events_msg(~0u, "Debugger support not built in.");
 #endif
