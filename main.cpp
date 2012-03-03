@@ -385,6 +385,11 @@ int main(int argc, char *argv[])
 		}
 		FreeConsole();
 	}
+#else
+#ifdef WITH_DEBUGGER
+	// So we don't block while reading stdin.
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+#endif
 #endif
 
   // Initialize the platform-dependent stuff.
@@ -578,6 +583,9 @@ next_rom:
 	fpsclk = ((pd_usecs() - startclk) / 1000000);
 	if (fpsclk == 0)
 		fpsclk = 1;
+#ifdef WITH_DEBUGGER
+	megad->debug_leave();
+#endif
 	printf("%lu frames per second (average %lu, optimal %ld)\n",
 	       fps, (frames / fpsclk), (long)dgen_hz);
 

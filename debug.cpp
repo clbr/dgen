@@ -622,6 +622,8 @@ int md::debug_cmd_cont(int n_args, char **args)
 	(void) n_args;
 	(void) args;
 
+	debug_trap = false;
+	pd_sound_start();
 	return (0); // causes debugger to exit
 }
 
@@ -826,6 +828,8 @@ int md::debug_cmd_step(int n_args, char **args)
 		return (1);
 	}
 
+	debug_trap = false;
+	pd_sound_start();
 	return (0); // continue executing
 }
 
@@ -924,6 +928,8 @@ int md::debug_despatch_cmd(int n_toks, char **toks)
 	struct md::dgen_debugger_cmd	 *d = (struct md::dgen_debugger_cmd *)
 	    md::debug_cmd_list, *found = NULL;
 
+	if (n_toks == 0)
+		return 1;
 	while (d->cmd != NULL) {
 		if ((strcmp(toks[0], d->cmd) == 0) && (n_toks-1 == d->n_args)) {
 			found = d;
@@ -964,52 +970,62 @@ void md::debug_print_disassemble(uint32_t from, int len)
 	md_set_musa(0);
 }
 
+void md::debug_leave()
+{
+	if (debug_trap == false)
+		return;
+	linenoise_nb_clean();
+	debug_trap = false;
+	pd_sound_start();
+}
+
 void md::debug_enter()
 {
 	char				*cmd, prompt[32];
 	char				*p, *next;
 	char				*toks[MAX_DEBUG_TOKS];
-	int				 n_toks = 0, again = 1;
+	int				 n_toks = 0;
 
-	pd_message("Debug trap.");
+	md_set_musa(1);
+	if (debug_trap == false) {
+		pd_sound_pause();
+		pd_message("Debug trap.");
+		debug_trap = true;
 
-	// Dump registers
-	m68k_state_dump();
-	z80_state_dump();
-
-	if (debug_context == DBG_CONTEXT_M68K)
-		debug_print_disassemble(m68k_state.pc, 1);
-
-	// XXX need to use stop_events() to prevent frameskips,
-	// but sdl/sdl.cpp would need some pretty serious refactoring.
-	// Leaving this to the experts.
-
-	// accept commands from terminal
-	while (again) {
+		// Dump registers
+		m68k_state_dump();
+		z80_state_dump();
 
 		if (debug_context == DBG_CONTEXT_M68K)
-			snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", m68k_state.pc);
-		else
-			snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_state.pc);
-
-		if ((cmd = linenoise(prompt)) == NULL)
-			return;
-
-		linenoiseHistoryAdd((const char *)cmd);
-
-		// tokenise
-		next = p = cmd;
-		n_toks = 0;
-		while ((n_toks < MAX_DEBUG_TOKS) &&
-		       ((p = strtok(next, " \t")) != NULL)) {
-			toks[n_toks++] = p;
-			next = NULL;
-		}
-
-		again = debug_despatch_cmd(n_toks,  toks);
-		free(cmd);
+			debug_print_disassemble(m68k_state.pc, 1);
 	}
-	printf("\n");
+	if (debug_context == DBG_CONTEXT_M68K)
+		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", m68k_state.pc);
+	else
+		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_state.pc);
+
+	if ((cmd = linenoise_nb(prompt)) == NULL) {
+		md_set_musa(0);
+		if (!linenoise_nb_eol())
+			return;
+		linenoise_nb_clean();
+		return;
+	}
+
+	linenoiseHistoryAdd((const char *)cmd);
+
+	// tokenise
+	next = p = cmd;
+	n_toks = 0;
+	while ((n_toks < MAX_DEBUG_TOKS) &&
+	       ((p = strtok(next, " \t")) != NULL)) {
+		toks[n_toks++] = p;
+		next = NULL;
+	}
+
+	debug_despatch_cmd(n_toks,  toks);
+	free(cmd);
+	md_set_musa(0);
 }
 
 const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {

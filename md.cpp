@@ -499,6 +499,9 @@ md::~md()
   free(mem);
   rom=mem=ram=z80ram=NULL;
 
+#ifdef WITH_DEBUGGER
+	debug_leave();
+#endif
 #ifdef WITH_MUSA
 	free(ctx_musa);
 #endif

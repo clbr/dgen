@@ -3527,6 +3527,10 @@ int pd_handle_events(md &megad)
   SDL_Event event;
   int ksym;
 
+#ifdef WITH_DEBUGGER
+	if (megad.debug_trap)
+		megad.debug_enter();
+#endif
   // If there's any chance your implementation might run under Linux, add these
   // next four lines for joystick handling.
 #ifdef WITH_LINUX_JOYSTICK
@@ -3770,9 +3774,10 @@ int pd_handle_events(md &megad)
 	  else if (ksym == dgen_debug_enter) {
 #ifdef WITH_DEBUGGER
 		stopped = 1;
-		SDL_PauseAudio(1);
-		megad.debug_enter();
-		SDL_PauseAudio(0);
+		if (megad.debug_trap == false)
+			megad.debug_enter();
+		else
+			megad.debug_leave();
 #else
 		stop_events_msg(~0u, "Debugger support not built in.");
 #endif

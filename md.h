@@ -505,6 +505,7 @@ public:
   int debug_cmd_minus_watch(int n_args, char **args);
   // misc
   void debug_enter(void);
+  void debug_leave(void);
   void debug_update_wp_cache(struct dgen_wp *w);
   void debug_update_fired_wps(void);
   void debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr);

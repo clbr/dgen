@@ -136,8 +136,11 @@ void md::m68k_run()
 	m68k_st_running = 1;
 #ifdef WITH_MUSA
 	if (cpu_emu == CPU_EMU_MUSA) {
+#ifndef WITH_DEBUGGER
 		odo.m68k += m68k_execute(cycles);
-#ifdef WITH_DEBUGGER
+#else
+		if (debug_trap == false)
+			odo.m68k += m68k_execute(cycles);
 		// check for breakpoint hit
 		if (m68k_bp_hit || m68k_wp_hit) {
 			debug_enter();
@@ -329,6 +332,10 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	int zirq = 0;
 	unsigned int vblank = md::vblank();
 
+#ifdef WITH_DEBUGGER
+	if (debug_trap)
+		return 0;
+#endif
 	md_set(1);
 	// Reset odometers
 	memset(&odo, 0, sizeof(odo));
