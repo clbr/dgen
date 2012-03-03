@@ -120,13 +120,11 @@
  * instruction.
  */
 #ifdef WITH_DEBUGGER
-extern void debug_musa_callback(void);
-#define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
-#define M68K_INSTRUCTION_CALLBACK() debug_musa_callback()
+#define M68K_INSTRUCTION_HOOK       OPT_ON
 #else
 #define M68K_INSTRUCTION_HOOK       OPT_OFF
-#define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_handler()
 #endif
+#define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_function()
 
 /* If on, the CPU will emulate the 4-byte prefetch queue of a real 68000 */
 #define M68K_EMULATE_PREFETCH       OPT_OFF

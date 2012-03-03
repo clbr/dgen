@@ -455,14 +455,15 @@ md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	md_set_musa(1);
 	m68k_pulse_reset();
+#ifdef WITH_DEBUGGER
+	debug_init();
+	m68k_set_instr_hook_callback(debug_musa_callback);
+	debug_trap = false;
+#endif
 	md_set_musa(0);
 #endif
 
   z80_init();
-
-#ifdef WITH_DEBUGGER
-  debug_init();
-#endif
 
   reset(); // reset megadrive
 

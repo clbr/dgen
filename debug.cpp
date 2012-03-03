@@ -4,6 +4,10 @@
 
 #ifdef WITH_DEBUGGER
 
+#ifndef WITH_MUSA
+#error Musashi must be enabled.
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -73,7 +77,7 @@ static int debug_strtou32(const char *str, uint32_t *ret)
 	*ret = (uint32_t)strtoul(str, &end, 0);
 
 	if (errno) {
-		perror("strtoll");
+		perror("strtoul");
 		return (-1);
 	}
 
@@ -398,7 +402,7 @@ static void debug_list_wps_m68k()
 
 }
 
-static int debug_set_bp_m68k(uint16_t addr)
+static int debug_set_bp_m68k(uint32_t addr)
 {
 	int		slot;
 

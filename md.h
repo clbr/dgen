@@ -488,6 +488,7 @@ public:
 	  int		(md::*handler)(int, char **);
   };
   const static struct md::dgen_debugger_cmd debug_cmd_list[];
+  bool debug_trap;
   // commands
   int debug_despatch_cmd(int n_toks, char **args);
   int debug_cmd_cont(int n_args, char **args);
