@@ -133,6 +133,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
@@ -169,6 +170,18 @@ struct current {
     int pos;    /* Cursor position, measured in chars */
     int cols;   /* Size of the window, in chars */
     const char *prompt;
+    int history_index;    /* History index */
+    char rev_rbuf[50];    /* Reverse-i-search buffer */
+    int rev_rchars;       /* Reverse-i-search chars */
+    int rev_rlen;         /* Reverse-i-search len */
+    int rev_searchpos;    /* Reverse-i-search pos */
+    unsigned int nb:1;    /* Non-blocking mode */
+    unsigned int new:1;   /* This is a new prompt */
+    unsigned int rev:1;   /* Reverse-i-search mode */
+#ifndef NO_COMPLETION
+    unsigned int compl:1; /* Completion mode enabled */
+    size_t compl_off;     /* Completion offset */
+#endif
 #if defined(USE_TERMIOS)
     int fd;     /* Terminal fd */
 #elif defined(USE_WINCONSOLE)
@@ -178,6 +191,12 @@ struct current {
     int x;      /* Current column during output */
     int y;      /* Current row */
 #endif
+};
+
+struct ctx {
+    unsigned int init:1; /* Context initialized */
+    struct current current;
+    char buf[LINENOISE_MAX_LINE];
 };
 
 static int fd_read(struct current *current);
@@ -194,10 +213,11 @@ void linenoiseHistoryFree(void) {
     }
 }
 
+static int rawmode = 0; /* for atexit() function to check if restore is needed*/
+
 #if defined(USE_TERMIOS)
 static void linenoiseAtExit(void);
 static struct termios orig_termios; /* in order to restore at exit */
-static int rawmode = 0; /* for atexit() function to check if restore is needed*/
 static int atexit_registered = 0; /* register atexit just 1 time */
 
 static const char *unsupported_term[] = {"dumb","cons25",NULL};
@@ -374,7 +394,7 @@ static int fd_read(struct current *current)
     utf8_tounicode(buf, &c);
     return c;
 #else
-    return fd_read_char(current->fd, -1);
+    return fd_read_char(current->fd, (current->nb ? 0 : -1));
 #endif
 }
 
@@ -507,6 +527,7 @@ static int enableRawMode(struct current *current) {
     if (GetConsoleMode(current->inh, &orig_consolemode)) {
         SetConsoleMode(current->inh, ENABLE_PROCESSED_INPUT);
     }
+    rawmode = 1;
     return 0;
 }
 
@@ -579,7 +600,8 @@ static int fd_read(struct current *current)
     while (1) {
         INPUT_RECORD irec;
         DWORD n;
-        if (WaitForSingleObject(current->inh, INFINITE) != WAIT_OBJECT_0) {
+        if (WaitForSingleObject(current->inh,
+				(current->nb ? 0 : INFINITE)) != WAIT_OBJECT_0) {
             break;
         }
         if (!ReadConsoleInput (current->inh, &irec, 1, &n)) {
@@ -875,17 +897,28 @@ static void freeCompletions(linenoiseCompletions *lc) {
     free(lc->cvec);
 }
 
-static int completeLine(struct current *current) {
+static int completeLine(struct current *current, int c) {
     linenoiseCompletions lc = { 0, NULL };
-    int c = 0;
 
     completionCallback(current->buf,&lc);
     if (lc.len == 0) {
         beep();
+	current->compl = 0;
+	c = 0;
     } else {
-        size_t stop = 0, i = 0;
+        size_t stop = 0, i;
+
+	if (current->compl == 0) {
+	    current->compl_off = 0;
+	    current->compl = 1;
+	    c = fd_read(current);
+	}
+	i = current->compl_off;
 
         while(!stop) {
+	    if (c == -1)
+		break;
+
             /* Show completion or original buffer */
             if (i < lc.len) {
                 struct current tmp = *current;
@@ -897,15 +930,11 @@ static int completeLine(struct current *current) {
                 refreshLine(current->prompt, current);
             }
 
-            c = fd_read(current);
-            if (c == -1) {
-                break;
-            }
-
             switch(c) {
                 case '\t': /* tab */
                     i = (i+1) % (lc.len+1);
                     if (i == lc.len) beep();
+		    current->compl_off = i;
                     break;
                 case 27: /* escape */
                     /* Re-show original buffer */
@@ -914,6 +943,8 @@ static int completeLine(struct current *current) {
                     }
                     stop = 1;
                     break;
+		case -1:
+		    break;
                 default:
                     /* Update buffer and return */
                     if (i < lc.len) {
@@ -922,7 +953,11 @@ static int completeLine(struct current *current) {
                     stop = 1;
                     break;
             }
+	    if (!stop)
+		c = fd_read(current);
         }
+	if (stop)
+	    current->compl = 0;
     }
 
     freeCompletions(&lc);
@@ -942,14 +977,18 @@ void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
 #endif
 
 static int linenoisePrompt(struct current *current) {
-    int history_index = 0;
-
     /* The latest history entry is always our current buffer, that
      * initially is just an empty string. */
-    linenoiseHistoryAdd("");
+    if (current->new) {
+	linenoiseHistoryAdd("");
 
-    set_current(current, "");
-    refreshLine(current->prompt, current);
+	set_current(current, "");
+	refreshLine(current->prompt, current);
+	current->new = 0;
+    }
+
+    if (current->rev)
+	goto rev_i_search;
 
     while(1) {
         int dir = -1;
@@ -959,8 +998,9 @@ static int linenoisePrompt(struct current *current) {
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
-        if (c == 9 && completionCallback != NULL) {
-            c = completeLine(current);
+	if ((completionCallback != NULL) &&
+	    ((current->compl) || (c == 9))) {
+            c = completeLine(current, c);
             /* Return on errors */
             if (c < 0) return current->len;
             /* Read next character when 0 */
@@ -979,9 +1019,11 @@ process_char:
         case '\r':    /* enter */
             history_len--;
             free(history[history_len]);
+	    current->new = 1;
             return current->len;
         case ctrl('C'):     /* ctrl-c */
             errno = EAGAIN;
+	    current->new = 1;
             return -1;
         case 127:   /* backspace */
         case ctrl('H'):
@@ -994,6 +1036,7 @@ process_char:
                 /* Empty line, so EOF */
                 history_len--;
                 free(history[history_len]);
+		current->new = 1;
                 return -1;
             }
             /* Otherwise fall through to delete char to right of cursor */
@@ -1023,21 +1066,30 @@ process_char:
         case ctrl('R'):    /* ctrl-r */
             {
                 /* Display the reverse-i-search prompt and process chars */
-                char rbuf[50];
+                char *rbuf;
                 char rprompt[80];
-                int rchars = 0;
-                int rlen = 0;
-                int searchpos = history_len - 1;
+                int rchars;
+                int rlen;
+		int searchpos;
 
-                rbuf[0] = 0;
+		memset(current->rev_rbuf, 0, sizeof(current->rev_rbuf));
+		current->rev_rchars = 0;
+		current->rev_rlen = 0;
+		current->rev_searchpos = (history_len - 1);
+		current->rev = 1;
+	    rev_i_search:
+		rbuf = current->rev_rbuf;
+		rchars = current->rev_rchars;
+		rlen = current->rev_rlen;
+		searchpos = current->rev_searchpos;
                 while (1) {
                     int n = 0;
                     const char *p = NULL;
                     int skipsame = 0;
                     int searchdir = -1;
 
-                    snprintf(rprompt, sizeof(rprompt), "(reverse-i-search)'%s': ", rbuf);
-                    refreshLine(rprompt, current);
+		    snprintf(rprompt, sizeof(rprompt), "(reverse-i-search)'%s': ", rbuf);
+		    refreshLine(rprompt, current);
                     c = fd_read(current);
                     if (c == ctrl('H') || c == 127) {
                         if (rchars) {
@@ -1068,7 +1120,7 @@ process_char:
                         skipsame = 1;
                     }
                     else if (c >= ' ') {
-                        if (rlen >= (int)sizeof(rbuf) + 3) {
+                        if (rlen >= (int)sizeof(current->rev_rbuf) + 3) {
                             continue;
                         }
 
@@ -1080,8 +1132,11 @@ process_char:
                         /* Adding a new char resets the search location */
                         searchpos = history_len - 1;
                     }
+		    else if (c == -1)
+			break;
                     else {
                         /* Exit from incremental search mode */
+			current->rev = 0;
                         break;
                     }
 
@@ -1117,7 +1172,14 @@ process_char:
                     c = 0;
                 }
                 /* Go process the char normally */
-                refreshLine(current->prompt, current);
+		if (current->rev) {
+		    refreshLine(rprompt, current);
+		    current->rev_rchars = rchars;
+		    current->rev_rlen = rlen;
+		    current->rev_searchpos = searchpos;
+		}
+		else
+		    refreshLine(current->prompt, current);
                 goto process_char;
             }
             break;
@@ -1169,18 +1231,18 @@ process_char:
             if (history_len > 1) {
                 /* Update the current history entry before to
                  * overwrite it with tne next one. */
-                free(history[history_len-1-history_index]);
-                history[history_len-1-history_index] = strdup(current->buf);
+                free(history[history_len-1-current->history_index]);
+                history[history_len-1-current->history_index] = strdup(current->buf);
                 /* Show the new entry */
-                history_index += dir;
-                if (history_index < 0) {
-                    history_index = 0;
+                current->history_index += dir;
+                if (current->history_index < 0) {
+                    current->history_index = 0;
                     break;
-                } else if (history_index >= history_len) {
-                    history_index = history_len-1;
+                } else if (current->history_index >= history_len) {
+                    current->history_index = history_len-1;
                     break;
                 }
-                set_current(current, history[history_len-1-history_index]);
+                set_current(current, history[history_len-1-current->history_index]);
                 refreshLine(current->prompt, current);
             }
             break;
@@ -1223,41 +1285,86 @@ process_char:
     return current->len;
 }
 
-char *linenoise(const char *prompt)
+static struct ctx nb_ctx;
+
+char *linenoise_nb(const char *prompt)
 {
     int count;
-    struct current current;
-    char buf[LINENOISE_MAX_LINE];
+    struct ctx *ctx = &nb_ctx;
+    struct current *current;
+    char *buf;
 
-    if (enableRawMode(&current) == -1) {
-	printf("%s", prompt);
-        fflush(stdout);
-        if (fgets(buf, sizeof(buf), stdin) == NULL) {
+    if (ctx->init == 0) {
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->init = 1;
+	ctx->current.nb = 1; /* Enable non-blocking mode */
+	ctx->current.new = 1; /* This is a new context */
+    }
+    current = &ctx->current;
+    buf = ctx->buf;
+    if (current->new)
+	enableRawMode(current);
+    if (!rawmode) {
+	if (current->new) {
+	    printf("%s", prompt);
+	    fflush(stdout);
+	    current->new = 0;
+	}
+        if (fgets(buf, sizeof(ctx->buf), stdin) == NULL) {
 		return NULL;
         }
-        count = strlen(buf);
+        count = strlen(ctx->buf);
         if (count && buf[count-1] == '\n') {
             count--;
             buf[count] = '\0';
+	    current->new = 1;
         }
     }
     else
     {
-        current.buf = buf;
-        current.bufmax = sizeof(buf);
-        current.len = 0;
-        current.chars = 0;
-        current.pos = 0;
-        current.prompt = prompt;
+	if (current->new) {
+	    current->buf = buf;
+	    current->bufmax = sizeof(ctx->buf);
+	    current->len = 0;
+	    current->chars = 0;
+	    current->pos = 0;
+	}
+	current->prompt = prompt;
 
-        count = linenoisePrompt(&current);
-        disableRawMode(&current);
-        printf("\n");
+        count = linenoisePrompt(current);
+	if (current->new) {
+	    disableRawMode(current);
+	    printf("\n");
+	}
         if (count == -1) {
             return NULL;
         }
     }
-    return strdup(buf);
+    if (current->new)
+	return strdup(buf);
+    return NULL;
+}
+
+void linenoise_nb_clean(void)
+{
+    if (rawmode)
+	disableRawMode(&nb_ctx.current);
+    if (!nb_ctx.current.new)
+	puts("");
+    nb_ctx.init = 0;
+}
+
+int linenoise_nb_eol(void)
+{
+    return nb_ctx.current.new;
+}
+
+char *linenoise(const char *prompt)
+{
+    memset(&nb_ctx, 0, sizeof(nb_ctx));
+    nb_ctx.init = 1;
+    nb_ctx.current.new = 1;
+    return linenoise_nb(prompt);
 }
 
 /* Using a circular buffer is smarter, but a bit more complex to handle. */

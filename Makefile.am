@@ -71,10 +71,12 @@ dgen_SOURCES =		\
 
 # debugger
 if WITH_DEBUGGER
+AM_CPPFLAGS += -DUSE_UTF8
 dgen_SOURCES +=			\
 	debug.cpp		\
 	linenoise/linenoise.h	\
-	linenoise/linenoise.c
+	linenoise/linenoise.c	\
+	linenoise/utf8.c
 endif
 
 # CZ80

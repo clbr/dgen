@@ -60,6 +60,11 @@ int linenoiseHistoryLoad(const char *filename);
 void linenoiseHistoryFree(void);
 char **linenoiseHistory(int *len);
 
+/* Non-blocking functions */
+char *linenoise_nb(const char *prompt);
+int linenoise_nb_eol(void);
+void linenoise_nb_clean(void);
+
 #ifdef __cplusplus
 }
 #endif
