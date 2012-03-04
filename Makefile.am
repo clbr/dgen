@@ -88,12 +88,21 @@ endif
 # hqx
 if WITH_HQX
 AM_CPPFLAGS += -I$(top_srcdir)/hqx/src -DHQX_NO_CALLCONV -DHQX_NO_API
-dgen_SOURCES +=		\
-	hqx/src/init.c	\
-	hqx/src/hq2x.c	\
-	hqx/src/hq3x.c	\
-	hqx/src/hq4x.c	\
-	hqx/src/hqx.h	\
+dgen_SOURCES +=			\
+	hqx/src/init.c		\
+	hqx/src/hq2x_32.c	\
+	hqx/src/hq2x_24.c	\
+	hqx/src/hq2x_16.c	\
+	hqx/src/hq2x-int.h	\
+	hqx/src/hq3x_32.c	\
+	hqx/src/hq3x_24.c	\
+	hqx/src/hq3x_16.c	\
+	hqx/src/hq3x-int.h	\
+	hqx/src/hq4x_32.c	\
+	hqx/src/hq4x_24.c	\
+	hqx/src/hq4x_16.c	\
+	hqx/src/hq4x-int.h	\
+	hqx/src/hqx.h		\
 	hqx/src/common.h
 endif
 
