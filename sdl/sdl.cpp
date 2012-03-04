@@ -38,6 +38,7 @@
 #include "splash.h"
 
 #ifdef WITH_HQX
+#define HQX_NO_UINT24
 #include "hqx.h"
 #endif
 
@@ -1245,11 +1246,35 @@ static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
 			return;
 		}
 		break;
+	case 24:
+		switch (xscale) {
+		case 2:
+			hq2x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 3:
+			hq3x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 4:
+			hq4x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
+				   xsize, ysize);
+			return;
+		}
+		break;
 	case 16:
 	case 15:
 		switch (xscale) {
 		case 2:
 			hq2x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 3:
+			hq3x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
+				   xsize, ysize);
+			return;
+		case 4:
+			hq4x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
 				   xsize, ysize);
 			return;
 		}
