@@ -19,8 +19,8 @@
  */
 
 #include <stdint.h>
-#include "common.h"
 #include "hqx.h"
+#include "common.h"
 
 #define PIXEL00_0     *dp = w[5];
 #define PIXEL00_11    *dp = Interp1(w[5], w[4]);

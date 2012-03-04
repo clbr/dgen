@@ -47,13 +47,24 @@
 extern "C" {
 #endif
 
+#ifndef HQX_NO_UINT24
+typedef uint8_t uint24_t[3];
+#endif
+
 HQX_API void HQX_CALLCONV hqxInit(void);
+
 HQX_API void HQX_CALLCONV hq2x_16( uint16_t * src, uint16_t * dest, int width, int height );
+
+HQX_API void HQX_CALLCONV hq2x_24( uint24_t * src, uint24_t * dest, int width, int height );
+
 HQX_API void HQX_CALLCONV hq2x_32( uint32_t * src, uint32_t * dest, int width, int height );
 HQX_API void HQX_CALLCONV hq3x_32( uint32_t * src, uint32_t * dest, int width, int height );
 HQX_API void HQX_CALLCONV hq4x_32( uint32_t * src, uint32_t * dest, int width, int height );
 
 HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * src, uint32_t src_rowBytes, uint16_t * dest, uint32_t dest_rowBytes, int width, int height );
+
+HQX_API void HQX_CALLCONV hq2x_24_rb( uint24_t * src, uint32_t src_rowBytes, uint24_t * dest, uint32_t dest_rowBytes, int width, int height );
+
 HQX_API void HQX_CALLCONV hq2x_32_rb( uint32_t * src, uint32_t src_rowBytes, uint32_t * dest, uint32_t dest_rowBytes, int width, int height );
 HQX_API void HQX_CALLCONV hq3x_32_rb( uint32_t * src, uint32_t src_rowBytes, uint32_t * dest, uint32_t dest_rowBytes, int width, int height );
 HQX_API void HQX_CALLCONV hq4x_32_rb( uint32_t * src, uint32_t src_rowBytes, uint32_t * dest, uint32_t dest_rowBytes, int width, int height );

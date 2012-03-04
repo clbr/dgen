@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #define MASK_2     0x0000FF00
 #define MASK_13    0x00FF00FF
@@ -57,6 +58,24 @@ static inline uint32_t rgb16_to_yuv(uint16_t c)
                      ((c & 0x001F) << 3))];
 }
 
+static inline uint24_t *u24cpy(uint24_t *dst, const uint24_t src)
+{
+	/* memcpy() is sometimes faster. */
+#ifdef HQX_U24CPY_MEMCPY
+	memcpy(*dst, src, sizeof(*dst));
+#else
+	(*dst)[0] = src[0];
+	(*dst)[1] = src[1];
+	(*dst)[2] = src[2];
+#endif
+	return dst;
+}
+
+static inline uint32_t rgb24_to_yuv(uint24_t c)
+{
+    return RGBtoYUV[((c[0] << 16) | (c[1] << 8) | c[2])];
+}
+
 /* Test if there is difference in color */
 static inline int yuv_diff(uint32_t yuv1, uint32_t yuv2) {
     return (( abs((yuv1 & Ymask) - (yuv2 & Ymask)) > trY ) ||
@@ -72,6 +91,11 @@ static inline int Diff(uint32_t c1, uint32_t c2)
 static inline int Diff16(uint16_t c1, uint16_t c2)
 {
     return yuv_diff(rgb16_to_yuv(c1), rgb16_to_yuv(c2));
+}
+
+static inline int Diff24(uint24_t c1, uint24_t c2)
+{
+    return yuv_diff(rgb24_to_yuv(c1), rgb24_to_yuv(c2));
 }
 
 /* Interpolate functions */
@@ -230,6 +254,85 @@ static inline uint16_t Interp10_16(uint16_t c1, uint16_t c2, uint16_t c3)
 {
     //(c1*14+c2+c3)/16;
     return Interpolate_3_16(c1, 14, c2, 1, c3, 1, 4);
+}
+
+/* Interpolate functions (24 bit, 888) */
+static inline void Interpolate_2_24(uint24_t *ret, uint24_t c1, int w1, uint24_t c2, int w2, int s)
+{
+    if (!memcmp(c1, c2, 3)) {
+        u24cpy(ret, c1);
+        return;
+    }
+    (*ret)[0] = (((c1[0] * w1) + (c2[0] * w2)) >> s);
+    (*ret)[1] = (((c1[1] * w1) + (c2[1] * w2)) >> s);
+    (*ret)[2] = (((c1[2] * w1) + (c2[2] * w2)) >> s);
+}
+
+static inline void Interpolate_3_24(uint24_t *ret, uint24_t c1, int w1, uint24_t c2, int w2, uint24_t c3, int w3, int s)
+{
+    (*ret)[0] = (((c1[0] * w1) + (c2[0] * w2) + (c3[0] * w3)) >> s);
+    (*ret)[1] = (((c1[1] * w1) + (c2[1] * w2) + (c3[1] * w3)) >> s);
+    (*ret)[2] = (((c1[2] * w1) + (c2[2] * w2) + (c3[2] * w3)) >> s);
+}
+
+static inline void Interp1_24(uint24_t *ret, uint24_t c1, uint24_t c2)
+{
+    //(c1*3+c2) >> 2;
+    Interpolate_2_24(ret, c1, 3, c2, 1, 2);
+}
+
+static inline void Interp2_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*2+c2+c3) >> 2;
+    Interpolate_3_24(ret, c1, 2, c2, 1, c3, 1, 2);
+}
+
+static inline void Interp3_24(uint24_t *ret, uint24_t c1, uint24_t c2)
+{
+    //(c1*7+c2)/8;
+    Interpolate_2_24(ret, c1, 7, c2, 1, 3);
+}
+
+static inline void Interp4_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*2+(c2+c3)*7)/16;
+    Interpolate_3_24(ret, c1, 2, c2, 7, c3, 7, 4);
+}
+
+static inline void Interp5_24(uint24_t *ret, uint24_t c1, uint24_t c2)
+{
+    //(c1+c2) >> 1;
+    Interpolate_2_24(ret, c1, 1, c2, 1, 1);
+}
+
+static inline void Interp6_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*5+c2*2+c3)/8;
+    Interpolate_3_24(ret, c1, 5, c2, 2, c3, 1, 3);
+}
+
+static inline void Interp7_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*6+c2+c3)/8;
+    Interpolate_3_24(ret, c1, 6, c2, 1, c3, 1, 3);
+}
+
+static inline void Interp8_24(uint24_t *ret, uint24_t c1, uint24_t c2)
+{
+    //(c1*5+c2*3)/8;
+    Interpolate_2_24(ret, c1, 5, c2, 3, 3);
+}
+
+static inline void Interp9_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*2+(c2+c3)*3)/8;
+    Interpolate_3_24(ret, c1, 2, c2, 3, c3, 3, 3);
+}
+
+static inline void Interp10_24(uint24_t *ret, uint24_t c1, uint24_t c2, uint24_t c3)
+{
+    //(c1*14+c2+c3)/16;
+    Interpolate_3_24(ret, c1, 14, c2, 1, c3, 1, 4);
 }
 
 #endif
