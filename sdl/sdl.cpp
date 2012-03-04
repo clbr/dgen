@@ -89,6 +89,7 @@ static struct {
 	unsigned int want_fullscreen: 1; // want fullscreen
 	unsigned int is_fullscreen: 1; // fullscreen enabled
 #ifdef WITH_OPENGL
+	unsigned int last_video_height; // last video.height value
 	unsigned int want_opengl: 1; // want OpenGL
 	unsigned int is_opengl: 1; // OpenGL enabled
 	unsigned int opengl_ok: 1; // if textures are initialized
@@ -1963,6 +1964,7 @@ opengl_failed:
 		if ((screen.info_height != info_height) ||
 		    (video.x_scale != x_scale) ||
 		    (video.y_scale != y_scale) ||
+		    (video.height != screen.last_video_height) ||
 		    (screen.want_fullscreen != screen.is_fullscreen))
 			screen.opengl_ok = 0;
 		screen.x_offset = 0;
@@ -2031,6 +2033,7 @@ opengl_failed:
 		screen.buf.u32 = texture.buf.u32;
 		screen.pitch = (texture.vis_width << (1 << texture.u32));
 		screen.opengl_ok = 1;
+		screen.last_video_height = video.height;
 	}
 	screen.is_opengl = screen.want_opengl;
 	DEBUG(("OpenGL screen configuration: opengl_ok=%u is_opengl=%u"
