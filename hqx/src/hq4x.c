@@ -5231,3 +5231,5213 @@ HQX_API void HQX_CALLCONV hq4x_32( uint32_t * sp, uint32_t * dp, int Xres, int Y
     uint32_t rowBytesL = Xres * 4;
     hq4x_32_rb(sp, rowBytesL, dp, rowBytesL * 4, Xres, Yres);
 }
+
+#define PIXEL1600_0     *dp = w[5];
+#define PIXEL1600_11    *dp = Interp1_16(w[5], w[4]);
+#define PIXEL1600_12    *dp = Interp1_16(w[5], w[2]);
+#define PIXEL1600_20    *dp = Interp2_16(w[5], w[2], w[4]);
+#define PIXEL1600_50    *dp = Interp5_16(w[2], w[4]);
+#define PIXEL1600_80    *dp = Interp8_16(w[5], w[1]);
+#define PIXEL1600_81    *dp = Interp8_16(w[5], w[4]);
+#define PIXEL1600_82    *dp = Interp8_16(w[5], w[2]);
+#define PIXEL1601_0     *(dp+1) = w[5];
+#define PIXEL1601_10    *(dp+1) = Interp1_16(w[5], w[1]);
+#define PIXEL1601_12    *(dp+1) = Interp1_16(w[5], w[2]);
+#define PIXEL1601_14    *(dp+1) = Interp1_16(w[2], w[5]);
+#define PIXEL1601_21    *(dp+1) = Interp2_16(w[2], w[5], w[4]);
+#define PIXEL1601_31    *(dp+1) = Interp3_16(w[5], w[4]);
+#define PIXEL1601_50    *(dp+1) = Interp5_16(w[2], w[5]);
+#define PIXEL1601_60    *(dp+1) = Interp6_16(w[5], w[2], w[4]);
+#define PIXEL1601_61    *(dp+1) = Interp6_16(w[5], w[2], w[1]);
+#define PIXEL1601_82    *(dp+1) = Interp8_16(w[5], w[2]);
+#define PIXEL1601_83    *(dp+1) = Interp8_16(w[2], w[4]);
+#define PIXEL1602_0     *(dp+2) = w[5];
+#define PIXEL1602_10    *(dp+2) = Interp1_16(w[5], w[3]);
+#define PIXEL1602_11    *(dp+2) = Interp1_16(w[5], w[2]);
+#define PIXEL1602_13    *(dp+2) = Interp1_16(w[2], w[5]);
+#define PIXEL1602_21    *(dp+2) = Interp2_16(w[2], w[5], w[6]);
+#define PIXEL1602_32    *(dp+2) = Interp3_16(w[5], w[6]);
+#define PIXEL1602_50    *(dp+2) = Interp5_16(w[2], w[5]);
+#define PIXEL1602_60    *(dp+2) = Interp6_16(w[5], w[2], w[6]);
+#define PIXEL1602_61    *(dp+2) = Interp6_16(w[5], w[2], w[3]);
+#define PIXEL1602_81    *(dp+2) = Interp8_16(w[5], w[2]);
+#define PIXEL1602_83    *(dp+2) = Interp8_16(w[2], w[6]);
+#define PIXEL1603_0     *(dp+3) = w[5];
+#define PIXEL1603_11    *(dp+3) = Interp1_16(w[5], w[2]);
+#define PIXEL1603_12    *(dp+3) = Interp1_16(w[5], w[6]);
+#define PIXEL1603_20    *(dp+3) = Interp2_16(w[5], w[2], w[6]);
+#define PIXEL1603_50    *(dp+3) = Interp5_16(w[2], w[6]);
+#define PIXEL1603_80    *(dp+3) = Interp8_16(w[5], w[3]);
+#define PIXEL1603_81    *(dp+3) = Interp8_16(w[5], w[2]);
+#define PIXEL1603_82    *(dp+3) = Interp8_16(w[5], w[6]);
+#define PIXEL1610_0     *(dp+dpL) = w[5];
+#define PIXEL1610_10    *(dp+dpL) = Interp1_16(w[5], w[1]);
+#define PIXEL1610_11    *(dp+dpL) = Interp1_16(w[5], w[4]);
+#define PIXEL1610_13    *(dp+dpL) = Interp1_16(w[4], w[5]);
+#define PIXEL1610_21    *(dp+dpL) = Interp2_16(w[4], w[5], w[2]);
+#define PIXEL1610_32    *(dp+dpL) = Interp3_16(w[5], w[2]);
+#define PIXEL1610_50    *(dp+dpL) = Interp5_16(w[4], w[5]);
+#define PIXEL1610_60    *(dp+dpL) = Interp6_16(w[5], w[4], w[2]);
+#define PIXEL1610_61    *(dp+dpL) = Interp6_16(w[5], w[4], w[1]);
+#define PIXEL1610_81    *(dp+dpL) = Interp8_16(w[5], w[4]);
+#define PIXEL1610_83    *(dp+dpL) = Interp8_16(w[4], w[2]);
+#define PIXEL1611_0     *(dp+dpL+1) = w[5];
+#define PIXEL1611_30    *(dp+dpL+1) = Interp3_16(w[5], w[1]);
+#define PIXEL1611_31    *(dp+dpL+1) = Interp3_16(w[5], w[4]);
+#define PIXEL1611_32    *(dp+dpL+1) = Interp3_16(w[5], w[2]);
+#define PIXEL1611_70    *(dp+dpL+1) = Interp7_16(w[5], w[4], w[2]);
+#define PIXEL1612_0     *(dp+dpL+2) = w[5];
+#define PIXEL1612_30    *(dp+dpL+2) = Interp3_16(w[5], w[3]);
+#define PIXEL1612_31    *(dp+dpL+2) = Interp3_16(w[5], w[2]);
+#define PIXEL1612_32    *(dp+dpL+2) = Interp3_16(w[5], w[6]);
+#define PIXEL1612_70    *(dp+dpL+2) = Interp7_16(w[5], w[6], w[2]);
+#define PIXEL1613_0     *(dp+dpL+3) = w[5];
+#define PIXEL1613_10    *(dp+dpL+3) = Interp1_16(w[5], w[3]);
+#define PIXEL1613_12    *(dp+dpL+3) = Interp1_16(w[5], w[6]);
+#define PIXEL1613_14    *(dp+dpL+3) = Interp1_16(w[6], w[5]);
+#define PIXEL1613_21    *(dp+dpL+3) = Interp2_16(w[6], w[5], w[2]);
+#define PIXEL1613_31    *(dp+dpL+3) = Interp3_16(w[5], w[2]);
+#define PIXEL1613_50    *(dp+dpL+3) = Interp5_16(w[6], w[5]);
+#define PIXEL1613_60    *(dp+dpL+3) = Interp6_16(w[5], w[6], w[2]);
+#define PIXEL1613_61    *(dp+dpL+3) = Interp6_16(w[5], w[6], w[3]);
+#define PIXEL1613_82    *(dp+dpL+3) = Interp8_16(w[5], w[6]);
+#define PIXEL1613_83    *(dp+dpL+3) = Interp8_16(w[6], w[2]);
+#define PIXEL1620_0     *(dp+dpL+dpL) = w[5];
+#define PIXEL1620_10    *(dp+dpL+dpL) = Interp1_16(w[5], w[7]);
+#define PIXEL1620_12    *(dp+dpL+dpL) = Interp1_16(w[5], w[4]);
+#define PIXEL1620_14    *(dp+dpL+dpL) = Interp1_16(w[4], w[5]);
+#define PIXEL1620_21    *(dp+dpL+dpL) = Interp2_16(w[4], w[5], w[8]);
+#define PIXEL1620_31    *(dp+dpL+dpL) = Interp3_16(w[5], w[8]);
+#define PIXEL1620_50    *(dp+dpL+dpL) = Interp5_16(w[4], w[5]);
+#define PIXEL1620_60    *(dp+dpL+dpL) = Interp6_16(w[5], w[4], w[8]);
+#define PIXEL1620_61    *(dp+dpL+dpL) = Interp6_16(w[5], w[4], w[7]);
+#define PIXEL1620_82    *(dp+dpL+dpL) = Interp8_16(w[5], w[4]);
+#define PIXEL1620_83    *(dp+dpL+dpL) = Interp8_16(w[4], w[8]);
+#define PIXEL1621_0     *(dp+dpL+dpL+1) = w[5];
+#define PIXEL1621_30    *(dp+dpL+dpL+1) = Interp3_16(w[5], w[7]);
+#define PIXEL1621_31    *(dp+dpL+dpL+1) = Interp3_16(w[5], w[8]);
+#define PIXEL1621_32    *(dp+dpL+dpL+1) = Interp3_16(w[5], w[4]);
+#define PIXEL1621_70    *(dp+dpL+dpL+1) = Interp7_16(w[5], w[4], w[8]);
+#define PIXEL1622_0     *(dp+dpL+dpL+2) = w[5];
+#define PIXEL1622_30    *(dp+dpL+dpL+2) = Interp3_16(w[5], w[9]);
+#define PIXEL1622_31    *(dp+dpL+dpL+2) = Interp3_16(w[5], w[6]);
+#define PIXEL1622_32    *(dp+dpL+dpL+2) = Interp3_16(w[5], w[8]);
+#define PIXEL1622_70    *(dp+dpL+dpL+2) = Interp7_16(w[5], w[6], w[8]);
+#define PIXEL1623_0     *(dp+dpL+dpL+3) = w[5];
+#define PIXEL1623_10    *(dp+dpL+dpL+3) = Interp1_16(w[5], w[9]);
+#define PIXEL1623_11    *(dp+dpL+dpL+3) = Interp1_16(w[5], w[6]);
+#define PIXEL1623_13    *(dp+dpL+dpL+3) = Interp1_16(w[6], w[5]);
+#define PIXEL1623_21    *(dp+dpL+dpL+3) = Interp2_16(w[6], w[5], w[8]);
+#define PIXEL1623_32    *(dp+dpL+dpL+3) = Interp3_16(w[5], w[8]);
+#define PIXEL1623_50    *(dp+dpL+dpL+3) = Interp5_16(w[6], w[5]);
+#define PIXEL1623_60    *(dp+dpL+dpL+3) = Interp6_16(w[5], w[6], w[8]);
+#define PIXEL1623_61    *(dp+dpL+dpL+3) = Interp6_16(w[5], w[6], w[9]);
+#define PIXEL1623_81    *(dp+dpL+dpL+3) = Interp8_16(w[5], w[6]);
+#define PIXEL1623_83    *(dp+dpL+dpL+3) = Interp8_16(w[6], w[8]);
+#define PIXEL1630_0     *(dp+dpL+dpL+dpL) = w[5];
+#define PIXEL1630_11    *(dp+dpL+dpL+dpL) = Interp1_16(w[5], w[8]);
+#define PIXEL1630_12    *(dp+dpL+dpL+dpL) = Interp1_16(w[5], w[4]);
+#define PIXEL1630_20    *(dp+dpL+dpL+dpL) = Interp2_16(w[5], w[8], w[4]);
+#define PIXEL1630_50    *(dp+dpL+dpL+dpL) = Interp5_16(w[8], w[4]);
+#define PIXEL1630_80    *(dp+dpL+dpL+dpL) = Interp8_16(w[5], w[7]);
+#define PIXEL1630_81    *(dp+dpL+dpL+dpL) = Interp8_16(w[5], w[8]);
+#define PIXEL1630_82    *(dp+dpL+dpL+dpL) = Interp8_16(w[5], w[4]);
+#define PIXEL1631_0     *(dp+dpL+dpL+dpL+1) = w[5];
+#define PIXEL1631_10    *(dp+dpL+dpL+dpL+1) = Interp1_16(w[5], w[7]);
+#define PIXEL1631_11    *(dp+dpL+dpL+dpL+1) = Interp1_16(w[5], w[8]);
+#define PIXEL1631_13    *(dp+dpL+dpL+dpL+1) = Interp1_16(w[8], w[5]);
+#define PIXEL1631_21    *(dp+dpL+dpL+dpL+1) = Interp2_16(w[8], w[5], w[4]);
+#define PIXEL1631_32    *(dp+dpL+dpL+dpL+1) = Interp3_16(w[5], w[4]);
+#define PIXEL1631_50    *(dp+dpL+dpL+dpL+1) = Interp5_16(w[8], w[5]);
+#define PIXEL1631_60    *(dp+dpL+dpL+dpL+1) = Interp6_16(w[5], w[8], w[4]);
+#define PIXEL1631_61    *(dp+dpL+dpL+dpL+1) = Interp6_16(w[5], w[8], w[7]);
+#define PIXEL1631_81    *(dp+dpL+dpL+dpL+1) = Interp8_16(w[5], w[8]);
+#define PIXEL1631_83    *(dp+dpL+dpL+dpL+1) = Interp8_16(w[8], w[4]);
+#define PIXEL1632_0     *(dp+dpL+dpL+dpL+2) = w[5];
+#define PIXEL1632_10    *(dp+dpL+dpL+dpL+2) = Interp1_16(w[5], w[9]);
+#define PIXEL1632_12    *(dp+dpL+dpL+dpL+2) = Interp1_16(w[5], w[8]);
+#define PIXEL1632_14    *(dp+dpL+dpL+dpL+2) = Interp1_16(w[8], w[5]);
+#define PIXEL1632_21    *(dp+dpL+dpL+dpL+2) = Interp2_16(w[8], w[5], w[6]);
+#define PIXEL1632_31    *(dp+dpL+dpL+dpL+2) = Interp3_16(w[5], w[6]);
+#define PIXEL1632_50    *(dp+dpL+dpL+dpL+2) = Interp5_16(w[8], w[5]);
+#define PIXEL1632_60    *(dp+dpL+dpL+dpL+2) = Interp6_16(w[5], w[8], w[6]);
+#define PIXEL1632_61    *(dp+dpL+dpL+dpL+2) = Interp6_16(w[5], w[8], w[9]);
+#define PIXEL1632_82    *(dp+dpL+dpL+dpL+2) = Interp8_16(w[5], w[8]);
+#define PIXEL1632_83    *(dp+dpL+dpL+dpL+2) = Interp8_16(w[8], w[6]);
+#define PIXEL1633_0     *(dp+dpL+dpL+dpL+3) = w[5];
+#define PIXEL1633_11    *(dp+dpL+dpL+dpL+3) = Interp1_16(w[5], w[6]);
+#define PIXEL1633_12    *(dp+dpL+dpL+dpL+3) = Interp1_16(w[5], w[8]);
+#define PIXEL1633_20    *(dp+dpL+dpL+dpL+3) = Interp2_16(w[5], w[8], w[6]);
+#define PIXEL1633_50    *(dp+dpL+dpL+dpL+3) = Interp5_16(w[8], w[6]);
+#define PIXEL1633_80    *(dp+dpL+dpL+dpL+3) = Interp8_16(w[5], w[9]);
+#define PIXEL1633_81    *(dp+dpL+dpL+dpL+3) = Interp8_16(w[5], w[6]);
+#define PIXEL1633_82    *(dp+dpL+dpL+dpL+3) = Interp8_16(w[5], w[8]);
+
+HQX_API void HQX_CALLCONV hq4x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp, uint32_t drb, int Xres, int Yres )
+{
+    int  i, j, k;
+    int  prevline, nextline;
+    uint16_t w[10];
+    int dpL = (drb >> 1);
+    int spL = (srb >> 1);
+    uint8_t *sRowP = (uint8_t *) sp;
+    uint8_t *dRowP = (uint8_t *) dp;
+    uint32_t yuv1, yuv2;
+
+    //   +----+----+----+
+    //   |    |    |    |
+    //   | w1 | w2 | w3 |
+    //   +----+----+----+
+    //   |    |    |    |
+    //   | w4 | w5 | w6 |
+    //   +----+----+----+
+    //   |    |    |    |
+    //   | w7 | w8 | w9 |
+    //   +----+----+----+
+
+    for (j=0; j<Yres; j++)
+    {
+        if (j>0)      prevline = -spL; else prevline = 0;
+        if (j<Yres-1) nextline =  spL; else nextline = 0;
+
+        for (i=0; i<Xres; i++)
+        {
+            w[2] = *(sp + prevline);
+            w[5] = *sp;
+            w[8] = *(sp + nextline);
+
+            if (i>0)
+            {
+                w[1] = *(sp + prevline - 1);
+                w[4] = *(sp - 1);
+                w[7] = *(sp + nextline - 1);
+            }
+            else
+            {
+                w[1] = w[2];
+                w[4] = w[5];
+                w[7] = w[8];
+            }
+
+            if (i<Xres-1)
+            {
+                w[3] = *(sp + prevline + 1);
+                w[6] = *(sp + 1);
+                w[9] = *(sp + nextline + 1);
+            }
+            else
+            {
+                w[3] = w[2];
+                w[6] = w[5];
+                w[9] = w[8];
+            }
+
+            int pattern = 0;
+            int flag = 1;
+
+            yuv1 = rgb16_to_yuv(w[5]);
+
+            for (k=1; k<=9; k++)
+            {
+                if (k==5) continue;
+
+                if ( w[k] != w[5] )
+                {
+                    yuv2 = rgb16_to_yuv(w[k]);
+                    if (yuv_diff(yuv1, yuv2))
+                        pattern |= flag;
+                }
+                flag <<= 1;
+            }
+
+            switch (pattern)
+            {
+                case 0:
+                case 1:
+                case 4:
+                case 32:
+                case 128:
+                case 5:
+                case 132:
+                case 160:
+                case 33:
+                case 129:
+                case 36:
+                case 133:
+                case 164:
+                case 161:
+                case 37:
+                case 165:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 2:
+                case 34:
+                case 130:
+                case 162:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 16:
+                case 17:
+                case 48:
+                case 49:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 64:
+                case 65:
+                case 68:
+                case 69:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 8:
+                case 12:
+                case 136:
+                case 140:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 3:
+                case 35:
+                case 131:
+                case 163:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 6:
+                case 38:
+                case 134:
+                case 166:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 20:
+                case 21:
+                case 52:
+                case 53:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 144:
+                case 145:
+                case 176:
+                case 177:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 192:
+                case 193:
+                case 196:
+                case 197:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 96:
+                case 97:
+                case 100:
+                case 101:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 40:
+                case 44:
+                case 168:
+                case 172:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 9:
+                case 13:
+                case 137:
+                case 141:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 18:
+                case 50:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1612_0
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 80:
+                case 81:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 72:
+                case 76:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1621_0
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 10:
+                case 138:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 66:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 24:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 7:
+                case 39:
+                case 135:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 148:
+                case 149:
+                case 180:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 224:
+                case 228:
+                case 225:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 41:
+                case 169:
+                case 45:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 22:
+                case 54:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 208:
+                case 209:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 104:
+                case 108:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 11:
+                case 139:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 19:
+                case 51:
+                    {
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1600_81
+                            PIXEL1601_31
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1600_12
+                            PIXEL1601_14
+                            PIXEL1602_83
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_21
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 146:
+                case 178:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                            PIXEL1623_32
+                            PIXEL1633_82
+                        }
+                        else
+                        {
+                            PIXEL1602_21
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_83
+                            PIXEL1623_13
+                            PIXEL1633_11
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        break;
+                    }
+                case 84:
+                case 85:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1603_81
+                            PIXEL1613_31
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1603_12
+                            PIXEL1613_14
+                            PIXEL1622_70
+                            PIXEL1623_83
+                            PIXEL1632_21
+                            PIXEL1633_50
+                        }
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 112:
+                case 113:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1630_82
+                            PIXEL1631_32
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_70
+                            PIXEL1623_21
+                            PIXEL1630_11
+                            PIXEL1631_13
+                            PIXEL1632_83
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 200:
+                case 204:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                            PIXEL1632_31
+                            PIXEL1633_81
+                        }
+                        else
+                        {
+                            PIXEL1620_21
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_83
+                            PIXEL1632_14
+                            PIXEL1633_12
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        break;
+                    }
+                case 73:
+                case 77:
+                    {
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1600_82
+                            PIXEL1610_32
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1600_11
+                            PIXEL1610_13
+                            PIXEL1620_83
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_21
+                        }
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 42:
+                case 170:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                            PIXEL1620_31
+                            PIXEL1630_81
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_21
+                            PIXEL1610_83
+                            PIXEL1611_70
+                            PIXEL1620_14
+                            PIXEL1630_12
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 14:
+                case 142:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1602_32
+                            PIXEL1603_82
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_83
+                            PIXEL1602_13
+                            PIXEL1603_11
+                            PIXEL1610_21
+                            PIXEL1611_70
+                        }
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 67:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 70:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 28:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 152:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 194:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 98:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 56:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 25:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 26:
+                case 31:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 82:
+                case 214:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 88:
+                case 248:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 74:
+                case 107:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 27:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 86:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 216:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 106:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 30:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 210:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 120:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 75:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 29:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 198:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 184:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 99:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 57:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 71:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 156:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 226:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 60:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 195:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 102:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 153:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 58:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 83:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 92:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 202:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 78:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 154:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 114:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        break;
+                    }
+                case 89:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 90:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 55:
+                case 23:
+                    {
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1600_81
+                            PIXEL1601_31
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1612_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1600_12
+                            PIXEL1601_14
+                            PIXEL1602_83
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_21
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 182:
+                case 150:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1612_0
+                            PIXEL1613_0
+                            PIXEL1623_32
+                            PIXEL1633_82
+                        }
+                        else
+                        {
+                            PIXEL1602_21
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_83
+                            PIXEL1623_13
+                            PIXEL1633_11
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        break;
+                    }
+                case 213:
+                case 212:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1603_81
+                            PIXEL1613_31
+                            PIXEL1622_0
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1603_12
+                            PIXEL1613_14
+                            PIXEL1622_70
+                            PIXEL1623_83
+                            PIXEL1632_21
+                            PIXEL1633_50
+                        }
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 241:
+                case 240:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_0
+                            PIXEL1630_82
+                            PIXEL1631_32
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1622_70
+                            PIXEL1623_21
+                            PIXEL1630_11
+                            PIXEL1631_13
+                            PIXEL1632_83
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 236:
+                case 232:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1621_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                            PIXEL1632_31
+                            PIXEL1633_81
+                        }
+                        else
+                        {
+                            PIXEL1620_21
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_83
+                            PIXEL1632_14
+                            PIXEL1633_12
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        break;
+                    }
+                case 109:
+                case 105:
+                    {
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1600_82
+                            PIXEL1610_32
+                            PIXEL1620_0
+                            PIXEL1621_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1600_11
+                            PIXEL1610_13
+                            PIXEL1620_83
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_21
+                        }
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 171:
+                case 43:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                            PIXEL1611_0
+                            PIXEL1620_31
+                            PIXEL1630_81
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_21
+                            PIXEL1610_83
+                            PIXEL1611_70
+                            PIXEL1620_14
+                            PIXEL1630_12
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 143:
+                case 15:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1602_32
+                            PIXEL1603_82
+                            PIXEL1610_0
+                            PIXEL1611_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_83
+                            PIXEL1602_13
+                            PIXEL1603_11
+                            PIXEL1610_21
+                            PIXEL1611_70
+                        }
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 124:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 203:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 62:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 211:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 118:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 217:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 110:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 155:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 188:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 185:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 61:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 157:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 103:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 227:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 230:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 199:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 220:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 158:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1612_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 234:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 242:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        break;
+                    }
+                case 59:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1611_0
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 121:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 87:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_0
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 79:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1611_0
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 122:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 94:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1612_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 218:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 91:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1611_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 229:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 167:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 173:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 181:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 186:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 115:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        break;
+                    }
+                case 93:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 206:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 205:
+                case 201:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_10
+                            PIXEL1621_30
+                            PIXEL1630_80
+                            PIXEL1631_10
+                        }
+                        else
+                        {
+                            PIXEL1620_12
+                            PIXEL1621_0
+                            PIXEL1630_20
+                            PIXEL1631_11
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 174:
+                case 46:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_80
+                            PIXEL1601_10
+                            PIXEL1610_10
+                            PIXEL1611_30
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                            PIXEL1601_12
+                            PIXEL1610_11
+                            PIXEL1611_0
+                        }
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 179:
+                case 147:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_10
+                            PIXEL1603_80
+                            PIXEL1612_30
+                            PIXEL1613_10
+                        }
+                        else
+                        {
+                            PIXEL1602_11
+                            PIXEL1603_20
+                            PIXEL1612_0
+                            PIXEL1613_12
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 117:
+                case 116:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_30
+                            PIXEL1623_10
+                            PIXEL1632_10
+                            PIXEL1633_80
+                        }
+                        else
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_11
+                            PIXEL1632_12
+                            PIXEL1633_20
+                        }
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        break;
+                    }
+                case 189:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 231:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 126:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 219:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 125:
+                    {
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1600_82
+                            PIXEL1610_32
+                            PIXEL1620_0
+                            PIXEL1621_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1600_11
+                            PIXEL1610_13
+                            PIXEL1620_83
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_21
+                        }
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 221:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1603_81
+                            PIXEL1613_31
+                            PIXEL1622_0
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1603_12
+                            PIXEL1613_14
+                            PIXEL1622_70
+                            PIXEL1623_83
+                            PIXEL1632_21
+                            PIXEL1633_50
+                        }
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 207:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1602_32
+                            PIXEL1603_82
+                            PIXEL1610_0
+                            PIXEL1611_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_83
+                            PIXEL1602_13
+                            PIXEL1603_11
+                            PIXEL1610_21
+                            PIXEL1611_70
+                        }
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 238:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1621_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                            PIXEL1632_31
+                            PIXEL1633_81
+                        }
+                        else
+                        {
+                            PIXEL1620_21
+                            PIXEL1621_70
+                            PIXEL1630_50
+                            PIXEL1631_83
+                            PIXEL1632_14
+                            PIXEL1633_12
+                        }
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        break;
+                    }
+                case 190:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1612_0
+                            PIXEL1613_0
+                            PIXEL1623_32
+                            PIXEL1633_82
+                        }
+                        else
+                        {
+                            PIXEL1602_21
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_83
+                            PIXEL1623_13
+                            PIXEL1633_11
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        break;
+                    }
+                case 187:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                            PIXEL1611_0
+                            PIXEL1620_31
+                            PIXEL1630_81
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_21
+                            PIXEL1610_83
+                            PIXEL1611_70
+                            PIXEL1620_14
+                            PIXEL1630_12
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 243:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1622_0
+                            PIXEL1623_0
+                            PIXEL1630_82
+                            PIXEL1631_32
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1622_70
+                            PIXEL1623_21
+                            PIXEL1630_11
+                            PIXEL1631_13
+                            PIXEL1632_83
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 119:
+                    {
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1600_81
+                            PIXEL1601_31
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1612_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1600_12
+                            PIXEL1601_14
+                            PIXEL1602_83
+                            PIXEL1603_50
+                            PIXEL1612_70
+                            PIXEL1613_21
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 237:
+                case 233:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_60
+                        PIXEL1603_20
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_70
+                        PIXEL1613_60
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 175:
+                case 47:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_70
+                        PIXEL1623_60
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_60
+                        PIXEL1633_20
+                        break;
+                    }
+                case 183:
+                case 151:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_60
+                        PIXEL1621_70
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_20
+                        PIXEL1631_60
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 245:
+                case 244:
+                    {
+                        PIXEL1600_20
+                        PIXEL1601_60
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_60
+                        PIXEL1611_70
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 250:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        break;
+                    }
+                case 123:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 95:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 222:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 252:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_61
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 249:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_61
+                        PIXEL1603_80
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        break;
+                    }
+                case 235:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_61
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 111:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_61
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 63:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_61
+                        PIXEL1633_80
+                        break;
+                    }
+                case 159:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_80
+                        PIXEL1631_61
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 215:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_61
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 246:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_61
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 254:
+                    {
+                        PIXEL1600_80
+                        PIXEL1601_10
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_10
+                        PIXEL1611_30
+                        PIXEL1612_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 253:
+                    {
+                        PIXEL1600_82
+                        PIXEL1601_82
+                        PIXEL1602_81
+                        PIXEL1603_81
+                        PIXEL1610_32
+                        PIXEL1611_32
+                        PIXEL1612_31
+                        PIXEL1613_31
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 251:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_10
+                        PIXEL1603_80
+                        PIXEL1611_0
+                        PIXEL1612_30
+                        PIXEL1613_10
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        break;
+                    }
+                case 239:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        PIXEL1602_32
+                        PIXEL1603_82
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_32
+                        PIXEL1613_82
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_31
+                        PIXEL1623_81
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        PIXEL1632_31
+                        PIXEL1633_81
+                        break;
+                    }
+                case 127:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1602_0
+                            PIXEL1603_0
+                            PIXEL1613_0
+                        }
+                        else
+                        {
+                            PIXEL1602_50
+                            PIXEL1603_50
+                            PIXEL1613_50
+                        }
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1620_0
+                            PIXEL1630_0
+                            PIXEL1631_0
+                        }
+                        else
+                        {
+                            PIXEL1620_50
+                            PIXEL1630_50
+                            PIXEL1631_50
+                        }
+                        PIXEL1621_0
+                        PIXEL1622_30
+                        PIXEL1623_10
+                        PIXEL1632_10
+                        PIXEL1633_80
+                        break;
+                    }
+                case 191:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_31
+                        PIXEL1621_31
+                        PIXEL1622_32
+                        PIXEL1623_32
+                        PIXEL1630_81
+                        PIXEL1631_81
+                        PIXEL1632_82
+                        PIXEL1633_82
+                        break;
+                    }
+                case 223:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                            PIXEL1601_0
+                            PIXEL1610_0
+                        }
+                        else
+                        {
+                            PIXEL1600_50
+                            PIXEL1601_50
+                            PIXEL1610_50
+                        }
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_10
+                        PIXEL1621_30
+                        PIXEL1622_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1623_0
+                            PIXEL1632_0
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1623_50
+                            PIXEL1632_50
+                            PIXEL1633_50
+                        }
+                        PIXEL1630_80
+                        PIXEL1631_10
+                        break;
+                    }
+                case 247:
+                    {
+                        PIXEL1600_81
+                        PIXEL1601_31
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1610_81
+                        PIXEL1611_31
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_82
+                        PIXEL1621_32
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        PIXEL1630_82
+                        PIXEL1631_32
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+                case 255:
+                    {
+                        if (Diff16(w[4], w[2]))
+                        {
+                            PIXEL1600_0
+                        }
+                        else
+                        {
+                            PIXEL1600_20
+                        }
+                        PIXEL1601_0
+                        PIXEL1602_0
+                        if (Diff16(w[2], w[6]))
+                        {
+                            PIXEL1603_0
+                        }
+                        else
+                        {
+                            PIXEL1603_20
+                        }
+                        PIXEL1610_0
+                        PIXEL1611_0
+                        PIXEL1612_0
+                        PIXEL1613_0
+                        PIXEL1620_0
+                        PIXEL1621_0
+                        PIXEL1622_0
+                        PIXEL1623_0
+                        if (Diff16(w[8], w[4]))
+                        {
+                            PIXEL1630_0
+                        }
+                        else
+                        {
+                            PIXEL1630_20
+                        }
+                        PIXEL1631_0
+                        PIXEL1632_0
+                        if (Diff16(w[6], w[8]))
+                        {
+                            PIXEL1633_0
+                        }
+                        else
+                        {
+                            PIXEL1633_20
+                        }
+                        break;
+                    }
+            }
+            sp++;
+            dp += 4;
+        }
+
+        sRowP += srb;
+        sp = (uint16_t *) sRowP;
+
+        dRowP += drb * 4;
+        dp = (uint16_t *) dRowP;
+    }
+}
+
+HQX_API void HQX_CALLCONV hq4x_16( uint16_t * sp, uint16_t * dp, int Xres, int Yres )
+{
+    uint16_t rowBytesL = Xres * 2;
+    hq4x_16_rb(sp, rowBytesL, dp, rowBytesL * 4, Xres, Yres);
+}
