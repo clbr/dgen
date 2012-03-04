@@ -1228,7 +1228,6 @@ static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
 			unsigned int ysize, unsigned int yscale,
 			unsigned int bpp)
 {
-#ifdef WITH_HQX
 	static int hqx_initialized = 0;
 
 	if (hqx_initialized == 0) {
@@ -1238,7 +1237,6 @@ static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
 		stop_events_msg(~0u, "");
 		hqx_initialized = 1;
 	}
-#endif
 	if (xscale != yscale)
 		goto skip;
 	switch (bpp) {
