@@ -3309,6 +3309,13 @@ static int handle_prompt(SDL_keysym *ks, md& megad)
 		handle_prompt_complete_clear();
 		prompt_end(p);
 		break;
+	case SDLK_u:
+		// ^U
+		if ((ks->mod & KMOD_CTRL) == 0)
+			break;
+		handle_prompt_complete_clear();
+		prompt_clear(p);
+		break;
 	case SDLK_k:
 		// ^K
 		if ((ks->mod & KMOD_CTRL) == 0)

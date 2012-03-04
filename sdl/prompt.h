@@ -48,6 +48,7 @@ extern void prompt_left(struct prompt *p);
 extern void prompt_right(struct prompt *p);
 extern void prompt_begin(struct prompt *p);
 extern void prompt_end(struct prompt *p);
+extern void prompt_clear(struct prompt *p);
 extern void prompt_put(struct prompt *p, uint8_t c);
 extern void prompt_delete(struct prompt *p);
 extern void prompt_backspace(struct prompt *p);

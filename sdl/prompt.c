@@ -717,6 +717,16 @@ void prompt_end(struct prompt *p)
 	p->cursor = ph->length;
 }
 
+void prompt_clear(struct prompt *p)
+{
+	struct prompt_history *ph = &p->history[p->current];
+
+	assert(ph->length <= sizeof(ph->line));
+	assert(p->cursor <= ph->length);
+	ph->length = 0;
+	p->cursor = 0;
+}
+
 void prompt_backspace(struct prompt *p)
 {
 	/* delete previous character */
