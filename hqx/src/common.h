@@ -69,6 +69,11 @@ static inline int Diff(uint32_t c1, uint32_t c2)
     return yuv_diff(rgb_to_yuv(c1), rgb_to_yuv(c2));
 }
 
+static inline int Diff16(uint16_t c1, uint16_t c2)
+{
+    return yuv_diff(rgb16_to_yuv(c1), rgb16_to_yuv(c2));
+}
+
 /* Interpolate functions */
 static inline uint32_t Interpolate_2(uint32_t c1, int w1, uint32_t c2, int w2, int s)
 {

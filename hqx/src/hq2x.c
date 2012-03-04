@@ -2919,7 +2919,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
             int pattern = 0;
             int flag = 1;
 
-            yuv1 = rgb_to_yuv(w[5]);
+            yuv1 = rgb16_to_yuv(w[5]);
 
             for (k=1; k<=9; k++)
             {
@@ -2927,7 +2927,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
 
                 if ( w[k] != w[5] )
                 {
-                    yuv2 = rgb_to_yuv(w[k]);
+                    yuv2 = rgb16_to_yuv(w[k]);
                     if (yuv_diff(yuv1, yuv2))
                         pattern |= flag;
                 }
@@ -3095,7 +3095,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 50:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3113,7 +3113,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_20
                         PIXEL1601_22
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3128,7 +3128,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3142,7 +3142,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 10:
                 case 138:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3215,7 +3215,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 54:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -3233,7 +3233,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_20
                         PIXEL1601_22
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -3248,7 +3248,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -3262,7 +3262,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 11:
                 case 139:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -3278,7 +3278,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 19:
                 case 51:
                     {
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1600_11
                             PIXEL1601_10
@@ -3296,7 +3296,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 178:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                             PIXEL1611_12
@@ -3313,7 +3313,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 85:
                     {
                         PIXEL1600_20
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1601_11
                             PIXEL1611_10
@@ -3331,7 +3331,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_20
                         PIXEL1601_22
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1610_12
                             PIXEL1611_10
@@ -3348,7 +3348,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                             PIXEL1611_11
@@ -3363,7 +3363,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 73:
                 case 77:
                     {
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1600_12
                             PIXEL1610_10
@@ -3380,7 +3380,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 42:
                 case 170:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                             PIXEL1610_11
@@ -3397,7 +3397,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 14:
                 case 142:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                             PIXEL1601_12
@@ -3478,7 +3478,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 26:
                 case 31:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -3486,7 +3486,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -3502,7 +3502,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 214:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -3511,7 +3511,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_20
                         }
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -3526,7 +3526,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_22
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -3534,7 +3534,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -3547,7 +3547,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 74:
                 case 107:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -3556,7 +3556,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_20
                         }
                         PIXEL1601_21
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -3569,7 +3569,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 27:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -3585,7 +3585,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 86:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -3602,7 +3602,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_21
                         PIXEL1601_22
                         PIXEL1610_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -3616,7 +3616,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_10
                         PIXEL1601_21
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -3630,7 +3630,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 30:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -3647,7 +3647,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_22
                         PIXEL1601_10
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -3661,7 +3661,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_22
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -3674,7 +3674,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 75:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -3785,7 +3785,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 58:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3793,7 +3793,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3808,7 +3808,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 83:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3817,7 +3817,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_70
                         }
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3831,7 +3831,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3839,7 +3839,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3851,7 +3851,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 202:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3860,7 +3860,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_70
                         }
                         PIXEL1601_21
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3873,7 +3873,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 78:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3882,7 +3882,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_70
                         }
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3895,7 +3895,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 154:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3903,7 +3903,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3918,7 +3918,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 114:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3927,7 +3927,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_70
                         }
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3941,7 +3941,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_22
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3949,7 +3949,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3961,7 +3961,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 90:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -3969,7 +3969,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -3977,7 +3977,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_70
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -3985,7 +3985,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -3998,7 +3998,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 55:
                 case 23:
                     {
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1600_11
                             PIXEL1601_0
@@ -4016,7 +4016,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 150:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                             PIXEL1611_12
@@ -4033,7 +4033,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 212:
                     {
                         PIXEL1600_20
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1601_11
                             PIXEL1611_0
@@ -4051,7 +4051,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_20
                         PIXEL1601_22
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1610_12
                             PIXEL1611_0
@@ -4068,7 +4068,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                             PIXEL1611_11
@@ -4083,7 +4083,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 109:
                 case 105:
                     {
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1600_12
                             PIXEL1610_0
@@ -4100,7 +4100,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 171:
                 case 43:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                             PIXEL1610_11
@@ -4117,7 +4117,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 143:
                 case 15:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                             PIXEL1601_12
@@ -4135,7 +4135,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4148,7 +4148,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 203:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4164,7 +4164,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 62:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4181,7 +4181,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_11
                         PIXEL1601_10
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4194,7 +4194,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 118:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4211,7 +4211,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_12
                         PIXEL1601_22
                         PIXEL1610_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4225,7 +4225,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_10
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4238,7 +4238,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 155:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4319,7 +4319,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4327,7 +4327,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4339,7 +4339,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 158:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4347,7 +4347,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4361,7 +4361,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 234:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4370,7 +4370,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_70
                         }
                         PIXEL1601_21
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4384,7 +4384,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 242:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4393,7 +4393,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_70
                         }
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4405,7 +4405,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 59:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4413,7 +4413,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4429,7 +4429,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_22
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4437,7 +4437,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4450,7 +4450,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 87:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4459,7 +4459,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_20
                         }
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4471,7 +4471,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 79:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4480,7 +4480,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_20
                         }
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4493,7 +4493,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 122:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4501,7 +4501,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4509,7 +4509,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_70
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4517,7 +4517,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4529,7 +4529,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 94:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4537,7 +4537,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4545,7 +4545,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_20
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4553,7 +4553,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4565,7 +4565,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 218:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4573,7 +4573,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4581,7 +4581,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_70
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4589,7 +4589,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4601,7 +4601,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 91:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4609,7 +4609,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4617,7 +4617,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_70
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4625,7 +4625,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4669,7 +4669,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 186:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4677,7 +4677,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_70
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4692,7 +4692,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 115:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4701,7 +4701,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_70
                         }
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4715,7 +4715,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4723,7 +4723,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_70
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4735,7 +4735,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 206:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4744,7 +4744,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_70
                         }
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4760,7 +4760,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_10
                         }
@@ -4774,7 +4774,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 174:
                 case 46:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_10
                         }
@@ -4791,7 +4791,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 147:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_10
                         }
@@ -4809,7 +4809,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_20
                         PIXEL1601_11
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_10
                         }
@@ -4838,7 +4838,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 126:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -4846,7 +4846,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_20
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -4859,7 +4859,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 219:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -4869,7 +4869,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         }
                         PIXEL1601_10
                         PIXEL1610_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -4881,7 +4881,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 125:
                     {
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1600_12
                             PIXEL1610_0
@@ -4898,7 +4898,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 221:
                     {
                         PIXEL1600_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1601_11
                             PIXEL1611_0
@@ -4913,7 +4913,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 207:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                             PIXEL1601_12
@@ -4931,7 +4931,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_10
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                             PIXEL1611_11
@@ -4946,7 +4946,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 190:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                             PIXEL1611_12
@@ -4961,7 +4961,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 187:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                             PIXEL1610_11
@@ -4979,7 +4979,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_11
                         PIXEL1601_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1610_12
                             PIXEL1611_0
@@ -4993,7 +4993,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 119:
                     {
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1600_11
                             PIXEL1601_0
@@ -5012,7 +5012,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_20
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5026,7 +5026,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 175:
                 case 47:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5043,7 +5043,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 151:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5061,7 +5061,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         PIXEL1600_20
                         PIXEL1601_11
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5075,7 +5075,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_10
                         PIXEL1601_10
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5083,7 +5083,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5095,7 +5095,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 123:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5104,7 +5104,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_20
                         }
                         PIXEL1601_10
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5117,7 +5117,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 95:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5125,7 +5125,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5140,7 +5140,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 222:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5149,7 +5149,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_20
                         }
                         PIXEL1610_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5163,7 +5163,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_21
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5171,7 +5171,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5185,7 +5185,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_22
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5193,7 +5193,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_100
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5205,7 +5205,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 235:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5214,7 +5214,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_20
                         }
                         PIXEL1601_21
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5227,7 +5227,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 111:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5236,7 +5236,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_100
                         }
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5249,7 +5249,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 63:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5257,7 +5257,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_100
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5271,7 +5271,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 159:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5279,7 +5279,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5294,7 +5294,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 215:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5303,7 +5303,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_100
                         }
                         PIXEL1610_21
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5316,7 +5316,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 246:
                     {
                         PIXEL1600_22
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5325,7 +5325,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_20
                         }
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5338,7 +5338,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 254:
                     {
                         PIXEL1600_10
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5346,7 +5346,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_20
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5354,7 +5354,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_20
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5368,7 +5368,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     {
                         PIXEL1600_12
                         PIXEL1601_11
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5376,7 +5376,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_100
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5388,7 +5388,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 251:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5397,7 +5397,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_20
                         }
                         PIXEL1601_10
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5405,7 +5405,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_100
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5417,7 +5417,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 239:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5426,7 +5426,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1600_100
                         }
                         PIXEL1601_12
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5439,7 +5439,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 127:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5447,7 +5447,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_100
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5455,7 +5455,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_20
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5468,7 +5468,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 191:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5476,7 +5476,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_100
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5490,7 +5490,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 223:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5498,7 +5498,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_20
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5507,7 +5507,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_100
                         }
                         PIXEL1610_10
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5520,7 +5520,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                 case 247:
                     {
                         PIXEL1600_11
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5529,7 +5529,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                             PIXEL1601_100
                         }
                         PIXEL1610_12
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
@@ -5541,7 +5541,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                     }
                 case 255:
                     {
-                        if (Diff(w[4], w[2]))
+                        if (Diff16(w[4], w[2]))
                         {
                             PIXEL1600_0
                         }
@@ -5549,7 +5549,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1600_100
                         }
-                        if (Diff(w[2], w[6]))
+                        if (Diff16(w[2], w[6]))
                         {
                             PIXEL1601_0
                         }
@@ -5557,7 +5557,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1601_100
                         }
-                        if (Diff(w[8], w[4]))
+                        if (Diff16(w[8], w[4]))
                         {
                             PIXEL1610_0
                         }
@@ -5565,7 +5565,7 @@ HQX_API void HQX_CALLCONV hq2x_16_rb( uint16_t * sp, uint32_t srb, uint16_t * dp
                         {
                             PIXEL1610_100
                         }
-                        if (Diff(w[6], w[8]))
+                        if (Diff16(w[6], w[8]))
                         {
                             PIXEL1611_0
                         }
