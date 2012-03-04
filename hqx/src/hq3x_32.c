@@ -22,58 +22,58 @@
 #include "hqx.h"
 #include "common.h"
 
-#define PIXEL00_1M  *dp = Interp1(w[5], w[1]);
-#define PIXEL00_1U  *dp = Interp1(w[5], w[2]);
-#define PIXEL00_1L  *dp = Interp1(w[5], w[4]);
-#define PIXEL00_2   *dp = Interp2(w[5], w[4], w[2]);
-#define PIXEL00_4   *dp = Interp4(w[5], w[4], w[2]);
-#define PIXEL00_5   *dp = Interp5(w[4], w[2]);
+#define PIXEL00_1M  *dp = Interp1_32(w[5], w[1]);
+#define PIXEL00_1U  *dp = Interp1_32(w[5], w[2]);
+#define PIXEL00_1L  *dp = Interp1_32(w[5], w[4]);
+#define PIXEL00_2   *dp = Interp2_32(w[5], w[4], w[2]);
+#define PIXEL00_4   *dp = Interp4_32(w[5], w[4], w[2]);
+#define PIXEL00_5   *dp = Interp5_32(w[4], w[2]);
 #define PIXEL00_C   *dp   = w[5];
 
-#define PIXEL01_1   *(dp+1) = Interp1(w[5], w[2]);
-#define PIXEL01_3   *(dp+1) = Interp3(w[5], w[2]);
-#define PIXEL01_6   *(dp+1) = Interp1(w[2], w[5]);
+#define PIXEL01_1   *(dp+1) = Interp1_32(w[5], w[2]);
+#define PIXEL01_3   *(dp+1) = Interp3_32(w[5], w[2]);
+#define PIXEL01_6   *(dp+1) = Interp1_32(w[2], w[5]);
 #define PIXEL01_C   *(dp+1) = w[5];
 
-#define PIXEL02_1M  *(dp+2) = Interp1(w[5], w[3]);
-#define PIXEL02_1U  *(dp+2) = Interp1(w[5], w[2]);
-#define PIXEL02_1R  *(dp+2) = Interp1(w[5], w[6]);
-#define PIXEL02_2   *(dp+2) = Interp2(w[5], w[2], w[6]);
-#define PIXEL02_4   *(dp+2) = Interp4(w[5], w[2], w[6]);
-#define PIXEL02_5   *(dp+2) = Interp5(w[2], w[6]);
+#define PIXEL02_1M  *(dp+2) = Interp1_32(w[5], w[3]);
+#define PIXEL02_1U  *(dp+2) = Interp1_32(w[5], w[2]);
+#define PIXEL02_1R  *(dp+2) = Interp1_32(w[5], w[6]);
+#define PIXEL02_2   *(dp+2) = Interp2_32(w[5], w[2], w[6]);
+#define PIXEL02_4   *(dp+2) = Interp4_32(w[5], w[2], w[6]);
+#define PIXEL02_5   *(dp+2) = Interp5_32(w[2], w[6]);
 #define PIXEL02_C   *(dp+2) = w[5];
 
-#define PIXEL10_1   *(dp+dpL) = Interp1(w[5], w[4]);
-#define PIXEL10_3   *(dp+dpL) = Interp3(w[5], w[4]);
-#define PIXEL10_6   *(dp+dpL) = Interp1(w[4], w[5]);
+#define PIXEL10_1   *(dp+dpL) = Interp1_32(w[5], w[4]);
+#define PIXEL10_3   *(dp+dpL) = Interp3_32(w[5], w[4]);
+#define PIXEL10_6   *(dp+dpL) = Interp1_32(w[4], w[5]);
 #define PIXEL10_C   *(dp+dpL) = w[5];
 
 #define PIXEL11     *(dp+dpL+1) = w[5];
 
-#define PIXEL12_1   *(dp+dpL+2) = Interp1(w[5], w[6]);
-#define PIXEL12_3   *(dp+dpL+2) = Interp3(w[5], w[6]);
-#define PIXEL12_6   *(dp+dpL+2) = Interp1(w[6], w[5]);
+#define PIXEL12_1   *(dp+dpL+2) = Interp1_32(w[5], w[6]);
+#define PIXEL12_3   *(dp+dpL+2) = Interp3_32(w[5], w[6]);
+#define PIXEL12_6   *(dp+dpL+2) = Interp1_32(w[6], w[5]);
 #define PIXEL12_C   *(dp+dpL+2) = w[5];
 
-#define PIXEL20_1M  *(dp+dpL+dpL) = Interp1(w[5], w[7]);
-#define PIXEL20_1D  *(dp+dpL+dpL) = Interp1(w[5], w[8]);
-#define PIXEL20_1L  *(dp+dpL+dpL) = Interp1(w[5], w[4]);
-#define PIXEL20_2   *(dp+dpL+dpL) = Interp2(w[5], w[8], w[4]);
-#define PIXEL20_4   *(dp+dpL+dpL) = Interp4(w[5], w[8], w[4]);
-#define PIXEL20_5   *(dp+dpL+dpL) = Interp5(w[8], w[4]);
+#define PIXEL20_1M  *(dp+dpL+dpL) = Interp1_32(w[5], w[7]);
+#define PIXEL20_1D  *(dp+dpL+dpL) = Interp1_32(w[5], w[8]);
+#define PIXEL20_1L  *(dp+dpL+dpL) = Interp1_32(w[5], w[4]);
+#define PIXEL20_2   *(dp+dpL+dpL) = Interp2_32(w[5], w[8], w[4]);
+#define PIXEL20_4   *(dp+dpL+dpL) = Interp4_32(w[5], w[8], w[4]);
+#define PIXEL20_5   *(dp+dpL+dpL) = Interp5_32(w[8], w[4]);
 #define PIXEL20_C   *(dp+dpL+dpL) = w[5];
 
-#define PIXEL21_1   *(dp+dpL+dpL+1) = Interp1(w[5], w[8]);
-#define PIXEL21_3   *(dp+dpL+dpL+1) = Interp3(w[5], w[8]);
-#define PIXEL21_6   *(dp+dpL+dpL+1) = Interp1(w[8], w[5]);
+#define PIXEL21_1   *(dp+dpL+dpL+1) = Interp1_32(w[5], w[8]);
+#define PIXEL21_3   *(dp+dpL+dpL+1) = Interp3_32(w[5], w[8]);
+#define PIXEL21_6   *(dp+dpL+dpL+1) = Interp1_32(w[8], w[5]);
 #define PIXEL21_C   *(dp+dpL+dpL+1) = w[5];
 
-#define PIXEL22_1M  *(dp+dpL+dpL+2) = Interp1(w[5], w[9]);
-#define PIXEL22_1D  *(dp+dpL+dpL+2) = Interp1(w[5], w[8]);
-#define PIXEL22_1R  *(dp+dpL+dpL+2) = Interp1(w[5], w[6]);
-#define PIXEL22_2   *(dp+dpL+dpL+2) = Interp2(w[5], w[6], w[8]);
-#define PIXEL22_4   *(dp+dpL+dpL+2) = Interp4(w[5], w[6], w[8]);
-#define PIXEL22_5   *(dp+dpL+dpL+2) = Interp5(w[6], w[8]);
+#define PIXEL22_1M  *(dp+dpL+dpL+2) = Interp1_32(w[5], w[9]);
+#define PIXEL22_1D  *(dp+dpL+dpL+2) = Interp1_32(w[5], w[8]);
+#define PIXEL22_1R  *(dp+dpL+dpL+2) = Interp1_32(w[5], w[6]);
+#define PIXEL22_2   *(dp+dpL+dpL+2) = Interp2_32(w[5], w[6], w[8]);
+#define PIXEL22_4   *(dp+dpL+dpL+2) = Interp4_32(w[5], w[6], w[8]);
+#define PIXEL22_5   *(dp+dpL+dpL+2) = Interp5_32(w[6], w[8]);
 #define PIXEL22_C   *(dp+dpL+dpL+2) = w[5];
 
 #define HQ3X_BITS 32
@@ -84,7 +84,7 @@
 #define HQ3X_FUNC hq3x_32
 #define HQ3X_RB_FUNC hq3x_32_rb
 
-#define RGB_TO_YUV_FUNC rgb_to_yuv
-#define DIFF_FUNC Diff
+#define RGB_TO_YUV_FUNC rgb32_to_yuv
+#define DIFF_FUNC Diff32
 
 #include "hq3x-int.h"
