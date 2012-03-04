@@ -1228,6 +1228,17 @@ static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
 			unsigned int ysize, unsigned int yscale,
 			unsigned int bpp)
 {
+#ifdef WITH_HQX
+	static int hqx_initialized = 0;
+
+	if (hqx_initialized == 0) {
+		stop_events_msg(~0u, "Initializing hqx...");
+		stopped = 1;
+		hqxInit();
+		stop_events_msg(~0u, "");
+		hqx_initialized = 1;
+	}
+#endif
 	if (xscale != yscale)
 		goto skip;
 	switch (bpp) {
@@ -2127,14 +2138,6 @@ static int set_fullscreen(int toggle)
 // Initialize SDL, and the graphics
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
-#ifdef WITH_HQX
-	static int hqx_initialized = 0;
-
-	if (hqx_initialized == 0) {
-		hqxInit();
-		hqx_initialized = 1;
-	}
-#endif
 	prompt_init(&prompt.status);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
