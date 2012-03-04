@@ -1557,17 +1557,30 @@ static const struct filter filters_list[] = {
 static void set_swab()
 {
 	const struct filter *f = filters_list;
+	const struct filter *fswab = NULL;
+	const struct filter *foff = NULL;
 
 	while (f->func != NULL) {
-		if (f->func == filter_swab)
-			break;
+		if (f->func == filter_swab) {
+			fswab = f;
+			if (foff != NULL)
+				break;
+		}
+		else if (f->func == filter_off) {
+			foff = f;
+			if (fswab != NULL)
+				break;
+		}
 		++f;
 	}
-	if (f->func == NULL)
+	if ((fswab == NULL) || (foff == NULL))
 		return;
-	filters_pluck(filters_prescale, f);
-	if (dgen_swab)
-		filters_push_once(filters_prescale, f);
+	filters_pluck(filters_prescale, fswab);
+	if (dgen_swab) {
+		if (filters_prescale[0] == NULL)
+			filters_push(filters_prescale, foff);
+		filters_push_once(filters_prescale, fswab);
+	}
 }
 
 static int prompt_cmd_filter_push(class md&, unsigned int ac, const char** av)
