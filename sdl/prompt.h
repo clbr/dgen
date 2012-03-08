@@ -39,7 +39,6 @@ struct prompt_parse {
 	} *argo; /* position and length of each element in original string */
 };
 
-extern char *backslashify(const uint8_t *src, size_t size);
 extern void prompt_init(struct prompt *p);
 extern void prompt_push(struct prompt *p);
 extern void prompt_older(struct prompt *p);

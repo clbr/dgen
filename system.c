@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dirent.h>
+#include <ctype.h>
 #ifndef __MINGW32__
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -964,4 +965,162 @@ char **complete_path(const char *prefix, size_t len, const char *relative)
 void complete_path_free(char **cp)
 {
 	free_pppc(&cp, 0);
+}
+
+char *backslashify(const uint8_t *src, size_t size, unsigned int flags)
+{
+	char *dst = NULL;
+	char *tmp;
+	size_t i;
+	size_t j;
+	char buf[5];
+
+again:
+	for (i = 0, j = 0; (i < size); ++i) {
+		switch (src[i]) {
+		case '\a':
+			tmp = "\\a";
+			break;
+		case '\b':
+			tmp = "\\b";
+			break;
+		case '\f':
+			tmp = "\\f";
+			break;
+		case '\n':
+			tmp = "\\n";
+			break;
+		case '\r':
+			tmp = "\\r";
+			break;
+		case '\t':
+			tmp = "\\t";
+			break;
+		case '\v':
+			tmp = "\\v";
+			break;
+		case '\'':
+			if (flags & BACKSLASHIFY_NOQUOTES)
+				goto noquotes;
+			tmp = "\\'";
+			break;
+		case '"':
+			if (flags & BACKSLASHIFY_NOQUOTES)
+				goto noquotes;
+			tmp = "\\\"";
+			break;
+		case ' ':
+			if (flags & BACKSLASHIFY_NOQUOTES)
+				tmp = " ";
+			else
+				tmp = "\\ ";
+			break;
+		case '\0':
+			tmp = "\\0";
+			break;
+		case '\\':
+			if (flags & BACKSLASHIFY_NOQUOTES)
+				goto noquotes;
+			tmp = "\\\\";
+			break;
+		default:
+		noquotes:
+			tmp = buf;
+			if (isgraph(src[i])) {
+				tmp[0] = src[i];
+				tmp[1] = '\0';
+				break;
+			}
+			tmp[0] = '\\';
+			tmp[1] = 'x';
+			snprintf(&tmp[2], 3, "%02x", src[i]);
+			break;
+		}
+		if (dst != NULL)
+			strncpy(&dst[j], tmp, strlen(tmp));
+		j += strlen(tmp);
+	}
+	if (dst == NULL) {
+		dst = malloc(j + 1);
+		if (dst == NULL)
+			return NULL;
+		dst[j] = '\0';
+		goto again;
+	}
+	return dst;
+}
+
+/*
+  Convert a UTF-8 character to its 32 bit representation.
+  Return the number of valid bytes for this character.
+  On error, u32 is set to (uint32_t)-1.
+*/
+size_t utf8u32(uint32_t *u32, const uint8_t *u8)
+{
+	static const uint8_t fb[] = {
+		/* first byte: mask, expected value, size */
+		0x80, 0x00, 1,
+		0xe0, 0xc0, 2,
+		0xf0, 0xe0, 3,
+		0xf8, 0xf0, 4,
+		0xfc, 0xf8, 5,
+		0xfe, 0xfc, 6,
+		0xff, 0x00, 0
+	};
+	const uint8_t *s = fb;
+	size_t i = 0;
+	size_t rem;
+	uint32_t ret;
+
+	while ((*u8 & s[0]) != s[1])
+		s += 3;
+	rem = s[2];
+	if (!rem)
+		goto error;
+	ret = (*u8 & ~s[0]);
+	while (++i != rem) {
+		++u8;
+		if ((*u8 & 0xc0) != 0x80)
+			goto error;
+		ret <<= 6;
+		ret |= (*u8 & ~0xc0);
+	}
+	if (((ret & ~0x07ff) == 0xd800) ||
+	    ((ret & ~0x0001) == 0xfffe))
+		goto error;
+	*u32 = ret;
+	return i;
+error:
+	*u32 = (uint32_t)-1;
+	return i;
+}
+
+/*
+  The opposite of the above function.
+  Return the number of characters written, 0 on error.
+*/
+size_t utf32u8(uint8_t *u8, uint32_t u32)
+{
+	size_t l;
+	size_t i;
+	uint8_t fb;
+	uint32_t u;
+
+	if ((u32 & 0x80000000) ||
+	    ((u32 & ~0x07ff) == 0xd800) ||
+	    ((u32 & ~0x0001) == 0xfffe))
+		return 0;
+	if (u32 < 0x80) {
+		if (u8 != NULL)
+			*u8 = u32;
+		return 1;
+	}
+	for (l = 0, u = u32; (u & ~0x3c); ++l)
+		u >>= 6;
+	if (u8 == NULL)
+		return l;
+	for (i = l, fb = 0; (--i); u32 >>= 6, fb >>= 1, fb |= 0xc0)
+		u8[i] = (0x80 | (u32 & 0x3f));
+	u8[0] = (fb | u32);
+	return l;
 }

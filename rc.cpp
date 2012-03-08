@@ -20,7 +20,7 @@
 #include "pd-defs.h"
 #include "md-phil.h"
 #include "romload.h"
-#include "sdl/prompt.h" // for backslashify()
+#include "system.h"
 
 // CTV names
 const char *ctv_names[] = {
