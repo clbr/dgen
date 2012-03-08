@@ -20,6 +20,7 @@
 #define KEYSYM_MOD_SHIFT	0x20000000
 #define KEYSYM_MOD_CTRL		0x10000000
 #define KEYSYM_MOD_META		0x08000000
+#define KEYSYM_MOD_MASK		0x78000000
 
 // All the CTV engine names, in string form for the RC and message bar
 extern const char *ctv_names[];
@@ -34,6 +35,7 @@ extern const char *emu_m68k_names[];
 // Provide a prototype to the parse_rc function in rc.cpp
 extern void parse_rc(FILE *file, const char *name);
 
+extern char *dump_keysym(intptr_t k);
 extern void dump_rc(FILE *file);
 
 extern intptr_t rc_number(const char *value);

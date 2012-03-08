@@ -12,56 +12,9 @@
 // Seriously, this is tedious, I realise, but don't be discouraged please. :)
 // Just remember I had to do it also.
 #define PDK_ESCAPE SDLK_ESCAPE
-#define PDK_1 SDLK_1
-#define PDK_2 SDLK_2
-#define PDK_3 SDLK_3
-#define PDK_4 SDLK_4
-#define PDK_5 SDLK_5
-#define PDK_6 SDLK_6
-#define PDK_7 SDLK_7
-#define PDK_8 SDLK_8
-#define PDK_9 SDLK_9
-#define PDK_0 SDLK_0
-#define PDK_MINUS SDLK_MINUS
-#define PDK_EQUALS SDLK_EQUALS
 #define PDK_BACKSPACE SDLK_BACKSPACE
 #define PDK_TAB SDLK_TAB
-#define PDK_q SDLK_q
-#define PDK_w SDLK_w
-#define PDK_e SDLK_e
-#define PDK_r SDLK_r
-#define PDK_t SDLK_t
-#define PDK_y SDLK_y
-#define PDK_u SDLK_u
-#define PDK_i SDLK_i
-#define PDK_o SDLK_o
-#define PDK_p SDLK_p
-#define PDK_LEFTBRACKET SDLK_LEFTBRACKET
-#define PDK_RIGHTBRACKET SDLK_RIGHTBRACKET
 #define PDK_RETURN SDLK_RETURN
-#define PDK_a SDLK_a
-#define PDK_s SDLK_s
-#define PDK_d SDLK_d
-#define PDK_f SDLK_f
-#define PDK_g SDLK_g
-#define PDK_h SDLK_h
-#define PDK_j SDLK_j
-#define PDK_k SDLK_k
-#define PDK_l SDLK_l
-#define PDK_SEMICOLON SDLK_SEMICOLON
-#define PDK_QUOTE SDLK_QUOTE
-#define PDK_BACKQUOTE SDLK_BACKQUOTE
-#define PDK_BACKSLASH SDLK_BACKSLASH
-#define PDK_z SDLK_z
-#define PDK_x SDLK_x
-#define PDK_c SDLK_c
-#define PDK_v SDLK_v
-#define PDK_b SDLK_b
-#define PDK_n SDLK_n
-#define PDK_m SDLK_m
-#define PDK_COMMA SDLK_COMMA
-#define PDK_PERIOD SDLK_PERIOD
-#define PDK_SLASH SDLK_SLASH
 #define PDK_KP_MULTIPLY SDLK_KP_MULTIPLY
 #define PDK_SPACE SDLK_SPACE
 #define PDK_F1 SDLK_F1
@@ -112,7 +65,6 @@
 #define PDK_RALT SDLK_RALT
 #define PDK_LMETA SDLK_LMETA
 #define PDK_RMETA SDLK_RMETA
-#define PDK_INVALID -42
 
 // There, that wasn't so hard, was it? :)
 // If you want to inline any pd_ functions, put their bodies here.

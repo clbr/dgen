@@ -40,67 +40,10 @@ const char *emu_m68k_names[] = { "none", "star", "musa", NULL };
 // scancodes, and I just added the SDL stuff on top of it.
 struct rc_keysym rc_keysyms[] = {
   { "ESCAPE", PDK_ESCAPE },
-  { "1", PDK_1 },
-  { "2", PDK_2 },
-  { "3", PDK_3 },
-  { "4", PDK_4 },
-  { "5", PDK_5 },
-  { "6", PDK_6 },
-  { "7", PDK_7 },
-  { "8", PDK_8 },
-  { "9", PDK_9 },
-  { "0", PDK_0 },
-  { "-", PDK_MINUS },
-  { "=", PDK_EQUALS },
-  { "+", PDK_EQUALS },
   { "BACKSPACE", PDK_BACKSPACE },
   { "TAB", PDK_TAB },
-  { "Q", PDK_q },
-  { "W", PDK_w },
-  { "E", PDK_e },
-  { "R", PDK_r },
-  { "T", PDK_t },
-  { "Y", PDK_y },
-  { "U", PDK_u },
-  { "I", PDK_i },
-  { "O", PDK_o },
-  { "P", PDK_p },
-  { "[", PDK_LEFTBRACKET },
-  { "{", PDK_LEFTBRACKET },
-  { "]", PDK_RIGHTBRACKET },
-  { "}", PDK_RIGHTBRACKET },
   { "RETURN", PDK_RETURN },
   { "ENTER", PDK_RETURN },
-  { "A", PDK_a },
-  { "S", PDK_s },
-  { "D", PDK_d },
-  { "F", PDK_f },
-  { "G", PDK_g },
-  { "H", PDK_h },
-  { "J", PDK_j },
-  { "K", PDK_k },
-  { "L", PDK_l },
-  { ";", PDK_SEMICOLON },
-  { ":", PDK_SEMICOLON },
-  { "'", PDK_QUOTE },
-  { "\"", PDK_QUOTE },
-  { "`", PDK_BACKQUOTE },
-  { "~", PDK_BACKQUOTE },
-  { "\\", PDK_BACKSLASH },
-  { "|", PDK_BACKSLASH },
-  { "Z", PDK_z },
-  { "X", PDK_x },
-  { "C", PDK_c },
-  { "V", PDK_v },
-  { "B", PDK_b },
-  { "N", PDK_n },
-  { "M", PDK_m },
-  { ",", PDK_COMMA },
-  { "<", PDK_COMMA },
-  { ".", PDK_PERIOD },
-  { ">", PDK_PERIOD },
-  { "/", PDK_SLASH },
-  { "?", PDK_SLASH },
   { "KP_MULTIPLY", PDK_KP_MULTIPLY },
   { "SPACE", PDK_SPACE },
   { "F1", PDK_F1 },
@@ -176,7 +119,7 @@ struct rc_keysym rc_keysyms[] = {
   { "META_L", PDK_LMETA },
   { "RMETA", PDK_RMETA },
   { "META_R", PDK_RMETA },
-  { "", PDK_INVALID },
+  { "", 0 },
   { NULL, 0 } // Terminator
 }; // Phew! ;)
 
@@ -198,44 +141,93 @@ intptr_t js_map_button[2][16] = {
     }
 };
 
+static const struct {
+	const char *name;
+	uint32_t flag;
+} keymod[] = {
+	{ "shift-", KEYSYM_MOD_SHIFT },
+	{ "ctrl-", KEYSYM_MOD_CTRL },
+	{ "alt-", KEYSYM_MOD_ALT },
+	{ "meta-", KEYSYM_MOD_META },
+	{ "", 0 }
+};
+
 /* Parse a keysym.
- * If the string matches one of the strings in the keysym table above,
- * return the keysym, otherwise -1. */
+ * If the string matches one of the strings in the keysym table above
+ * or if it's another valid character, return the keysym, otherwise -1. */
 intptr_t rc_keysym(const char *code)
 {
-  struct rc_keysym *s = rc_keysyms;
-  long r = 0;
+	struct rc_keysym *ks = rc_keysyms;
+	uint32_t m = 0;
+	uint32_t c;
 
-  // Check for modifier prefixes shift-, ctrl-, alt-, meta-
-  for(;;) {
-    if(!strncasecmp("shift-", code, 6)) {
-      r |= KEYSYM_MOD_SHIFT;
-      code += 6;
-      continue;
-    }
-    if(!strncasecmp("ctrl-", code, 5)) {
-      r |= KEYSYM_MOD_CTRL;
-      code += 5;
-      continue;
-    }
-    if(!strncasecmp("alt-", code, 4)) {
-      r |= KEYSYM_MOD_ALT;
-      code += 4;
-      continue;
-    }
-    if(!strncasecmp("meta-", code, 5)) {
-      r |= KEYSYM_MOD_META;
-      code += 5;
-      continue;
-    }
-    break;
-  }
+	while (*code != '\0') {
+		size_t i;
 
-  do {
-    if(!strcasecmp(s->name, code)) return r |= s->keysym;
-  } while ((++s)->name);
-  /* No match */
-  return -1;
+		for (i = 0; (keymod[i].name[0] != '\0'); ++i) {
+			size_t l = strlen(keymod[i].name);
+
+			if (strncasecmp(keymod[i].name, code, l))
+				continue;
+			m |= keymod[i].flag;
+			code += l;
+			break;
+		}
+		if (keymod[i].name[0] == '\0')
+			break;
+	}
+	while (ks->name != NULL) {
+		if (!strcasecmp(ks->name, code))
+			return (m | ks->keysym);
+		++ks;
+	}
+	/* Not in the list, so expect a single UTF-8 character instead. */
+	code += utf8u32(&c, (const uint8_t *)code);
+	if ((c == (uint32_t)-1) || (*code != '\0'))
+		return -1;
+	/* Must fit in 16 bits. */
+	if (c > 0xffff)
+		return -1;
+	return (m | (c & 0xffff));
+}
+
+/* Convert a keysym to text. */
+char *dump_keysym(intptr_t k)
+{
+	char buf[64];
+	size_t i;
+	size_t n;
+	size_t l = 0;
+	struct rc_keysym *ks = rc_keysyms;
+
+	buf[0] = '\0';
+	for (i = 0; ((keymod[i].name[0] != '\0') && (l < sizeof(buf))); ++i)
+		if (k & keymod[i].flag) {
+			n = strlen(keymod[i].name);
+			if (n > (sizeof(buf) - l))
+				n = (sizeof(buf) - l);
+			memcpy(&buf[l], keymod[i].name, n);
+			l += n;
+		}
+	k &= ~KEYSYM_MOD_MASK;
+	while (ks->name != NULL) {
+		if (ks->keysym == k) {
+			n = strlen(ks->name);
+			if (n > (sizeof(buf) - l))
+				n = (sizeof(buf) - l);
+			memcpy(&buf[l], ks->name, n);
+			l += n;
+			goto found;
+		}
+		++ks;
+	}
+	n = utf32u8(NULL, k);
+	if ((n == 0) || (n > (sizeof(buf) - l)))
+		return NULL;
+	utf32u8((uint8_t *)&buf[l], k);
+	l += n;
+found:
+	return backslashify((uint8_t *)buf, l, 0);
 }
 
 /* Parse a boolean value.
@@ -664,29 +656,11 @@ void dump_rc(FILE *file)
 		if (rc->parser == rc_number)
 			fprintf(file, "%ld", (long)val);
 		else if (rc->parser == rc_keysym) {
-			const char *mod;
-			size_t i;
-			char *s;
+			char *ks = dump_keysym(val);
 
-			if (val & KEYSYM_MOD_SHIFT)
-				(mod = "shift-", val &= ~KEYSYM_MOD_SHIFT);
-			else if (val & KEYSYM_MOD_CTRL)
-				(mod = "ctrl-", val &= ~KEYSYM_MOD_CTRL);
-			else if (val & KEYSYM_MOD_ALT)
-				(mod = "alt-", val &= ~KEYSYM_MOD_ALT);
-			else if (val & KEYSYM_MOD_META)
-				(mod = "meta-", val &= ~KEYSYM_MOD_META);
-			else
-				mod = "";
-			for (i = 0; (rc_keysyms[i].name != NULL); ++i)
-				if (rc_keysyms[i].keysym == val)
-					break;
-			if ((rc_keysyms[i].name != NULL) &&
-			    ((s = backslashify
-			      ((const uint8_t *)rc_keysyms[i].name,
-			       strlen(rc_keysyms[i].name))) != NULL)) {
-				fprintf(file, "\"%s%s\"", mod, s);
-				free(s);
+			if (ks != NULL) {
+				fprintf(file, "\"%s\"", ks);
+				free(ks);
 			}
 		}
 		else if (rc->parser == rc_boolean)
@@ -747,7 +721,7 @@ void dump_rc(FILE *file)
 			if ((rs->val == NULL) ||
 			    ((s = backslashify
 			      ((const uint8_t *)rs->val,
-			       strlen(rs->val))) == NULL))
+			       strlen(rs->val), 0)) == NULL))
 				fprintf(file, "\"\"");
 			else {
 				fprintf(file, "\"%s\"", s);

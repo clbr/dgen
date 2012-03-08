@@ -2488,7 +2488,8 @@ enum kb_input {
 };
 
 // Manage text input with some rudimentary history.
-static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
+static enum kb_input kb_input(kb_input_t *input, uint32_t ksym,
+			      uint16_t ksym_uni)
 {
 #define HISTORY_LEN 32
 	static char history[HISTORY_LEN][64];
@@ -2496,10 +2497,9 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 	static int history_len = 0;
 	char c;
 
-	if (ks->mod & KMOD_CTRL)
+	if (ksym & KEYSYM_MOD_CTRL)
 		return KB_INPUT_IGNORED;
-	if (((ks->unicode & 0xff80) == 0) &&
-	    (isprint((c = (ks->unicode & 0x7f))))) {
+	if (isprint((c = ksym_uni))) {
 		if (input->pos >= (input->size - 1))
 			return KB_INPUT_CONSUMED;
 		if (input->buf[input->pos] == '\0')
@@ -2508,7 +2508,7 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 		++input->pos;
 		return KB_INPUT_CONSUMED;
 	}
-	else if (ks->sym == SDLK_DELETE) {
+	else if (ksym == SDLK_DELETE) {
 		size_t tail;
 
 		if (input->buf[input->pos] == '\0')
@@ -2519,7 +2519,7 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 			tail);
 		return KB_INPUT_CONSUMED;
 	}
-	else if (ks->sym == SDLK_BACKSPACE) {
+	else if (ksym == SDLK_BACKSPACE) {
 		size_t tail;
 
 		if (input->pos == 0)
@@ -2531,17 +2531,17 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 			tail);
 		return KB_INPUT_CONSUMED;
 	}
-	else if (ks->sym == SDLK_LEFT) {
+	else if (ksym == SDLK_LEFT) {
 		if (input->pos != 0)
 			--input->pos;
 		return KB_INPUT_CONSUMED;
 	}
-	else if (ks->sym == SDLK_RIGHT) {
+	else if (ksym == SDLK_RIGHT) {
 		if (input->buf[input->pos] != '\0')
 			++input->pos;
 		return KB_INPUT_CONSUMED;
 	}
-	else if ((ks->sym == SDLK_RETURN) || (ks->sym == SDLK_KP_ENTER)) {
+	else if ((ksym == SDLK_RETURN) || (ksym == SDLK_KP_ENTER)) {
 		history_pos = -1;
 		if (input->pos == 0)
 			return KB_INPUT_ABORTED;
@@ -2552,11 +2552,11 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 		strncpy(history[0], input->buf, sizeof(history[0]));
 		return KB_INPUT_ENTERED;
 	}
-	else if (ks->sym == SDLK_ESCAPE) {
+	else if (ksym == SDLK_ESCAPE) {
 		history_pos = 0;
 		return KB_INPUT_ABORTED;
 	}
-	else if (ks->sym == SDLK_UP) {
+	else if (ksym == SDLK_UP) {
 		if (input->size == 0)
 			return KB_INPUT_CONSUMED;
 		if (history_pos < (history_len - 1))
@@ -2566,7 +2566,7 @@ static enum kb_input kb_input(kb_input_t *input, SDL_keysym *ks)
 		input->pos = strlen(input->buf);
 		return KB_INPUT_CONSUMED;
 	}
-	else if (ks->sym == SDLK_DOWN) {
+	else if (ksym == SDLK_DOWN) {
 		if ((input->size == 0) || (history_pos < 0))
 			return KB_INPUT_CONSUMED;
 		if (history_pos > 0)
@@ -2817,27 +2817,14 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	if (rc->parser == rc_number)
 		stop_events_msg(~0u, "%s is %ld", rc->fieldname, val);
 	else if (rc->parser == rc_keysym) {
-		const char *mod;
+		char *ks = dump_keysym(val);
 
-		if (val & KEYSYM_MOD_SHIFT)
-			(mod = "shift-", val &= ~KEYSYM_MOD_SHIFT);
-		else if (val & KEYSYM_MOD_CTRL)
-			(mod = "ctrl-", val &= ~KEYSYM_MOD_CTRL);
-		else if (val & KEYSYM_MOD_ALT)
-			(mod = "alt-", val &= ~KEYSYM_MOD_ALT);
-		else if (val & KEYSYM_MOD_META)
-			(mod = "meta-", val &= ~KEYSYM_MOD_META);
-		else
-			mod = "";
-		for (i = 0; (rc_keysyms[i].name != NULL); ++i)
-			if (rc_keysyms[i].keysym == val)
-				break;
-		if (rc_keysyms[i].name == NULL)
+		if ((ks == NULL) || (ks[0] == '\0'))
 			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is bound to %s%s",
-					rc->fieldname, mod,
-					rc_keysyms[i].name);
+			stop_events_msg(~0u, "%s is bound to \"%s\"",
+					rc->fieldname, ks);
+		free(ks);
 	}
 	else if (rc->parser == rc_boolean)
 		stop_events_msg(~0u, "%s is %s", rc->fieldname,
@@ -2935,7 +2922,7 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		if (rs->val == NULL)
 			stop_events_msg(~0u, "%s has no value", rc->fieldname);
 		else if ((s = backslashify((const uint8_t *)rs->val,
-					   strlen(rs->val))) != NULL) {
+					   strlen(rs->val), 0)) != NULL) {
 			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
 			free(s);
 		}
@@ -3129,7 +3116,7 @@ static int handle_prompt_complete(class md& md, bool rwd)
 		}
 	complete_cmd_found:
 		++prompt.skip;
-		s = backslashify((const uint8_t *)cs, strlen(cs));
+		s = backslashify((const uint8_t *)cs, strlen(cs), 0);
 		if (s == NULL)
 			goto end;
 		if (common != ~0u)
@@ -3149,7 +3136,7 @@ static int handle_prompt_complete(class md& md, bool rwd)
 					   pp.cursor);
 		if (t == NULL)
 			goto end;
-		s = backslashify((const uint8_t *)t, strlen(t));
+		s = backslashify((const uint8_t *)t, strlen(t), 0);
 		free(t);
 		if (s == NULL)
 			goto end;
@@ -3198,7 +3185,7 @@ static int handle_prompt_complete(class md& md, bool rwd)
 				else
 					s = backslashify
 						((const uint8_t *)ret[i],
-						 strlen(ret[i]));
+						 strlen(ret[i]), 0);
 			}
 		}
 		// Numbers.
@@ -3260,23 +3247,19 @@ end:
 	return 0;
 }
 
-static int handle_prompt(SDL_keysym *ks, md& megad)
+static int handle_prompt(uint32_t ksym, uint16_t ksym_uni, md& megad)
 {
 	struct prompt::prompt_history *ph;
-	char c = ' ';
+	size_t sz;
+	uint8_t c[6];
+	char *s;
 	int ret = PROMPT_RET_CONT;
 	struct prompt *p = &prompt.status;
 	struct prompt_parse pp;
 
-	if (ks == NULL)
+	if (ksym == 0)
 		goto end;
-	if (((ks->unicode & 0xff80) == 0) &&
-	    (isprint((c = (ks->unicode & 0x7f))))) {
-		handle_prompt_complete_clear();
-		prompt_put(p, c);
-		goto end;
-	}
-	switch (ks->sym) {
+	switch (ksym & ~KEYSYM_MOD_MASK) {
 	case SDLK_UP:
 		handle_prompt_complete_clear();
 		prompt_older(p);
@@ -3311,36 +3294,37 @@ static int handle_prompt(SDL_keysym *ks, md& megad)
 		break;
 	case SDLK_a:
 		// ^A
-		if ((ks->mod & KMOD_CTRL) == 0)
-			break;
+		if ((ksym & KEYSYM_MOD_CTRL) == 0)
+			goto other;
 		handle_prompt_complete_clear();
 		prompt_begin(p);
 		break;
 	case SDLK_e:
 		// ^E
-		if ((ks->mod & KMOD_CTRL) == 0)
-			break;
+		if ((ksym & KEYSYM_MOD_CTRL) == 0)
+			goto other;
 		handle_prompt_complete_clear();
 		prompt_end(p);
 		break;
 	case SDLK_u:
 		// ^U
-		if ((ks->mod & KMOD_CTRL) == 0)
-			break;
+		if ((ksym & KEYSYM_MOD_CTRL) == 0)
+			goto other;
 		handle_prompt_complete_clear();
 		prompt_clear(p);
 		break;
 	case SDLK_k:
 		// ^K
-		if ((ks->mod & KMOD_CTRL) == 0)
-			break;
+		if ((ksym & KEYSYM_MOD_CTRL) == 0)
+			goto other;
 		handle_prompt_complete_clear();
 		prompt_replace(p, p->cursor, ~0u, NULL, 0);
 		break;
 	case SDLK_w:
 		// ^W
-		if (((ks->mod & KMOD_CTRL) == 0) ||
-		    (prompt_parse(p, &pp) == NULL))
+		if ((ksym & KEYSYM_MOD_CTRL) == 0)
+			goto other;
+		if (prompt_parse(p, &pp) == NULL)
 			break;
 		if (pp.argv[pp.index] == NULL) {
 			if (pp.index == 0) {
@@ -3370,12 +3354,26 @@ static int handle_prompt(SDL_keysym *ks, md& megad)
 		ret |= PROMPT_RET_EXIT;
 		break;
 	case SDLK_TAB:
-		if (ks->mod & KMOD_SHIFT)
+		if (ksym & KEYSYM_MOD_SHIFT)
 			ret |= handle_prompt_complete(megad, true);
 		else
 			ret |= handle_prompt_complete(megad, false);
 		break;
 	default:
+	other:
+		if (ksym_uni == 0)
+			break;
+		handle_prompt_complete_clear();
+		sz = utf32u8(c, ksym_uni);
+		if ((sz != 0) &&
+		    ((s = backslashify(c, sz,
+				       BACKSLASHIFY_NOQUOTES)) != NULL)) {
+			size_t i;
+
+			for (i = 0; (i != strlen(s)); ++i)
+				prompt_put(p, s[i]);
+			free(s);
+		}
 		break;
 	}
 end:
@@ -3386,6 +3384,8 @@ end:
 	}
 	return ret;
 }
+
+static uint16_t kpress[0x100];
 
 // This is a small event loop to handle stuff when we're stopped.
 static int stop_events(md &megad, int gg)
@@ -3407,7 +3407,7 @@ static int stop_events(md &megad, int gg)
 	SDL_PauseAudio(1);
 gg:
 	if (gg >= 3)
-		handle_prompt(NULL, megad);
+		handle_prompt(0, 0, megad);
 	else if (gg) {
 		size_t len;
 
@@ -3428,11 +3428,18 @@ gg:
 	// We still check key events, but we can wait for them
 	while (SDL_WaitEvent(&event)) {
 		switch (event.type) {
-			int ksym;
+			uint16_t ksym_uni;
+			intptr_t ksym;
 
 		case SDL_KEYDOWN:
 			ksym = event.key.keysym.sym;
-			if (event.key.keysym.mod & KMOD_SHIFT)
+			ksym_uni = event.key.keysym.unicode;
+			if (ksym_uni < 0x20)
+				ksym_uni = 0;
+			kpress[(ksym & 0xff)] = ksym_uni;
+			if (ksym_uni)
+				ksym = ksym_uni;
+			else if (event.key.keysym.mod & KMOD_SHIFT)
 				ksym |= KEYSYM_MOD_SHIFT;
 			if (event.key.keysym.mod & KMOD_CTRL)
 				ksym |= KEYSYM_MOD_CTRL;
@@ -3453,7 +3460,7 @@ gg:
 			if (gg >= 3) {
 				int ret;
 
-				ret = handle_prompt(&event.key.keysym, megad);
+				ret = handle_prompt(ksym, ksym_uni, megad);
 				if (ret & PROMPT_RET_ERROR) {
 					// XXX
 					handle_prompt_complete_clear();
@@ -3484,7 +3491,7 @@ gg:
 				continue;
 			}
 			else if (gg)
-				switch (kb_input(&input, &event.key.keysym)) {
+				switch (kb_input(&input, ksym, ksym_uni)) {
 					unsigned int errors;
 					unsigned int applied;
 					unsigned int reverted;
@@ -3549,7 +3556,7 @@ gg:
 			pd_graphics_update(true);
 		case SDL_VIDEOEXPOSE:
 			if (gg >= 3)
-				handle_prompt(NULL, megad);
+				handle_prompt(0, 0, megad);
 			else
 				stop_events_msg(~0u, buf);
 			break;
@@ -3573,8 +3580,9 @@ gg_resume:
 // interface.
 int pd_handle_events(md &megad)
 {
-  SDL_Event event;
-  int ksym;
+	SDL_Event event;
+	uint16_t ksym_uni;
+	intptr_t ksym;
 
 #ifdef WITH_DEBUGGER
 	if (megad.debug_trap)
@@ -3650,9 +3658,18 @@ int pd_handle_events(md &megad)
 		break;
 #endif // WITH_SDL_JOYSTICK
 	case SDL_KEYDOWN:
-	  ksym = event.key.keysym.sym;
+		ksym = event.key.keysym.sym;
+		ksym_uni = event.key.keysym.unicode;
+		if ((ksym_uni < 0x20) ||
+		    ((ksym >= SDLK_KP0) && (ksym <= SDLK_KP_EQUALS)))
+			ksym_uni = 0;
+		kpress[(ksym & 0xff)] = ksym_uni;
+		if (ksym_uni)
+			ksym = ksym_uni;
+		else if (event.key.keysym.mod & KMOD_SHIFT)
+			ksym |= KEYSYM_MOD_SHIFT;
+
 	  // Check for modifiers
-	  if(event.key.keysym.mod & KMOD_SHIFT) ksym |= KEYSYM_MOD_SHIFT;
 	  if(event.key.keysym.mod & KMOD_CTRL) ksym |= KEYSYM_MOD_CTRL;
 	  if(event.key.keysym.mod & KMOD_ALT) ksym |= KEYSYM_MOD_ALT;
 	  if(event.key.keysym.mod & KMOD_META) ksym |= KEYSYM_MOD_META;
@@ -3856,39 +3873,65 @@ int pd_handle_events(md &megad)
 		break;
 	}
 	case SDL_KEYUP:
-	  ksym = event.key.keysym.sym;
-	  // Check for modifiers
-	  if(event.key.keysym.mod & KMOD_SHIFT) ksym |= KEYSYM_MOD_SHIFT;
-	  if(event.key.keysym.mod & KMOD_CTRL) ksym |= KEYSYM_MOD_CTRL;
-	  if(event.key.keysym.mod & KMOD_ALT) ksym |= KEYSYM_MOD_ALT;
-	  if(event.key.keysym.mod & KMOD_META) ksym |= KEYSYM_MOD_META;
-	  // The only time we care about key releases is for the controls
-	  if(ksym == pad1_up) megad.pad[0] |= 0x01;
-	  else if(ksym == pad1_down) megad.pad[0] |= 0x02;
-	  else if(ksym == pad1_left) megad.pad[0] |= 0x04;
-	  else if(ksym == pad1_right) megad.pad[0] |= 0x08;
-	  else if(ksym == pad1_a) megad.pad[0] |= 0x1000;
-	  else if(ksym == pad1_b) megad.pad[0] |= 0x10;
-	  else if(ksym == pad1_c) megad.pad[0] |= 0x20;
-	  else if(ksym == pad1_x) megad.pad[0] |= 0x40000;
-	  else if(ksym == pad1_y) megad.pad[0] |= 0x20000;
-	  else if(ksym == pad1_z) megad.pad[0] |= 0x10000;
-	  else if(ksym == pad1_mode) megad.pad[0] |= 0x80000;
-	  else if(ksym == pad1_start) megad.pad[0] |= 0x2000;
-
-	  else if(ksym == pad2_up) megad.pad[1] |= 0x01;
-	  else if(ksym == pad2_down) megad.pad[1] |= 0x02;
-	  else if(ksym == pad2_left) megad.pad[1] |= 0x04;
-	  else if(ksym == pad2_right) megad.pad[1] |= 0x08;
-	  else if(ksym == pad2_a) megad.pad[1] |= 0x1000;
-	  else if(ksym == pad2_b) megad.pad[1] |= 0x10;
-	  else if(ksym == pad2_c) megad.pad[1] |= 0x20;
-	  else if(ksym == pad2_x) megad.pad[1] |= 0x40000;
-	  else if(ksym == pad2_y) megad.pad[1] |= 0x20000;
-	  else if(ksym == pad2_z) megad.pad[1] |= 0x10000;
-	  else if(ksym == pad2_mode) megad.pad[1] |= 0x80000;
-	  else if(ksym == pad2_start) megad.pad[1] |= 0x2000;
-	  break;
+		ksym = event.key.keysym.sym;
+		ksym_uni = kpress[(ksym & 0xff)];
+		if ((ksym_uni < 0x20) ||
+		    ((ksym >= SDLK_KP0) && (ksym <= SDLK_KP_EQUALS)))
+			ksym_uni = 0;
+		kpress[(ksym & 0xff)] = 0;
+		if (ksym_uni)
+			ksym = ksym_uni;
+		// The only time we care about key releases is for the
+		// controls, but ignore key modifiers so they never get stuck.
+		if (ksym == (pad1_up & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x01;
+		else if (ksym == (pad1_down & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x02;
+		else if (ksym == (pad1_left & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x04;
+		else if (ksym == (pad1_right & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x08;
+		else if (ksym == (pad1_a & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x1000;
+		else if (ksym == (pad1_b & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x10;
+		else if (ksym == (pad1_c & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x20;
+		else if (ksym == (pad1_x & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x40000;
+		else if (ksym == (pad1_y & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x20000;
+		else if (ksym == (pad1_z & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x10000;
+		else if (ksym == (pad1_mode & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x80000;
+		else if (ksym == (pad1_start & ~KEYSYM_MOD_MASK))
+			megad.pad[0] |= 0x2000;
+		else if (ksym == (pad2_up & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x01;
+		else if (ksym == (pad2_down & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x02;
+		else if (ksym == (pad2_left & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x04;
+		else if (ksym == (pad2_right & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x08;
+		else if (ksym == (pad2_a & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x1000;
+		else if (ksym == (pad2_b & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x10;
+		else if (ksym == (pad2_c & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x20;
+		else if (ksym == (pad2_x & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x40000;
+		else if (ksym == (pad2_y & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x20000;
+		else if (ksym == (pad2_z & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x10000;
+		else if (ksym == (pad2_mode & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x80000;
+		else if (ksym == (pad2_start & ~KEYSYM_MOD_MASK))
+			megad.pad[1] |= 0x2000;
+		break;
 	case SDL_QUIT:
 	  // We've been politely asked to exit, so let's leave
 	  return 0;
