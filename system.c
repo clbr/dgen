@@ -967,7 +967,8 @@ void complete_path_free(char **cp)
 	free_pppc(&cp, 0);
 }
 
-char *backslashify(const uint8_t *src, size_t size, unsigned int flags)
+char *backslashify(const uint8_t *src, size_t size, unsigned int flags,
+		   size_t *pos)
 {
 	char *dst = NULL;
 	char *tmp;
@@ -1038,7 +1039,15 @@ again:
 		}
 		if (dst != NULL)
 			strncpy(&dst[j], tmp, strlen(tmp));
+		if ((pos != NULL) && (i == *pos)) {
+			*pos = j;
+			pos = NULL;
+		}
 		j += strlen(tmp);
+	}
+	if ((pos != NULL) && (i == *pos)) {
+		*pos = j;
+		pos = NULL;
 	}
 	if (dst == NULL) {
 		dst = malloc(j + 1);

@@ -128,7 +128,8 @@ static inline size_t strcommon(const char *s1, const char *s2)
 
 #define BACKSLASHIFY_NOQUOTES 0x0001
 
-extern char *backslashify(const uint8_t *src, size_t size, unsigned int flags);
+extern char *backslashify(const uint8_t *src, size_t size, unsigned int flags,
+			  size_t *pos);
 
 extern size_t utf8u32(uint32_t *u32, const uint8_t *u8);
 extern size_t utf32u8(uint8_t *u8, uint32_t u32);

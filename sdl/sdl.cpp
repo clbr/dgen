@@ -2922,7 +2922,8 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		if (rs->val == NULL)
 			stop_events_msg(~0u, "%s has no value", rc->fieldname);
 		else if ((s = backslashify((const uint8_t *)rs->val,
-					   strlen(rs->val), 0)) != NULL) {
+					   strlen(rs->val), 0,
+					   NULL)) != NULL) {
 			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
 			free(s);
 		}
@@ -3039,6 +3040,7 @@ static int handle_prompt_complete(class md& md, bool rwd)
 {
 	struct prompt_parse pp;
 	struct prompt *p = &prompt.status;
+	size_t prompt_common = 0; // escaped version of prompt.common
 	unsigned int skip;
 	size_t i;
 	const char *arg;
@@ -3052,7 +3054,7 @@ static int handle_prompt_complete(class md& md, bool rwd)
 	if (pp.index == 0) {
 		const char *cs = NULL;
 		const char *cm = NULL;
-		unsigned int common;
+		size_t common;
 		unsigned int tmp;
 
 		assert(prompt.complete == NULL);
@@ -3116,11 +3118,13 @@ static int handle_prompt_complete(class md& md, bool rwd)
 		}
 	complete_cmd_found:
 		++prompt.skip;
-		s = backslashify((const uint8_t *)cs, strlen(cs), 0);
+		s = backslashify((const uint8_t *)cs, strlen(cs), 0, &common);
 		if (s == NULL)
 			goto end;
-		if (common != ~0u)
+		if (common != ~0u) {
 			prompt.common = common;
+			prompt_common = common;
+		}
 		goto replace;
 	}
 	// Complete function arguments.
@@ -3136,7 +3140,9 @@ static int handle_prompt_complete(class md& md, bool rwd)
 					   pp.cursor);
 		if (t == NULL)
 			goto end;
-		s = backslashify((const uint8_t *)t, strlen(t), 0);
+		prompt_common = prompt.common;
+		s = backslashify((const uint8_t *)t, strlen(t), 0,
+				 &prompt_common);
 		free(t);
 		if (s == NULL)
 			goto end;
@@ -3182,10 +3188,13 @@ static int handle_prompt_complete(class md& md, bool rwd)
 						goto rc_rom_path_retry;
 					}
 				}
-				else
+				else {
+					prompt_common = prompt.common;
 					s = backslashify
 						((const uint8_t *)ret[i],
-						 strlen(ret[i]), 0);
+						 strlen(ret[i]), 0,
+						 &prompt_common);
+				}
 			}
 		}
 		// Numbers.
@@ -3230,10 +3239,10 @@ static int handle_prompt_complete(class md& md, bool rwd)
 replace:
 	prompt_replace(p, pp.argo[pp.index].pos, pp.argo[pp.index].len,
 		       (const uint8_t *)s, strlen(s));
-	if (prompt.common) {
+	if (prompt_common) {
 		unsigned int cursor;
 
-		cursor = (pp.argo[pp.index].pos + prompt.common);
+		cursor = (pp.argo[pp.index].pos + prompt_common);
 		if (cursor > p->history[(p->current)].length)
 			cursor = p->history[(p->current)].length;
 		if (cursor != p->cursor) {
@@ -3366,8 +3375,8 @@ static int handle_prompt(uint32_t ksym, uint16_t ksym_uni, md& megad)
 		handle_prompt_complete_clear();
 		sz = utf32u8(c, ksym_uni);
 		if ((sz != 0) &&
-		    ((s = backslashify(c, sz,
-				       BACKSLASHIFY_NOQUOTES)) != NULL)) {
+		    ((s = backslashify(c, sz, BACKSLASHIFY_NOQUOTES,
+				       NULL)) != NULL)) {
 			size_t i;
 
 			for (i = 0; (i != strlen(s)); ++i)

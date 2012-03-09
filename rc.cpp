@@ -227,7 +227,7 @@ char *dump_keysym(intptr_t k)
 	utf32u8((uint8_t *)&buf[l], k);
 	l += n;
 found:
-	return backslashify((uint8_t *)buf, l, 0);
+	return backslashify((uint8_t *)buf, l, 0, NULL);
 }
 
 /* Parse a boolean value.
@@ -721,7 +721,7 @@ void dump_rc(FILE *file)
 			if ((rs->val == NULL) ||
 			    ((s = backslashify
 			      ((const uint8_t *)rs->val,
-			       strlen(rs->val), 0)) == NULL))
+			       strlen(rs->val), 0, NULL)) == NULL))
 				fprintf(file, "\"\"");
 			else {
 				fprintf(file, "\"%s\"", s);
