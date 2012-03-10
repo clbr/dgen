@@ -2240,7 +2240,7 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
 	SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
 	// Set the titlebar.
-	SDL_WM_SetCaption("DGen " VER, "DGen " VER);
+	SDL_WM_SetCaption("DGen/SDL " VER, "DGen/SDL " VER);
 	// Hide the cursor.
 	SDL_ShowCursor(0);
 	// Initialize screen.
