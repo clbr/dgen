@@ -1,4 +1,4 @@
-.Dd Febuary 01, 2012
+.Dd March 10, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -35,6 +35,8 @@ A boolean value. "false", "no", and "0" values are taken as false, while
 "true", "yes", and any number except 0 are taken as true.
 .It Ar int_*
 An integer value, greater than or equal to 0.
+.It Ar str_*
+A string value, can be empty.
 .El
 .Pp
 Some fields take special value sets, which are addressed in their respective
@@ -42,6 +44,9 @@ sections. None of the field names or values are case-sensitive.
 .Pp
 The fields fall under a few basic groups. They are listed below, with their
 default values in brackets ([]):
+.Pp
+All of them can be modified interactively from the prompt, as described in
+.Xr dgen 1 .
 .Sh CONTROLLERS
 .Bl -tag -width xxxx
 .It key_pad1_up [up]
@@ -58,7 +63,7 @@ default values in brackets ([]):
 .It key_pad1_start [return]
 Map keys to the first Genesis controller. Each of these fields has a
 corresponding "key_pad2" field, to map to the second controller.
-.It bool_joystick [false]
+.It bool_joystick [true]
 Use joysticks to emulate the controllers. Note that the keyboard keys will
 still work if this value is set. This field is only available if you have
 joystick support enabled.
@@ -87,18 +92,22 @@ rate is how many of them are played every second). Specifying 0 automatically
 choses the safest value. If you experience sound issues int_soundsegs is
 unable to solve, try to change this. Increasing it will cause noticeable audio
 lag (it is unfortunately often required on slower machines).
+.It int_volume [100]
+Volume level, in percent. Values above 100 cause distorsion.
+.It key_volume_inc [=]
+.It key_volume_dec [-]
+Key bindings for volume control.
 .El
 .Sh VIDEO
 .Bl -tag -width xxxx
 .It int_depth [0]
 Color depth (bits per pixel). Allowed values are 0 (automatic), 8, 15, 16, 24
 and 32. Ignored in OpenGL mode.
+.It int_width [-1]
+.It int_height [-1]
+Desired window width and height.
 .It bool_opengl [true]
 Use the OpenGL renderer, if it is available.
-.It int_opengl_width [640]
-The width of the OpenGL window to use.
-.It int_opengl_height [480]
-The height of the OpenGL window to use.
 .It bool_opengl_aspect [true]
 Retain original aspect ratio when resizing OpenGL window.
 .It bool_opengl_linear [true]
@@ -106,18 +115,16 @@ Use GL_LINEAR for textures filtering instead of GL_NEAREST.
 .It bool_opengl_32bit [true]
 Use 32 bit textures. They require more memory but are usually faster than 16
 bit textures.
-.It bool_opengl_swap [false]
-Swap textures endianness. Sometimes useful when video output is located on a
-different system.
 .It bool_opengl_square [false]
 Use square textures. Wastes a lot of memory but may solve OpenGL
 initialization failures.
 .It bool_fullscreen [false]
 Try to run fullscreen, if possible.
-.It int_scale [1]
-Amount by which to scale the window from the default resolution. Setting this
-to 2 will double the dimensions of the window, 3 will triple it, and so on. It
-must be a positive integer.
+.It int_scale [-1]
+.It int_scale_x [-1]
+.It int_scale_y [-1]
+Amount by which to scale the rendered screen from the default resolution. See
+scaling filters.
 .It key_fullscreen_toggle [alt-enter]
 Key to toggle fullscreen mode (this may do nothing if SDL doesn't support
 fullscreen toggling on your platform.)
@@ -126,6 +133,12 @@ Height of the text area at the bottom of the screen, in pixels. This also
 affects the font size. Values smaller than the minimum font size make DGen
 redirect text to stdout instead. The default value of -1 makes DGen choose the
 proper height.
+.It bool_fps [false]
+Display the current number of frames per second.
+.It bool_swab [false]
+Swap bytes in the video output. Sometimes useful when video output is located
+on a different system. This is implemented as a CTV filter which must be
+compiled-in to work.
 .El
 .Sh SAVE STATES
 .Bl -tag -width xxxx
@@ -143,7 +156,7 @@ Fixes the checksum value. Some older games will freeze with a red screen if
 the ROM has been hacked or modified with Game Genie codes. If it does, pressing
 this, and resetting should fix the problem.
 .It key_quit [escape]
-Exit DGen.
+Exit DGen or switch to the next ROM on the command-line.
 .It key_craptv_toggle [f5]
 Toggles Crap-TV image filters. These filters aren't available in 8 bpp mode.
 .It key_scaling_toggle [f6]
@@ -164,9 +177,21 @@ Pause emulation, so you can concentrate on real life for a few seconds. :)
 Enter a Game Genie or Hex code. This key also works in stopped mode.
 .It key_screenshot [f12]
 Take a screenshot. Not available in 8 bpp mode.
+.It key_prompt [:]
+Pause emulation and display interactive prompt. Also works in stopped mode.
+.It key_debug_enter [`]
+Break into the debugger. Only meaningful if debugger support is compiled-in.
 .El
 .Sh PREFERENCES
 .Bl -tag -width xxxx
+.It int_hz [60]
+Video refresh rate. The default is 60 as in NTSC consoles.
+.It bool_pal [false]
+When true, a PAL console is emulated. This should be used in combination with
+int_hz above for 50Hz emulation.
+.It region [U]
+Region to emulate: U for America, E for Europe or J for Japan. Should be used
+in combination with bool_pal.
 .It emu_m68k_startup [musa]
 Useful when both Musashi and StarScream are compiled-in. This option selects
 the default emulator to use ("musa" for Musashi, "star" for StarScream, "none"
@@ -181,6 +206,9 @@ Automatically load the saved state from slot 0 when DGen starts.
 Automatically save the saved state to slot 0 upon exit. Setting both of these
 fields true, you can exit DGen, and automatically start a game where you left
 off when you start it again.
+.It bool_autoconf [true]
+Automatically dump the current configuration to dgenrc.auto before
+exiting. This file is always loaded before dgenrc at startup.
 .It bool_frameskip [true]
 Automatically skip frames, when it is necessary to maintain proper emulation
 speed. You may want to disable sound or set int_nice to a nonzero
@@ -193,11 +221,11 @@ after rendering each frame. This will slow the program down (if it is running
 too fast on your computer), and allow the operating system to reclaim some
 CPU time.
 .It ctv_craptv_startup [off]
-CTV filter to use by default. Available filters are "blur", "scanline"
-and "interlace".
+CTV filter to use by default. Available filters are "blur", "scanline",
+"interlace" and "swab".
 .It scaling_startup [default]
 Scaling algorithm to use when (int_scale > 1). Available algorithms are
-"default" and "hqx".
+"default", "hqx" and "scale2x".
 Algorithms other than "default" may not work for all possible depths
 and int_scale values. They are also more CPU-intensive but it's
 usually worthwhile.
@@ -205,6 +233,9 @@ usually worthwhile.
 Show cartridge header info at startup.
 .It bool_raw_screenshots [false]
 Generate unfiltered screenshots.
+.It str_rom_path ["roms"]
+Directory where DGen should look for ROMs by default. It's relative to DGen's
+home directory, unless an absolute path is provided.
 .El
 .Sh EXAMPLES
 See the file "sample.dgenrc" in the DGen/SDL distribution.
@@ -213,6 +244,9 @@ A key identifier can have the prefixes "shift-", "ctrl-", "alt-" and "meta-",
 or any combination thereof, to require that the specified modifier be pressed
 in combination with the key. For example, the identifier "alt-enter" would
 correspond to holding down the Alt key while pressing Enter.
+.Pp
+The "shift-" modifier only works with keys that don't generate symbols (such
+as arrow keys). Otherwise their UTF-8 representation must be used directly.
 .Pp
 The numbers "0" through "9" ("kp_0" through "kp_9" for the numeric keypad),
 letters "A" through "Z", and function keys "F1" through "F12" map to their key
@@ -265,18 +299,6 @@ kp_divide
 kp_minus
 kp_multiply
 kp_plus
-
-`	~
--	_
-=	+
-\\	|
-[	{
-]	}
-:	;
-\'	"
-,	<
-\&.	>
-/	?
 .Ed
 .Sh SEE ALSO
 .Xr dgen 1

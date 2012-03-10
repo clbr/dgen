@@ -54,7 +54,7 @@ key_pad2_start = kp_enter
 # Fix checksum, needed by some games with Game Genie codes
 key_fix_checksum = f1
 
-# Quit dgen
+# Quit DGen or switch to the next ROM on the command-line.
 key_quit = escape
 # Toggle crap-tv
 key_craptv_toggle = f5
@@ -77,8 +77,14 @@ key_z80_toggle = f10
 # This pauses emulation :)
 key_stop = z
 
+# Display interactive prompt.
+key_prompt = :
+
 # This prompts for a Game Genie code.
 key_game_genie = f9
+
+# Press this to break into the debugger.
+key_debug_enter = `
 
 # Pick save slot
 key_slot_0 = 0
@@ -103,6 +109,7 @@ key_debug_enter = `
 #  blur      - Blur bitmap (this is the CTV from older versions)
 #  scanline  - Attenuate every other scanline, by Phillip K. Hornung <redx@pknet.com>
 #  interlace - Unstable crappy television (I had one that looked like this ;), by me!
+#  swab      - Swap video output endianness.
 ctv_craptv_startup = off
 
 # M68K and Z80 cores to use at startup.
@@ -114,12 +121,20 @@ emu_z80_startup = cz80
 bool_autoload = no
 bool_autosave = no
 
+# When true, automatically dump the current configuration to dgenrc.auto before
+# exiting. This file is always loaded before dgenrc at startup.
+bool_autoconf = yes
+
 # Skip frames to keep time? (faster, but can make things look bad)
 # This doesn't matter if you have sound enabled, since the sound code has its
 # own frameskipping
 bool_frameskip = yes
 # Show cartridge header info at startup.
 bool_show_carthead = no
+
+# Directory where DGen should look for ROMs by default. It's relative to
+# DGen's home directory, unless an absolute path is provided.
+str_rom_path = "roms"
 
 # Sound?
 bool_sound = yes
@@ -136,36 +151,64 @@ int_soundsegs = 8
 # machines).
 int_soundsamples = 0
 
+# Volume level, in percent.
+int_volume = 100
+
+# Volume control.
+key_volume_inc = '='
+key_volume_dec = '-'
+
 # This is how many microseconds DGen should sleep every frame. Even little
 # amounts can decrease CPU overhead significantly, and the default of 20
 # doesn't hurt performance terribly. Of course, set it to 0 if you don't
 # mind DGen eating all your CPU (like me ;)
 int_nice = 0
 
+# Desired window width and height.
+int_width = -1
+int_height = -1
+
 # Color depth (bits per pixel). Allowed values are 0 (automatic), 8, 15, 16,
 # 24 and 32. Ignored in OpenGL mode.
 int_depth = 0
 
+# Video refresh rate. The default is 60 as in NTSC consoles.
+int_hz = 60
+
+# When true, a PAL console is emulated. This should be used in combination
+# with int_hz above for 50Hz emulation.
+bool_pal = false
+
+# Region to emulate: U for America, E for Europe or J for Japan. Should be
+# used in combination with bool_pal.
+region = U
+
 # Run fullscreen?
 bool_fullscreen = no
 
-# If you want to increase the size of the window, increase this value.
-# It currently must be a whole number.
-int_scale = 1
+# If you want to increase the size of the rendered screen, increase this value.
+# It currently must be a whole number. See scaling filters.
+int_scale = -1
+int_scale_x = -1
+int_scale_y = -1
 
-# Algorithm to use when int_scale > 1. Currently either "default" or "hqx".
+# Display the current number of frames per second.
+bool_fps = false
+
+# Swap bytes in the video output.
+bool_swab = false
+
+# Algorithm to use when int_scale > 1.
+# Choose between "default", "hqx" and "scale2x".
 scaling_startup = default
 
 # Use a joystick?
-bool_joystick = no
+bool_joystick = yes
 int_joystick1_dev = 0
 int_joystick2_dev = 1
 
 # Use OpenGL mode?
 bool_opengl = yes
-# Set these to the resolution you want to run OpenGL mode in.
-int_opengl_width = 640
-int_opengl_height = 480
 
 # Retain original aspect ratio when resizing OpenGL window.
 bool_opengl_aspect = true
@@ -176,10 +219,6 @@ bool_opengl_linear = true
 # Use 32 bit textures. They require more memory but are usually faster than
 # 16 bit textures.
 bool_opengl_32bit = true
-
-# Swap textures endianness. Sometimes useful when video output is located on a
-# different system.
-bool_opengl_swap = false
 
 # Use a square OpenGL texture. Wastes memory.
 bool_opengl_square = false
