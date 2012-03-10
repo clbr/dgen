@@ -42,6 +42,12 @@
 #include "hqx.h"
 #endif
 
+#ifdef WITH_SCALE2X
+extern "C" {
+#include "scalebit.h"
+}
+#endif
+
 // Generic type for supported depths.
 typedef union {
 	uint32_t *u32;
@@ -1298,6 +1304,56 @@ skip:
 
 #endif // WITH_HQX
 
+#ifdef WITH_SCALE2X
+
+static void rescale_scale2x(bpp_t dst, unsigned int dst_pitch,
+			    bpp_t src, unsigned int src_pitch,
+			    unsigned int xsize, unsigned int xscale,
+			    unsigned int ysize, unsigned int yscale,
+			    unsigned int bpp)
+{
+	switch (bpp) {
+	case 32:
+	case 16:
+	case 15:
+		break;
+	default:
+		goto skip;
+	}
+	switch (xscale) {
+	case 2:
+		switch (yscale) {
+		case 2:
+			break;
+		case 3:
+			xscale = 203;
+			break;
+		case 4:
+			xscale = 204;
+			break;
+		default:
+			goto skip;
+		}
+		break;
+	case 3:
+	case 4:
+		if (xscale != yscale)
+			goto skip;
+		break;
+	default:
+		goto skip;
+	}
+	scale(xscale, dst.u32, dst_pitch, src.u32, src_pitch,
+	      BITS_TO_BYTES(bpp), xsize, ysize);
+	return;
+skip:
+	rescale_any(dst, dst_pitch, src, src_pitch,
+		    xsize, xscale, ysize, yscale,
+		    bpp);
+}
+
+#endif // WITH_SCALE2X
+
 #ifdef WITH_CTV
 
 // "Blur" CTV filters.
@@ -1660,6 +1716,9 @@ static const struct scaling scaling_list[] = {
 	{ "default", rescale_any },
 #ifdef WITH_HQX
 	{ "hqx", rescale_hqx },
+#endif
+#ifdef WITH_SCALE2X
+	{ "scale2x", rescale_scale2x },
 #endif
 	{ NULL, NULL }
 };

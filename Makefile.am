@@ -106,6 +106,18 @@ dgen_SOURCES +=			\
 	hqx/src/common.h
 endif
 
+# scale2x
+if WITH_SCALE2X
+AM_CPPFLAGS += -I$(top_srcdir)/scale2x
+dgen_SOURCES +=			\
+	scale2x/scale2x.c	\
+	scale2x/scale2x.h	\
+	scale2x/scale3x.c	\
+	scale2x/scale3x.h	\
+	scale2x/scalebit.c	\
+	scale2x/scalebit.h
+endif
+
 if WITH_X86_TILES
 dgen_SOURCES += x86_tiles.asm
 endif

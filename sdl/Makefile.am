@@ -8,6 +8,7 @@ EXEEXT_FOR_BUILD=@EXEEXT_FOR_BUILD@
 
 AM_CPPFLAGS = -I$(top_srcdir) @SDL_CFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/hqx/src -DHQX_NO_CALLCONV -DHQX_NO_API
+AM_CPPFLAGS += -I$(top_srcdir)/scale2x
 
 SUFFIXES = .pbm
 
