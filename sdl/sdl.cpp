@@ -341,9 +341,13 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	extern int slot;
 	extern void ram_save(class md&);
 	extern void ram_load(class md&);
+	char *s;
 
 	if (ac != 2)
 		return CMD_EINVAL;
+	s = backslashify((const uint8_t *)av[1], strlen(av[1]), 0, NULL);
+	if (s == NULL)
+		return CMD_FAIL;
 	ram_save(md);
 	if (dgen_autosave) {
 		slot = 0;
@@ -353,10 +357,12 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	pd_message("");
 	if (md.load(av[1])) {
 		mdscr_splash();
-		stop_events_msg(~0u, "Unable to load \"%s\"", av[1]);
+		stop_events_msg(~0u, "Unable to load \"%s\"", s);
+		free(s);
 		return (CMD_FAIL | CMD_MSG);
 	}
-	stop_events_msg(~0u, "Loaded \"%s\"", av[1]);
+	stop_events_msg(~0u, "Loaded \"%s\"", s);
+	free(s);
 	if (dgen_show_carthead)
 		pd_show_carthead(md);
 	// Initialize like main() does.
