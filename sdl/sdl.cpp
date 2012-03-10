@@ -2591,18 +2591,24 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 	va_end(vl);
 	buf[(sizeof(buf) - 1)] = '\0';
 	disp_len = font_text_len(screen.width, screen.info_height);
-	if ((disp_len > len) || (mark < disp_len)) {
-		pd_message_display(buf, len, mark, true);
-		return;
-	}
 	if (mark > len) {
-		mark -= (len - disp_len);
-		pd_message_display(&buf[(len - disp_len)], disp_len, mark,
-				   true);
+		if (len <= disp_len)
+			pd_message_display(buf, len, ~0u, true);
+		else
+			pd_message_display(&(buf[(len - disp_len)]), disp_len,
+					   ~0u, true);
 		return;
 	}
-	pd_message_display(&buf[((mark - disp_len) + 1)], disp_len,
-			   (mark - ((mark - disp_len) + 1)), true);
+	if (len <= disp_len)
+		pd_message_display(buf, len, mark, true);
+	else if (len == mark)
+		pd_message_display(&buf[((len - disp_len) + 1)],
+				   disp_len, (disp_len - 1), true);
+	else if ((len - mark) < disp_len)
+		pd_message_display(&buf[(len - disp_len)], disp_len,
+				   (mark - (len - disp_len)), true);
+	else
+		pd_message_display(&buf[mark], disp_len, 0, true);
 }
 
 // Rehash rc vars that require special handling (see "SH" in rc.cpp).
