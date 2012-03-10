@@ -3,6 +3,59 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.30 <- v1.29
+ * Screenshots can be taken either from the raw MD video output or the
+   rendered screen (now the default) using bool_raw_screenshot.
+ * Fixed 24 bpp (3 Bpp) video output on little endian machines. 15 bpp mode
+   was also broken and has been fixed, even if no one use this.
+ * Improved MinGW (Windows) support. There is now a -m option to prevent
+   it from detaching from its console during startup.
+ * Fixed buggy automatic info bar font size.
+ * Internal debugging can be enabled with --enable-debug.
+ * Major video initialization refactoring which among other things allows
+   the screen to be reconfigured on the fly.
+ * Improved archived ROMs support. DGen/SDL is now able to read ZIP files
+   properly.
+ * OpenGL: lower CPU usage somewhat using different texture parameters
+   and dropping byte swapping support.
+ * Support any number of ROMs on the command-line. DGen switches to the
+   next one instead of exiting.
+ * Implement a prompt to interactively configure DGen and issue commands
+   (load and unload ROM files for instance, which was previously not
+   possible). This prompt supports history, completion and line editing.
+ * Keys can now be unbound using empty definitions.
+ * Added RC variables for video Hz, PAL mode and region configuration.
+ * Rendered screen is now scaled by a factor of 2 by default.
+ * Fixed joystick issues. bool_joystick is also enabled by default.
+ * The default ROM path can be configured using str_rom_path.
+ * When OpenGL fails to initialize, DGen fallbacks to non-OpenGL instead
+   of exiting.
+ * Added CTV filter "swab" to replace bool_opengl_swap. It can be enabled
+   using bool_swab.
+ * Added volume control keys and RC variable int_volume.
+ * Added bool_autoconf. This enables DGen to save its current configuration
+   to dgenrc.auto before exiting. Editing dgenrc directly isn't necessary
+   anymore.
+ * Added splash screen so DGen has something other than a black screen to
+   display when no ROM is loaded.
+ * Added debugger support. This debugger fully supports M68K watch points,
+   break points, memory dumping, registers dumping and disassembly, but can
+   currently only dump Z80 registers. It's available when compiled with
+   --enable-debugger and is triggered by pressing "`".
+ * CTV filters can now be stacked. This stack is managed using the commands
+   "ctv_push", "ctv_pop" and "ctv_none" at the prompt.
+ * Added FPS counter. Can be enabled with bool_fps.
+ * hqx: fixed 16 bpp and added 24 bpp support to hq2x, added 16 bpp and 24 bpp
+   support to hq3x and hq4x. hqx has also been entirely refactored.
+ * hqx initialization isn't done at startup anymore, only when hqx is enabled.
+ * Added support for non-QWERTY keyboards. Keyboard symbols are now the same
+   as those used in the configuration file. Non-ASCII symbols must be entered
+   in UTF-8. The shift modifier cannot be used with keys that generate symbols
+   anymore.
+ * Imported scale2x filters. These filters are much faster than hqx and also
+   look pretty nice. They are available for 15, 16 and 32 bpp.
+ * Many other minor bugfixes as usual.
+
 v1.29 <- v1.28
  * Reduced CPU consumption.
  * Prevented CZ80 from crashing when handling invalid code.
