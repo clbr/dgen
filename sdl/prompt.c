@@ -583,8 +583,8 @@ void prompt_replace(struct prompt *p, unsigned int pos,
 	dest = &ph->line[pos];
 	dest_len = (ph->length - pos);
 	dest_maxlen = (sizeof(ph->line) - pos);
-	if (len > dest_maxlen)
-		len = dest_maxlen;
+	if (len > dest_len)
+		len = dest_len;
 	if (with_len > dest_maxlen)
 		with_len = dest_maxlen;
 	if (with_len > len) {
@@ -592,17 +592,13 @@ void prompt_replace(struct prompt *p, unsigned int pos,
 
 		if ((dest_len + inc) > dest_maxlen)
 			dest_len = (dest_maxlen - inc);
-		else
-			ph->length += inc;
+		ph->length += inc;
 		memmove(&dest[with_len], &dest[len], dest_len);
 	}
 	else if (with_len < len) {
 		unsigned int dec = (len - with_len);
 
-		if (dec > ph->length)
-			ph->length = pos;
-		else
-			ph->length -= dec;
+		ph->length -= dec;
 		memmove(&dest[with_len], &dest[len], dest_len);
 	}
 	memcpy(dest, with, with_len);
