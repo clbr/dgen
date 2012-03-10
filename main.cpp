@@ -98,9 +98,6 @@ static void help()
   "    -d DEMONAME     Record a demo of the game you are playing.\n"
   "    -D DEMONAME     Play back a previously recorded demo.\n"
   "    -s SLOT         Load the saved state from the given slot at startup.\n"
-#ifdef WITH_JOYSTICK
-  "    -j              Use joystick if detected.\n"
-#endif
 #ifdef __MINGW32__
   "    -m              Do not detach from console.\n"
 #endif
@@ -234,9 +231,6 @@ int main(int argc, char *argv[])
 
   // Check all our options
   snprintf(temp, sizeof(temp), "%s%s",
-#ifdef WITH_JOYTSICK
-	   "j"
-#endif
 #ifdef __MINGW32__
 	   "m"
 #endif
@@ -306,12 +300,6 @@ int main(int argc, char *argv[])
 			dgen_hz = (dgen_pal ? 50 : 60);
 		}
 		break;
-#ifdef WITH_JOYSTICK
-	case 'j':
-	  // Phil's joystick code
-	  dgen_joystick = 1;
-	  break;
-#endif
 #ifdef __MINGW32__
 	case 'm':
 		dgen_mingw_detach = 0;
