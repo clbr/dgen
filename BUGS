@@ -58,8 +58,16 @@ Sprites sometimes visible behind hills.
 - Thunder force 3
 Main weapon sound is bad.
 
+- Thunder force 4
+Corrupt intro, sprites priority issues.
+
 - Viewpoint
 Menu background is mangled.
+
+- Sonic 3
+The Sonic 3 gumball bonus stage has some graphics problems. Get 50 rings and
+jump into the stars above a lamp-post and play the special stage for a bit --
+the bug is pretty obvious.
 
 Non-working (must be fixed)
 ---------------------------
@@ -75,9 +83,6 @@ Sprites colors are wrong, crashes when trying to start a game.
 
 - Sub Terrania
 Crashes when starting a game.
-
-- Thunder force 4
-Blank screen.
 
 - Zool
 EA intro is mangled, then the game freezes.
