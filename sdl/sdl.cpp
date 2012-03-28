@@ -3688,7 +3688,10 @@ int pd_handle_events(md &megad)
 		    (pad = 1, event.jaxis.which != js_index[pad]))
 			break;
 		// x-axis
-		if (event.jaxis.axis == 0) {
+		if (event.jaxis.axis == js_map_axis[pad][0][0]) {
+			// reverse?
+			if (js_map_axis[pad][0][1])
+				event.jaxis.value = -event.jaxis.value;
 			if (event.jaxis.value < -16384) {
 				megad.pad[pad] &= ~0x04;
 				megad.pad[pad] |=  0x08;
@@ -3703,7 +3706,10 @@ int pd_handle_events(md &megad)
 			break;
 		}
 		// y-axis
-		else if (event.jaxis.axis == 1) {
+		if (event.jaxis.axis == js_map_axis[pad][1][0]) {
+			// reverse?
+			if (js_map_axis[pad][1][1])
+				event.jaxis.value = -event.jaxis.value;
 			if (event.jaxis.value < -16384) {
 				megad.pad[pad] &= ~0x01;
 				megad.pad[pad] |=  0x02;

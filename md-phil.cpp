@@ -13,6 +13,7 @@
 
 #include "md.h"
 #include "md-phil.h"
+#include "rc.h"
 
 // Default setup for Gravis GamePad Pro 10 button controllers.
 
@@ -29,8 +30,6 @@
 
 // Mappings are configurable via dgenrc.  Mappings are done from 0-16
 // Standard 2 button joysticks will only have buttons 0 and 1.  [PKH]
-
-extern int js_map_button [2][16];
 
 #ifdef WITH_LINUX_JOYSTICK
 #include <linux/joystick.h>
@@ -119,9 +118,12 @@ void md::read_joysticks()
 	    switch (js_ev.type & ~JS_EVENT_INIT)
 	    {
 	    case JS_EVENT_AXIS:
-		if (js_ev.number == 0)
+		if (js_ev.number == js_map_axis[i][0][0])
 		{
-		    if(js_ev.value < -16384)
+		    // reverse?
+		    if (js_map_axis[i][0][1])
+			js_ev.value = -js_ev.value;
+		    if (js_ev.value < -16384)
 		    {
 			pad[i] &= ~MD_LEFT_MASK;
 			pad[i] |= MD_RIGHT_MASK;
@@ -138,8 +140,11 @@ void md::read_joysticks()
 		    break;
 		}
 
-		if (js_ev.number == 1)
+		if (js_ev.number == js_map_axis[i][1][0])
 		{
+		    // reverse?
+		    if (js_map_axis[i][1][1])
+			js_ev.value = -js_ev.value;
 		    if (js_ev.value < -16384)
 		    {
 			pad[i] &= ~MD_UP_MASK;

@@ -68,5 +68,6 @@ struct rc_keysym {
 
 extern struct rc_keysym rc_keysyms[];
 extern intptr_t js_map_button[2][16];
+extern intptr_t js_map_axis[2][2][2];
 
 #endif // RC_H_

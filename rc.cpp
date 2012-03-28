@@ -141,6 +141,13 @@ intptr_t js_map_button[2][16] = {
     }
 };
 
+// X and Y for both controllers.
+intptr_t js_map_axis[2][2][2] = {
+	// { { X, reverse? }, { Y, reverse? } }
+	{ { 0, 0 }, { 1, 0 } },
+	{ { 0, 0 }, { 1, 0 } }
+};
+
 static const struct {
 	const char *name;
 	uint32_t flag;
@@ -472,6 +479,14 @@ struct rc_field rc_fields[] = {
   { "bool_joystick", rc_boolean, &dgen_joystick },
   { "int_joystick1_dev", rc_number, &dgen_joystick1_dev }, // SH
   { "int_joystick2_dev", rc_number, &dgen_joystick2_dev }, // SH
+  { "int_joystick1_axisX", rc_number, &js_map_axis[0][0][0] },
+  { "int_joystick1_axisY", rc_number, &js_map_axis[0][1][0] },
+  { "int_joystick2_axisX", rc_number, &js_map_axis[1][0][0] },
+  { "int_joystick2_axisY", rc_number, &js_map_axis[1][1][0] },
+  { "bool_joystick1_axisX", rc_boolean, &js_map_axis[0][0][1] },
+  { "bool_joystick1_axisY", rc_boolean, &js_map_axis[0][1][1] },
+  { "bool_joystick2_axisX", rc_boolean, &js_map_axis[1][0][1] },
+  { "bool_joystick2_axisY", rc_boolean, &js_map_axis[1][1][1] },
   { "joypad1_b0", rc_jsmap, &js_map_button[0][0] },
   { "joypad1_b1", rc_jsmap, &js_map_button[0][1] },
   { "joypad1_b2", rc_jsmap, &js_map_button[0][2] },
