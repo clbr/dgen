@@ -1,4 +1,4 @@
-.Dd March 10, 2012
+.Dd March 30, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -71,6 +71,17 @@ joystick support enabled.
 .It int_joystick2_dev [1]
 Select which joystick device to use. Parameter is an integer passed to
 .Fn SDL_JoystickOpen .
+.It int_joystick1_axisX [0]
+.It int_joystick1_axisY [1]
+.It int_joystick2_axisX [0]
+.It int_joystick2_axisY [1]
+Maps joystick axes. Default is 0 for X and 1 for Y. Useful for joysticks with
+more than two or switched axes.
+.It bool_joystick1_axisX [false]
+.It bool_joystick1_axisY [false]
+.It bool_joystick2_axisX [false]
+.It bool_joystick2_axisY [false]
+Enable this to reverse axes.
 .It joypadX_bY
 Maps button number Y, on joystick X to a Genesis controller button. Valid
 button values are "a", "b", "c", "x", "y", "z", "mode", and "start". Joystick

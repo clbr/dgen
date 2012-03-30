@@ -207,6 +207,18 @@ bool_joystick = yes
 int_joystick1_dev = 0
 int_joystick2_dev = 1
 
+# Joystick axes.
+int_joystick1_axisX = 0
+int_joystick1_axisY = 1
+int_joystick2_axisX = 0
+int_joystick2_axisY = 1
+
+# Don't reverse axes by default.
+bool_joystick1_axisX = false
+bool_joystick1_axisY = false
+bool_joystick2_axisX = false
+bool_joystick2_axisY = false
+
 # Use OpenGL mode?
 bool_opengl = yes
 
