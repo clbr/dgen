@@ -42,11 +42,21 @@
 #include "hqx.h"
 #endif
 
+#ifdef WITH_SDL_JOYSTICK
+extern int js_index[2];
+#endif
+
 #ifdef WITH_SCALE2X
 extern "C" {
 #include "scalebit.h"
 }
 #endif
+
+static void pd_message_process(void);
+static size_t pd_message_write(const char *msg, size_t len, unsigned int mark);
+static size_t pd_message_display(const char *msg, size_t len,
+				 unsigned int mark, bool update);
+static void pd_message_postpone(const char *msg);
 
 // Generic type for supported depths.
 typedef union {
@@ -284,6 +294,10 @@ static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 #endif
 
+#ifdef WITH_SDL_JOYSTICK
+static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
+#endif
+
 static const struct prompt_command prompt_command[] = {
 	{ "quit", prompt_cmd_exit, NULL },
 	{ "exit", prompt_cmd_exit, NULL },
@@ -298,6 +312,9 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
+#endif
+#ifdef WITH_SDL_JOYSTICK
+	{ "calibrate_js", prompt_cmd_calibrate_js, NULL },
 #endif
 	{ NULL, NULL, NULL }
 };
@@ -377,6 +394,85 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	}
 	return (CMD_OK | CMD_MSG);
 }
+
+#ifdef WITH_SDL_JOYSTICK
+#define MAX_JS_CALIBRATE_BUTS	7
+static int
+prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
+{
+	const char	*but_names[MAX_JS_CALIBRATE_BUTS] =
+			    {"A", "B", "C", "Start", "X", "Y", "Z"};
+	int		 captured[MAX_JS_CALIBRATE_BUTS] = {-1, -1, -1, -1};
+	SDL_Event	 event;
+	int		 but_no = 0, bailout = 0, js_no, pad_type = 6;
+
+	/* check args first */
+	if (n_args == 1)
+		js_no = 0;
+	else if (n_args == 2) {
+		js_no = atoi(args[1]) - 1;
+		if ((js_no < 0) || (js_no > 1))
+			return (CMD_EINVAL);
+	} else {
+		return (CMD_EINVAL);
+	}
+
+	/* repeatedly ask the user to press buttons */
+	while ((!bailout) && (but_no < MAX_JS_CALIBRATE_BUTS) && (SDL_WaitEvent(&event))) {
+
+		if (but_no == 4) {
+			pd_message("Press %s on joystick %d (escape to abort, "
+			    "press start again to use only 3 buttons)",
+			    but_names[but_no], js_no + 1);
+		} else {
+			pd_message("Press %s on joystick %d (escape to abort)",
+			    but_names[but_no], js_no + 1);
+		}
+
+		screen_update();
+
+		switch(event.type) {
+		case SDL_JOYBUTTONDOWN:
+			/* check they pressed on the right controller */
+			if (event.jaxis.which != js_index[js_no])
+				break;
+
+			/* if they only want 3 buttons */
+			if ((but_no == 4) &&  (event.jbutton.button == captured[3])) {
+				pad_type = 3;
+				while (but_no < MAX_JS_CALIBRATE_BUTS)
+					captured[but_no++] = 0;
+				break;
+			}
+			captured[but_no++] = event.jbutton.button;
+			break;
+		case SDL_KEYDOWN:
+			if (event.key.keysym.sym == SDLK_ESCAPE)
+				bailout = 1;
+			break;
+		};
+	}
+
+	if (bailout) {
+		pd_message("Aborted");
+		return (CMD_FAIL | CMD_MSG);
+	}
+
+	/* update mapping */
+	js_map_button[js_no][captured[0]] = MD_A_MASK;
+	js_map_button[js_no][captured[1]] = MD_B_MASK;
+	js_map_button[js_no][captured[2]] = MD_C_MASK;
+	js_map_button[js_no][captured[3]] = MD_START_MASK;
+	js_map_button[js_no][captured[4]] = MD_X_MASK;
+	js_map_button[js_no][captured[5]] = MD_Y_MASK;
+	js_map_button[js_no][captured[6]] = MD_Z_MASK;
+
+	pd_message("Calibration of (%d-button) joystick %d complete!",
+	    pad_type, js_no + 1);
+
+	return (CMD_OK | CMD_MSG);
+}
+#endif
 
 static void rehash_prompt_complete_common()
 {
@@ -2300,12 +2396,6 @@ void pd_graphics_palette_update()
 		SDL_SetColors(screen.surface, screen.color, 0, 64);
 }
 
-static void pd_message_process(void);
-static size_t pd_message_write(const char *msg, size_t len, unsigned int mark);
-static size_t pd_message_display(const char *msg, size_t len,
-				 unsigned int mark, bool update);
-static void pd_message_postpone(const char *msg);
-
 // Update screen
 void pd_graphics_update(bool update)
 {
@@ -3680,7 +3770,6 @@ int pd_handle_events(md &megad)
       switch(event.type)
 	{
 #ifdef WITH_SDL_JOYSTICK
-		extern int js_index[2];
 		int pad;
 
 	case SDL_JOYAXISMOTION:
