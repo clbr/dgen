@@ -14,6 +14,8 @@
 
 #define DBG_CONTEXT_M68K		0
 #define DBG_CONTEXT_Z80			1
+#define DBG_CONTEXT_YM2612		2
+#define DBG_CONTEXT_SN76489		3
 
 // break point
 struct dgen_bp {
@@ -36,6 +38,7 @@ extern int m68k_bp_hit;
 extern int m68k_wp_hit;
 
 extern "C" void		debug_init(void);
-extern "C" void debug_musa_callback(void);
+extern "C" void		debug_musa_callback(void);
+extern "C" void		debug_show_ym2612_regs(void); // fm.c
 
 #endif

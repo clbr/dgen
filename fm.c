@@ -5123,6 +5123,7 @@ int YM2612TimerOver(int n,int c)
 	return F2612->OPN.ST.irq;
 }
 
+/* Implemented by zamaz for dgen */
 void YM2612_dump(int num, uint8_t buf[512])
 {
 	YM2612 *F2612 = &(FM2612[num]);
@@ -5130,6 +5131,7 @@ void YM2612_dump(int num, uint8_t buf[512])
 	memcpy(buf, F2612->REGS, 512);
 }
 
+/* Implemented by zamaz for dgen */
 void YM2612_restore(int num, uint8_t buf[512])
 {
 	YM2612 *F2612 = &(FM2612[num]);
@@ -5152,4 +5154,236 @@ void YM2612_restore(int num, uint8_t buf[512])
 		OPNWriteReg(&F2612->OPN, (r | 0x100), buf[(r | 0x100)]);
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Everything below this line is for the debugger.
+// It can't be in debug.c because it needs the private structs defined here
+// ---------------------------------------------------------------------------
+
+#ifdef WITH_DEBUGGER
+
+/*
+ * I figure it is easier to extract the parameters directly rather
+ * than have to interpret the structs defined above
+ */
+
+/* global ym2612 registers (YMREG_*) */
+#define YMREG_LFO			0x22
+#define YMREG_TIMER_A1			0x24
+#define YMREG_TIMER_A2			0x25
+#define YMREG_TIMER_B			0x26
+#define YMREG_CH3_TIMERS		0x27
+#define YMREG_KEY			0x28
+#define YMREG_DAC			0x2a
+#define YMREG_DAC_ENABLE		0x2b
+#define YMREG_OP_SSG_EG			0x90
+
+/* per channel ym2612 registers (YMREG_CHAN_*) */
+#define YMREG_CHAN_FREQ1		0xa0
+#define YMREG_CHAN_FREQ2		0xa4
+#define YMREG_CHAN_CH3_OP1_FREQ1	0xa2
+#define YMREG_CHAN_CH3_OP1_FREQ2	0xa6
+#define YMREG_CHAN_CH3_OP2_FREQ1	0xa8
+#define YMREG_CHAN_CH3_OP2_FREQ2	0xac
+#define YMREG_CHAN_CH3_OP3_FREQ1	0xa9
+#define YMREG_CHAN_CH3_OP3_FREQ2	0xad
+#define YMREG_CHAN_CH3_OP4_FREQ1	0xaa
+#define YMREG_CHAN_CH3_OP4_FREQ2	0xae
+#define YMREG_CHAN_FBACK_ALGO		0xb0
+#define YMREG_CHAN_LR_AMS_FMS		0xb4
+
+/* per operator um2612 registers (YMREG_OP_*) */
+#define YMREG_OP_DT1_MUL		0x30
+#define YMREG_OP_TL			0x40
+#define YMREG_OP_RS_AR			0x50
+#define YMREG_OP_AM_D1R			0x60
+#define YMREG_OP_D2R			0x70
+#define YMREG_OP_D1L_RR			0x80
+#define YMREG_OP_SSG_EG			0x90
+
+/*
+ * Given a channel return the part (1 or 2) and the channel offset (1-3).
+ * Eg. Channel 5 is part 2 offset 1
+ */
+void
+debug_get_chan_part_and_offset(uint8_t chan, uint8_t *part, uint8_t *offs)
+{
+        if ((chan >= 1) && (chan <= 3)) {
+                *part = 1;
+        } else if (chan <= 6) {
+                *part = 2;
+        } else {
+                printf("%s: bad channel: %d\n", __func__, chan);
+                return;
+        }
+
+        *offs = (chan - 1) % 3;
+}
+
+#define DEBUG_PRINT_GLOBAL_VAL(r, v)	printf("  %-15s: 0x%02x\n", r, v);
+void debug_show_ym2612_global_regs(uint8_t regs[512])
+{
+	printf("ym2612 global registers:\n");
+
+	DEBUG_PRINT_GLOBAL_VAL("LFO Enable", (regs[YMREG_LFO] & 8) >> 3);
+	DEBUG_PRINT_GLOBAL_VAL("LFO Freq.", regs[YMREG_LFO] & 7);
+	DEBUG_PRINT_GLOBAL_VAL("Timer A", (regs[YMREG_TIMER_A1] & 0x3) | (regs[YMREG_TIMER_A2]));
+	DEBUG_PRINT_GLOBAL_VAL("Timer B", regs[YMREG_TIMER_B]);
+	DEBUG_PRINT_GLOBAL_VAL("Ch3 Mode",(regs[YMREG_CH3_TIMERS] & 0xa0) >> 6);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Reset B", (regs[YMREG_CH3_TIMERS] & 0x20) >> 5);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Reset A", (regs[YMREG_CH3_TIMERS] & 0x10) >> 4);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Enable B", (regs[YMREG_CH3_TIMERS] & 0x8) >> 3);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Enable A", (regs[YMREG_CH3_TIMERS] & 0x4) >> 2);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Load B", (regs[YMREG_CH3_TIMERS] & 0x2) >> 1);
+	DEBUG_PRINT_GLOBAL_VAL("Timer Load A", regs[YMREG_CH3_TIMERS] & 0x2);
+	DEBUG_PRINT_GLOBAL_VAL("Operator Enable", (regs[YMREG_KEY] & 0xf0) >> 4);
+	DEBUG_PRINT_GLOBAL_VAL("Key Enable", regs[YMREG_KEY] & 0xf);
+	DEBUG_PRINT_GLOBAL_VAL("DAC", regs[YMREG_DAC]);
+	DEBUG_PRINT_GLOBAL_VAL("DAC Enable", (regs[YMREG_DAC_ENABLE] & 0x80) >> 7);
+}
+
+/* get the address of one of the operator specific registers */
+uint8_t debug_get_opn_reg_addr(uint8_t reg, uint8_t ch, uint8_t op)
+{
+	uint8_t		part, ch_offset, addr;
+
+	if ((ch < 1) || (ch > 6)) {
+		printf("%s: bad channel: %u\n", __func__, ch);
+		return (0);
+	}
+
+	if ((op < 1) || (op > 4)) {
+		printf("%s: bad operator: %u\n", __func__, op);
+		return (0);
+	}
+
+	debug_get_chan_part_and_offset(ch, &part, &ch_offset);
+	addr = reg + ((op - 1) * 4) + ch_offset;
+
+	if (part > 1)
+		addr += 0x100; /* part 2 is stored in bytes 256 - 511 */
+
+	return addr;
+}
+
+/* show a single slot's (aka operator's) registers (many per channel) */
+#define DEBUG_PRINT_OP_VAL(r, v)	printf("      %-15s: 0x%02x\n", r, v);
+void debug_show_ym2612_operator_regs(uint8_t regs[512], uint8_t ch, uint8_t op)
+{
+	printf("\n    ym2612 channel %u operator %u registers:\n", ch, op);
+
+	DEBUG_PRINT_OP_VAL("Detune (DT1)",
+	    (regs[debug_get_opn_reg_addr(YMREG_OP_DT1_MUL, ch, op)] & 0x70) >> 4);
+	DEBUG_PRINT_OP_VAL("Multiplier (MUL)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_DT1_MUL, ch, op)] & 0xf);
+	DEBUG_PRINT_OP_VAL("Total Level (TL)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_TL, ch, op)] & 0x7f);
+	DEBUG_PRINT_OP_VAL("Rate Scaling (RS)",
+	    (regs[debug_get_opn_reg_addr(YMREG_OP_RS_AR, ch, op)] & 0xc0) >> 6);
+	DEBUG_PRINT_OP_VAL("Attack rate (AR)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_RS_AR, ch, op)] & 0x1f);
+	DEBUG_PRINT_OP_VAL("AM Enable (AM)",
+	    (regs[debug_get_opn_reg_addr(YMREG_OP_AM_D1R, ch, op)] & 0x80) >> 7);
+	DEBUG_PRINT_OP_VAL("First Decay Rate (D1R)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_AM_D1R, ch, op)] & 0x1f);
+	DEBUG_PRINT_OP_VAL("Second Decay Rate (D2R)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_D2R, ch, op)] & 0x1f);
+	DEBUG_PRINT_OP_VAL("Secondary Level (D1L)",
+	    (regs[debug_get_opn_reg_addr(YMREG_OP_D1L_RR, ch, op)] & 0xf0) >> 4);
+	DEBUG_PRINT_OP_VAL("Release Rate (RR)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_D1L_RR, ch, op)] & 0xf);
+	DEBUG_PRINT_OP_VAL("Sega Proproetary (SSG-EG)",
+	    regs[debug_get_opn_reg_addr(YMREG_OP_SSG_EG, ch, op)] & 0xf);
+}
+
+
+/* get the address of one of the operator specific registers */
+uint8_t debug_get_chan_reg_addr(uint8_t reg, uint8_t ch)
+{
+	uint8_t		part, ch_offset;
+
+	if ((ch < 1) || (ch > 6)) {
+		printf("%s: bad channel: %u\n", __func__, ch);
+		return (0);
+	}
+
+	debug_get_chan_part_and_offset(ch, &part, &ch_offset);
+	return (reg + ch_offset + ((part - 1) * 0x100));
+}
+/* shows a single channel's regsiters */
+#define DEBUG_MAX_OPS			4
+#define DEBUG_PRINT_CHAN_VAL(r, v)	printf("    %-15s: 0x%02x\n", r, v);
+void debug_show_ym2612_chan_regs(uint8_t regs[512], uint8_t ch)
+{
+	uint8_t			op;
+
+	printf("\n  ym2612 channel %u registers:\n", ch);
+
+	DEBUG_PRINT_CHAN_VAL("Octave",
+	    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_FREQ2, ch)]) & 0x38) >> 3);
+
+	DEBUG_PRINT_CHAN_VAL("Frequency",
+	    (regs[debug_get_chan_reg_addr(YMREG_CHAN_FREQ2, ch)] & 0x7) << 8 |
+	    regs[debug_get_chan_reg_addr(YMREG_CHAN_FREQ1, ch)]);
+
+	/* channel 3 and 6 can have separate freq's per op */
+	if ((ch % 3) == 0) {
+			DEBUG_PRINT_CHAN_VAL("Supp. Freq 1",
+			    (regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP1_FREQ2, ch)] & 0x7) << 8 |
+			    regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP1_FREQ1, ch)]);
+			DEBUG_PRINT_CHAN_VAL("Supp. Octave 1",
+			    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP1_FREQ2, ch)]) & 0x38) >> 3);
+
+			DEBUG_PRINT_CHAN_VAL("Supp. Freq 2",
+			    (regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP2_FREQ2, ch)] & 0x7) << 8 |
+			    regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP2_FREQ1, ch)]);
+			DEBUG_PRINT_CHAN_VAL("Supp. Octave 2",
+			    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP2_FREQ2, ch)]) & 0x38) >> 3);
+
+			DEBUG_PRINT_CHAN_VAL("Supp. Freq 3",
+			    (regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP3_FREQ2, ch)] & 0x7) << 8 |
+			    regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP3_FREQ1, ch)]);
+			DEBUG_PRINT_CHAN_VAL("Supp. Octave 3",
+			    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP3_FREQ2, ch)]) & 0x38) >> 3);
+
+			DEBUG_PRINT_CHAN_VAL("Supp. Freq 4",
+			    (regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP3_FREQ2, ch)] & 0x7) << 8 |
+			    regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP3_FREQ1, ch)]);
+			DEBUG_PRINT_CHAN_VAL("Supp. Octave 4",
+			    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_CH3_OP1_FREQ2, ch)]) & 0x38) >> 3);
+	}
+
+	DEBUG_PRINT_CHAN_VAL("Feedback",
+	    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_FBACK_ALGO, ch)]) & 0x38) >> 3);
+	DEBUG_PRINT_CHAN_VAL("Algorithm",
+	    (regs[debug_get_chan_reg_addr(YMREG_CHAN_FBACK_ALGO, ch)]) & 0x3);
+	DEBUG_PRINT_CHAN_VAL("Stereo L",
+	    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_LR_AMS_FMS, ch)]) & 0x80) >> 7);
+	DEBUG_PRINT_CHAN_VAL("Stereo R",
+	    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_LR_AMS_FMS, ch)]) & 0x40) >> 6);
+	DEBUG_PRINT_CHAN_VAL("AM Sensitivity",
+	    ((regs[debug_get_chan_reg_addr(YMREG_CHAN_LR_AMS_FMS, ch)]) & 0x30) >> 4);
+	DEBUG_PRINT_CHAN_VAL("FM Sensitivity",
+	    (regs[debug_get_chan_reg_addr(YMREG_CHAN_LR_AMS_FMS, ch)]) & 0x7);
+
+
+	for (op = 1; op <= DEBUG_MAX_OPS; op++)
+		debug_show_ym2612_operator_regs(regs, ch, op);
+}
+
+#define DEBUG_MAX_CHAN				6
+void debug_show_ym2612_regs()
+{
+	uint8_t			regs[512], chan;
+
+	YM2612_dump(0, regs);
+
+	printf("ym2612:\n");
+	debug_show_ym2612_global_regs(regs);
+
+	for (chan = 1; chan <= DEBUG_MAX_CHAN; chan ++)
+		debug_show_ym2612_chan_regs(regs, chan);
+}
+#endif
+
 #endif /* BUILD_YM2612 */

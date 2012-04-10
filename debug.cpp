@@ -25,17 +25,26 @@ extern "C" {
 #include "debug.h"
 #include "linenoise/linenoise.h"
 
-struct dgen_bp		debug_bp_m68k[MAX_BREAKPOINTS];
-struct dgen_wp		debug_wp_m68k[MAX_WATCHPOINTS];
-int			debug_step_m68k;
-int			m68k_bp_hit = 0;
-int			m68k_wp_hit = 0;
-int			debug_context = DBG_CONTEXT_M68K;
+struct dgen_bp		 debug_bp_m68k[MAX_BREAKPOINTS];
+struct dgen_wp		 debug_wp_m68k[MAX_WATCHPOINTS];
+int			 debug_step_m68k;
+int			 m68k_bp_hit = 0;
+int			 m68k_wp_hit = 0;
+int			 debug_context = DBG_CONTEXT_M68K;
+const char		*debug_context_names[] =
+			     {"M68K", "Z80", "YM2612", "SN76489"};
+
+/* aliases for the various cpus */
+const char	*psg_aliases[] = { "sn", "sn76489", "psg", NULL };
+const char	*fm_aliases[] = { "fm", "ym", "ym2612", NULL };
+const char	*z80_aliases[] = { "z80", "z", NULL};
+const char	*m68k_aliases[] = { "m68k", "m", "68000", "m68000", NULL};
+
+#define CURRENT_DEBUG_CONTEXT_NAME	debug_context_names[debug_context]
 
 // ===[ C Functions ]=========================================================
 
 // linenoise completion callback
-// const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 #ifndef NO_COMPLETION
 void completion(const char *buf, linenoiseCompletions *lc) {
 
@@ -270,7 +279,6 @@ static int debug_should_wp_fire(struct dgen_wp *w)
 	unsigned char		*p;
 
 	for (i = w->start_addr, p = w->bytes; i <= w->end_addr; i++, p++) {
-		//printf("%02x vs %02x\n", m68k_read_memory_8(i), *p);
 		if (m68k_read_memory_8(i) != *p)
 			return (1); // hit
 	}
@@ -426,18 +434,35 @@ static int debug_set_bp_m68k(uint32_t addr)
 
 static int debug_parse_cpu(char *arg)
 {
-	uint32_t	num;
+	uint32_t	  num;
+	const char	**p;
 
-	if ((strcmp(arg, "m68k")) == 0)
-		return (DBG_CONTEXT_M68K);
+	/* by name */
+	for (p = z80_aliases; *p != NULL; p++) {
+		if (strcmp(arg, *p) == 0)
+			return (DBG_CONTEXT_Z80);
+	}
 
-	if ((strcmp(arg, "z80")) == 0)
-		return (DBG_CONTEXT_Z80);
+	for (p = m68k_aliases; *p != NULL; p++) {
+		if (strcmp(arg, *p) == 0)
+			return (DBG_CONTEXT_M68K);
+	}
 
+	for (p = fm_aliases; *p != NULL; p++) {
+		if (strcmp(arg, *p) == 0)
+			return (DBG_CONTEXT_YM2612);
+	}
+
+	for (p = psg_aliases; *p != NULL; p++) {
+		if (strcmp(arg, *p) == 0)
+			return (DBG_CONTEXT_SN76489);
+	}
+
+	/* by index */
 	if ((debug_strtou32(arg, &num)) < 0)
 		return (-1);
 
-	if (num > DBG_CONTEXT_Z80)
+	if (num > DBG_CONTEXT_SN76489)
 		return (-1);
 
 	return ((int) num);
@@ -507,7 +532,8 @@ int md::debug_cmd_watch(int n_args, char **args)
 	uint32_t		start, len = 1;
 
 	if (debug_context != DBG_CONTEXT_M68K){
-		printf("z80 watchpoints not supported\n");
+		printf("watchpoints not supported on %s core\n",
+		    CURRENT_DEBUG_CONTEXT_NAME);
 		return (1);
 	}
 
@@ -560,8 +586,9 @@ int md::debug_cmd_mem(int n_args, char **args)
 {
 	uint32_t		addr, len = DEBUG_DFLT_MEMDUMP_LEN;
 
-	if (debug_context == DBG_CONTEXT_Z80) {
-		printf("z80 memory dumping not supported yet\n");
+	if (debug_context != DBG_CONTEXT_M68K) {
+		printf("memory dumping not implemented on %s core\n",
+		    CURRENT_DEBUG_CONTEXT_NAME);
 		return (1);
 	}
 
@@ -590,8 +617,9 @@ int md::debug_cmd_dis(int n_args, char **args)
 	uint32_t		addr = m68k_state.pc;
 	uint32_t		length = DEBUG_DFLT_DASM_LEN;
 
-	if (debug_context == DBG_CONTEXT_Z80) {
-		printf("z80 disassembly is not implemented\n");
+	if (debug_context != DBG_CONTEXT_M68K) {
+		printf("disassembly is not implemented on %s core\n",
+		    CURRENT_DEBUG_CONTEXT_NAME);
 		return (1);
 	}
 
@@ -731,9 +759,12 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\tw/watch <addr>\t\tset 1-byte watchpoint for current cpu\n"
 	    "\tw/watch\t\t\tshow watchpoints for current cpu\n"
 	    "\ncpu names/numbers:\n"
-	    "\t'm68k' or '0' refers to the main m68000 chip\n"
-	    "\t'z80' or '1' refers to the secondary m68000 chip\n",
-	    DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_MEMDUMP_LEN);
+	    "\t'm68k', 'm', '68000', 'm68000' or '%d' refers to the main m68000 chip\n"
+	    "\t'z80', 'z' or '%d' refers to the secondary z80 chip\n"
+	    "\t'ym', 'fm', 'ym2612' or '%d' refers to the fm2616 sound chip\n"
+	    "\t'sn', 'sn76489', 'psg'  or '%d' refers to the sn76489 sound chip\n",
+	    DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_MEMDUMP_LEN,
+	    DBG_CONTEXT_M68K, DBG_CONTEXT_Z80, DBG_CONTEXT_YM2612, DBG_CONTEXT_SN76489);
 
 	return (1);
 }
@@ -743,12 +774,21 @@ int md::debug_cmd_reg(int n_args, char **args)
 	(void) n_args;
 	(void) args;
 
-	if (debug_context == DBG_CONTEXT_M68K)
+	switch (debug_context) {
+	case DBG_CONTEXT_M68K:
 		debug_show_m68k_regs();
-	else if (debug_context == DBG_CONTEXT_Z80)
+		break;
+	case DBG_CONTEXT_Z80:
 		debug_show_z80_regs();
-	else
-		printf("unknown cpu\n");
+		break;
+	case DBG_CONTEXT_YM2612:
+		debug_show_ym2612_regs();
+		break;
+	default:
+		printf("register dump not implemented on %s core\n",
+		    CURRENT_DEBUG_CONTEXT_NAME);
+		break;
+	};
 
 	return (1);
 }
@@ -914,6 +954,11 @@ int md::debug_cmd_minus_break(int n_args, char **args)
 		}
 
 		index = debug_find_bp_m68k(num);
+
+		if (index < 0) {
+			printf("no breakpoint here: %s\n", args[0]);
+			return (1);
+		}
 	}
 
 	// we now have an index into our bp array
@@ -999,10 +1044,24 @@ void md::debug_enter()
 		if (debug_context == DBG_CONTEXT_M68K)
 			debug_print_disassemble(m68k_state.pc, 1);
 	}
-	if (debug_context == DBG_CONTEXT_M68K)
+
+	switch (debug_context) {
+	case DBG_CONTEXT_M68K:
 		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", m68k_state.pc);
-	else
+		break;
+	case DBG_CONTEXT_Z80:
 		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_state.pc);
+		break;
+	case DBG_CONTEXT_YM2612:
+		snprintf(prompt, sizeof(prompt), "ym2612> ");
+		break;
+	case DBG_CONTEXT_SN76489:
+		snprintf(prompt, sizeof(prompt), "sn76489> ");
+		break;
+	default:
+		printf("unknown cpu. should not happen");
+		return;
+	};
 
 	if ((cmd = linenoise_nb(prompt)) == NULL) {
 		md_set_musa(0);
