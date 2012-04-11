@@ -300,9 +300,11 @@ static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
 
 static const struct prompt_command prompt_command[] = {
 	{ "quit", prompt_cmd_exit, NULL },
+	{ "q", prompt_cmd_exit, NULL },
 	{ "exit", prompt_cmd_exit, NULL },
 	{ "load", prompt_cmd_load, prompt_cmpl_load },
 	{ "open", prompt_cmd_load, prompt_cmpl_load },
+	{ "o", prompt_cmd_load, prompt_cmpl_load },
 	{ "plug", prompt_cmd_load, prompt_cmpl_load },
 	{ "unload", prompt_cmd_unload, NULL },
 	{ "close", prompt_cmd_unload, NULL },
