@@ -373,11 +373,6 @@ int main(int argc, char *argv[])
 		}
 		FreeConsole();
 	}
-#else
-#ifdef WITH_DEBUGGER
-	// So we don't block while reading stdin.
-	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-#endif
 #endif
 
   // Initialize the platform-dependent stuff.
