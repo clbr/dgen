@@ -104,7 +104,6 @@
 
 #ifdef _WIN32 /* Windows platform, either MinGW or Visual Studio (MSVC) */
 #include <windows.h>
-#include <fcntl.h>
 #define USE_WINCONSOLE
 #ifdef __MINGW32__
 #ifndef HAVE_UNISTD_H
@@ -128,6 +127,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -1285,6 +1285,26 @@ process_char:
     return current->len;
 }
 
+static void current_nonblock(struct current *current, int nonblock)
+{
+#ifndef _WIN32
+    static int ifl = -1;
+
+    if (!current->nb)
+	return;
+    if (nonblock) {
+	ifl = fcntl(current->fd, F_GETFL);
+	if (ifl >= 0)
+	    fcntl(current->fd, F_SETFL, (ifl | O_NONBLOCK));
+    }
+    else if (ifl >= 0)
+	fcntl(current->fd, F_SETFL, ifl);
+#else
+    (void)current;
+    (void)nonblock;
+#endif
+}
+
 static struct ctx nb_ctx;
 
 char *linenoise_nb(const char *prompt)
@@ -1310,9 +1330,12 @@ char *linenoise_nb(const char *prompt)
 	    fflush(stdout);
 	    current->new = 0;
 	}
+	current_nonblock(current, 1);
         if (fgets(buf, sizeof(ctx->buf), stdin) == NULL) {
-		return NULL;
+	    current_nonblock(current, 0);
+	    return NULL;
         }
+	current_nonblock(current, 0);
         count = strlen(ctx->buf);
         if (count && buf[count-1] == '\n') {
             count--;
@@ -1331,7 +1354,9 @@ char *linenoise_nb(const char *prompt)
 	}
 	current->prompt = prompt;
 
+	current_nonblock(current, 1);
         count = linenoisePrompt(current);
+	current_nonblock(current, 0);
 	if (current->new) {
 	    disableRawMode(current);
 	    printf("\n");
