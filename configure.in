@@ -258,6 +258,7 @@ AS_IF(
 
 		[AC_MSG_NOTICE([no ASM routines available for this target])]
 		[USE_ASM=unavailable]
+		[NASM=]
 	)]
 )
 AS_IF(
