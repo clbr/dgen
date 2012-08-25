@@ -126,19 +126,21 @@ struct rc_keysym rc_keysyms[] = {
 /* Define all the external RC variables */
 #include "rc-vars.h"
 
-intptr_t js_map_button[2][16] = {
-    {
-	MD_A_MASK, MD_C_MASK, MD_A_MASK,
-	MD_B_MASK, MD_Y_MASK, MD_Z_MASK,
-	MD_X_MASK, MD_X_MASK, MD_START_MASK,
-	MD_MODE_MASK, 0, 0, 0, 0, 0, 0
-    },
-    {
-	MD_A_MASK, MD_C_MASK, MD_A_MASK,
-	MD_B_MASK, MD_Y_MASK, MD_Z_MASK,
-	MD_X_MASK, MD_X_MASK, MD_START_MASK,
-	MD_MODE_MASK, 0, 0, 0, 0, 0, 0
-    }
+struct js_button js_map_button[2][16] = {
+	{
+		{ MD_A_MASK, NULL }, { MD_C_MASK, NULL },
+		{ MD_A_MASK, NULL }, { MD_B_MASK, NULL },
+		{ MD_Y_MASK, NULL }, { MD_Z_MASK, NULL },
+		{ MD_X_MASK, NULL }, { MD_X_MASK, NULL },
+		{ MD_START_MASK, NULL }, { MD_MODE_MASK, NULL }
+	},
+	{
+		{ MD_A_MASK, NULL }, { MD_C_MASK, NULL },
+		{ MD_A_MASK, NULL }, { MD_B_MASK, NULL },
+		{ MD_Y_MASK, NULL }, { MD_Z_MASK, NULL },
+		{ MD_X_MASK, NULL }, { MD_X_MASK, NULL },
+		{ MD_START_MASK, NULL }, { MD_MODE_MASK, NULL }
+	}
 };
 
 // X and Y for both controllers.
@@ -162,7 +164,7 @@ static const struct {
 /* Parse a keysym.
  * If the string matches one of the strings in the keysym table above
  * or if it's another valid character, return the keysym, otherwise -1. */
-intptr_t rc_keysym(const char *code)
+intptr_t rc_keysym(const char *code, intptr_t *)
 {
 	struct rc_keysym *ks = rc_keysyms;
 	uint32_t m = 0;
@@ -241,7 +243,7 @@ found:
  * If the string is "yes" or "true", return 1.
  * If the string is "no" or "false", return 0.
  * Otherwise, just return atoi(value). */
-intptr_t rc_boolean(const char *value)
+intptr_t rc_boolean(const char *value, intptr_t *)
 {
   if(!strcasecmp(value, "yes") || !strcasecmp(value, "true"))
     return 1;
@@ -250,50 +252,67 @@ intptr_t rc_boolean(const char *value)
   return atoi(value);
 }
 
-// Made GCC happy about unused things when we don't want a joystick.  :) [PKH]
-// Cheesy hack to set joystick mappings from the RC file. [PKH]
-intptr_t rc_jsmap(const char *value)
+static void rc_jsmap_cleanup(void)
 {
-  if(!strcasecmp(value, "mode"))
-    snprintf((char*)value, 2, "%c", 'm');
-  if(!strcasecmp(value, "start"))
-    snprintf((char*)value, 2, "%c", 's');
-  switch(*value) {
-    case 'A':
-    case 'a':
-    return(MD_A_MASK);
-    break;
-    case 'B':
-    case 'b':
-    return(MD_B_MASK);
-    break;
-    case 'C':
-    case 'c':
-    return(MD_C_MASK);
-    break;
-    case 'X':
-    case 'x':
-    return(MD_X_MASK);
-    break;
-    case 'Y':
-    case 'y':
-    return(MD_Y_MASK);
-    break;
-    case 'Z':
-    case 'z':
-    return(MD_Z_MASK);
-    break;
-    case 'M':
-    case 'm':
-    return(MD_MODE_MASK);
-    break;
-    case 'S':
-    case 's':
-    return(MD_START_MASK);
-    break;
-    default:
-    return(0);
-    }
+	unsigned int i, j;
+
+	for (i = 0;
+	     (i < (sizeof(js_map_button) / sizeof(js_map_button[0])));
+	     ++i)
+		for (j = 0;
+		     (j < (sizeof(js_map_button[0]) /
+			   sizeof(js_map_button[0][0])));
+		     ++j)
+			free(js_map_button[i][j].value);
+	memset(js_map_button, 0, sizeof(js_map_button));
+}
+
+intptr_t rc_jsmap(const char *value, intptr_t *variable)
+{
+	static bool atexit_registered = false;
+	static const struct {
+		const char *value;
+		intptr_t mask;
+	} arg[] = {
+		{ "up", MD_UP_MASK },
+		{ "down", MD_DOWN_MASK },
+		{ "left", MD_LEFT_MASK },
+		{ "right", MD_RIGHT_MASK },
+		{ "mode", MD_MODE_MASK },
+		{ "start", MD_START_MASK },
+		{ "a", MD_A_MASK },
+		{ "b", MD_B_MASK },
+		{ "c", MD_C_MASK },
+		{ "x", MD_X_MASK },
+		{ "y", MD_Y_MASK },
+		{ "z", MD_Z_MASK },
+		{ "", 0 },
+		{ NULL, 0 }
+	};
+	unsigned int i;
+	struct js_button *jsb = (struct js_button *)variable;
+
+	/* Check for basic buttons. */
+	for (i = 0; (arg[i].value != NULL); ++i) {
+		if (strcasecmp(value, arg[i].value))
+			continue;
+		jsb->mask = arg[i].mask;
+		free(jsb->value);
+		jsb->value = NULL;
+		return arg[i].mask;
+	}
+	if (atexit_registered == false) {
+		if (atexit(rc_jsmap_cleanup))
+			return -1;
+		atexit_registered = true;
+	}
+	/* Other values are commands for the front-end. */
+	jsb->mask = 0;
+	free(jsb->value);
+	jsb->value = strdup(value);
+	if (jsb->value == NULL)
+		return -1;
+	return 0;
 }
 
 /* Parse the CTV type. As new CTV filters get submitted expect this to grow ;)
@@ -302,14 +321,14 @@ intptr_t rc_jsmap(const char *value)
  *  blur     - blur bitmap (from DirectX DGen), by Dave <dave@dtmnt.com>
  *  scanline - attenuates every other line, looks cool! by Phillip K. Hornung <redx@pknet.com>
  */
-intptr_t rc_ctv(const char *value)
+intptr_t rc_ctv(const char *value, intptr_t *)
 {
   for(int i = 0; i < NUM_CTV; ++i)
     if(!strcasecmp(value, ctv_names[i])) return i;
   return -1;
 }
 
-intptr_t rc_scaling(const char *value)
+intptr_t rc_scaling(const char *value, intptr_t *)
 {
 	int i;
 
@@ -320,7 +339,7 @@ intptr_t rc_scaling(const char *value)
 }
 
 /* Parse CPU types */
-intptr_t rc_emu_z80(const char *value)
+intptr_t rc_emu_z80(const char *value, intptr_t *)
 {
 	unsigned int i;
 
@@ -330,7 +349,7 @@ intptr_t rc_emu_z80(const char *value)
 	return -1;
 }
 
-intptr_t rc_emu_m68k(const char *value)
+intptr_t rc_emu_m68k(const char *value, intptr_t *)
 {
 	unsigned int i;
 
@@ -340,7 +359,7 @@ intptr_t rc_emu_m68k(const char *value)
 	return -1;
 }
 
-intptr_t rc_region(const char *value)
+intptr_t rc_region(const char *value, intptr_t *)
 {
 	if (strlen(value) != 1)
 		return -1;
@@ -355,7 +374,7 @@ intptr_t rc_region(const char *value)
 	return -1;
 }
 
-intptr_t rc_string(const char *value)
+intptr_t rc_string(const char *value, intptr_t *)
 {
 	char *val;
 
@@ -369,9 +388,9 @@ intptr_t rc_string(const char *value)
 	return (intptr_t)val;
 }
 
-intptr_t rc_rom_path(const char *value)
+intptr_t rc_rom_path(const char *value, intptr_t *)
 {
-	intptr_t r = rc_string(value);
+	intptr_t r = rc_string(value, NULL);
 
 	if (r == -1)
 		return -1;
@@ -379,7 +398,7 @@ intptr_t rc_rom_path(const char *value)
 	return r;
 }
 
-intptr_t rc_number(const char *value)
+intptr_t rc_number(const char *value, intptr_t *)
 {
   return atoi(value);
 }
@@ -487,38 +506,38 @@ struct rc_field rc_fields[] = {
   { "bool_joystick1_axisY", rc_boolean, &js_map_axis[0][1][1] },
   { "bool_joystick2_axisX", rc_boolean, &js_map_axis[1][0][1] },
   { "bool_joystick2_axisY", rc_boolean, &js_map_axis[1][1][1] },
-  { "joypad1_b0", rc_jsmap, &js_map_button[0][0] },
-  { "joypad1_b1", rc_jsmap, &js_map_button[0][1] },
-  { "joypad1_b2", rc_jsmap, &js_map_button[0][2] },
-  { "joypad1_b3", rc_jsmap, &js_map_button[0][3] },
-  { "joypad1_b4", rc_jsmap, &js_map_button[0][4] },
-  { "joypad1_b5", rc_jsmap, &js_map_button[0][5] },
-  { "joypad1_b6", rc_jsmap, &js_map_button[0][6] },
-  { "joypad1_b7", rc_jsmap, &js_map_button[0][7] },
-  { "joypad1_b8", rc_jsmap, &js_map_button[0][8] },
-  { "joypad1_b9", rc_jsmap, &js_map_button[0][9] },
-  { "joypad1_b10", rc_jsmap, &js_map_button[0][10] },
-  { "joypad1_b11", rc_jsmap, &js_map_button[0][11] },
-  { "joypad1_b12", rc_jsmap, &js_map_button[0][12] },
-  { "joypad1_b13", rc_jsmap, &js_map_button[0][13] },
-  { "joypad1_b14", rc_jsmap, &js_map_button[0][14] },
-  { "joypad1_b15", rc_jsmap, &js_map_button[0][15] },
-  { "joypad2_b0", rc_jsmap, &js_map_button[1][0] },
-  { "joypad2_b1", rc_jsmap, &js_map_button[1][1] },
-  { "joypad2_b2", rc_jsmap, &js_map_button[1][2] },
-  { "joypad2_b3", rc_jsmap, &js_map_button[1][3] },
-  { "joypad2_b4", rc_jsmap, &js_map_button[1][4] },
-  { "joypad2_b5", rc_jsmap, &js_map_button[1][5] },
-  { "joypad2_b6", rc_jsmap, &js_map_button[1][6] },
-  { "joypad2_b7", rc_jsmap, &js_map_button[1][7] },
-  { "joypad2_b8", rc_jsmap, &js_map_button[1][8] },
-  { "joypad2_b9", rc_jsmap, &js_map_button[1][9] },
-  { "joypad2_b10", rc_jsmap, &js_map_button[1][10] },
-  { "joypad2_b11", rc_jsmap, &js_map_button[1][11] },
-  { "joypad2_b12", rc_jsmap, &js_map_button[1][12] },
-  { "joypad2_b13", rc_jsmap, &js_map_button[1][13] },
-  { "joypad2_b14", rc_jsmap, &js_map_button[1][14] },
-  { "joypad2_b15", rc_jsmap, &js_map_button[1][15] },
+  { "joypad1_b0", rc_jsmap, (intptr_t *)&js_map_button[0][0] },
+  { "joypad1_b1", rc_jsmap, (intptr_t *)&js_map_button[0][1] },
+  { "joypad1_b2", rc_jsmap, (intptr_t *)&js_map_button[0][2] },
+  { "joypad1_b3", rc_jsmap, (intptr_t *)&js_map_button[0][3] },
+  { "joypad1_b4", rc_jsmap, (intptr_t *)&js_map_button[0][4] },
+  { "joypad1_b5", rc_jsmap, (intptr_t *)&js_map_button[0][5] },
+  { "joypad1_b6", rc_jsmap, (intptr_t *)&js_map_button[0][6] },
+  { "joypad1_b7", rc_jsmap, (intptr_t *)&js_map_button[0][7] },
+  { "joypad1_b8", rc_jsmap, (intptr_t *)&js_map_button[0][8] },
+  { "joypad1_b9", rc_jsmap, (intptr_t *)&js_map_button[0][9] },
+  { "joypad1_b10", rc_jsmap, (intptr_t *)&js_map_button[0][10] },
+  { "joypad1_b11", rc_jsmap, (intptr_t *)&js_map_button[0][11] },
+  { "joypad1_b12", rc_jsmap, (intptr_t *)&js_map_button[0][12] },
+  { "joypad1_b13", rc_jsmap, (intptr_t *)&js_map_button[0][13] },
+  { "joypad1_b14", rc_jsmap, (intptr_t *)&js_map_button[0][14] },
+  { "joypad1_b15", rc_jsmap, (intptr_t *)&js_map_button[0][15] },
+  { "joypad2_b0", rc_jsmap, (intptr_t *)&js_map_button[1][0] },
+  { "joypad2_b1", rc_jsmap, (intptr_t *)&js_map_button[1][1] },
+  { "joypad2_b2", rc_jsmap, (intptr_t *)&js_map_button[1][2] },
+  { "joypad2_b3", rc_jsmap, (intptr_t *)&js_map_button[1][3] },
+  { "joypad2_b4", rc_jsmap, (intptr_t *)&js_map_button[1][4] },
+  { "joypad2_b5", rc_jsmap, (intptr_t *)&js_map_button[1][5] },
+  { "joypad2_b6", rc_jsmap, (intptr_t *)&js_map_button[1][6] },
+  { "joypad2_b7", rc_jsmap, (intptr_t *)&js_map_button[1][7] },
+  { "joypad2_b8", rc_jsmap, (intptr_t *)&js_map_button[1][8] },
+  { "joypad2_b9", rc_jsmap, (intptr_t *)&js_map_button[1][9] },
+  { "joypad2_b10", rc_jsmap, (intptr_t *)&js_map_button[1][10] },
+  { "joypad2_b11", rc_jsmap, (intptr_t *)&js_map_button[1][11] },
+  { "joypad2_b12", rc_jsmap, (intptr_t *)&js_map_button[1][12] },
+  { "joypad2_b13", rc_jsmap, (intptr_t *)&js_map_button[1][13] },
+  { "joypad2_b14", rc_jsmap, (intptr_t *)&js_map_button[1][14] },
+  { "joypad2_b15", rc_jsmap, (intptr_t *)&js_map_button[1][15] },
   { NULL, NULL, NULL } // Terminator
 };
 
@@ -616,7 +635,7 @@ parse:
 		ckvp.out[(ckvp.out_size)] = '\0';
 		if ((rc_field == NULL) || (rc_field->fieldname == NULL))
 			break;
-		potential = rc_field->parser(ckvp.out);
+		potential = rc_field->parser(ckvp.out, rc_field->variable);
 		/* If we got a bad value, discard and warn user */
 		if ((rc_field->parser != rc_number) && (potential == -1))
 			fprintf(stderr,
@@ -681,36 +700,44 @@ void dump_rc(FILE *file)
 		else if (rc->parser == rc_boolean)
 			fprintf(file, "%s", ((val) ? "true" : "false"));
 		else if (rc->parser == rc_jsmap) {
+			char *s;
 			const char *pad;
+			struct js_button *jsb =
+				(struct js_button *)rc->variable;
 
-			if (val == MD_UP_MASK)
+			if (jsb->mask == MD_UP_MASK)
 				pad = "up";
-			else if (val == MD_DOWN_MASK)
+			else if (jsb->mask == MD_DOWN_MASK)
 				pad = "down";
-			else if (val == MD_LEFT_MASK)
+			else if (jsb->mask == MD_LEFT_MASK)
 				pad = "left";
-			else if (val == MD_RIGHT_MASK)
+			else if (jsb->mask == MD_RIGHT_MASK)
 				pad = "right";
-			else if (val == MD_B_MASK)
+			else if (jsb->mask == MD_B_MASK)
 				pad = "B";
-			else if (val == MD_C_MASK)
+			else if (jsb->mask == MD_C_MASK)
 				pad = "C";
-			else if (val == MD_A_MASK)
+			else if (jsb->mask == MD_A_MASK)
 				pad = "A";
-			else if (val == MD_START_MASK)
+			else if (jsb->mask == MD_START_MASK)
 				pad = "start";
-			else if (val == MD_Z_MASK)
+			else if (jsb->mask == MD_Z_MASK)
 				pad = "Z";
-			else if (val == MD_Y_MASK)
+			else if (jsb->mask == MD_Y_MASK)
 				pad = "Y";
-			else if (val == MD_X_MASK)
+			else if (jsb->mask == MD_X_MASK)
 				pad = "X";
-			else if (val == MD_MODE_MASK)
+			else if (jsb->mask == MD_MODE_MASK)
 				pad = "mode";
 			else
-				pad = NULL;
-			if (pad != NULL)
-				fprintf(file, "%s", pad);
+				pad = jsb->value;
+			if ((pad != NULL) &&
+			    ((s = backslashify((const uint8_t *)pad,
+					       strlen(pad), 0,
+					       NULL)) != NULL)) {
+				fprintf(file, "%s", s);
+				free(s);
+			}
 			else
 				fputs("''", file);
 		}

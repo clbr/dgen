@@ -342,7 +342,7 @@ unsigned long pd_usecs(void)
 
 #ifdef WITH_JOYSTICK
 // Extern joystick stuff
-extern intptr_t js_map_button[2][16];
+extern struct js_button js_map_button[2][16];
 #endif
 
 // Number of microseconds to sustain messages
@@ -407,6 +407,7 @@ prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
 	int		 captured[MAX_JS_CALIBRATE_BUTS] = {-1, -1, -1, -1};
 	SDL_Event	 event;
 	int		 but_no = 0, bailout = 0, js_no, pad_type = 6;
+	int		 i;
 
 	/* check args first */
 	if (n_args == 1)
@@ -461,13 +462,19 @@ prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
 	}
 
 	/* update mapping */
-	js_map_button[js_no][captured[0]] = MD_A_MASK;
-	js_map_button[js_no][captured[1]] = MD_B_MASK;
-	js_map_button[js_no][captured[2]] = MD_C_MASK;
-	js_map_button[js_no][captured[3]] = MD_START_MASK;
-	js_map_button[js_no][captured[4]] = MD_X_MASK;
-	js_map_button[js_no][captured[5]] = MD_Y_MASK;
-	js_map_button[js_no][captured[6]] = MD_Z_MASK;
+	js_map_button[js_no][captured[0]].mask = MD_A_MASK;
+	js_map_button[js_no][captured[1]].mask = MD_B_MASK;
+	js_map_button[js_no][captured[2]].mask = MD_C_MASK;
+	js_map_button[js_no][captured[3]].mask = MD_START_MASK;
+	js_map_button[js_no][captured[4]].mask = MD_X_MASK;
+	js_map_button[js_no][captured[5]].mask = MD_Y_MASK;
+	js_map_button[js_no][captured[6]].mask = MD_Z_MASK;
+
+	/* Clear any commands. */
+	for (i = 0; (i < 7); ++i) {
+		free(js_map_button[js_no][i].value);
+		js_map_button[js_no][i].value = NULL;
+	}
 
 	pd_message("Calibration of (%d-button) joystick %d complete!",
 	    pad_type, js_no + 1);
@@ -2994,38 +3001,50 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 				((val) ? "true" : "false"));
 	else if (rc->parser == rc_jsmap) {
 		const char *pad;
+		struct js_button *jsb =
+			(struct js_button *)rc->variable;
 
-		if (val == MD_UP_MASK)
+		if (jsb->mask == MD_UP_MASK)
 			pad = "up";
-		else if (val == MD_DOWN_MASK)
+		else if (jsb->mask == MD_DOWN_MASK)
 			pad = "down";
-		else if (val == MD_LEFT_MASK)
+		else if (jsb->mask == MD_LEFT_MASK)
 			pad = "left";
-		else if (val == MD_RIGHT_MASK)
+		else if (jsb->mask == MD_RIGHT_MASK)
 			pad = "right";
-		else if (val == MD_B_MASK)
+		else if (jsb->mask == MD_B_MASK)
 			pad = "B";
-		else if (val == MD_C_MASK)
+		else if (jsb->mask == MD_C_MASK)
 			pad = "C";
-		else if (val == MD_A_MASK)
+		else if (jsb->mask == MD_A_MASK)
 			pad = "A";
-		else if (val == MD_START_MASK)
+		else if (jsb->mask == MD_START_MASK)
 			pad = "start";
-		else if (val == MD_Z_MASK)
+		else if (jsb->mask == MD_Z_MASK)
 			pad = "Z";
-		else if (val == MD_Y_MASK)
+		else if (jsb->mask == MD_Y_MASK)
 			pad = "Y";
-		else if (val == MD_X_MASK)
+		else if (jsb->mask == MD_X_MASK)
 			pad = "X";
-		else if (val == MD_MODE_MASK)
+		else if (jsb->mask == MD_MODE_MASK)
 			pad = "mode";
 		else
-			pad = NULL;
+			pad = jsb->value;
 		if (pad == NULL)
 			stop_events_msg(~0u, "%s isn't mapped", rc->fieldname);
-		else
-			stop_events_msg(~0u, "%s is mapped to \"%s\"",
-					rc->fieldname, pad);
+		else {
+			char *s = backslashify((const uint8_t *)pad,
+					       strlen(pad), 0, NULL);
+
+			if (s == NULL)
+				stop_events_msg(~0u, "%s is mapped to \"%s\"",
+						rc->fieldname, pad);
+			else {
+				stop_events_msg(~0u, "%s is mapped to \"%s\"",
+						rc->fieldname, s);
+				free(s);
+			}
+		}
 	}
 	else if (rc->parser == rc_ctv) {
 		i = val;
@@ -3149,7 +3168,8 @@ static int handle_prompt_enter(class md& md)
 			break;
 		}
 		// Parse and set value.
-		potential = rc_fields[i].parser((char *)pp.argv[1]);
+		potential = rc_fields[i].parser((char *)pp.argv[1],
+						rc_fields[i].variable);
 		if ((rc_fields[i].parser != rc_number) && (potential == -1)) {
 			stop_events_msg(~0u, "%s: invalid value",
 					(char *)pp.argv[0]);
@@ -4255,6 +4275,7 @@ int pd_handle_events(md &megad)
 	{
 #ifdef WITH_JOYSTICK
 		int pad;
+		struct js_button *jsb;
 
 	case SDL_JOYAXISMOTION:
 		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
@@ -4298,14 +4319,6 @@ int pd_handle_events(md &megad)
 		}
 		break;
 	case SDL_JOYBUTTONDOWN:
-		// Ignore more than 16 buttons (a reasonable limit :)
-		if (event.jbutton.button > 15)
-			break;
-		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
-		    (pad = 1, event.jaxis.which != js_index[pad]))
-			break;
-		megad.pad[pad] &= ~js_map_button[pad][event.jbutton.button];
-		break;
 	case SDL_JOYBUTTONUP:
 		// Ignore more than 16 buttons (a reasonable limit :)
 		if (event.jbutton.button > 15)
@@ -4313,7 +4326,44 @@ int pd_handle_events(md &megad)
 		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
 		    (pad = 1, event.jaxis.which != js_index[pad]))
 			break;
-		megad.pad[pad] |= js_map_button[pad][event.jbutton.button];
+		jsb = &js_map_button[pad][event.jbutton.button];
+		if (event.type == SDL_JOYBUTTONDOWN)
+			megad.pad[pad] &= ~jsb->mask;
+		else
+			megad.pad[pad] |= jsb->mask;
+		if (jsb->value == NULL)
+			break;
+		/* For key_*, perform related action. */
+		if (!strncasecmp("key_", jsb->value, 4)) {
+			struct rc_field* rcf;
+			struct ctl const* ctl;
+
+			for (rcf = rc_fields;
+			     (rcf->fieldname != NULL); ++rcf) {
+				if (strcasecmp(jsb->value, rcf->fieldname))
+					continue;
+				for (ctl = control;
+				     (ctl->ksym != NULL); ++ctl) {
+					if (rcf->variable != ctl->ksym)
+						continue;
+					if (event.type == SDL_JOYBUTTONDOWN) {
+						assert(ctl->press != NULL);
+						return ctl->press(*ctl, megad);
+					}
+					else if (ctl->release != NULL)
+						return ctl->release(*ctl,
+								    megad);
+				}
+				break;
+			}
+			break;
+		}
+		/* Otherwise, handle it as a normal command. */
+		handle_prompt_complete_clear();
+		prompt_replace(&prompt.status, 0, 0,
+			       (uint8_t const*)jsb->value, strlen(jsb->value));
+		if (handle_prompt_enter(megad) & PROMPT_RET_ERROR)
+			return 0;
 		break;
 #endif // WITH_JOYSTICK
 	case SDL_KEYDOWN:

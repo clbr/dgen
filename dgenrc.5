@@ -1,4 +1,4 @@
-.Dd March 30, 2012
+.Dd August 25, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -82,11 +82,16 @@ more than two or switched axes.
 .It bool_joystick2_axisX [false]
 .It bool_joystick2_axisY [false]
 Enable this to reverse axes.
-.It joypadX_bY
+.It joypadX_bY [value]
 Maps button number Y, on joystick X to a Genesis controller button. Valid
 button values are "a", "b", "c", "x", "y", "z", "mode", and "start". Joystick
 1 will always emulate controller 1, and joystick 2 will always emulate
 controller 2.
+.It joypadX_bY [key_*]
+Maps button number Y, on joystick X to any key_* action.
+.It joypadX_bY ["string"]
+Maps button number Y, on joystick X to any command described in this manual as
+if typed from the interactive prompt.
 .El
 .Sh AUDIO
 .Bl -tag -width xxxx
