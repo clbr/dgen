@@ -5213,6 +5213,8 @@ debug_get_chan_part_and_offset(uint8_t chan, uint8_t *part, uint8_t *offs)
         } else if (chan <= 6) {
                 *part = 2;
         } else {
+		*part = 0;
+		*offs = 0;
                 printf("%s: bad channel: %d\n", __func__, chan);
                 return;
         }
