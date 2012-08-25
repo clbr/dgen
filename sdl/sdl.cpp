@@ -42,7 +42,7 @@
 #include "hqx.h"
 #endif
 
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 extern int js_index[2];
 #endif
 
@@ -294,7 +294,7 @@ static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 #endif
 
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
 #endif
 
@@ -315,7 +315,7 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
 #endif
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 	{ "calibrate_js", prompt_cmd_calibrate_js, NULL },
 #endif
 	{ NULL, NULL, NULL }
@@ -340,7 +340,7 @@ unsigned long pd_usecs(void)
 	return (unsigned long)((tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 // Extern joystick stuff
 extern intptr_t js_map_button[2][16];
 #endif
@@ -397,7 +397,7 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	return (CMD_OK | CMD_MSG);
 }
 
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 #define MAX_JS_CALIBRATE_BUTS	7
 static int
 prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
@@ -4248,18 +4248,12 @@ int pd_handle_events(md &megad)
 	if (megad.debug_trap)
 		megad.debug_enter();
 #endif
-  // If there's any chance your implementation might run under Linux, add these
-  // next four lines for joystick handling.
-#ifdef WITH_LINUX_JOYSTICK
-  if(dgen_joystick)
-    megad.read_joysticks();
-#endif
   // Check key events
   while(SDL_PollEvent(&event))
     {
       switch(event.type)
 	{
-#ifdef WITH_SDL_JOYSTICK
+#ifdef WITH_JOYSTICK
 		int pad;
 
 	case SDL_JOYAXISMOTION:
@@ -4321,7 +4315,7 @@ int pd_handle_events(md &megad)
 			break;
 		megad.pad[pad] |= js_map_button[pad][event.jbutton.button];
 		break;
-#endif // WITH_SDL_JOYSTICK
+#endif // WITH_JOYSTICK
 	case SDL_KEYDOWN:
 		ksym = event.key.keysym.sym;
 		ksym_uni = event.key.keysym.unicode;

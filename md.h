@@ -450,11 +450,11 @@ public:
   int get_save_ram(FILE *from);
   int put_save_ram(FILE *into);
 
+#ifdef WITH_JOYSTICK
   // Added by Phillip K. Hornung <redx@pknet.com>
-  // Linux joystick initialization and handling routines
   void init_joysticks(int, int);
   void deinit_joysticks();
-  void read_joysticks();
+#endif
 
   // Debugger stuff
 #ifdef WITH_DEBUGGER

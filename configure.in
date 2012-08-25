@@ -138,12 +138,8 @@ AS_IF(
 	[test "x$USE_JOYSTICK" != xno],
 	[AC_CHECK_HEADER(
 		[SDL_joystick.h],
-		[USE_JOYSTICK=SDL],
-		[AC_CHECK_HEADER(
-			[linux/joystick.h],
-			[USE_JOYSTICK=Linux],
-			[USE_JOYSTICK=no]
-		)]
+		[USE_JOYSTICK=yes],
+		[USE_JOYSTICK=no]
 	)]
 )
 AS_IF(
@@ -512,9 +508,7 @@ AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
 AS_IF([test "x$USE_DEBUGGER" = xyes], [AC_DEFINE([WITH_DEBUGGER])])
 AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
-AS_IF([test "x$USE_JOYSTICK" != xno], [AC_DEFINE([WITH_JOYSTICK])])
-AS_IF([test "x$USE_JOYSTICK" = xSDL], [AC_DEFINE([WITH_SDL_JOYSTICK])])
-AS_IF([test "x$USE_JOYSTICK" = xLinux], [AC_DEFINE([WITH_LINUX_JOYSTICK])])
+AS_IF([test "x$USE_JOYSTICK" = xyes], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
 AS_IF([test "x$WITH_STAR" = xyes], [AC_DEFINE([WITH_STAR])])
 AS_IF([test "x$WITH_MZ80" = xyes], [AC_DEFINE([WITH_MZ80])])
