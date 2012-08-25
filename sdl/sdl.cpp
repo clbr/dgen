@@ -3745,6 +3745,494 @@ gg_resume:
 	return 1;
 }
 
+// Controls enum. You must add new entries at the end. Do not change the order.
+enum ctl_e {
+	CTL_PAD1_UP,
+	CTL_PAD1_DOWN,
+	CTL_PAD1_LEFT,
+	CTL_PAD1_RIGHT,
+	CTL_PAD1_A,
+	CTL_PAD1_B,
+	CTL_PAD1_C,
+	CTL_PAD1_X,
+	CTL_PAD1_Y,
+	CTL_PAD1_Z,
+	CTL_PAD1_MODE,
+	CTL_PAD1_START,
+	CTL_PAD2_UP,
+	CTL_PAD2_DOWN,
+	CTL_PAD2_LEFT,
+	CTL_PAD2_RIGHT,
+	CTL_PAD2_A,
+	CTL_PAD2_B,
+	CTL_PAD2_C,
+	CTL_PAD2_X,
+	CTL_PAD2_Y,
+	CTL_PAD2_Z,
+	CTL_PAD2_MODE,
+	CTL_PAD2_START,
+	CTL_DGEN_QUIT,
+	CTL_DGEN_CRAPTV_TOGGLE,
+	CTL_DGEN_SCALING_TOGGLE,
+	CTL_DGEN_RESET,
+	CTL_DGEN_SLOT0,
+	CTL_DGEN_SLOT1,
+	CTL_DGEN_SLOT2,
+	CTL_DGEN_SLOT3,
+	CTL_DGEN_SLOT4,
+	CTL_DGEN_SLOT5,
+	CTL_DGEN_SLOT6,
+	CTL_DGEN_SLOT7,
+	CTL_DGEN_SLOT8,
+	CTL_DGEN_SLOT9,
+	CTL_DGEN_SAVE,
+	CTL_DGEN_LOAD,
+	CTL_DGEN_Z80_TOGGLE,
+	CTL_DGEN_CPU_TOGGLE,
+	CTL_DGEN_STOP,
+	CTL_DGEN_PROMPT,
+	CTL_DGEN_GAME_GENIE,
+	CTL_DGEN_VOLUME_INC,
+	CTL_DGEN_VOLUME_DEC,
+	CTL_DGEN_FULLSCREEN_TOGGLE,
+	CTL_DGEN_FIX_CHECKSUM,
+	CTL_DGEN_SCREENSHOT,
+	CTL_DGEN_DEBUG_ENTER,
+	CTL_
+};
+
+// Controls definitions.
+struct ctl {
+	enum ctl_e type;
+	intptr_t const* ksym;
+	int (*const press)(struct ctl const&, md&);
+	int (*const release)(struct ctl const&, md&);
+};
+
+static int ctl_pad1(struct ctl const& ctl, md& megad)
+{
+	switch (ctl.type) {
+	case CTL_PAD1_UP:
+		megad.pad[0] &= ~0x01;
+		break;
+	case CTL_PAD1_DOWN:
+		megad.pad[0] &= ~0x02;
+		break;
+	case CTL_PAD1_LEFT:
+		megad.pad[0] &= ~0x04;
+		break;
+	case CTL_PAD1_RIGHT:
+		megad.pad[0] &= ~0x08;
+		break;
+	case CTL_PAD1_A:
+		megad.pad[0] &= ~0x1000;
+		break;
+	case CTL_PAD1_B:
+		megad.pad[0] &= ~0x10;
+		break;
+	case CTL_PAD1_C:
+		megad.pad[0] &= ~0x20;
+		break;
+	case CTL_PAD1_X:
+		megad.pad[0] &= ~0x40000;
+		break;
+	case CTL_PAD1_Y:
+		megad.pad[0] &= ~0x20000;
+		break;
+	case CTL_PAD1_Z:
+		megad.pad[0] &= ~0x10000;
+		break;
+	case CTL_PAD1_MODE:
+		megad.pad[0] &= ~0x80000;
+		break;
+	case CTL_PAD1_START:
+		megad.pad[0] &= ~0x2000;
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+static int ctl_pad1_release(struct ctl const& ctl, md& megad)
+{
+	switch (ctl.type) {
+	case CTL_PAD1_UP:
+		megad.pad[0] |= 0x01;
+		break;
+	case CTL_PAD1_DOWN:
+		megad.pad[0] |= 0x02;
+		break;
+	case CTL_PAD1_LEFT:
+		megad.pad[0] |= 0x04;
+		break;
+	case CTL_PAD1_RIGHT:
+		megad.pad[0] |= 0x08;
+		break;
+	case CTL_PAD1_A:
+		megad.pad[0] |= 0x1000;
+		break;
+	case CTL_PAD1_B:
+		megad.pad[0] |= 0x10;
+		break;
+	case CTL_PAD1_C:
+		megad.pad[0] |= 0x20;
+		break;
+	case CTL_PAD1_X:
+		megad.pad[0] |= 0x40000;
+		break;
+	case CTL_PAD1_Y:
+		megad.pad[0] |= 0x20000;
+		break;
+	case CTL_PAD1_Z:
+		megad.pad[0] |= 0x10000;
+		break;
+	case CTL_PAD1_MODE:
+		megad.pad[0] |= 0x80000;
+		break;
+	case CTL_PAD1_START:
+		megad.pad[0] |= 0x2000;
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+static int ctl_pad2(struct ctl const& ctl, md& megad)
+{
+	switch (ctl.type) {
+	case CTL_PAD2_UP:
+		megad.pad[1] &= ~0x01;
+		break;
+	case CTL_PAD2_DOWN:
+		megad.pad[1] &= ~0x02;
+		break;
+	case CTL_PAD2_LEFT:
+		megad.pad[1] &= ~0x04;
+		break;
+	case CTL_PAD2_RIGHT:
+		megad.pad[1] &= ~0x08;
+		break;
+	case CTL_PAD2_A:
+		megad.pad[1] &= ~0x1000;
+		break;
+	case CTL_PAD2_B:
+		megad.pad[1] &= ~0x10;
+		break;
+	case CTL_PAD2_C:
+		megad.pad[1] &= ~0x20;
+		break;
+	case CTL_PAD2_X:
+		megad.pad[1] &= ~0x40000;
+		break;
+	case CTL_PAD2_Y:
+		megad.pad[1] &= ~0x20000;
+		break;
+	case CTL_PAD2_Z:
+		megad.pad[1] &= ~0x10000;
+		break;
+	case CTL_PAD2_MODE:
+		megad.pad[1] &= ~0x80000;
+		break;
+	case CTL_PAD2_START:
+		megad.pad[1] &= ~0x2000;
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+static int ctl_pad2_release(struct ctl const& ctl, md& megad)
+{
+	switch (ctl.type) {
+	case CTL_PAD2_UP:
+		megad.pad[1] |= 0x01;
+		break;
+	case CTL_PAD2_DOWN:
+		megad.pad[1] |= 0x02;
+		break;
+	case CTL_PAD2_LEFT:
+		megad.pad[1] |= 0x04;
+		break;
+	case CTL_PAD2_RIGHT:
+		megad.pad[1] |= 0x08;
+		break;
+	case CTL_PAD2_A:
+		megad.pad[1] |= 0x1000;
+		break;
+	case CTL_PAD2_B:
+		megad.pad[1] |= 0x10;
+		break;
+	case CTL_PAD2_C:
+		megad.pad[1] |= 0x20;
+		break;
+	case CTL_PAD2_X:
+		megad.pad[1] |= 0x40000;
+		break;
+	case CTL_PAD2_Y:
+		megad.pad[1] |= 0x20000;
+		break;
+	case CTL_PAD2_Z:
+		megad.pad[1] |= 0x10000;
+		break;
+	case CTL_PAD2_MODE:
+		megad.pad[1] |= 0x80000;
+		break;
+	case CTL_PAD2_START:
+		megad.pad[1] |= 0x2000;
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+static int ctl_dgen_quit(struct ctl const&, md&)
+{
+	return 0;
+}
+
+static int ctl_dgen_craptv_toggle(struct ctl const&, md&)
+{
+#ifdef WITH_CTV
+	dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
+	filters_prescale[0] = &filters_list[dgen_craptv];
+	pd_message("Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
+#endif // WITH_CTV
+	return 1;
+}
+
+static int ctl_dgen_scaling_toggle(struct ctl const&, md&)
+{
+	dgen_scaling = ((dgen_scaling + 1) % NUM_SCALING);
+	if (set_scaling(scaling_names[dgen_scaling]))
+		pd_message("Scaling algorithm \"%s\" unavailable.",
+			   scaling_names[dgen_scaling]);
+	else
+		pd_message("Using scaling algorithm \"%s\".",
+			   scaling_names[dgen_scaling]);
+	return 1;
+}
+
+static int ctl_dgen_reset(struct ctl const&, md& megad)
+{
+	megad.reset();
+	pd_message("Genesis reset.");
+	return 1;
+}
+
+static int ctl_dgen_slot(struct ctl const& ctl, md&)
+{
+	slot = ((int)ctl.type - CTL_DGEN_SLOT0);
+	pd_message("Selected save slot %d.", slot);
+	return 1;
+}
+
+static int ctl_dgen_save(struct ctl const&, md& megad)
+{
+	md_save(megad);
+	return 1;
+}
+
+static int ctl_dgen_load(struct ctl const&, md& megad)
+{
+	md_load(megad);
+	return 1;
+}
+
+// Cycle Z80 core.
+static int ctl_dgen_z80_toggle(struct ctl const&, md& megad)
+{
+	const char *msg;
+
+	megad.cycle_z80();
+	switch (megad.z80_core) {
+#ifdef WITH_CZ80
+	case md::Z80_CORE_CZ80:
+		msg = "CZ80 core activated.";
+		break;
+#endif
+#ifdef WITH_MZ80
+	case md::Z80_CORE_MZ80:
+		msg = "MZ80 core activated.";
+		break;
+#endif
+	default:
+		msg = "Z80 core disabled.";
+		break;
+	}
+	pd_message(msg);
+	return 1;
+}
+
+// Added this CPU core hot swap.  Compile both Musashi and StarScream
+// in, and swap on the fly like DirectX DGen. [PKH]
+static int ctl_dgen_cpu_toggle(struct ctl const&, md& megad)
+{
+	const char *msg;
+
+	megad.cycle_cpu();
+	switch (megad.cpu_emu) {
+#ifdef WITH_STAR
+	case md::CPU_EMU_STAR:
+		msg = "StarScream CPU core activated.";
+		break;
+#endif
+#ifdef WITH_MUSA
+	case md::CPU_EMU_MUSA:
+		msg = "Musashi CPU core activated.";
+		break;
+#endif
+	default:
+		msg = "CPU core disabled.";
+		break;
+	}
+	pd_message(msg);
+	return 1;
+}
+
+static int ctl_dgen_stop(struct ctl const&, md& megad)
+{
+	megad.pad[0] = 0xf303f;
+	megad.pad[1] = 0xf303f;
+	return stop_events(megad, 0);
+}
+
+static int ctl_dgen_prompt(struct ctl const&, md& megad)
+{
+	megad.pad[0] = 0xf303f;
+	megad.pad[1] = 0xf303f;
+	return stop_events(megad, 3);
+}
+
+static int ctl_dgen_game_genie(struct ctl const&, md& megad)
+{
+	megad.pad[0] = 0xf303f;
+	megad.pad[1] = 0xf303f;
+	return stop_events(megad, 1);
+}
+
+static int ctl_dgen_volume(struct ctl const& ctl, md&)
+{
+	if (ctl.type == CTL_DGEN_VOLUME_INC)
+		++dgen_volume;
+	else
+		--dgen_volume;
+	if (dgen_volume < 0)
+		dgen_volume = 0;
+	else if (dgen_volume > 100)
+		dgen_volume = 100;
+	pd_message("Volume %d%%.", (int)dgen_volume);
+	return 1;
+}
+
+static int ctl_dgen_fullscreen_toggle(struct ctl const&, md&)
+{
+	switch (set_fullscreen(!screen.is_fullscreen)) {
+	case -2:
+		fprintf(stderr,
+			"sdl: fatal error while trying to change screen"
+			" resolution.\n");
+		return 0;
+	case -1:
+		pd_message("Failed to toggle fullscreen mode.");
+		break;
+	default:
+		pd_message("Fullscreen mode toggled.");
+	}
+	return 1;
+}
+
+static int ctl_dgen_fix_checksum(struct ctl const&, md& megad)
+{
+	pd_message("Checksum fixed.");
+	megad.fix_rom_checksum();
+	return 1;
+}
+
+static int ctl_dgen_screenshot(struct ctl const&, md&)
+{
+	do_screenshot();
+	return 1;
+}
+
+static int ctl_dgen_debug_enter(struct ctl const&, md& megad)
+{
+#ifdef WITH_DEBUGGER
+	stopped = 1;
+	if (megad.debug_trap == false)
+		megad.debug_enter();
+	else
+		megad.debug_leave();
+#else
+	stop_events_msg(~0u, "Debugger support not built in.");
+#endif
+	return 1;
+}
+
+static struct ctl const control[] = {
+	// Array indices and control[].type must match enum ctl_e's order.
+	{ CTL_PAD1_UP, &pad1_up, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_DOWN, &pad1_down, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_LEFT, &pad1_left, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_RIGHT, &pad1_right, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_A, &pad1_a, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_B, &pad1_b, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_C, &pad1_c, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_X, &pad1_x, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_Y, &pad1_y, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_Z, &pad1_z, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_MODE, &pad1_mode, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_START, &pad1_start, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD2_UP, &pad2_up, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_DOWN, &pad2_down, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_LEFT, &pad2_left, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_RIGHT, &pad2_right, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_A, &pad2_a, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_B, &pad2_b, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_C, &pad2_c, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_X, &pad2_x, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_Y, &pad2_y, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_Z, &pad2_z, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_MODE, &pad2_mode, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_START, &pad2_start, ctl_pad2, ctl_pad2_release },
+	{ CTL_DGEN_QUIT, &dgen_quit, ctl_dgen_quit, NULL },
+	{ CTL_DGEN_CRAPTV_TOGGLE,
+	  &dgen_craptv_toggle, ctl_dgen_craptv_toggle, NULL },
+	{ CTL_DGEN_SCALING_TOGGLE,
+	  &dgen_scaling_toggle, ctl_dgen_scaling_toggle, NULL },
+	{ CTL_DGEN_RESET, &dgen_reset, ctl_dgen_reset, NULL },
+	{ CTL_DGEN_SLOT0, &dgen_slot_0, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT1, &dgen_slot_1, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT2, &dgen_slot_2, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT3, &dgen_slot_3, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT4, &dgen_slot_4, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT5, &dgen_slot_5, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT6, &dgen_slot_6, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT7, &dgen_slot_7, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT8, &dgen_slot_8, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT9, &dgen_slot_9, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SAVE, &dgen_save, ctl_dgen_save, NULL },
+	{ CTL_DGEN_LOAD, &dgen_load, ctl_dgen_load, NULL },
+	{ CTL_DGEN_Z80_TOGGLE, &dgen_z80_toggle, ctl_dgen_z80_toggle, NULL },
+	{ CTL_DGEN_CPU_TOGGLE, &dgen_cpu_toggle, ctl_dgen_cpu_toggle, NULL },
+	{ CTL_DGEN_STOP, &dgen_stop, ctl_dgen_stop, NULL },
+	{ CTL_DGEN_PROMPT, &dgen_prompt, ctl_dgen_prompt, NULL },
+	{ CTL_DGEN_GAME_GENIE, &dgen_game_genie, ctl_dgen_game_genie, NULL },
+	{ CTL_DGEN_VOLUME_INC, &dgen_volume_inc, ctl_dgen_volume, NULL },
+	{ CTL_DGEN_VOLUME_DEC, &dgen_volume_dec, ctl_dgen_volume, NULL },
+	{ CTL_DGEN_FULLSCREEN_TOGGLE,
+	  &dgen_fullscreen_toggle, ctl_dgen_fullscreen_toggle, NULL },
+	{ CTL_DGEN_FIX_CHECKSUM,
+	  &dgen_fix_checksum, ctl_dgen_fix_checksum, NULL },
+	{ CTL_DGEN_SCREENSHOT, &dgen_screenshot, ctl_dgen_screenshot, NULL },
+	{ CTL_DGEN_DEBUG_ENTER,
+	  &dgen_debug_enter, ctl_dgen_debug_enter, NULL },
+	{ CTL_, NULL, NULL, NULL }
+};
+
 // The massive event handler!
 // I know this is an ugly beast, but please don't be discouraged. If you need
 // help, don't be afraid to ask me how something works. Basically, just handle
@@ -3846,186 +4334,43 @@ int pd_handle_events(md &megad)
 		else if (event.key.keysym.mod & KMOD_SHIFT)
 			ksym |= KEYSYM_MOD_SHIFT;
 
-	  // Check for modifiers
-	  if(event.key.keysym.mod & KMOD_CTRL) ksym |= KEYSYM_MOD_CTRL;
-	  if(event.key.keysym.mod & KMOD_ALT) ksym |= KEYSYM_MOD_ALT;
-	  if(event.key.keysym.mod & KMOD_META) ksym |= KEYSYM_MOD_META;
-	  // Check if it was a significant key that was pressed
-	  if(ksym == pad1_up) megad.pad[0] &= ~0x01;
-	  else if(ksym == pad1_down) megad.pad[0] &= ~0x02;
-	  else if(ksym == pad1_left) megad.pad[0] &= ~0x04;
-	  else if(ksym == pad1_right) megad.pad[0] &= ~0x08;
-	  else if(ksym == pad1_a) megad.pad[0] &= ~0x1000;
-	  else if(ksym == pad1_b) megad.pad[0] &= ~0x10;
-	  else if(ksym == pad1_c) megad.pad[0] &= ~0x20;
-	  else if(ksym == pad1_x) megad.pad[0] &= ~0x40000;
-	  else if(ksym == pad1_y) megad.pad[0] &= ~0x20000;
-	  else if(ksym == pad1_z) megad.pad[0] &= ~0x10000;
-	  else if(ksym == pad1_mode) megad.pad[0] &= ~0x80000;
-	  else if(ksym == pad1_start) megad.pad[0] &= ~0x2000;
+		// Check for modifiers
+		if (event.key.keysym.mod & KMOD_CTRL)
+			ksym |= KEYSYM_MOD_CTRL;
+		if (event.key.keysym.mod & KMOD_ALT)
+			ksym |= KEYSYM_MOD_ALT;
+		if (event.key.keysym.mod & KMOD_META)
+			ksym |= KEYSYM_MOD_META;
 
-	  else if(ksym == pad2_up) megad.pad[1] &= ~0x01;
-	  else if(ksym == pad2_down) megad.pad[1] &= ~0x02;
-	  else if(ksym == pad2_left) megad.pad[1] &= ~0x04;
-	  else if(ksym == pad2_right) megad.pad[1] &= ~0x08;
-	  else if(ksym == pad2_a) megad.pad[1] &= ~0x1000;
-	  else if(ksym == pad2_b) megad.pad[1] &= ~0x10;
-	  else if(ksym == pad2_c) megad.pad[1] &= ~0x20;
-	  else if(ksym == pad2_x) megad.pad[1] &= ~0x40000;
-	  else if(ksym == pad2_y) megad.pad[1] &= ~0x20000;
-	  else if(ksym == pad2_z) megad.pad[1] &= ~0x10000;
-	  else if(ksym == pad2_mode) megad.pad[1] &= ~0x80000;
-	  else if(ksym == pad2_start) megad.pad[1] &= ~0x2000;
+		for (struct ctl const* ctl = control;
+		     (ctl->ksym != NULL); ++ctl) {
+			if (ksym != *ctl->ksym)
+				continue;
+			assert(ctl->press != NULL);
+			return ctl->press(*ctl, megad);
+		}
+		break;
+	case SDL_KEYUP:
+		ksym = event.key.keysym.sym;
+		ksym_uni = kpress[(ksym & 0xff)];
+		if ((ksym_uni < 0x20) ||
+		    ((ksym >= SDLK_KP0) && (ksym <= SDLK_KP_EQUALS)))
+			ksym_uni = 0;
+		kpress[(ksym & 0xff)] = 0;
+		if (ksym_uni)
+			ksym = ksym_uni;
 
-	  else if(ksym == dgen_quit) return 0;
-#ifdef WITH_CTV
-	  else if (ksym == dgen_craptv_toggle)
-	    {
-		dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
-		filters_prescale[0] = &filters_list[dgen_craptv];
-		pd_message("Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
-	    }
-#endif // WITH_CTV
-	  else if (ksym == dgen_scaling_toggle) {
-		dgen_scaling = ((dgen_scaling + 1) % NUM_SCALING);
-		if (set_scaling(scaling_names[dgen_scaling]))
-			pd_message("Scaling algorithm \"%s\" unavailable.",
-				   scaling_names[dgen_scaling]);
-		else
-			pd_message("Using scaling algorithm \"%s\".",
-				   scaling_names[dgen_scaling]);
-	  }
-	  else if(ksym == dgen_reset)
-	    { megad.reset(); pd_message("Genesis reset."); }
-	  else if(ksym == dgen_slot_0)
-	    { slot = 0; pd_message("Selected save slot 0."); }
-	  else if(ksym == dgen_slot_1)
-	    { slot = 1; pd_message("Selected save slot 1."); }
-	  else if(ksym == dgen_slot_2)
-	    { slot = 2; pd_message("Selected save slot 2."); }
-	  else if(ksym == dgen_slot_3)
-	    { slot = 3; pd_message("Selected save slot 3."); }
-	  else if(ksym == dgen_slot_4)
-	    { slot = 4; pd_message("Selected save slot 4."); }
-	  else if(ksym == dgen_slot_5)
-	    { slot = 5; pd_message("Selected save slot 5."); }
-	  else if(ksym == dgen_slot_6)
-	    { slot = 6; pd_message("Selected save slot 6."); }
-	  else if(ksym == dgen_slot_7)
-	    { slot = 7; pd_message("Selected save slot 7."); }
-	  else if(ksym == dgen_slot_8)
-	    { slot = 8; pd_message("Selected save slot 8."); }
-	  else if(ksym == dgen_slot_9)
-	    { slot = 9; pd_message("Selected save slot 9."); }
-	  else if(ksym == dgen_save) md_save(megad);
-	  else if(ksym == dgen_load) md_load(megad);
-
-		// Cycle Z80 core.
-		else if (ksym == dgen_z80_toggle) {
-			const char *msg;
-
-			megad.cycle_z80();
-			switch (megad.z80_core) {
-#ifdef WITH_CZ80
-			case md::Z80_CORE_CZ80:
-				msg = "CZ80 core activated.";
-				break;
-#endif
-#ifdef WITH_MZ80
-			case md::Z80_CORE_MZ80:
-				msg = "MZ80 core activated.";
-				break;
-#endif
-			default:
-				msg = "Z80 core disabled.";
-				break;
-			}
-			pd_message(msg);
-		}
-
-// Added this CPU core hot swap.  Compile both Musashi and StarScream
-// in, and swap on the fly like DirectX DGen. [PKH]
-		else if (ksym == dgen_cpu_toggle) {
-			const char *msg;
-
-			megad.cycle_cpu();
-			switch (megad.cpu_emu) {
-#ifdef WITH_STAR
-			case md::CPU_EMU_STAR:
-				msg = "StarScream CPU core activated.";
-				break;
-#endif
-#ifdef WITH_MUSA
-			case md::CPU_EMU_MUSA:
-				msg = "Musashi CPU core activated.";
-				break;
-#endif
-			default:
-				msg = "CPU core disabled.";
-				break;
-			}
-			pd_message(msg);
-		}
-		else if (ksym == dgen_stop) {
-			megad.pad[0] = 0xf303f;
-			megad.pad[1] = 0xf303f;
-			return stop_events(megad, 0);
-		}
-		else if (ksym == dgen_prompt) {
-			megad.pad[0] = 0xf303f;
-			megad.pad[1] = 0xf303f;
-			return stop_events(megad, 3);
-		}
-		else if (ksym == dgen_game_genie) {
-			megad.pad[0] = 0xf303f;
-			megad.pad[1] = 0xf303f;
-			return stop_events(megad, 1);
-		}
-		else if ((ksym == dgen_volume_inc) ||
-			 (ksym == dgen_volume_dec)) {
-			if (ksym == dgen_volume_inc)
-				++dgen_volume;
-			else
-				--dgen_volume;
-			if (dgen_volume < 0)
-				dgen_volume = 0;
-			else if (dgen_volume > 100)
-				dgen_volume = 100;
-			pd_message("Volume %d%%.", (int)dgen_volume);
-		}
-	  else if(ksym == dgen_fullscreen_toggle) {
-		switch (set_fullscreen(!screen.is_fullscreen)) {
-		case -2:
-			fprintf(stderr,
-				"sdl: fatal error while trying to change screen"
-				" resolution.\n");
-			return 0;
-		case -1:
-			pd_message("Failed to toggle fullscreen mode.");
+		// The only time we care about key releases is for the
+		// controls, but ignore key modifiers so they never get stuck.
+		for (struct ctl const* ctl = control;
+		     (ctl->ksym != NULL); ++ctl) {
+			if (ksym != (*ctl->ksym & ~KEYSYM_MOD_MASK))
+				continue;
+			if (ctl->release != NULL)
+				return ctl->release(*ctl, megad);
 			break;
-		default:
-			pd_message("Fullscreen mode toggled.");
 		}
-	  }
-	  else if(ksym == dgen_fix_checksum) {
-	    pd_message("Checksum fixed.");
-	    megad.fix_rom_checksum();
-	  }
-          else if(ksym == dgen_screenshot) {
-            do_screenshot();
-          }
-	  else if (ksym == dgen_debug_enter) {
-#ifdef WITH_DEBUGGER
-		stopped = 1;
-		if (megad.debug_trap == false)
-			megad.debug_enter();
-		else
-			megad.debug_leave();
-#else
-		stop_events_msg(~0u, "Debugger support not built in.");
-#endif
-	  }
-	  break;
+		break;
 	case SDL_VIDEORESIZE:
 	{
 		switch (screen_init(event.resize.w, event.resize.h)) {
@@ -4049,66 +4394,6 @@ int pd_handle_events(md &megad)
 		}
 		break;
 	}
-	case SDL_KEYUP:
-		ksym = event.key.keysym.sym;
-		ksym_uni = kpress[(ksym & 0xff)];
-		if ((ksym_uni < 0x20) ||
-		    ((ksym >= SDLK_KP0) && (ksym <= SDLK_KP_EQUALS)))
-			ksym_uni = 0;
-		kpress[(ksym & 0xff)] = 0;
-		if (ksym_uni)
-			ksym = ksym_uni;
-		// The only time we care about key releases is for the
-		// controls, but ignore key modifiers so they never get stuck.
-		if (ksym == (pad1_up & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x01;
-		else if (ksym == (pad1_down & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x02;
-		else if (ksym == (pad1_left & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x04;
-		else if (ksym == (pad1_right & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x08;
-		else if (ksym == (pad1_a & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x1000;
-		else if (ksym == (pad1_b & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x10;
-		else if (ksym == (pad1_c & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x20;
-		else if (ksym == (pad1_x & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x40000;
-		else if (ksym == (pad1_y & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x20000;
-		else if (ksym == (pad1_z & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x10000;
-		else if (ksym == (pad1_mode & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x80000;
-		else if (ksym == (pad1_start & ~KEYSYM_MOD_MASK))
-			megad.pad[0] |= 0x2000;
-		else if (ksym == (pad2_up & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x01;
-		else if (ksym == (pad2_down & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x02;
-		else if (ksym == (pad2_left & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x04;
-		else if (ksym == (pad2_right & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x08;
-		else if (ksym == (pad2_a & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x1000;
-		else if (ksym == (pad2_b & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x10;
-		else if (ksym == (pad2_c & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x20;
-		else if (ksym == (pad2_x & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x40000;
-		else if (ksym == (pad2_y & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x20000;
-		else if (ksym == (pad2_z & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x10000;
-		else if (ksym == (pad2_mode & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x80000;
-		else if (ksym == (pad2_start & ~KEYSYM_MOD_MASK))
-			megad.pad[1] |= 0x2000;
-		break;
 	case SDL_QUIT:
 	  // We've been politely asked to exit, so let's leave
 	  return 0;
