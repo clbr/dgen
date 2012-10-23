@@ -545,7 +545,6 @@ void md_vdp::draw_sprites(int line, int front)
 {
   unsigned int which;
   int tx, ty, x, y, xend, ysize, yoff, i, masking_sprite_index;
-  int masking_sprite_y, masking_sprite_height;
   unsigned char *where, *sprite;
 
   /*
@@ -558,22 +557,22 @@ void md_vdp::draw_sprites(int line, int front)
    * Thanks for Charles MacDonald for explaining this to me (vext01).
    */
   masking_sprite_index = sprite_count - 1;
-  masking_sprite_y = 0;
-  masking_sprite_height = 0;
-  for(i = 0; i < sprite_count; i++) {
+  for (i = 0; i < sprite_count; i++) {
+    int h;
+
     sprite = sprite_base + (sprite_order[i] << 3);
     x = get_word(sprite + 6) & 0x1ff;
-    if (x == 0) {
+    y = get_word(sprite);
+    h = ((sprite[2] & 0x3) << 3) + 7;
+    if ((x == 0) && ((line + 0x80) >= y) && ((line + 0x80) <= (y + h))) {
       masking_sprite_index = i;
-      masking_sprite_y = get_word(sprite);
-      masking_sprite_height = ((sprite[2] & 0x3) << 3) + 7;
       break;
     }
   }
 
   // Sprites have to be in reverse order :P
   // However, I have heard that the sprite limiting works forwards. XXX
-  for(i = sprite_count - 1; i >= 0; --i)
+  for (i = masking_sprite_index; i >= 0; --i)
     {
       sprite = sprite_base + (sprite_order[i] << 3);
       // Get the first tile
@@ -584,12 +583,6 @@ void md_vdp::draw_sprites(int line, int front)
 	  // Get the sprite's location
 	  y = get_word(sprite);
 	  x = get_word(sprite + 6) & 0x1ff;
-
-	  // masking as mentioned above
-	  if ((i > masking_sprite_index) &&
-	      (line + 0x80 >= masking_sprite_y) &&
-	      (line + 0x80 <= (masking_sprite_y + masking_sprite_height)))
-            continue;
 
 	  // Interlace?
 	  if(reg[12] & 2)
