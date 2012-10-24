@@ -158,7 +158,7 @@ int md::reset()
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 
-    coo_waiting=coo_cmd=aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
+    aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
     =aoo3_six_timeout=aoo5_six_timeout
     =coo4=coo5=0;
   pad[0]=pad[1]=0xf303f; // Untouched pad

@@ -139,11 +139,12 @@ private:
   unsigned int Bpp_times8;
   unsigned char *dest;
   md& belongs;
+  bool command_pending; // set when first half of command arrives
 public:
   md_vdp(md&);
   ~md_vdp();
 // These are called by MEM.CPP
-  int command(uint16_t cmd, bool pending);
+  int command(uint16_t cmd);
   unsigned short readword();
   unsigned char readbyte();
   int writeword(unsigned short d);
@@ -155,6 +156,9 @@ public:
   uint32_t highpal[64];
   // Draw a scanline
   void draw_scanline(struct bmap *bits, int line);
+  void set_command_pending(bool f);
+  bool get_command_pending();
+  void write_reg(uint8_t addr, uint8_t data);
 };
 
 /* Generic structures for dumping and restoring M68K and Z80 states. */
@@ -290,8 +294,6 @@ private:
   // Note order is (0) Vblank end -------- Vblank Start -- (HIGH)
   // So int6 happens in the middle of the count
 
-  int coo_waiting; // after 04 write which is 0x4xxx or 0x8xxx
-  unsigned int coo_cmd; // The complete command
   int aoo3_toggle,aoo5_toggle,aoo3_six,aoo5_six;
   int aoo3_six_timeout, aoo5_six_timeout;
   unsigned char  calculate_coo8();

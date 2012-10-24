@@ -206,12 +206,12 @@ uint8_t md::misc_readbyte(uint32_t a)
 		if (a < 0xc00004) {
 			if (a & 0x01)
 				return 0;
-			coo_waiting = 0;
+			vdp.set_command_pending(false);
 			return vdp.readbyte();
 		}
 		/* control */
 		if (a < 0xc00008) {
-			coo_waiting = 0;
+			vdp.set_command_pending(false);
 			if ((a & 0x01) == 0)
 				return coo4;
 			return coo5;
@@ -362,7 +362,7 @@ uint16_t md::misc_readword(uint32_t a)
 		if (a < 0xc00004) {
 			if (a & 0x01)
 				return 0;
-			coo_waiting = 0;
+			vdp.set_command_pending(false);
 			return vdp.readword();
 		}
 		if (a < 0xc00008) {
@@ -406,42 +406,26 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 			if (a & 0x01)
 				return;
 			vdp.writeword(d);
-			coo_waiting = 0;
+			vdp.set_command_pending(false);
 			return;
 		}
 		if (a < 0xc00008) {
 			if (a & 0x01)
 				return;
-			if (coo_waiting) {
-				/* completed the vdp command */
-				vdp.command(d, coo_waiting);
-				coo_waiting = 0;
+			/* second half of a command */
+			if (vdp.get_command_pending()) {
+				vdp.command(d);
 				return;
 			}
 			/* register write */
 			if ((d & 0xc000) == 0x8000) {
 				uint8_t addr = ((d >> 8) & 0x1f);
-
-				if (vdp.reg[addr] != (d & 0xff)) {
-					uint8_t byt, bit;
-
-					/*
-					  store dirty information down to
-					  1 byte level in bits
-					*/
-					byt = addr;
-					bit = (byt & 7);
-					byt >>= 3;
-					byt &= 0x03;
-					vdp.dirt[(0x30 + byt)] |= (1 << bit);
-					vdp.dirt[0x34] |= 8;
-				}
-				vdp.reg[addr] = (d & 0xff);
+				vdp.write_reg(addr, d);
 				return;
 			}
 			/* first half of a command */
-			vdp.command(d, coo_waiting);
-			coo_waiting = 1;
+			vdp.command(d);
+			vdp.set_command_pending(true);
 			return;
 		}
 	}

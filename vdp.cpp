@@ -1,5 +1,9 @@
 // DGen v1.13+
 // Megadrive's VDP C++ module
+//
+// A useful resource for the Genesis VDP:
+// http://cgfm2.emuviews.com/txt/genvdp.txt
+// Thanks to Charles MacDonald for writing these docs.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +12,7 @@
 
 void md_vdp::reset()
 {
+	command_pending = false;
 	rw_mode = 0x00;
 	rw_addr = 0;
 	rw_dma = 0;
@@ -171,10 +176,35 @@ unsigned char md_vdp::readbyte()
   return result;
 }
 
-
-int md_vdp::command(uint16_t cmd, bool flag)
+/*
+ * VDP commands
+ *
+ * A VDP command is 32-bits in length written into the control port
+ * as two 16-bit words. The VDP maintains a pending flag so that it knows
+ * what to expect next.
+ *
+ *  CD1 CD0 A13 A12 A11 A10 A09 A08     (D31-D24)
+ *  A07 A06 A05 A04 A03 A02 A01 A00     (D23-D16)
+ *   ?   ?   ?   ?   ?   ?   ?   ?      (D15-D8)
+ *  CD5 CD4 CD3 CD2  ?   ?  A15 A14     (D7-D0)
+ *
+ * Where CD* indicates which ram is read or written in subsequent
+ * data port read/writes. A* is an address.
+ *
+ * Note that the command is not cached, but rather, the lower 14 address bits
+ * are commited as soon as the first half of the command arrives. Then when
+ * the second word arrives, the remaining two address bits are commited.
+ *
+ * It is possible to cancel (but not roll back) a pending command by:
+ *  - reading or writing to the data port.
+ *  - reading the control port.
+ *
+ * In these cases the pending flag is cleared, and the first half of
+ * the command remains comitted.
+ */
+int md_vdp::command(uint16_t cmd)
 {
-  if (flag) // If this is the second word of a command
+  if (get_command_pending()) // If this is the second word of a command
   {
     uint16_t A14_15 = (cmd & 0x0003) << 14;
     rw_addr = (rw_addr & 0xffff3fff) | A14_15;
@@ -189,6 +219,7 @@ int md_vdp::command(uint16_t cmd, bool flag)
     // if CD5 == 1
     rw_dma = ((cmd & 0x80) == 0x80);
 
+    set_command_pending(false);
   }
   else // This is the first word of a command
   {
@@ -203,6 +234,9 @@ int md_vdp::command(uint16_t cmd, bool flag)
     uint16_t CD0_1 = (cmd & 0xc000) >> 12;
     rw_mode = CD0_1;
     rw_dma = 0;
+
+    // we will expect the second half of the command next
+    set_command_pending(true);
 
     return 0;
   }
@@ -225,7 +259,7 @@ int md_vdp::command(uint16_t cmd, bool flag)
         }
       break;
       case 2:
-        // Done later on
+        // Done later on (VRAM fill I believe)
       break;
       case 3:
         for (i=0;i<len;i++)
@@ -288,3 +322,29 @@ int md_vdp::writebyte(unsigned char d)
   return 0;
 }
 
+void md_vdp::set_command_pending(bool f)
+{
+	command_pending = f;
+}
+
+bool md_vdp::get_command_pending()
+{
+	return command_pending;
+}
+
+// write away a vdp register
+void md_vdp::write_reg(uint8_t addr, uint8_t data)
+{
+	uint8_t byt, bit;
+
+	// store dirty information down to 1 byte level in bits
+	if (reg[addr] != data) {
+		byt = addr;
+		bit = (byt & 7);
+		byt >>= 3;
+		byt &= 0x03;
+		dirt[(0x30 + byt)] |= (1 << bit);
+		dirt[0x34] |= 8;
+	}
+	reg[addr] = data;
+}
