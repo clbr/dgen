@@ -98,7 +98,6 @@ int md_vdp::poke_vsram(int addr,unsigned char d)
 
 int md_vdp::putword(unsigned short d)
 {
-//  int diff=0;
   // Called by dma or a straight write
   switch(rw_mode)
   {
@@ -116,7 +115,10 @@ int md_vdp::putword(unsigned short d)
 		poke_cram((rw_addr + 0), (d >> 8));
 		poke_cram((rw_addr + 1), (d & 0xff));
 		break;
-    case 0x14: poke_vsram(rw_addr+0,d>>8); poke_vsram(rw_addr+1,d&0xff); break;
+	case 0x14:
+		poke_vsram((rw_addr + 0), (d >> 8));
+		poke_vsram((rw_addr + 1), (d & 0xff));
+		break;
   }
   rw_addr+=reg[15];
   return 0;
@@ -170,18 +172,40 @@ unsigned char md_vdp::readbyte()
 }
 
 
-int md_vdp::command(unsigned int cmd)
+int md_vdp::command(uint16_t cmd, bool flag)
 {
-// Decode 32-bit VDP command
-  rw_dma=((cmd&0x80)==0x80);
-  rw_mode= cmd&0x00000070;
-  rw_mode|=(cmd&0xc0000000)>>28;
-// mode writes: 04=VRAM 0C=CRAM 14=VSRAM
-// mode reads:  00=VRAM 20=CRAM 10=VSRAM
-  rw_addr= (cmd&0x00000003)<<14;
-  rw_addr|=(cmd&0x3fff0000)>>16;
-  // If not dma (or we need a fill),
-  // we are set up to write any data sent to vdp data reg
+  if (flag) // If this is the second word of a command
+  {
+    uint16_t A14_15 = (cmd & 0x0003) << 14;
+    rw_addr = (rw_addr & 0xffff3fff) | A14_15;
+
+    // Copy rw_addr to mirror register
+    rw_addr = (rw_addr & 0x0000ffff) | (rw_addr << 16);
+
+    // CD{4,3,2}
+    uint16_t CD4_2 = (cmd & 0x0070);
+    rw_mode |= CD4_2;
+
+    // if CD5 == 1
+    rw_dma = ((cmd & 0x80) == 0x80);
+
+  }
+  else // This is the first word of a command
+  {
+    // masking away command bits CD1 CD0
+    uint16_t A00_13 = cmd & 0x3fff;
+    rw_addr = (rw_addr & 0xffffc000) | A00_13;
+
+    // Copy rw_addr to mirror register
+    rw_addr = (rw_addr & 0x0000ffff) | (rw_addr << 16);
+
+    // CD {1,0}
+    uint16_t CD0_1 = (cmd & 0xc000) >> 12;
+    rw_mode = CD0_1;
+    rw_dma = 0;
+
+    return 0;
+  }
 
   // if it's a dma request do it straight away
   if (rw_dma)

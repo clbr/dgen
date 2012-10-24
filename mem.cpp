@@ -206,10 +206,12 @@ uint8_t md::misc_readbyte(uint32_t a)
 		if (a < 0xc00004) {
 			if (a & 0x01)
 				return 0;
+			coo_waiting = 0;
 			return vdp.readbyte();
 		}
 		/* control */
 		if (a < 0xc00008) {
+			coo_waiting = 0;
 			if ((a & 0x01) == 0)
 				return coo4;
 			return coo5;
@@ -360,6 +362,7 @@ uint16_t md::misc_readword(uint32_t a)
 		if (a < 0xc00004) {
 			if (a & 0x01)
 				return 0;
+			coo_waiting = 0;
 			return vdp.readword();
 		}
 		if (a < 0xc00008) {
@@ -403,6 +406,7 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 			if (a & 0x01)
 				return;
 			vdp.writeword(d);
+			coo_waiting = 0;
 			return;
 		}
 		if (a < 0xc00008) {
@@ -410,11 +414,11 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 				return;
 			if (coo_waiting) {
 				/* completed the vdp command */
-				coo_cmd |= d;
+				vdp.command(d, coo_waiting);
 				coo_waiting = 0;
-				vdp.command(coo_cmd);
 				return;
 			}
+			/* register write */
 			if ((d & 0xc000) == 0x8000) {
 				uint8_t addr = ((d >> 8) & 0x1f);
 
@@ -435,7 +439,8 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 				vdp.reg[addr] = (d & 0xff);
 				return;
 			}
-			coo_cmd = (d << 16);
+			/* first half of a command */
+			vdp.command(d, coo_waiting);
 			coo_waiting = 1;
 			return;
 		}

@@ -143,7 +143,7 @@ public:
   md_vdp(md&);
   ~md_vdp();
 // These are called by MEM.CPP
-  int command(unsigned int cmd);
+  int command(uint16_t cmd, bool pending);
   unsigned short readword();
   unsigned char readbyte();
   int writeword(unsigned short d);
