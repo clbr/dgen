@@ -345,6 +345,13 @@ private:
     dac_data[ras] = (dac_enabled? dac_last : 1);
   }
 
+  uint8_t m68k_ROM_read(uint32_t a);
+  uint8_t m68k_IO_read(uint32_t a);
+  uint8_t m68k_VDP_read(uint32_t a);
+  void m68k_ROM_write(uint32_t, uint8_t);
+  void m68k_IO_write(uint32_t, uint8_t);
+
+
 public:
   int myfm_write(int a,int v,int md);
   // public struct, full with data from the cartridge header
