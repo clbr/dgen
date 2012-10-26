@@ -46,7 +46,6 @@ dgen_SOURCES =		\
 	romload.c	\
 	md.h		\
 	md.cpp		\
-	md-joe.cpp	\
 	mdfr.cpp	\
 	decode.h	\
 	decode.c	\
