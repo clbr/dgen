@@ -17,4 +17,3 @@
 #define MD_MODE_MASK   (1 << 19)  //  0x80000
 
 #endif // _MD_PHIL_H_
-

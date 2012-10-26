@@ -33,7 +33,7 @@
 #include "font.h"
 #include "system.h"
 #include "prompt.h"
-#include "md-phil.h"
+#include "joystick.h"
 #include "romload.h"
 #include "splash.h"
 

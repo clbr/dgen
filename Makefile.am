@@ -65,8 +65,8 @@ dgen_SOURCES =		\
 	pd.h		\
 	ckvp.c		\
 	ckvp.h		\
-	md-phil.h	\
-	md-phil.cpp	\
+	joystick.h	\
+	joystick.cpp	\
 	system.c
 
 # debugger

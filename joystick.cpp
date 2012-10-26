@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <SDL_joystick.h>
 #include "md.h"
-#include "md-phil.h"
+#include "joystick.h"
 
 static SDL_Joystick *js_handle[2] = { NULL, NULL };
 int js_index[2] = { -1, -1 };
