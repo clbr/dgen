@@ -2771,7 +2771,7 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 	else if ((len - mark) < disp_len)
 		pd_message_display(&buf[(len - disp_len)], disp_len,
 				   (mark - (len - disp_len)), true);
-	else
+	else if (mark != ~0u)
 		pd_message_display(&buf[mark], disp_len, 0, true);
 }
 
