@@ -10,12 +10,6 @@ Working, with glitches
 - Double Dragon 2
 Sometimes slower than it should be.
 
-- Lotus 2 Recs
-Sprites sometimes visible behind hills.
-
-- Road Rash 1/2/3
-EA intro is mangled.
-
 - Sonic 2 prototype
 No sound/music.
 
@@ -23,13 +17,12 @@ No sound/music.
 Intro and some pictures are mangled, palette issues.
 
 - Streets of Rage 1
-Characters (and other sprites) are always drawn in front of the HUD.
 Starting with level 2, weapons and items are drawn in front of all other
 sprites.
 End of level counter sound is bad.
 
 - Aleste - Full metal fighter Ellinor
-Sprites are drawn in front of the HUD.
+Some HUD areas are wrong.
 
 - Ayrton Senna's Super Monaco
 Sky is black and top screen color is wrong.
@@ -41,16 +34,6 @@ Issue present with both Musashi and StarScream.
 - Gynoug
 Menu/intro backgrounds are mangled.
 
-- James Pond 2
-EA intro is mangled.
-
-- Mickey Mania
-In "Moose Chase" level, there's a weird semi-transparent moose shadow.
-Mickey is also drawn in front of the top border.
-
-- Super Fantasy Zone
-Sprites are drawn in front of the HUD.
-
 - Super Hang-on
 Bad horizon line.
 Sprites sometimes visible behind hills.
@@ -59,7 +42,8 @@ Sprites sometimes visible behind hills.
 Main weapon sound is bad.
 
 - Thunder force 4
-Corrupt intro, sprites priority issues.
+Corrupt intro.
+Some versions don't work at all.
 
 - Viewpoint
 Menu background is mangled.
@@ -68,6 +52,10 @@ Menu background is mangled.
 The Sonic 3 gumball bonus stage has some graphics problems. Get 50 rings and
 jump into the stars above a lamp-post and play the special stage for a bit --
 the bug is pretty obvious.
+
+- Gunstar Heroes
+The rocket level has some vertical scroll issues. Probably
+the same issue that we see in the Sonic 3 gumball stages.
 
 Non-working (must be fixed)
 ---------------------------
@@ -85,7 +73,7 @@ Sprites colors are wrong, crashes when trying to start a game.
 Crashes when starting a game.
 
 - Zool
-EA intro is mangled, then the game freezes.
+The game freezes after the EA logo on some versions.
 
 Non-working (this is expected)
 ------------------------------
