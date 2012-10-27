@@ -4187,6 +4187,7 @@ static int ctl_dgen_debug_enter(struct ctl const&, md& megad)
 	else
 		megad.debug_leave();
 #else
+	(void)megad;
 	stop_events_msg(~0u, "Debugger support not built in.");
 #endif
 	return 1;
