@@ -205,9 +205,10 @@ Video refresh rate. The default is 60 as in NTSC consoles.
 .It bool_pal [false]
 When true, a PAL console is emulated. This should be used in combination with
 int_hz above for 50Hz emulation.
-.It region [U]
-Region to emulate: U for America, E for Europe or J for Japan. Should be used
-in combination with bool_pal.
+.It region [' ']
+U for America (NTSC), E for Europe (PAL), J for Japan (NTSC), X for Japan
+(PAL), or empty space for autodetection (the default).
+Overrides bool_pal and int_hz.
 .It emu_m68k_startup [musa]
 Useful when both Musashi and StarScream are compiled-in. This option selects
 the default emulator to use ("musa" for Musashi, "star" for StarScream, "none"

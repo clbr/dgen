@@ -121,27 +121,14 @@ uint8_t md::m68k_IO_read(uint32_t a)
 	if (a == 0xa10001) {
 		uint8_t c = region;
 
-		if (c == '\0') {
-			/*
-			  The region to emulate hasn't been defined,
-			  get it from the ROM header.
-			*/
-			if ((0x1f0 ^ 1) < romlen)
-				c = rom[(0x1f0 ^ 1)];
-		}
-		switch (c) {
-		case 'U':
-			c = 0x80;
-			break;
-		case 'E':
-			c = (0x80 | 0x40); /* force PAL flag */
-			break;
-		case 'J':
-		default:
-			c = 0x00;
-			break;
-		}
-		return (c | (pal ? 0x40 : 0x00));
+		/* If region hasn't been defined, get it from ROM header. */
+		if (c == '\0')
+			c = cart_head.countries[0];
+		region_info(c, 0, 0, 0, 0, &c);
+		/* Remove PAL flag if we're not in PAL mode. */
+		if (!pal)
+			c &= ~0x40;
+		return c;
 	}
 	/* data 1 (pad 0) */
 	if (a == 0xa10002)

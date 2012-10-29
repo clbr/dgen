@@ -21,6 +21,7 @@
 #include "joystick.h"
 #include "romload.h"
 #include "system.h"
+#include "md.h"
 
 // CTV names
 const char *ctv_names[] = {
@@ -364,10 +365,10 @@ intptr_t rc_region(const char *value, intptr_t *)
 	if (strlen(value) != 1)
 		return -1;
 	switch (value[0] | 0x20) {
-	case 'u':
 	case 'j':
+	case 'x':
+	case 'u':
 	case 'e':
-	case '\0':
 	case ' ':
 		return (value[0] & ~0x20);
 	}
@@ -476,7 +477,7 @@ struct rc_field rc_fields[] = {
   { "int_nice", rc_number, &dgen_nice },
   { "int_hz", rc_number, &dgen_hz }, // SH
   { "bool_pal", rc_boolean, &dgen_pal }, // SH
-  { "region", rc_region, &dgen_region },
+  { "region", rc_region, &dgen_region }, // SH
   { "bool_fps", rc_boolean, &dgen_fps },
   { "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
   { "int_info_height", rc_number, &dgen_info_height }, // SH
@@ -660,6 +661,23 @@ parse:
 			}
 			else if (!atexit(rc_str_cleanup))
 				rc_str_list = rs;
+		}
+		else if ((rc_field->parser == rc_region) &&
+			 (rc_field->variable == &dgen_region)) {
+			/*
+			  Another special case: updating region also updates
+			  PAL and Hz settings.
+			*/
+			*(rc_field->variable) = potential;
+			if (*(rc_field->variable)) {
+				int hz;
+				int pal;
+
+				md::region_info(dgen_region, &pal, &hz,
+						0, 0, 0);
+				dgen_hz = hz;
+				dgen_pal = pal;
+			}
 		}
 		else
 			*(rc_field->variable) = potential;

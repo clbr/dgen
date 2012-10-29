@@ -92,8 +92,12 @@ static void help()
   "                    be nice to other processes.\n"
   "    -p CODE,CODE... Takes a comma-delimited list of Game Genie (ABCD-EFGH)\n"
   "                    or Hex (123456:ABCD) codes to patch the ROM with.\n"
-  "    -R (J|U|E)      Force emulator region. This does not affect -P.\n"
-  "    -P              Use PAL mode (50Hz) instead of normal NTSC (60Hz).\n"
+  "    -R (J|X|U|E| )  Force emulator region. Affects vertical resolution,\n"
+  "                    frame rate and ROM operation.\n"
+  "                    J: Japan (NTSC), X: Japan (PAL), U: America (NTSC)\n"
+  "                    E: Europe (PAL), ' ': auto (default).\n"
+  "    -N              Use NTSC mode (60Hz).\n"
+  "    -P              Use PAL mode (50Hz).\n"
   "    -H HZ           Use a custom frame rate.\n"
   "    -d DEMONAME     Record a demo of the game you are playing.\n"
   "    -D DEMONAME     Play back a previously recorded demo.\n"
@@ -234,7 +238,7 @@ int main(int argc, char *argv[])
 #ifdef __MINGW32__
 	   "m"
 #endif
-	   "s:hvr:n:p:R:PH:d:D:",
+	   "s:hvr:n:p:R:NPH:d:D:",
 	   pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
     {
@@ -274,9 +278,11 @@ int main(int argc, char *argv[])
 		if (strlen(optarg) != 1)
 			goto bad_region;
 		switch (optarg[0] | 0x20) {
-		case 'u':
 		case 'j':
+		case 'x':
+		case 'u':
 		case 'e':
+		case ' ':
 			break;
 		default:
 		bad_region:
@@ -285,10 +291,24 @@ int main(int argc, char *argv[])
 			return EXIT_FAILURE;
 		}
 		dgen_region = (optarg[0] & ~(0x20));
+		// Override PAL and Hz settings if region is specified.
+		if (dgen_region) {
+			int hz;
+			int pal;
+
+			md::region_info(dgen_region, &pal, &hz, 0, 0, 0);
+			dgen_hz = hz;
+			dgen_pal = pal;
+		}
+		break;
+	case 'N':
+		// NTSC mode
+		dgen_hz = NTSC_HZ;
+		dgen_pal = 0;
 		break;
 	case 'P':
 		// PAL mode
-		dgen_hz = 50;
+		dgen_hz = PAL_HZ;
 		dgen_pal = 1;
 		break;
 	case 'H':
@@ -430,6 +450,34 @@ next_rom:
 	megad->fix_rom_checksum();
 	// Reset
 	megad->reset();
+
+	// Automatic region settings from ROM header.
+	if (!dgen_region) {
+		uint8_t c = megad->cart_head.countries[0];
+		int hz;
+		int pal;
+
+		md::region_info(c, &pal, &hz, 0, 0, 0);
+		if ((hz != dgen_hz) || (pal != dgen_pal) ||
+		    (c != megad->region)) {
+			megad->region = c;
+			dgen_hz = hz;
+			dgen_pal = pal;
+			printf("main: reconfiguring for region \"%c\": "
+			       "%dHz (%s)\n", c, hz, (pal ? "PAL" : "NTSC"));
+			pd_graphics_reinit(dgen_sound, dgen_pal, dgen_hz);
+			if (dgen_sound) {
+				long rate = dgen_soundrate;
+
+				pd_sound_deinit();
+				samples = (dgen_soundsegs * (rate / dgen_hz));
+				pd_sound_init(rate, samples);
+			}
+			megad->pal = pal;
+			megad->init_pal();
+			megad->init_sound();
+		}
+	}
 
 	// Load up save RAM
 	ram_load(*megad);

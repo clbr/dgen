@@ -389,6 +389,34 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	md.pad[1] = 0xf303f;
 	md.fix_rom_checksum();
 	md.reset();
+
+	if (!dgen_region) {
+		uint8_t c = md.cart_head.countries[0];
+		int hz;
+		int pal;
+
+		md::region_info(c, &pal, &hz, 0, 0, 0);
+		if ((hz != dgen_hz) || (pal != dgen_pal) || (c != md.region)) {
+			md.region = c;
+			dgen_hz = hz;
+			dgen_pal = pal;
+			printf("sdl: reconfiguring for region \"%c\": "
+			       "%dHz (%s)\n", c, hz, (pal ? "PAL" : "NTSC"));
+			pd_graphics_reinit(dgen_sound, dgen_pal, dgen_hz);
+			if (dgen_sound) {
+				long rate = dgen_soundrate;
+				unsigned int samples;
+
+				pd_sound_deinit();
+				samples = (dgen_soundsegs * (rate / dgen_hz));
+				pd_sound_init(rate, samples);
+			}
+			md.pal = pal;
+			md.init_pal();
+			md.init_sound();
+		}
+	}
+
 	ram_load(md);
 	if (dgen_autoload) {
 		slot = 0;
@@ -2389,6 +2417,35 @@ fail:
 	return 0;
 }
 
+// Reinitialize graphics
+int pd_graphics_reinit(int, int want_pal, int hz)
+{
+	if ((hz <= 0) || (hz > 1000)) {
+		// You may as well disable bool_frameskip.
+		fprintf(stderr, "sdl: invalid frame rate (%d)\n", hz);
+		return 0;
+	}
+	video.hz = hz;
+	if (want_pal) {
+		// PAL
+		video.is_pal = 1;
+		video.height = 240;
+	}
+	else {
+		// NTSC
+		video.is_pal = 0;
+		video.height = 224;
+	}
+	// Reinitialize screen.
+	if (screen_init(0, 0))
+		goto fail;
+	DEBUG(("screen reinitialized"));
+	return 1;
+fail:
+	fprintf(stderr, "sdl: can't reinitialize graphics.\n");
+	return 0;
+}
+
 // Update palette
 void pd_graphics_palette_update()
 {
@@ -2916,8 +2973,36 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 			init_video = true;
 		}
 	}
-	else if (rc->variable == &dgen_region)
-		megad.region = dgen_region;
+	else if (rc->variable == &dgen_region) {
+		uint8_t c;
+		int hz;
+		int pal;
+		int vblank;
+
+		if (dgen_region)
+			c = dgen_region;
+		else
+			c = megad.cart_head.countries[0];
+		md::region_info(c, &pal, &hz, &vblank, 0, 0);
+		if ((hz != dgen_hz) || (pal != dgen_pal) ||
+		    (c != megad.region)) {
+			megad.region = c;
+			dgen_hz = hz;
+			dgen_pal = pal;
+			megad.pal = pal;
+			megad.init_pal();
+			megad.init_sound();
+			video.is_pal = pal;
+			video.height = vblank;
+			video.hz = hz;
+			init_video = true;
+			init_sound = true;
+			fprintf(stderr,
+				"sdl: reconfiguring for region \"%c\": "
+				"%dHz (%s)\n", megad.region, hz,
+				(pal ? "PAL" : "NTSC"));
+		}
+	}
 	else if (rc->variable == (intptr_t *)((void *)&dgen_rom_path))
 		set_rom_path(dgen_rom_path.val);
 	if (init_video) {
@@ -3086,11 +3171,13 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		const char *s;
 
 		if (val == 'U')
-			s = "America";
+			s = "America (NTSC)";
 		else if (val == 'E')
-			s = "Europe";
+			s = "Europe (PAL)";
 		else if (val == 'J')
-			s = "Japan";
+			s = "Japan (NTSC)";
+		else if (val == 'X')
+			s = "Japan (PAL)";
 		else
 			s = "Auto";
 		stop_events_msg(~0u, "%s is \"%c\" (%s)", rc->fieldname,

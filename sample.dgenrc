@@ -179,9 +179,11 @@ int_hz = 60
 # with int_hz above for 50Hz emulation.
 bool_pal = false
 
-# Region to emulate: U for America, E for Europe or J for Japan. Should be
-# used in combination with bool_pal.
-region = U
+# Region to emulate: U for America (NTSC), E for Europe (PAL),
+# J for Japan (NTSC), X for Japan (PAL), or empty space for autodetection
+# (the default).
+# Overrides bool_pal and int_hz.
+region = ' '
 
 # Run fullscreen?
 bool_fullscreen = no

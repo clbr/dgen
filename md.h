@@ -207,6 +207,55 @@ typedef struct {
 
 class md {
 public:
+	// Get default NTSC/PAL, Hz, VBLANK, lines number and memory byte
+	// for region, which is identified by a single character (J, X, U, E).
+	static void region_info(uint8_t region, int* pal, int* hz,
+				int* vblank, int* lines, uint8_t* mem)
+	{
+		// Make region code uppercase and replace space with 0.
+		region &= ~0x20;
+		switch (region) {
+		case 'X':
+			// Japan (PAL). This region code isn't found in ROMs
+			// but I wanted to label it somehow.
+			if (mem)
+				*mem = (0x00 | 0x40); // local + PAL
+			mem = 0;
+		case 'E':
+			// Europe (PAL).
+			if (pal)
+				*pal = 1;
+			if (hz)
+				*hz = PAL_HZ;
+			if (vblank)
+				*vblank = PAL_VBLANK;
+			if (lines)
+				*lines = PAL_LINES;
+			if (mem)
+				*mem = (0x80 | 0x40); // overseas + PAL
+			break;
+		case 'J':
+		default:
+			// Japan (NTSC).
+			if (mem)
+				*mem = 0x00; // local
+			mem = 0;
+		case 'U':
+			// America (NTSC).
+			if (pal)
+				*pal = 0;
+			if (hz)
+				*hz = NTSC_HZ;
+			if (vblank)
+				*vblank = NTSC_VBLANK;
+			if (lines)
+				*lines = NTSC_LINES;
+			if (mem)
+				*mem = 0x80; // overseas
+			break;
+		}
+	}
+
 #ifdef WITH_MUSA
 	static class md* md_musa;
 	unsigned int md_musa_ref;

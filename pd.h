@@ -24,6 +24,7 @@ extern unsigned char *mdpal;
 // discard root priviledges, if at all necessary.
 // It should return 1 on successful setup, or 0 if something wrong happened.
 int pd_graphics_init(int want_sound, int want_pal, int hz);
+int pd_graphics_reinit(int want_sound, int want_pal, int hz);
 // This updats the palette, if necessary.
 void pd_graphics_palette_update();
 // This updates the screen, with the mdscr bitmap.
