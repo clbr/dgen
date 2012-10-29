@@ -95,6 +95,7 @@ RCVAR(dgen_volume, 100);
 RCVAR(dgen_hz, 60);
 RCVAR(dgen_pal, 0);
 RCVAR(dgen_region, 0);
+RCSTR(dgen_region_order, "JUEX");
 
 RCVAR(dgen_raw_screenshots, 0);
 RCVAR(dgen_craptv, 0);

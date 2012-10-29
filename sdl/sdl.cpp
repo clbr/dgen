@@ -391,7 +391,7 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	md.reset();
 
 	if (!dgen_region) {
-		uint8_t c = md.cart_head.countries[0];
+		uint8_t c = md.region_guess();
 		int hz;
 		int pal;
 
@@ -2982,7 +2982,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		if (dgen_region)
 			c = dgen_region;
 		else
-			c = megad.cart_head.countries[0];
+			c = megad.region_guess();
 		md::region_info(c, &pal, &hz, &vblank, 0, 0);
 		if ((hz != dgen_hz) || (pal != dgen_pal) ||
 		    (c != megad.region)) {

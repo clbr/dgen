@@ -478,6 +478,7 @@ struct rc_field rc_fields[] = {
   { "int_hz", rc_number, &dgen_hz }, // SH
   { "bool_pal", rc_boolean, &dgen_pal }, // SH
   { "region", rc_region, &dgen_region }, // SH
+  { "str_region_order", rc_string, (intptr_t *)((void *)&dgen_region_order) },
   { "bool_fps", rc_boolean, &dgen_fps },
   { "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
   { "int_info_height", rc_number, &dgen_info_height }, // SH

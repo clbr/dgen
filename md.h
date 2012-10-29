@@ -424,6 +424,7 @@ public:
     char countries[0x10];             // Country code
   } cart_head;
   char region; // Emulator region.
+  uint8_t region_guess();
   int one_frame(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
 
   int pad[2];

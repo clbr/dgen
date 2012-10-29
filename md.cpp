@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <ctype.h>
 #ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
 #endif
@@ -581,6 +583,25 @@ int md::plug_in(unsigned char *cart,int len)
 #endif
   reset(); // Reset megadrive
   return 0;
+}
+
+// Region to emulate according to dgen_region_order and ROM header.
+uint8_t md::region_guess()
+{
+	char const* order = dgen_region_order.val;
+	char const* avail = this->cart_head.countries;
+	size_t r;
+	size_t i;
+
+	assert(order != NULL);
+	assert(avail != NULL);
+	for (r = 0; (order[r] != '\0'); ++r)
+		for (i = 0; (i != sizeof(this->cart_head.countries)); ++i)
+			if ((isprint(order[r])) &&
+			    (toupper(order[r]) == toupper(avail[i])))
+				return toupper(order[r]);
+	// Use default region.
+	return dgen_region;
 }
 
 int md::unplug()

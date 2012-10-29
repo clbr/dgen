@@ -121,9 +121,9 @@ uint8_t md::m68k_IO_read(uint32_t a)
 	if (a == 0xa10001) {
 		uint8_t c = region;
 
-		/* If region hasn't been defined, get it from ROM header. */
+		/* If region hasn't been defined, guess it. */
 		if (c == '\0')
-			c = cart_head.countries[0];
+			c = region_guess();
 		region_info(c, 0, 0, 0, 0, &c);
 		/* Remove PAL flag if we're not in PAL mode. */
 		if (!pal)

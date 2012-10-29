@@ -453,7 +453,7 @@ next_rom:
 
 	// Automatic region settings from ROM header.
 	if (!dgen_region) {
-		uint8_t c = megad->cart_head.countries[0];
+		uint8_t c = megad->region_guess();
 		int hz;
 		int pal;
 

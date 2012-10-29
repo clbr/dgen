@@ -185,6 +185,10 @@ bool_pal = false
 # Overrides bool_pal and int_hz.
 region = ' '
 
+# Regions DGen is allowed to emulate when autodetection is enabled,
+# ordered by preference.
+str_region_order = JUEX
+
 # Run fullscreen?
 bool_fullscreen = no
 

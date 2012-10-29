@@ -209,6 +209,9 @@ int_hz above for 50Hz emulation.
 U for America (NTSC), E for Europe (PAL), J for Japan (NTSC), X for Japan
 (PAL), or empty space for autodetection (the default).
 Overrides bool_pal and int_hz.
+.It str_region_order [JUEX]
+Regions DGen is allowed to emulate when autodetection is enabled, ordered by
+preference.
 .It emu_m68k_startup [musa]
 Useful when both Musashi and StarScream are compiled-in. This option selects
 the default emulator to use ("musa" for Musashi, "star" for StarScream, "none"
