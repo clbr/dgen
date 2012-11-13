@@ -8,7 +8,9 @@ struct patch { unsigned int addr, data; };
 extern "C" {
 #endif
 
-void decode(const char* code, struct patch *result);
+void genie_decode(const char *code, struct patch *result);
+void hex_decode(const char *code, struct patch *result);
+void decode(const char *code, struct patch *result);
 
 #ifdef __cplusplus
 } // extern "C"

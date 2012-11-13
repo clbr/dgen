@@ -1,4 +1,5 @@
-/* Decode a Game Genie code into an M68000 address/data pair.
+/**
+ * Decode a Game Genie code into an M68000 address/data pair.
  * The Game Genie code is made of the characters
  * ABCDEFGHJKLMNPRSTVWXYZ0123456789 (notice the missing I, O, Q and U).
  * Where A = 00000, B = 00001, C = 00010, ... , on to 9 = 11111.
@@ -26,7 +27,8 @@
 
 static char genie_chars[] = "AaBbCcDdEeFfGgHhJjKkLlMmNnPpRrSsTtVvWwXxYyZz0O1I2233445566778899";
 
-/* genie_decode
+/**
+ * Decode a Game Genie Code.
  * This function converts a Game Genie code to an address:data pair.
  * The code is given as an 8-character string, like "BJX0SA1C". It need not
  * be null terminated, since only the first 8 characters are taken. It is
@@ -36,9 +38,13 @@ static char genie_chars[] = "AaBbCcDdEeFfGgHhJjKkLlMmNnPpRrSsTtVvWwXxYyZz0O1I223
  *
  * The resulting address:data pair is returned in the struct patch pointed to
  * by result. If an error results, both the address and data will be set to -1.
+ *
+ * @param[in] code 8 character Game Genie code.
+ * @param[out] result The resulting address:data pair is returned in the struct
+ * patch pointed to by result. If an error results, both the address and data
+ * will be set to -1.
  */
-
-static void genie_decode(const char* code, struct patch* result)
+void genie_decode(const char *code, struct patch *result)
 {
   int i = 0, n;
   char* x;
@@ -96,16 +102,21 @@ static void genie_decode(const char* code, struct patch* result)
   return;
 }
 
-/* "Decode" an address/data pair into a structure. This is for "012345:ABCD"
+/**
+ * "Decode" an address/data pair into a structure. This is for "012345:ABCD"
  * type codes. You're more likely to find Genie codes circulating around, but
  * there's a chance you could come on to one of these. Which is nice, since
- * they're MUCH easier to implement ;) Once again, the input should be depunc-
- * tuated already. */
-
-static char hex_chars[] = "00112233445566778899AaBbCcDdEeFf";
-
-static void hex_decode(const char *code, struct patch *result)
+ * they're MUCH easier to implement ;) Once again, the input should be
+ * depunctuated already.
+ *
+ * @param[in] code 8 character Game Genie code.
+ * @param[out] result The resulting address:data pair is returned in the struct
+ * patch pointed to by result. If an error results, both the address and data
+ * will be set to -1.
+ */
+void hex_decode(const char *code, struct patch *result)
 {
+  static char hex_chars[] = "00112233445566778899AaBbCcDdEeFf";
   char *x;
   int i;
   /* 6 digits for address */
@@ -130,10 +141,17 @@ static void hex_decode(const char *code, struct patch *result)
     }
 }
 
-/* THIS is the function you call from the MegaDrive or whatever. This figures
+/**
+ * THIS is the function you call from the MegaDrive or whatever. This figures
  * out whether it's a genie or hex code, depunctuates it, and calls the proper
- * decoder. */
-void decode(const char* code, struct patch* result)
+ * decoder.
+ *
+ * @param[in] code Game Genie or hex code.
+ * @param[out] result The resulting address:data pair is returned in the struct
+ * patch pointed to by result. If an error results, both the address and data
+ * will be set to -1.
+ */
+void decode(const char *code, struct patch *result)
 {
   int len = strlen(code), i, j;
   char code_to_pass[16], *x;

@@ -24,6 +24,11 @@ extern "C" unsigned star_readword(unsigned a, unsigned d);
 extern "C" unsigned star_writebyte(unsigned a, unsigned d);
 extern "C" unsigned star_writeword(unsigned a, unsigned d);
 
+/**
+ * This sets up an array of memory locations.
+ * This method is StarScream specific.
+ * @return 0 on success
+ */
 int md::memory_map()
 {
   int i=0,j=0;
@@ -147,6 +152,10 @@ int md::memory_map()
 }
 #endif
 
+/**
+ * Resets everything (Z80, M68K, VDP, etc).
+ * @return 0 on success
+ */
 int md::reset()
 {
 #ifdef WITH_STAR
@@ -220,6 +229,9 @@ extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d);
 
 #endif // WITH_CZ80
 
+/**
+ * Initialise the Z80.
+ */
 void md::z80_init()
 {
 #ifdef WITH_MZ80
@@ -252,6 +264,9 @@ void md::z80_init()
 	z80_bank68k = 0xff8000;
 }
 
+/**
+ * Reset the Z80.
+ */
 void md::z80_reset()
 {
 	z80_bank68k = 0xff8000;
@@ -265,7 +280,10 @@ void md::z80_reset()
 #endif
 }
 
-// Return true when successful.
+/**
+ * Initialise sound.
+ * @return True when successful.
+ */
 bool md::init_sound()
 {
 	if (lock == false)
@@ -291,7 +309,11 @@ bool md::init_sound()
 	return true;
 }
 
-// PAL or NTSC mode.
+/**
+ * Switch to PAL or NTSC.
+ * This method's name is a bit misleading.  This switches to PAL or not
+ * depending on "md::pal".
+ */
 void md::init_pal()
 {
 	unsigned int hc;
@@ -319,6 +341,11 @@ void md::init_pal()
 
 bool md::lock = false;
 
+/**
+ * MD constructor.
+ * @param pal True if we are running the MD in PAL mode.
+ * @param region Region to emulate ('J', 'U', or 'E').
+ */
 md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	md_musa_ref(0), md_musa_prev(0),
@@ -525,6 +552,12 @@ md::~md()
 	lock = false;
 }
 
+/**
+ * Byteswaps memory.
+ * @param[in] start Byte array of cart memory.
+ * @param len How many bytes to byteswap.
+ * @return 0 on success (always 0).
+ */
 // Byteswaps memory
 int byteswap_memory(unsigned char *start,int len)
 { int i; unsigned char tmp;
@@ -533,6 +566,12 @@ int byteswap_memory(unsigned char *start,int len)
   return 0;
 }
 
+/**
+ * Plug a cart into the MD.
+ * @param[in] cart Cart's memory as a byte array.
+ * @param len Length of the cart.
+ * @return 0 on success.
+ */
 int md::plug_in(unsigned char *cart,int len)
 {
   // Plug in the cartridge specified by the uchar *
@@ -585,7 +624,10 @@ int md::plug_in(unsigned char *cart,int len)
   return 0;
 }
 
-// Region to emulate according to dgen_region_order and ROM header.
+/**
+ * Region to emulate according to dgen_region_order and ROM header.
+ * @return Region identifier ('J', 'U' or 'E').
+ */
 uint8_t md::region_guess()
 {
 	char const* order = dgen_region_order.val;
@@ -604,6 +646,10 @@ uint8_t md::region_guess()
 	return dgen_region;
 }
 
+/**
+ * Unplug a cart from the system.
+ * @return 0 on success.
+ */
 int md::unplug()
 {
   if (rom==NULL) return 1; if (romlen<=0) return 1;
@@ -630,6 +676,11 @@ int md::unplug()
   return 0;
 }
 
+/**
+ * Load a ROM.
+ * @param[in] name File name of cart to load.
+ * @return 0 on success.
+ */
 int md::load(const char *name)
 {
 	uint8_t *temp;
@@ -684,6 +735,9 @@ int md::load(const char *name)
 	return 0;
 }
 
+/**
+ * Cycle through Z80 CPU implementations.
+ */
 void md::cycle_z80()
 {
 	z80_state_dump();
@@ -691,6 +745,9 @@ void md::cycle_z80()
 	z80_state_restore();
 }
 
+/**
+ * Cycle between M68K CPU implementations.
+ */
 void md::cycle_cpu()
 {
 	m68k_state_dump();
@@ -698,6 +755,10 @@ void md::cycle_cpu()
 	m68k_state_restore();
 }
 
+/**
+ * Dump Z80 ram to a file named "dgz80ram".
+ * @return Always returns 0.
+ */
 int md::z80dump()
 {
   FILE *hand;
@@ -707,8 +768,15 @@ int md::z80dump()
   return 0;
 }
 
-// This takes a comma or whitespace-separated list of Game Genie and/or hex
-// codes to patch the ROM with.
+/**
+ * This takes a comma or whitespace-separated list of Game Genie and/or hex
+ * codes to patch the ROM with.
+ * @param[in] list List of codes separated by '\\t', '\\n', or ','.
+ * @param[out] errors Number of codes that failed to apply.
+ * @param[out] applied Number of codes that applied correctly.
+ * @param[out] reverted Number of codes that were reverted.
+ * @return 0 on success.
+ */
 int md::patch(const char *list, unsigned int *errors,
 	      unsigned int *applied, unsigned int *reverted)
 {
@@ -798,23 +866,32 @@ int md::patch(const char *list, unsigned int *errors,
   return ret;
 }
 
-// Get/put saveram from/to FILE*'s
+/**
+ * Get saveram from FILE*.
+ * @param from File to read from.
+ * @return 0 on success.
+ */
 int md::get_save_ram(FILE *from)
 {
-	// Pretty simple, just read the saveram raw
-	// Return 0 on success
 	return !fread((void*)saveram, save_len, 1, from);
 }
 
+/**
+ * Write a saveram to FILE*.
+ * @param into File to write to.
+ * @return 0 on success.
+ */
 int md::put_save_ram(FILE *into)
 {
-	// Just the opposite of the above :)
-	// Return 0 on success
 	return !fwrite((void*)saveram, save_len, 1, into);
 }
 
-// Dave: This is my code, but I thought it belonged here
-// Joe: Thanks Dave! No problem ;)
+/**
+ * Calculates a ROM's checksum.
+ * @param rom ROM memory area.
+ * @param len ROM size.
+ * @return Checksum.
+ */
 static unsigned short calculate_checksum(unsigned char *rom,int len)
 {
   unsigned short checksum=0;
@@ -827,6 +904,9 @@ static unsigned short calculate_checksum(unsigned char *rom,int len)
   return checksum;
 }
 
+/**
+ * Replace the in-memory ROM checksum with a calculated checksum.
+ */
 void md::fix_rom_checksum()
 {
   unsigned short cs; cs=calculate_checksum(rom,romlen);
