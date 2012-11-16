@@ -2,7 +2,7 @@
 
 include $(top_srcdir)/Makefile.asm.am
 
-DIST_SUBDIRS = musa mz80 sdl star
+DIST_SUBDIRS = musa mz80 sdl star doc
 
 # SDL
 SUBDIRS = sdl
@@ -23,6 +23,9 @@ SUBDIRS += mz80
 dgen_DEPENDENCIES += mz80/libmz80.a
 dgen_LDADD += mz80/libmz80.a
 endif
+
+# DOCS
+SUBDIRS += doc
 
 # StarScream
 if WITH_STAR

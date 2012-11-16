@@ -500,6 +500,32 @@ AS_IF(
 	[AC_MSG_FAILURE([debugger support requires Musashi CPU core])]
 )
 
+dnl Check for Doxygen.
+AC_ARG_WITH(
+	[doxygen],
+	[AS_HELP_STRING(
+		[--with-doxygen],
+		[build Doxygen documentation [default=auto]]
+	)],
+	[WITH_DOXYGEN=$withval],
+	[WITH_DOXYGEN=auto]
+)
+AS_IF(
+	[test "x$WITH_DOXYGEN" != xno],
+	[AC_CHECK_PROGS([DOXYGEN], [doxygen])]
+	[AS_IF(
+		[test "x$DOXYGEN" = x],
+		[AS_IF(
+			[test "x$WITH_DOXYGEN" = xyes],
+			[AC_MSG_FAILURE(
+				[Doxygen not found, try --without-doxygen.]
+			)],
+			[WITH_DOXYGEN=no]
+		)],
+		[WITH_DOXYGEN=yes]
+	)]
+)
+
 dnl Prevent dgen_tobin from being linked with unnecessary libraries.
 DGEN_LIBS="$LIBS"
 LIBS="$TOBIN_LIBS"
@@ -541,6 +567,8 @@ AM_CONDITIONAL([WITH_X86_MZ80], [test "x$USE_X86_MZ80" = xyes])
 AM_CONDITIONAL([WITH_X86_MMX], [test "x$USE_X86_MMX" = xyes])
 AM_CONDITIONAL([WITH_X86_CTV], [test "x$USE_X86_CTV" = xyes])
 AM_CONDITIONAL([WITH_X86_TILES], [test "x$USE_X86_TILES" = xyes])
+AM_CONDITIONAL([WITH_DOXYGEN], [test "x$WITH_DOXYGEN" = xyes])
+AM_COND_IF([WITH_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
 
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(CFLAGS_FOR_BUILD)
@@ -557,6 +585,7 @@ AC_OUTPUT(
 	[musa/Makefile]
 	[mz80/Makefile]
 	[sdl/Makefile]
+	[doc/Makefile]
 )
 
 AC_MSG_NOTICE([
@@ -583,4 +612,6 @@ ASM support ($USE_ASM)
     MMX memcpy: $USE_X86_MMX
     Crap TV filters: $USE_X86_CTV
     Tiles: $USE_X86_TILES
+
+Doxygen documentation: $WITH_DOXYGEN
 ])
