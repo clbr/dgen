@@ -3,6 +3,31 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.31 <- v1.30
+ * Joystick axes can now be configured for controllers with more than two.
+   They can also be reversed.
+ * Implemented command "calibrate_js" to configure joystick buttons
+   interactively.
+ * Fixed a bug in the debugger prompt handler.
+ * Implemented FM2612 debugging support.
+ * Refactored SDL keyboard handling.
+ * Removed Linux-specific joystick code which no one uses (not even in
+   Linux, where the SDL version has always been preferred).
+ * Implemented the ability to bind arbitrary commands to joystick buttons.
+   This makes DGen fully controllable from a joystick/joypad.
+ * Implemented proper sprite masking. This fixes annoying priority glitches in
+   a number of games.
+ * Fixed half-submitted commands support in the VDP. This finally fixes the
+   mangled EA logo.
+ * Some code refactoring and documentation.
+ * Improved region settings. The single "region" variable can be used to
+   switch interactively from one region settings to another (identifier,
+   resolution, PAL/NTSC mode and frame rate).
+ * Improved region auto detection with the ability to specify a preference
+   order ("str_region_order" variable).
+ * Fixed other miscellaneous bugs (NASM on non-x86 targets, uninitialized
+   variables, other warnings and errors).
+
 v1.30 <- v1.29
  * Screenshots can be taken either from the raw MD video output or the
    rendered screen (now the default) using bool_raw_screenshot.

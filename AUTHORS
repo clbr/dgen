@@ -32,8 +32,13 @@ Daniel Robbins <drobbins@gentoo.org>
 Andre Souza <asouza@olinux.com.br>
   - Added OpenGL rendering mode.
 Edd Barrett <vext01@gmail.com>
+  - YM2612 debugging support.
+  - VDP bugfixes (half-submitted commands) and enhancements (sprite masking).
   - Improved joysticks configuration.
   - Debugger.
+EgelMex <ellism88@gmail.com>
+  - VDP bugfixes.
+  - Code documentation, some refactoring.
 Andrea Musuruane <musuruan@users.sourceforge.net>
   - Submitted patches for non-executable stack in ASM files and warnings
     in dgenrc.5.
