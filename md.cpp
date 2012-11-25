@@ -173,7 +173,8 @@ int md::reset()
     aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
     =aoo3_six_timeout=aoo5_six_timeout
     =coo4=coo5=0;
-  pad[0]=pad[1]=0xf303f; // Untouched pad
+  pad[0] = MD_PAD_UNTOUCHED;
+  pad[1] = MD_PAD_UNTOUCHED;
   memset(pad_com, 0, sizeof(pad_com));
 
   // Reset FM registers

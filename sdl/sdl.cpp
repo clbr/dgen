@@ -385,8 +385,8 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	if (dgen_show_carthead)
 		pd_show_carthead(md);
 	// Initialize like main() does.
-	md.pad[0] = 0xf303f;
-	md.pad[1] = 0xf303f;
+	md.pad[0] = MD_PAD_UNTOUCHED;
+	md.pad[1] = MD_PAD_UNTOUCHED;
 	md.fix_rom_checksum();
 	md.reset();
 
@@ -4202,22 +4202,22 @@ static int ctl_dgen_cpu_toggle(struct ctl const&, md& megad)
 
 static int ctl_dgen_stop(struct ctl const&, md& megad)
 {
-	megad.pad[0] = 0xf303f;
-	megad.pad[1] = 0xf303f;
+	megad.pad[0] = MD_PAD_UNTOUCHED;
+	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 0);
 }
 
 static int ctl_dgen_prompt(struct ctl const&, md& megad)
 {
-	megad.pad[0] = 0xf303f;
-	megad.pad[1] = 0xf303f;
+	megad.pad[0] = MD_PAD_UNTOUCHED;
+	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 3);
 }
 
 static int ctl_dgen_game_genie(struct ctl const&, md& megad)
 {
-	megad.pad[0] = 0xf303f;
-	megad.pad[1] = 0xf303f;
+	megad.pad[0] = MD_PAD_UNTOUCHED;
+	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 1);
 }
 

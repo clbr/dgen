@@ -433,8 +433,8 @@ next_rom:
 		pd_message("No cartridge.");
 	first = false;
 	// Set untouched pads.
-	megad->pad[0] = 0xf303f;
-	megad->pad[1] = 0xf303f;
+	megad->pad[0] = MD_PAD_UNTOUCHED;
+	megad->pad[1] = MD_PAD_UNTOUCHED;
 #ifdef WITH_JOYSTICK
 	if (dgen_joystick)
 		megad->init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);

@@ -1,8 +1,6 @@
 #ifndef _MD_PHIL_H_
 #define _MD_PHIL_H_
 
-#define MD_UNTOUCHED   (0xF303F)
-
 #define MD_UP_MASK     (1)        //  0x00001
 #define MD_DOWN_MASK   (1 << 1)   //  0x00002
 #define MD_LEFT_MASK   (1 << 2)   //  0x00004

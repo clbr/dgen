@@ -205,6 +205,8 @@ typedef struct {
 #define PAL_HZ 50
 #define PAL_MCLK (MCLK_CYCLES_PER_LINE * PAL_LINES * PAL_HZ)
 
+#define MD_PAD_UNTOUCHED 0xf303f
+
 class md {
 public:
 	// Get default NTSC/PAL, Hz, VBLANK, lines number and memory byte
