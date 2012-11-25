@@ -292,7 +292,7 @@ void debug_musa_callback()
 	unsigned int		pc;
 	int			i;
 
-	pc = m68k_get_reg(NULL, M68K_REG_PC);
+	pc = m68k_get_reg(NULL, M68K_REG_PPC);
 
 	// break points
 	if ((!debug_step_m68k) && (!debug_is_bp_set()))
@@ -747,7 +747,7 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\tb/break\t\t\tshow breakpoints for current cpu\n"
 	    "\tc/cont\t\t\texit debugger and continue execution\n"
 	    "\td/dis <addr> <num>\tdisasm 'num' instrs starting at 'addr'\n"
-	    "\td/dis <num>\t\tdisasm 'num' instrs starting at the current instr\n"
+	    "\td/dis <addr>\t\tdisasm %u instrs starting at 'addr'\n"
 	    "\td/dis\t\t\tdisasm %u instrs starting at the current instr\n"
 	    "\tm/mem <addr> <len>\tdump 'len' bytes of memory at 'addr'\n"
 	    "\tm/mem <addr>\t\tdump %u bytes of memory at 'addr'\n"
@@ -763,7 +763,7 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\t'z80', 'z' or '%d' refers to the secondary z80 chip\n"
 	    "\t'ym', 'fm', 'ym2612' or '%d' refers to the fm2616 sound chip\n"
 	    "\t'sn', 'sn76489', 'psg'  or '%d' refers to the sn76489 sound chip\n",
-	    DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_MEMDUMP_LEN,
+	    DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_MEMDUMP_LEN,
 	    DBG_CONTEXT_M68K, DBG_CONTEXT_Z80, DBG_CONTEXT_YM2612, DBG_CONTEXT_SN76489);
 
 	return (1);
@@ -1003,14 +1003,11 @@ void md::debug_print_disassemble(uint32_t from, int len)
 
 	md_set_musa(1);	// assign static in md:: so C can get at it (HACK)
 	for (i = 0; i < len; i++) {
-		m68k_disassemble(disasm, from + (i*4), M68K_CPU_TYPE_68000);
-		printf("    0x%08x:  %02x %02x %02x %02x:  %s\n",
-		    from + (i*4),
-		    m68k_read_memory_8(from+(i*4)+0),
-		    m68k_read_memory_8(from+(i*4)+1),
-		    m68k_read_memory_8(from+(i*4)+2),
-		    m68k_read_memory_8(from+(i*4)+3),
-		    disasm);
+		unsigned int sz;
+
+		sz = m68k_disassemble(disasm, from, M68K_CPU_TYPE_68040);
+		printf("   0x%06x: %s\n", from, disasm);
+		from += sz;
 	}
 	md_set_musa(0);
 }
