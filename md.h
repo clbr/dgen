@@ -428,7 +428,7 @@ public:
   char region; // Emulator region.
   uint8_t region_guess();
   int one_frame(struct bmap *bm,unsigned char retpal[256],struct sndinfo *sndi);
-
+  void pad_update();
   int pad[2];
   uint8_t pad_com[2];
 // c000004 bit 1 write fifo empty, bit 0 write fifo full (???)

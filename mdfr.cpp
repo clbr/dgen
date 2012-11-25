@@ -323,6 +323,25 @@ unsigned int md::vblank()
 	return (((pal) && (vdp.reg[1] & 0x08)) ? PAL_VBLANK : NTSC_VBLANK);
 }
 
+// 6-button pad status update. Should be called once per displayed line.
+void md::pad_update()
+{
+	// The following code was originally in DGen until at least DGen v1.21
+	// (Win32 version) but wasn't in DGen/SDL v1.23, preventing 6-button
+	// emulation from working at all until now (v1.31 included).
+	// This broke some games (no input at all).
+
+	// Reset 6-button pad toggle after 26? lines
+	if (aoo3_six_timeout > 25)
+		aoo3_six = 0;
+	else
+		++aoo3_six_timeout;
+	if (aoo5_six_timeout > 25)
+		aoo5_six = 0;
+	else
+		++aoo5_six_timeout;
+}
+
 // Generate one frame
 int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 		  struct sndinfo *sndi)
@@ -357,6 +376,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	hints = vdp.reg[10]; // Set hint counter
 	// Video display! :D
 	for (ras = 0; ((unsigned int)ras < vblank); ++ras) {
+		pad_update(); // Update 6-button pads
 		fm_timer_callback(); // Update sound timers
 		if ((vdp.reg[0] & 0x10) && (--hints < 0)) {
 			// Trigger hint
@@ -427,6 +447,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	z80_run();
 	++ras;
 	// Run the course of vblank
+	pad_update();
 	fm_timer_callback();
 	// Usual h-blank stuff
 	coo5 |= 0x04;
@@ -447,6 +468,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	++ras;
 	// Remaining lines
 	while ((unsigned int)ras < lines) {
+		pad_update();
 		fm_timer_callback();
 		// Enable h-blank
 		coo5 |= 0x04;
