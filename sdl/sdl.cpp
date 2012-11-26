@@ -963,6 +963,14 @@ void pd_option(char c, const char *)
 
 #ifdef WITH_OPENGL
 
+#ifdef WORDS_BIGENDIAN
+#define TEXTURE_16_TYPE GL_UNSIGNED_SHORT_5_6_5
+#define TEXTURE_32_TYPE GL_UNSIGNED_INT_8_8_8_8_REV
+#else
+#define TEXTURE_16_TYPE GL_UNSIGNED_SHORT_5_6_5
+#define TEXTURE_32_TYPE GL_UNSIGNED_BYTE
+#endif
+
 static void texture_init_id()
 {
 	GLint param;
@@ -979,12 +987,12 @@ static void texture_init_id()
 	if (texture.u32 == 0)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 			     texture.width, texture.height,
-			     0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+			     0, GL_RGB, TEXTURE_16_TYPE,
 			     texture.buf.u16);
 	else
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 			     texture.width, texture.height,
-			     0, GL_BGRA, GL_UNSIGNED_BYTE,
+			     0, GL_BGRA, TEXTURE_32_TYPE,
 			     texture.buf.u32);
 }
 
@@ -1107,12 +1115,12 @@ static void update_texture()
 	if (texture.u32 == 0)
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
-				GL_RGB, GL_UNSIGNED_SHORT_5_6_5,
+				GL_RGB, TEXTURE_16_TYPE,
 				texture.buf.u16);
 	else
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 				texture.vis_width, texture.vis_height,
-				GL_BGRA, GL_UNSIGNED_BYTE,
+				GL_BGRA, TEXTURE_32_TYPE,
 				texture.buf.u32);
 	glCallList(texture.dlist);
 	SDL_GL_SwapBuffers();
