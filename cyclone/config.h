@@ -18,7 +18,7 @@
  * the write-back phase. That will be emulated, if this option is enabled.
  * This option also alters timing slightly.
  */
-#define CYCLONE_FOR_GENESIS         0
+#define CYCLONE_FOR_GENESIS         2
 
 /*
  * This option compresses Cyclone's jumptable. Because of this the executable
@@ -61,7 +61,7 @@
 #define MEMHANDLERS_NEED_PC         0
 #define MEMHANDLERS_NEED_PREV_PC    0
 #define MEMHANDLERS_NEED_FLAGS      0
-#define MEMHANDLERS_NEED_CYCLES     0
+#define MEMHANDLERS_NEED_CYCLES     1
 #define MEMHANDLERS_CHANGE_PC       0
 #define MEMHANDLERS_CHANGE_FLAGS    0
 #define MEMHANDLERS_CHANGE_CYCLES   0
