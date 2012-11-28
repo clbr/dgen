@@ -13,8 +13,8 @@
 
       .equiv INTERRUPT_MODE,        0	;@0 = Use internal int handler, 1 = Use Mames int handler
       .equiv FAST_Z80SP,            1	;@0 = Use mem functions for stack pointer, 1 = Use direct mem pointer
-      .equiv UPDATE_CONTEXT,        0
-      .equiv DRZ80_FOR_PICODRIVE,   1
+      .equiv UPDATE_CONTEXT,        1
+      .equiv DRZ80_FOR_PICODRIVE,   0
 
 .if INTERRUPT_MODE
       .extern Interrupt
