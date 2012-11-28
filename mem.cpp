@@ -565,6 +565,62 @@ extern "C" void m68k_write_memory_32(unsigned int address, unsigned int value)
 
 #endif // WITH_MUSA
 
+#ifdef WITH_CYCLONE
+
+/* Read from anywhere */
+extern "C" uint32_t cyclone_read_memory_8(uint32_t address)
+{
+	return md::md_cyclone->misc_readbyte(address);
+}
+
+extern "C" uint32_t cyclone_read_memory_16(uint32_t address)
+{
+	return md::md_cyclone->misc_readword(address);
+}
+
+extern "C" uint32_t cyclone_read_memory_32(uint32_t address)
+{
+	return ((md::md_cyclone->misc_readword(address) << 16) |
+		(md::md_cyclone->misc_readword(address + 2) & 0xffff));
+}
+
+/* Write to anywhere */
+extern "C" void cyclone_write_memory_8(uint32_t address, uint8_t value)
+{
+	md::md_cyclone->misc_writebyte(address, value);
+}
+
+extern "C" void cyclone_write_memory_16(uint32_t address, uint16_t value)
+{
+	md::md_cyclone->misc_writeword(address, value);
+}
+
+extern "C" void cyclone_write_memory_32(uint32_t address, uint32_t value)
+{
+	md::md_cyclone->misc_writeword(address, ((value >> 16) & 0xffff));
+	md::md_cyclone->misc_writeword((address + 2), (value & 0xffff));
+}
+
+uintptr_t md::checkpc(uintptr_t pc)
+{
+	pc -= cyclonecpu.membase; // Get the real program counter.
+
+	if (pc < romlen)
+		cyclonecpu.membase = (uintptr_t)rom; // Jump to ROM.
+	else {
+		pc &= 0xffff;
+		cyclonecpu.membase = (uintptr_t)ram; // Jump to RAM.
+	}
+	return (cyclonecpu.membase + pc); // New program counter.
+}
+
+extern "C" uintptr_t cyclone_checkpc(uintptr_t pc)
+{
+	return md::md_cyclone->checkpc(pc);
+}
+
+#endif // WITH_CYCLONE
+
 #ifdef WITH_STAR
 
 extern "C" unsigned star_readbyte(unsigned a, unsigned d)

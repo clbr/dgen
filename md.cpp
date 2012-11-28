@@ -152,6 +152,16 @@ int md::memory_map()
 }
 #endif
 
+#ifdef WITH_CYCLONE
+extern "C" uint32_t cyclone_read_memory_8(uint32_t address);
+extern "C" uint32_t cyclone_read_memory_16(uint32_t address);
+extern "C" uint32_t cyclone_read_memory_32(uint32_t address);
+extern "C" void cyclone_write_memory_8(uint32_t address, uint8_t value);
+extern "C" void cyclone_write_memory_16(uint32_t address, uint16_t value);
+extern "C" void cyclone_write_memory_32(uint32_t address, uint32_t value);
+extern "C" uintptr_t cyclone_checkpc(uintptr_t pc);
+#endif
+
 /**
  * Resets everything (Z80, M68K, VDP, etc).
  * @return 0 on success
@@ -167,6 +177,20 @@ int md::reset()
 	md_set_musa(1);
 	m68k_pulse_reset();
 	md_set_musa(0);
+#endif
+#ifdef WITH_CYCLONE
+	md_set_cyclone(1);
+	// Go to default state (not stopped, halted, etc.)
+	cyclonecpu.state_flags = 0;
+	// Set supervisor mode.
+	cyclonecpu.srh = 0x27;
+	// Get Stack Pointer.
+	cyclonecpu.a[7] = cyclonecpu.read32(0);
+	// Will be set by checkpc().
+	cyclonecpu.membase = 0;
+	// Get Program Counter.
+	cyclonecpu.pc = cyclonecpu.checkpc(cyclonecpu.read32(4));
+	md_set_cyclone(0);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 
@@ -351,6 +375,9 @@ md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	md_musa_ref(0), md_musa_prev(0),
 #endif
+#ifdef WITH_CYCLONE
+	md_cyclone_ref(0), md_cyclone_prev(0),
+#endif
 #ifdef WITH_STAR
 	md_star_ref(0), md_star_prev(0),
 #endif
@@ -391,6 +418,21 @@ md::md(bool pal, char region):
   fetch=NULL;
   readbyte=readword=writebyte=writeword=NULL;
   memset(&cpu,0,sizeof(cpu));
+#endif
+
+#ifdef WITH_CYCLONE
+  memset(&cyclonecpu, 0, sizeof(cyclonecpu));
+  cyclonecpu.read8 = cyclone_read_memory_8;
+  cyclonecpu.read16 = cyclone_read_memory_16;
+  cyclonecpu.read32 = cyclone_read_memory_32;
+  cyclonecpu.write8 = cyclone_write_memory_8;
+  cyclonecpu.write16 = cyclone_write_memory_16;
+  cyclonecpu.write32 = cyclone_write_memory_32;
+  cyclonecpu.checkpc = cyclone_checkpc;
+  cyclonecpu.fetch8 = cyclone_read_memory_8;
+  cyclonecpu.fetch16 = cyclone_read_memory_16;
+  cyclonecpu.fetch32 = cyclone_read_memory_32;
+  CycloneInit();
 #endif
 
 #ifdef WITH_MZ80
@@ -450,7 +492,7 @@ md::md(bool pal, char region):
 	md_set_star(0);
 #endif
 
-	// M68K: 0 = none, 1 = StarScream, 2 = Musashi
+	// M68K: 0 = none, 1 = StarScream, 2 = Musashi, 3 = Cyclone
 	switch (dgen_emu_m68k) {
 #ifdef WITH_STAR
 	case 1:
@@ -460,6 +502,11 @@ md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	case 2:
 		cpu_emu = CPU_EMU_MUSA;
+		break;
+#endif
+#ifdef WITH_CYCLONE
+	case 3:
+		cpu_emu = CPU_EMU_CYCLONE;
 		break;
 #endif
 	default:

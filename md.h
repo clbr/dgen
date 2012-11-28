@@ -22,6 +22,10 @@ extern "C"
 #endif
 #endif
 
+#ifdef WITH_CYCLONE
+#include "cyclone/Cyclone.h"
+#endif
+
 #ifdef WITH_MZ80
 #ifndef	_MZ80_H_
 #include "mz80/mz80.h"
@@ -265,6 +269,14 @@ public:
 
 	void md_set_musa(bool set);
 #endif
+#ifdef WITH_CYCLONE
+	static class md* md_cyclone;
+	unsigned int md_cyclone_ref;
+	class md* md_cyclone_prev;
+
+	void md_set_cyclone(bool set);
+	uintptr_t checkpc(uintptr_t pc);
+#endif
 #ifdef WITH_STAR
 	static class md* md_star;
 	unsigned int md_star_ref;
@@ -326,6 +338,9 @@ private:
 #endif
 #ifdef WITH_MUSA
 	void *ctx_musa;
+#endif
+#ifdef WITH_CYCLONE
+	struct Cyclone cyclonecpu;
 #endif
 
 	uint32_t z80_bank68k;
@@ -478,6 +493,9 @@ public:
 #endif
 #ifdef WITH_MUSA
     CPU_EMU_MUSA,
+#endif
+#ifdef WITH_CYCLONE
+    CPU_EMU_CYCLONE,
 #endif
     CPU_EMU_TOTAL
   } cpu_emu; // OK to read it but call cycle_cpu() to change it

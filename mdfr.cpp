@@ -65,6 +65,29 @@ void md::md_set_star(bool set)
 }
 #endif // WITH_STAR
 
+#ifdef WITH_CYCLONE
+class md* md::md_cyclone(0);
+
+void md::md_set_cyclone(bool set)
+{
+	if (set) {
+		++md_cyclone_ref;
+		if (md_cyclone == this)
+			return;
+		md_cyclone_prev = md_cyclone;
+		md_cyclone = this;
+	}
+	else {
+		if (md_cyclone != this)
+			abort();
+		if (--md_cyclone_ref != 0)
+			return;
+		md_cyclone = md_cyclone_prev;
+		md_cyclone_prev = 0;
+	}
+}
+#endif // WITH_CYCLONE
+
 #ifdef WITH_MZ80
 class md* md::md_mz80(0);
 
@@ -98,6 +121,11 @@ void md::md_set(bool set)
 		md_set_musa(set);
 	else
 #endif
+#ifdef WITH_CYCLONE
+	if (cpu_emu == CPU_EMU_CYCLONE)
+		md_set_cyclone(set);
+	else
+#endif
 #ifdef WITH_STAR
 	if (cpu_emu == CPU_EMU_STAR)
 		md_set_star(set);
@@ -117,6 +145,12 @@ int md::m68k_odo()
 #ifdef WITH_MUSA
 		if (cpu_emu == CPU_EMU_MUSA)
 			return (odo.m68k + m68k_cycles_run());
+#endif
+#ifdef WITH_CYCLONE
+		if (cpu_emu == CPU_EMU_CYCLONE)
+			return (odo.m68k +
+				((odo.m68k_max - odo.m68k) -
+				 cyclonecpu.cycles));
 #endif
 #ifdef WITH_STAR
 		if (cpu_emu == CPU_EMU_STAR)
@@ -162,6 +196,14 @@ void md::m68k_run()
 	}
 	else
 #endif
+#ifdef WITH_CYCLONE
+	if (cpu_emu == CPU_EMU_CYCLONE) {
+		cyclonecpu.cycles = cycles;
+		CycloneRun(&cyclonecpu);
+		odo.m68k += (cycles - cyclonecpu.cycles);
+	}
+	else
+#endif
 		odo.m68k += cycles;
 	m68k_st_running = 0;
 }
@@ -192,6 +234,11 @@ void md::m68k_irq(int i)
 #ifdef WITH_MUSA
 	if (cpu_emu == CPU_EMU_MUSA)
 		m68k_set_irq(i);
+	else
+#endif
+#ifdef WITH_CYCLONE
+	if (cpu_emu == CPU_EMU_CYCLONE)
+		cyclonecpu.irq = i;
 	else
 #endif
 #ifdef WITH_STAR

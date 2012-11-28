@@ -34,7 +34,7 @@ const char *scaling_names[] = { "default", "hqx", "scale2x", NULL };
 
 // CPU names, keep index in sync with rc-vars.h and enums in md.h
 const char *emu_z80_names[] = { "none", "mz80", "cz80", NULL };
-const char *emu_m68k_names[] = { "none", "star", "musa", NULL };
+const char *emu_m68k_names[] = { "none", "star", "musa", "cyclone", NULL };
 
 // The table of strings and the keysyms they map to.
 // The order is a bit weird, since this was originally a mapping for the SVGALib

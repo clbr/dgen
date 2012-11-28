@@ -2881,7 +2881,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	}
 	else if (rc->variable == &dgen_emu_m68k) {
 		megad.m68k_state_dump();
-		// M68K: 0 = none, 1 = StarScream, 2 = Musashi
+		// M68K: 0 = none, 1 = StarScream, 2 = Musashi, 3 = Cyclone
 		switch (dgen_emu_m68k) {
 #ifdef WITH_STAR
 		case 1:
@@ -2891,6 +2891,11 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 #ifdef WITH_MUSA
 		case 2:
 			megad.cpu_emu = md::CPU_EMU_MUSA;
+			break;
+#endif
+#ifdef WITH_CYCLONE
+		case 3:
+			megad.cpu_emu = md::CPU_EMU_CYCLONE;
 			break;
 #endif
 		default:
@@ -4198,6 +4203,11 @@ static int ctl_dgen_cpu_toggle(struct ctl const&, md& megad)
 #ifdef WITH_MUSA
 	case md::CPU_EMU_MUSA:
 		msg = "Musashi CPU core activated.";
+		break;
+#endif
+#ifdef WITH_CYCLONE
+	case md::CPU_EMU_CYCLONE:
+		msg = "Cyclone CPU core activated.";
 		break;
 #endif
 	default:

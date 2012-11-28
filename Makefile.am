@@ -2,7 +2,7 @@
 
 include $(top_srcdir)/Makefile.asm.am
 
-DIST_SUBDIRS = musa mz80 sdl star doc
+DIST_SUBDIRS = musa mz80 sdl star cyclone doc
 
 # SDL
 SUBDIRS = sdl
@@ -32,6 +32,13 @@ if WITH_STAR
 SUBDIRS += star
 dgen_DEPENDENCIES += star/libstarcpu.a
 dgen_LDADD += star/libstarcpu.a
+endif
+
+# Cyclone 68000
+if WITH_CYCLONE
+SUBDIRS += cyclone
+dgen_DEPENDENCIES += cyclone/libcyclonecpu.a
+dgen_LDADD += cyclone/libcyclonecpu.a
 endif
 
 bin_PROGRAMS = dgen dgen_tobin

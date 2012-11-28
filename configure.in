@@ -15,6 +15,7 @@ AC_CANONICAL_SYSTEM
 dnl Initialize Automake.
 AM_INIT_AUTOMAKE([silent-rules])
 AM_SILENT_RULES([yes])
+AM_PROG_AS
 
 dnl Check for standard programs.
 AC_PROG_CC
@@ -39,7 +40,11 @@ dnl Cross compilation stuff.
 AS_IF(
 	[test "x$cross_compiling" = xno],
 	[CC_FOR_BUILD="${CC}"]
+	[CXX_FOR_BUILD="${CXX}"]
+	[CPPFLAGS_FOR_BUILD="${CPPFLAGS}"]
 	[CFLAGS_FOR_BUILD="${CFLAGS}"]
+	[CXXFLAGS_FOR_BUILD="${CXXFLAGS}"]
+	[LDFLAGS_FOR_BUILD="${LDFLAGS}"]
 	[OBJEXT_FOR_BUILD="${OBJEXT}"]
 	[EXEEXT_FOR_BUILD="${EXEEXT}"]
 )
@@ -48,6 +53,9 @@ AS_IF(
 	[AC_MSG_CHECKING([for host C compiler])]
 	[CC_FOR_BUILD="${CC_FOR_BUILD-cc}"]
 	[AC_MSG_RESULT([$CC_FOR_BUILD])]
+	[AC_MSG_CHECKING([for host C++ compiler])]
+	[CXX_FOR_BUILD="${CXX_FOR_BUILD-c++}"]
+	[AC_MSG_RESULT([$CXX_FOR_BUILD])]
 	[AC_MSG_CHECKING([for suffix of host object files])]
 	[
 {
@@ -242,19 +250,25 @@ AC_ARG_ENABLE(
 	[USE_ASM=auto]
 )
 USE_X86_ASM=no
+USE_ARM_ASM=no
 AS_IF(
 	[test "x$USE_ASM" != xno],
-	[AC_PATH_PROG([NASM], [nasm])]
 	[AS_CASE(
 		[$target],
 
 		[i?86-*],
+		[AC_PATH_PROG([NASM], [nasm])]
 		[AS_IF(
 			[test "x$NASM" != x],
 			[USE_ASM=yes]
 			[USE_X86_ASM=yes],
 			[USE_ASM=no]
 		)],
+
+		[arm-*],
+		[AC_MSG_NOTICE([ARM-specific ASM routines enabled])]
+		[USE_ASM=yes]
+		[USE_ARM_ASM=yes],
 
 		[AC_MSG_NOTICE([no ASM routines available for this target])]
 		[USE_ASM=unavailable]
@@ -466,6 +480,23 @@ AS_IF(
 )
 
 AC_ARG_WITH(
+	[cyclone],
+	[AS_HELP_STRING(
+		[--with-cyclone],
+		[include Cyclone 68000 CPU core [default=auto]]
+	)],
+	[WITH_CYCLONE=$withval],
+	[WITH_CYCLONE=$USE_ARM_ASM]
+)
+AS_IF(
+	[test "x$with_cyclone" = xyes -a "x$USE_ARM_ASM" = xno],
+	[AC_MSG_FAILURE(
+		[Cyclone 68000 can only be enabled on ARM targets with a \
+working ASM support]
+	)]
+)
+
+AC_ARG_WITH(
 	[mz80],
 	[AS_HELP_STRING(
 		[--with-mz80],
@@ -540,6 +571,7 @@ AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
 AS_IF([test "x$WITH_STAR" = xyes], [AC_DEFINE([WITH_STAR])])
 AS_IF([test "x$WITH_MZ80" = xyes], [AC_DEFINE([WITH_MZ80])])
 AS_IF([test "x$WITH_CZ80" = xyes], [AC_DEFINE([WITH_CZ80])])
+AS_IF([test "x$WITH_CYCLONE" = xyes], [AC_DEFINE([WITH_CYCLONE])])
 AS_IF([test "x$USE_ASM" = xyes], [AC_DEFINE([WITH_ASM])])
 AS_IF(
 	[test "x$USE_X86_ASM" = xyes],
@@ -562,6 +594,7 @@ AM_CONDITIONAL([WITH_MUSA], [test "x$WITH_MUSA" = xyes])
 AM_CONDITIONAL([WITH_STAR], [test "x$WITH_STAR" = xyes])
 AM_CONDITIONAL([WITH_MZ80], [test "x$WITH_MZ80" = xyes])
 AM_CONDITIONAL([WITH_CZ80], [test "x$WITH_CZ80" = xyes])
+AM_CONDITIONAL([WITH_CYCLONE], [test "x$WITH_CYCLONE" = xyes])
 AM_CONDITIONAL([WITH_X86_ASM], [test "x$USE_X86_ASM" = xyes])
 AM_CONDITIONAL([WITH_X86_MZ80], [test "x$USE_X86_MZ80" = xyes])
 AM_CONDITIONAL([WITH_X86_MMX], [test "x$USE_X86_MMX" = xyes])
@@ -571,18 +604,33 @@ AM_CONDITIONAL([WITH_DOXYGEN], [test "x$WITH_DOXYGEN" = xyes])
 AM_COND_IF([WITH_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
 
 AC_SUBST(CC_FOR_BUILD)
+AC_SUBST(CXX_FOR_BUILD)
+AC_SUBST(CPPFLAGS_FOR_BUILD)
 AC_SUBST(CFLAGS_FOR_BUILD)
+AC_SUBST(CXXFLAGS_FOR_BUILD)
+AC_SUBST(LDFLAGS_FOR_BUILD)
 AC_SUBST(OBJEXT_FOR_BUILD)
 AC_SUBST(EXEEXT_FOR_BUILD)
 AC_SUBST(NASM)
 AC_SUBST(NASM_FORMAT)
 AC_SUBST(DGEN_LIBS)
 
+dnl The following shuts up automake when overriding *FLAGS macros.
+CPPFLAGS_B=CPPFLAGS
+CFLAGS_B=CFLAGS
+CXXFLAGS_B=CXXFLAGS
+LDFLAGS_B=LDFLAGS
+AC_SUBST(CPPFLAGS_B)
+AC_SUBST(CFLAGS_B)
+AC_SUBST(CXXFLAGS_B)
+AC_SUBST(LDFLAGS_B)
+
 dnl Done!
 AC_OUTPUT(
 	[Makefile]
 	[star/Makefile]
 	[musa/Makefile]
+	[cyclone/Makefile]
 	[mz80/Makefile]
 	[sdl/Makefile]
 	[doc/Makefile]
@@ -603,6 +651,7 @@ Front-end
 CPU cores
   Musashi M68K: $WITH_MUSA
   StarScream: $WITH_STAR
+  Cyclone: $WITH_CYCLONE
   MZ80: $WITH_MZ80
   CZ80: $WITH_CZ80
 
@@ -612,6 +661,8 @@ ASM support ($USE_ASM)
     MMX memcpy: $USE_X86_MMX
     Crap TV filters: $USE_X86_CTV
     Tiles: $USE_X86_TILES
+  ARM ASM
+    Cyclone: $WITH_CYCLONE
 
 Doxygen documentation: $WITH_DOXYGEN
 ])
