@@ -3276,18 +3276,18 @@ static int handle_prompt_enter(class md& md)
 			struct rc_str *rs;
 
 			rs = (struct rc_str *)rc_fields[i].variable;
-			free(rs->alloc);
+			if (rc_str_list == NULL) {
+				atexit(rc_str_cleanup);
+				rc_str_list = rs;
+			}
+			else if (rs->alloc == NULL) {
+				rs->next = rc_str_list;
+				rc_str_list = rs;
+			}
+			else
+				free(rs->alloc);
 			rs->alloc = (char *)potential;
 			rs->val = rs->alloc;
-			if (rc_str_list != NULL) {
-				if ((rc_str_list != rs) &&
-				    (rs->next == NULL)) {
-					rs->next = rc_str_list;
-					rc_str_list = rs;
-				}
-			}
-			else if (!atexit(rc_str_cleanup))
-				rc_str_list = rs;
 		}
 		else
 			*(rc_fields[i].variable) = potential;
