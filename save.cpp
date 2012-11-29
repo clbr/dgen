@@ -41,6 +41,20 @@ void md::m68k_state_dump()
 		m68k_state.sr = h2le16(cpu.sr);
 		break;
 #endif
+#ifdef WITH_CYCLONE
+	case CPU_EMU_CYCLONE:
+		md_set_cyclone(1);
+		(void)j;
+		for (i = 0; (i < 8); ++i) {
+			m68k_state.d[i] = h2le32(cyclonecpu.d[i]);
+			m68k_state.a[i] = h2le32(cyclonecpu.a[i]);
+		}
+		m68k_state.pc = h2le32(cyclonecpu.pc-cyclonecpu.membase);
+		m68k_state.sr = h2le16(CycloneGetSr(&cyclonecpu));
+		md_set_cyclone(0);
+		break;
+#endif
+
 	default:
 		(void)i;
 		(void)j;
@@ -79,6 +93,21 @@ void md::m68k_state_restore()
 		cpu.sr = le2h16(m68k_state.sr);
 		break;
 #endif
+#ifdef WITH_CYCLONE
+	case CPU_EMU_CYCLONE:
+		(void)j;
+		md_set_cyclone(1);
+		for (i = 0; (i < 8); ++i) {
+			cyclonecpu.d[i] = le2h32(m68k_state.d[i]);
+			cyclonecpu.a[i] = le2h32(m68k_state.a[i]);
+		}
+		cyclonecpu.membase = 0;
+		cyclonecpu.pc = cyclonecpu.checkpc(le2h32(m68k_state.pc));
+		CycloneSetSr(&cyclonecpu, le2h16(m68k_state.sr));
+		md_set_cyclone(0);
+		break;
+#endif
+
 	default:
 		(void)i;
 		(void)j;
