@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 #include "md.h"
 #include "mem.h"
@@ -721,3 +722,65 @@ extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d)
 }
 
 #endif // WITH_CZ80
+
+#ifdef WITH_DRZ80
+
+uintptr_t md::drz80_rebase_pc(uint16_t address)
+{
+	// PC in memory - rebase PC into memory.
+	drz80.Z80PC_BASE = (uintptr_t)z80ram;
+	return (drz80.Z80PC_BASE + address);
+}
+
+uintptr_t md::drz80_rebase_sp(uint16_t address)
+{
+	// SP in memory - rebase SP into memory.
+	drz80.Z80SP_BASE = (uintptr_t)z80ram;
+	return (drz80.Z80SP_BASE + address);
+}
+
+uintptr_t drz80_rebaseSP(uint16_t new_sp)
+{
+	return md::md_drz80->drz80_rebase_sp(new_sp);
+}
+
+uintptr_t drz80_rebasePC(uint16_t new_pc)
+{
+	return md::md_drz80->drz80_rebase_pc(new_pc);
+}
+
+uint8_t drz80_read8(uint16_t a)
+{
+	return md::md_drz80->z80_read(a);
+}
+
+uint16_t drz80_read16(uint16_t a)
+{
+	return ((uint16_t)md::md_drz80->z80_read(a) |
+		((uint16_t)md::md_drz80->z80_read(a + 1) << 8));
+}
+
+void drz80_write8(uint8_t d, uint16_t a)
+{
+	md::md_drz80->z80_write(a, d);
+}
+
+void drz80_write16(uint16_t d, uint16_t a)
+{
+	md::md_drz80->z80_write(a, (uint8_t)d);
+	md::md_drz80->z80_write((a + 1), (uint8_t)(d >> 8));
+}
+
+uint8_t drz80_in(uint16_t p)
+{
+	(void)p;
+	return 0xff;
+}
+
+void drz80_out(uint16_t p, uint8_t d)
+{
+	(void)p;
+	(void)d;
+}
+
+#endif // WITH_DRZ80

@@ -36,6 +36,10 @@ extern "C"
 #include "cz80/cz80.h"
 #endif
 
+#ifdef WITH_DRZ80
+#include "drz80/drz80.h"
+#endif
+
 //#define BUILD_YM2612
 extern "C" {
 #include "fm.h"
@@ -293,6 +297,13 @@ public:
 
 	void md_set_mz80(bool set);
 #endif
+#ifdef WITH_DRZ80
+	static class md* md_drz80;
+	unsigned int md_drz80_ref;
+	class md* md_drz80_prev;
+
+	void md_set_drz80(bool set);
+#endif
 	void md_set(bool set);
 
 	unsigned int mclk; // Master clock
@@ -331,6 +342,15 @@ private:
 #endif
 #ifdef WITH_CZ80
   cz80_struc cz80;
+#endif
+#ifdef WITH_DRZ80
+  struct DrZ80 drz80 __attribute__((packed)); // See drz80.h and drz80.s.
+  friend uintptr_t drz80_rebaseSP(uint16_t new_sp);
+  uintptr_t drz80_rebase_pc(uint16_t address);
+  friend uintptr_t drz80_rebasePC(uint16_t new_pc);
+  uintptr_t drz80_rebase_sp(uint16_t address);
+  friend void drz80_irq_callback();
+  void drz80_irq_cb();
 #endif
 #ifdef WITH_STAR
   struct S68000CONTEXT cpu;
@@ -485,6 +505,9 @@ public:
 #endif
 #ifdef WITH_CZ80
     Z80_CORE_CZ80,
+#endif
+#ifdef WITH_DRZ80
+    Z80_CORE_DRZ80,
 #endif
     Z80_CORE_TOTAL
   } z80_core;

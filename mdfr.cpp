@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 #ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
 #endif
@@ -113,6 +114,29 @@ void md::md_set_mz80(bool set)
 }
 #endif // WITH_MZ80
 
+#ifdef WITH_DRZ80
+class md* md::md_drz80(0);
+
+void md::md_set_drz80(bool set)
+{
+	if (set) {
+		++md_drz80_ref;
+		if (md_drz80 == this)
+			return;
+		md_drz80_prev = md_drz80;
+		md_drz80 = this;
+	}
+	else {
+		if (md_drz80 != this)
+			abort();
+		if (--md_drz80_ref != 0)
+			return;
+		md_drz80 = md_drz80_prev;
+		md_drz80_prev = 0;
+	}
+}
+#endif // WITH_DRZ80
+
 // Set/unset contexts
 void md::md_set(bool set)
 {
@@ -135,6 +159,10 @@ void md::md_set(bool set)
 #ifdef WITH_MZ80
 	if (z80_core == Z80_CORE_MZ80)
 		md_set_mz80(set);
+#endif
+#ifdef WITH_DRZ80
+	if (z80_core == Z80_CORE_DRZ80)
+		md_set_drz80(set);
 #endif
 }
 
@@ -261,6 +289,11 @@ int md::z80_odo()
 		if (z80_core == Z80_CORE_MZ80)
 			return (odo.z80 + mz80GetElapsedTicks(0));
 #endif
+#ifdef WITH_DRZ80
+		if (z80_core == Z80_CORE_DRZ80)
+			return (odo.z80 +
+				((odo.z80_max - odo.z80) - drz80.cycles));
+#endif
 	}
 	return odo.z80;
 }
@@ -285,6 +318,20 @@ void md::z80_run()
 		if (z80_core == Z80_CORE_MZ80) {
 			mz80exec(cycles);
 			odo.z80 += mz80GetElapsedTicks(1);
+		}
+		else
+#endif
+#ifdef WITH_DRZ80
+		if (z80_core == Z80_CORE_DRZ80) {
+			int rem = DrZ80Run(&drz80, cycles);
+
+			// drz80.cycles is the number of cycles remaining,
+			// so it must be either 0 or a negative value.
+			// z80_odo() relies on this.
+			// This value is also returned by DrZ80Run().
+			assert(drz80.cycles <= 0);
+			assert(drz80.cycles == rem);
+			odo.z80 += (cycles - rem);
 		}
 		else
 #endif
@@ -319,6 +366,20 @@ void md::z80_sync(int fake)
 		}
 		else
 #endif
+#ifdef WITH_DRZ80
+		if (z80_core == Z80_CORE_DRZ80) {
+			int rem = DrZ80Run(&drz80, cycles);
+
+			// drz80.cycles is the number of cycles remaining,
+			// so it must be either 0 or a negative value.
+			// z80_odo() relies on this.
+			// This value is also returned by DrZ80Run().
+			assert(drz80.cycles <= 0);
+			assert(drz80.cycles == rem);
+			odo.z80 += (cycles - rem);
+		}
+		else
+#endif
 			odo.z80 += cycles;
 		z80_st_running = 0;
 	}
@@ -339,6 +400,13 @@ void md::z80_irq(int vector)
 		mz80int(vector);
 	else
 #endif
+#ifdef WITH_DRZ80
+	if (z80_core == Z80_CORE_DRZ80) {
+		drz80.z80irqvector = vector;
+		drz80.Z80_IRQ = 1;
+	}
+	else
+#endif
 		(void)0;
 }
 
@@ -355,6 +423,13 @@ void md::z80_irq_clear()
 #ifdef WITH_MZ80
 	if (z80_core == Z80_CORE_MZ80)
 		mz80ClearPendingInterrupt();
+	else
+#endif
+#ifdef WITH_DRZ80
+	if (z80_core == Z80_CORE_DRZ80) {
+		drz80.z80irqvector = 0x00;
+		drz80.Z80_IRQ = 0x00;
+	}
 	else
 #endif
 		(void)0;

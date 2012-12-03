@@ -516,6 +516,23 @@ AC_ARG_WITH(
 	[WITH_CZ80=yes]
 )
 
+AC_ARG_WITH(
+	[drz80],
+	[AS_HELP_STRING(
+		[--with-drz80],
+		[include DrZ80 CPU core [default=auto]]
+	)],
+	[WITH_DRZ80=$withval],
+	[WITH_DRZ80=$USE_ARM_ASM]
+)
+AS_IF(
+	[test "x$with_drz80" = xyes -a "x$USE_ARM_ASM" = xno],
+	[AC_MSG_FAILURE(
+		[DrZ80 can only be enabled on ARM targets with a \
+working ASM support]
+	)]
+)
+
 dnl Check if debugger should be enabled.
 AC_ARG_ENABLE(
 	[debugger],
@@ -571,6 +588,7 @@ AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
 AS_IF([test "x$WITH_STAR" = xyes], [AC_DEFINE([WITH_STAR])])
 AS_IF([test "x$WITH_MZ80" = xyes], [AC_DEFINE([WITH_MZ80])])
 AS_IF([test "x$WITH_CZ80" = xyes], [AC_DEFINE([WITH_CZ80])])
+AS_IF([test "x$WITH_DRZ80" = xyes], [AC_DEFINE([WITH_DRZ80])])
 AS_IF([test "x$WITH_CYCLONE" = xyes], [AC_DEFINE([WITH_CYCLONE])])
 AS_IF([test "x$USE_ASM" = xyes], [AC_DEFINE([WITH_ASM])])
 AS_IF(
@@ -594,6 +612,7 @@ AM_CONDITIONAL([WITH_MUSA], [test "x$WITH_MUSA" = xyes])
 AM_CONDITIONAL([WITH_STAR], [test "x$WITH_STAR" = xyes])
 AM_CONDITIONAL([WITH_MZ80], [test "x$WITH_MZ80" = xyes])
 AM_CONDITIONAL([WITH_CZ80], [test "x$WITH_CZ80" = xyes])
+AM_CONDITIONAL([WITH_DRZ80], [test "x$WITH_DRZ80" = xyes])
 AM_CONDITIONAL([WITH_CYCLONE], [test "x$WITH_CYCLONE" = xyes])
 AM_CONDITIONAL([WITH_X86_ASM], [test "x$USE_X86_ASM" = xyes])
 AM_CONDITIONAL([WITH_X86_MZ80], [test "x$USE_X86_MZ80" = xyes])
@@ -654,6 +673,7 @@ CPU cores
   Cyclone: $WITH_CYCLONE
   MZ80: $WITH_MZ80
   CZ80: $WITH_CZ80
+  DrZ80: $WITH_DRZ80
 
 ASM support ($USE_ASM)
   x86 ASM
@@ -663,6 +683,7 @@ ASM support ($USE_ASM)
     Tiles: $USE_X86_TILES
   ARM ASM
     Cyclone: $WITH_CYCLONE
+    DrZ80: $WITH_DRZ80
 
 Doxygen documentation: $WITH_DOXYGEN
 ])

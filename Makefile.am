@@ -94,6 +94,12 @@ AM_CPPFLAGS += -I$(top_srcdir)/cz80
 dgen_SOURCES += cz80/cz80.c
 endif
 
+# DrZ80
+if WITH_DRZ80
+AM_CPPFLAGS += -I$(top_srcdir)/drz80
+dgen_SOURCES += drz80/drz80.s
+endif
+
 # hqx
 if WITH_HQX
 AM_CPPFLAGS += -I$(top_srcdir)/hqx/src -DHQX_NO_CALLCONV -DHQX_NO_API

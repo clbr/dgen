@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <strings.h>
 #include <stdarg.h>
@@ -2861,7 +2862,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	}
 	else if (rc->variable == &dgen_emu_z80) {
 		megad.z80_state_dump();
-		// Z80: 0 = none, 1 = CZ80, 2 = MZ80
+		// Z80: 0 = none, 1 = CZ80, 2 = MZ80, 3 = DRZ80
 		switch (dgen_emu_z80) {
 #ifdef WITH_MZ80
 		case 1:
@@ -2871,6 +2872,11 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 #ifdef WITH_CZ80
 		case 2:
 			megad.z80_core = md::Z80_CORE_CZ80;
+			break;
+#endif
+#ifdef WITH_DRZ80
+		case 3:
+			megad.z80_core = md::Z80_CORE_DRZ80;
 			break;
 #endif
 		default:
@@ -4177,6 +4183,11 @@ static int ctl_dgen_z80_toggle(struct ctl const&, md& megad)
 #ifdef WITH_MZ80
 	case md::Z80_CORE_MZ80:
 		msg = "MZ80 core activated.";
+		break;
+#endif
+#ifdef WITH_DRZ80
+	case md::Z80_CORE_DRZ80:
+		msg = "DrZ80 core activated.";
 		break;
 #endif
 	default:

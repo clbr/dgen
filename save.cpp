@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "md.h"
 #include "system.h"
 
@@ -161,6 +162,28 @@ void md::z80_state_dump()
 		z80_state.im = z80.z80interruptMode;
 		break;
 #endif
+#ifdef WITH_DRZ80
+	case Z80_CORE_DRZ80:
+		z80_state.alt[0].fa = h2le16((drz80.Z80A >> 24) |
+					     (drz80.Z80F >> 24));
+		z80_state.alt[0].cb = h2le16(drz80.Z80BC >> 16);
+		z80_state.alt[0].ed = h2le16(drz80.Z80DE >> 16);
+		z80_state.alt[0].lh = h2le16(drz80.Z80HL >> 16);
+		z80_state.alt[1].fa = h2le16((drz80.Z80A2 >> 24) |
+					     (drz80.Z80F2 >> 24));
+		z80_state.alt[1].cb = h2le16(drz80.Z80BC2 >> 16);
+		z80_state.alt[1].ed = h2le16(drz80.Z80DE2 >> 16);
+		z80_state.alt[1].lh = h2le16(drz80.Z80HL2 >> 16);
+		z80_state.ix = h2le16(drz80.Z80IX >> 16);
+		z80_state.iy = h2le16(drz80.Z80IY >> 16);
+		z80_state.sp = h2le16(drz80.Z80SP - drz80.Z80SP_BASE);
+		z80_state.pc = h2le16(drz80.Z80PC - drz80.Z80PC_BASE);
+		z80_state.r = drz80.Z80R;
+		z80_state.i = drz80.Z80I;
+		z80_state.iff = drz80.Z80IF;
+		z80_state.im = drz80.Z80IM;
+		break;
+#endif
 	default:
 		break;
 	}
@@ -208,6 +231,30 @@ void md::z80_state_restore()
 		z80.z80i = z80_state.i;
 		z80.z80iff = z80_state.iff;
 		z80.z80interruptMode = z80_state.im;
+		break;
+#endif
+#ifdef WITH_DRZ80
+	case Z80_CORE_DRZ80:
+		drz80.Z80A = ((le2h16(z80_state.alt[0].fa) & 0xff00) << 16);
+		drz80.Z80F = ((le2h16(z80_state.alt[0].fa) & 0x00ff) << 24);
+		drz80.Z80BC = (le2h16(z80_state.alt[0].cb) << 16);
+		drz80.Z80DE = (le2h16(z80_state.alt[0].ed) << 16);
+		drz80.Z80HL = (le2h16(z80_state.alt[0].lh) << 16);
+		drz80.Z80A2 = ((le2h16(z80_state.alt[1].fa) & 0xff00) << 16);
+		drz80.Z80F2 = ((le2h16(z80_state.alt[1].fa) & 0x00ff) << 24);
+		drz80.Z80BC2 = (le2h16(z80_state.alt[1].cb) << 16);
+		drz80.Z80DE2 = (le2h16(z80_state.alt[1].ed) << 16);
+		drz80.Z80HL2 = (le2h16(z80_state.alt[1].lh) << 16);
+		drz80.Z80IX = (le2h16(z80_state.ix) << 16);
+		drz80.Z80IY = (le2h16(z80_state.iy) << 16);
+		drz80.Z80SP_BASE = (uintptr_t)z80ram;
+		drz80.Z80PC_BASE = (uintptr_t)z80ram;
+		drz80.Z80SP = drz80.Z80SP_BASE + le2h16(z80_state.sp);
+		drz80.Z80PC = drz80.Z80PC_BASE + le2h16(z80_state.pc);
+		drz80.Z80R = z80_state.r;
+		drz80.Z80I = z80_state.i;
+		drz80.Z80IF = z80_state.iff;
+		drz80.Z80IM = z80_state.im;
 		break;
 #endif
 	default:

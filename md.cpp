@@ -254,6 +254,29 @@ extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d);
 
 #endif // WITH_CZ80
 
+#ifdef WITH_DRZ80
+
+extern uintptr_t drz80_rebaseSP(uint16_t new_sp);
+extern uintptr_t drz80_rebasePC(uint16_t new_pc);
+extern uint8_t drz80_read8(uint16_t a);
+extern uint16_t drz80_read16(uint16_t a);
+extern void drz80_write8(uint8_t d, uint16_t a);
+extern void drz80_write16(uint16_t d, uint16_t a);
+extern uint8_t drz80_in(uint16_t p);
+extern void drz80_out(uint16_t p, uint8_t d);
+
+void drz80_irq_callback()
+{
+	md::md_drz80->drz80_irq_cb();
+}
+
+void md::drz80_irq_cb()
+{
+	drz80.Z80_IRQ = 0x00; // lower irq when in accepted
+}
+
+#endif // WITH_DRZ80
+
 /**
  * Initialise the Z80.
  */
@@ -284,6 +307,18 @@ void md::z80_init()
 	Cz80_Set_OUTPort(&cz80, cz80_iowrite);
 	Cz80_Reset(&cz80);
 #endif
+#ifdef WITH_DRZ80
+	memset(&drz80, 0, sizeof(drz80));
+	drz80.z80_write8 = drz80_write8;
+	drz80.z80_write16 = drz80_write16;
+	drz80.z80_in = drz80_in;
+	drz80.z80_out = drz80_out;
+	drz80.z80_read8 = drz80_read8;
+	drz80.z80_read16 = drz80_read16;
+	drz80.z80_rebasePC = drz80_rebasePC;
+	drz80.z80_rebaseSP = drz80_rebaseSP;
+	drz80.z80_irq_callback = drz80_irq_callback;
+#endif
 	z80_st_busreq = 1;
 	z80_st_reset = 0;
 	z80_bank68k = 0xff8000;
@@ -302,6 +337,31 @@ void md::z80_reset()
 #endif
 #ifdef WITH_CZ80
 	Cz80_Reset(&cz80);
+#endif
+#ifdef WITH_DRZ80
+	md_set_drz80(1);
+	drz80.Z80A = (1 << 2); // set ZFlag
+	drz80.Z80F = (1 << 2); // set ZFlag
+	drz80.Z80BC = 0;
+	drz80.Z80DE = 0;
+	drz80.Z80HL = 0;
+	drz80.Z80A2 = 0;
+	drz80.Z80F2 = 0;
+	drz80.Z80BC2 = 0x0000 << 16;
+	drz80.Z80DE2 = 0x0000 << 16;
+	drz80.Z80HL2 = 0x0000 << 16;
+	drz80.Z80IX = 0xFFFF << 16;
+	drz80.Z80IY = 0xFFFF << 16;
+
+	drz80.Z80I = 0x00;
+	drz80.Z80_IRQ = 0x00;
+	drz80.Z80IF = 0x00;
+	drz80.Z80IM = 0x00;
+	drz80.Z80R = 0x00;
+
+	drz80.Z80PC = drz80_rebasePC(0);
+	drz80.Z80SP = drz80_rebaseSP(0x2000);
+	md_set_drz80(0);
 #endif
 }
 
@@ -441,7 +501,9 @@ md::md(bool pal, char region):
 #ifdef WITH_CZ80
   Cz80_Init(&cz80);
 #endif
-
+#ifdef WITH_DRZ80
+  memset(&drz80, 0, sizeof(drz80));
+#endif
   memset(&cart_head, 0, sizeof(cart_head));
 
   memset(romname, 0, sizeof(romname));
@@ -513,7 +575,7 @@ md::md(bool pal, char region):
 		cpu_emu = CPU_EMU_NONE;
 		break;
 	}
-	// Z80: 0 = none, 1 = CZ80, 2 = MZ80
+	// Z80: 0 = none, 1 = CZ80, 2 = MZ80, 3 = DrZ80
 	switch (dgen_emu_z80) {
 #ifdef WITH_MZ80
 	case 1:
@@ -523,6 +585,11 @@ md::md(bool pal, char region):
 #ifdef WITH_CZ80
 	case 2:
 		z80_core = Z80_CORE_CZ80;
+		break;
+#endif
+#ifdef WITH_DRZ80
+	case 3:
+		z80_core = Z80_CORE_DRZ80;
 		break;
 #endif
 	default:
