@@ -729,9 +729,8 @@ static int DisaCmpEor(int op)
 static int DisaCmpm(int op)
 {
   char seat[64]="",deat[64]="";
-  int type=0,size=0,sea,dea;
+  int size=0,sea,dea;
 
-  type=(op>>8)&1;
   size=(op>>6)&3; if (size>=3) return 1;
   sea=(op&7)|0x18;
   dea=(op>>9)&0x3f;

@@ -59,6 +59,8 @@ void OpStart(int op, int sea, int tea, int op_changes_cycles, int supervisor_che
 #if MEMHANDLERS_CHANGE_CYCLES
     if (op_changes_cycles)
       ot("  mov r5,#0\n");
+#else
+    (void)op_changes_cycles;
 #endif
   }
   if (last_op_count!=arm_op_count)
@@ -86,6 +88,9 @@ void OpEnd(int sea, int tea)
       ot("  ldr r5,[r7,#0x5c] ;@ Load Cycles\n");
     }
   }
+#else
+  (void)sea;
+  (void)tea;
 #endif
   if (!did_fetch)
     ot("  ldrh r8,[r4],#2 ;@ Fetch next opcode\n");
