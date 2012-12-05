@@ -127,7 +127,9 @@ RCVAR(dgen_opengl_square, 0);
 
 // Keep values in sync with rc.cpp and enums in md.h
 
-#if defined(WITH_CZ80)
+#if defined(WITH_DRZ80)
+RCVAR(dgen_emu_z80, 3);
+#elif defined(WITH_CZ80)
 RCVAR(dgen_emu_z80, 2);
 #elif defined(WITH_MZ80)
 RCVAR(dgen_emu_z80, 1);
@@ -135,7 +137,9 @@ RCVAR(dgen_emu_z80, 1);
 RCVAR(dgen_emu_z80, 0);
 #endif
 
-#if defined(WITH_MUSA)
+#if defined(WITH_CYCLONE)
+RCVAR(dgen_emu_m68k, 3);
+#elif defined(WITH_MUSA)
 RCVAR(dgen_emu_m68k, 2);
 #elif defined(WITH_STAR)
 RCVAR(dgen_emu_m68k, 1);
