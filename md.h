@@ -219,6 +219,10 @@ typedef struct {
 
 class md {
 public:
+	// ROM placeholder.
+	static const uint8_t no_rom[];
+	static const size_t no_rom_size;
+
 	// Get default NTSC/PAL, Hz, VBLANK, lines number and memory byte
 	// for region, which is identified by a single character (J, X, U, E).
 	static void region_info(uint8_t region, int* pal, int* hz,

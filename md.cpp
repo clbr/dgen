@@ -168,6 +168,11 @@ extern "C" uintptr_t cyclone_checkpc(uintptr_t pc);
  */
 int md::reset()
 {
+	// Erase CPU states.
+	memset(&m68k_state, 0, sizeof(m68k_state));
+	memset(&z80_state, 0, sizeof(z80_state));
+	m68k_state_restore();
+	z80_state_restore();
 #ifdef WITH_STAR
 	md_set_star(1);
 	s68000reset();
@@ -459,8 +464,9 @@ md::md(bool pal, char region):
 	if (init_sound() == false)
 		goto cleanup;
 
-  romlen=0;
-  mem=rom=ram=z80ram=saveram=NULL;
+	romlen = no_rom_size;
+	rom = (uint8_t*)no_rom;
+  mem=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
 
   fm_reset();
@@ -512,15 +518,15 @@ md::md(bool pal, char region):
 
   //  Format of pad is: __SA____ UDLRBC__
 
-  rom=mem=ram=z80ram=NULL;
+  rom = (uint8_t*)no_rom;
+  romlen = no_rom_size;
+  mem=ram=z80ram=NULL;
   mem=(unsigned char *)malloc(0x20000);
 	if (mem == NULL)
 		goto cleanup;
   memset(mem,0,0x20000);
   ram=   mem+0x00000;
   z80ram=mem+0x10000;
-
-  romlen=0;
 
 #ifdef WITH_STAR
 	md_set_star(1);
@@ -639,7 +645,9 @@ cleanup:
 
 md::~md()
 {
-  if (rom!=NULL) unplug();
+	assert(rom != NULL);
+	if (rom != no_rom)
+		unplug();
 
   free(mem);
   rom=mem=ram=z80ram=NULL;
@@ -767,12 +775,15 @@ uint8_t md::region_guess()
  */
 int md::unplug()
 {
-  if (rom==NULL) return 1; if (romlen<=0) return 1;
+  assert(rom != NULL);
+  assert(romlen != 0);
+  if (rom == no_rom) return 1;
   unload_rom(rom);
-  rom = NULL;
+  rom = (uint8_t*)no_rom;
+  romlen = no_rom_size;
   free(saveram);
   saveram = NULL;
-  romlen = save_start = save_len = 0;
+  save_start = save_len = 0;
 #ifdef WITH_STAR
   memory_map(); // Update memory map to include no rom
 #endif
@@ -1027,3 +1038,16 @@ void md::fix_rom_checksum()
   unsigned short cs; cs=calculate_checksum(rom,romlen);
   if (romlen>=0x190) { rom[0x18f]=cs>>8; rom[0x18e]=cs&255; }
 }
+
+/**
+ * This is the default ROM, used when nothing is loaded.
+ */
+const uint8_t md::no_rom[] = {
+	// Note: everything is byte swapped.
+	"\x72\x4e" "\xff\xff" // stop #0xffff
+	"\x71\x4e"            // nop
+	"\x71\x4e"            // nop
+	"\xf6\x60"            // bra.b 0
+};
+
+const size_t md::no_rom_size = sizeof(no_rom);
