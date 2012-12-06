@@ -34,12 +34,14 @@ void md::m68k_state_dump()
 #ifdef WITH_STAR
 	case CPU_EMU_STAR:
 		(void)j;
+		md_set_star(1);
 		for (i = 0; (i < 8); ++i) {
 			m68k_state.d[i] = h2le32(cpu.dreg[i]);
 			m68k_state.a[i] = h2le32(cpu.areg[i]);
 		}
 		m68k_state.pc = h2le32(cpu.pc);
 		m68k_state.sr = h2le16(cpu.sr);
+		md_set_star(0);
 		break;
 #endif
 #ifdef WITH_CYCLONE
@@ -86,12 +88,14 @@ void md::m68k_state_restore()
 #ifdef WITH_STAR
 	case CPU_EMU_STAR:
 		(void)j;
+		md_set_star(1);
 		for (i = 0; (i < 8); ++i) {
 			cpu.dreg[i] = le2h32(m68k_state.d[i]);
 			cpu.areg[i] = le2h32(m68k_state.a[i]);
 		}
 		cpu.pc = le2h32(m68k_state.pc);
 		cpu.sr = le2h16(m68k_state.sr);
+		md_set_star(0);
 		break;
 #endif
 #ifdef WITH_CYCLONE
