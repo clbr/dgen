@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="cyclone" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="Cyclone" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=cyclone - Win32 Debug
+CFG=Cyclone - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "cyclone.mak".
+!MESSAGE NMAKE /f "Cyclone.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "cyclone.mak" CFG="cyclone - Win32 Debug"
+!MESSAGE NMAKE /f "Cyclone.mak" CFG="Cyclone - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "cyclone - Win32 Release" (based on "Win32 (x86) Console Application")
-!MESSAGE "cyclone - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE "Cyclone - Win32 Release" (based on "Win32 (x86) Console Application")
+!MESSAGE "Cyclone - Win32 Debug" (based on "Win32 (x86) Console Application")
 !MESSAGE 
 
 # Begin Project
@@ -28,7 +28,7 @@ CFG=cyclone - Win32 Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "cyclone - Win32 Release"
+!IF  "$(CFG)" == "Cyclone - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -41,18 +41,18 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W4 /O2 /D "_CRT_SECURE_NO_WARNINGS" /c
-# ADD CPP /nologo /W4 /O2 /D "_CRT_SECURE_NO_WARNINGS" /c
-# ADD BASE RSC /l 0x427 /d "NDEBUG"
-# ADD RSC /l 0x427 /d "NDEBUG"
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
+# ADD CPP /nologo /W4 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
+# ADD BASE RSC /l 0x809 /d "NDEBUG"
+# ADD RSC /l 0x809 /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /out:"cyclone.exe"
+# ADD LINK32 user32.lib /nologo /subsystem:console /machine:I386
 
-!ELSEIF  "$(CFG)" == "cyclone - Win32 Debug"
+!ELSEIF  "$(CFG)" == "Cyclone - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -65,57 +65,57 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W4 /O2 /D "_CRT_SECURE_NO_WARNINGS" /c
-# ADD CPP /nologo /W4 /O2 /D "_CRT_SECURE_NO_WARNINGS" /c
-# ADD BASE RSC /l 0x427 /d "_DEBUG"
-# ADD RSC /l 0x427 /d "_DEBUG"
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
+# ADD CPP /nologo /W4 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
+# ADD BASE RSC /l 0x809 /d "_DEBUG"
+# ADD RSC /l 0x809 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /out:"cyclone.exe" /pdbtype:sept
+# ADD LINK32 user32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
 
 # Begin Target
 
-# Name "cyclone - Win32 Release"
-# Name "cyclone - Win32 Debug"
+# Name "Cyclone - Win32 Release"
+# Name "Cyclone - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\disa\Disa.c
+SOURCE=.\Cyclone.txt
 # End Source File
 # Begin Source File
 
-SOURCE=..\Ea.cpp
+SOURCE=.\Ea.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\Main.cpp
+SOURCE=.\Main.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\OpAny.cpp
+SOURCE=.\OpAny.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\OpArith.cpp
+SOURCE=.\OpArith.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\OpBranch.cpp
+SOURCE=.\OpBranch.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\OpLogic.cpp
+SOURCE=.\OpLogic.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\OpMove.cpp
+SOURCE=.\OpMove.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -123,24 +123,48 @@ SOURCE=..\OpMove.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=..\app.h
+SOURCE=.\app.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\config.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\Cyclone.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\disa\Disa.h
+SOURCE=.\Cyclone.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
+# Begin Group "Output"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\Cyclone.asm
+# End Source File
+# Begin Source File
+
+SOURCE=.\Cyclone.s
+# End Source File
+# End Group
+# Begin Group "Disassembler"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\Disa\Disa.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\Disa\Disa.h
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=..\..\..\EmuInfo\68000\680x0bin.txt
+# End Source File
+# Begin Source File
+
+SOURCE=..\bits.txt
+# End Source File
 # End Target
 # End Project

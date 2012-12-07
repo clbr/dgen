@@ -11,15 +11,14 @@
                                                               
 ___________________________________________________________________________
 
-  Cyclone 68000 (c) Copyright 2004 Dave.   Free for non-commercial use
+  Copyright (c) 2004,2011 FinalDave (emudave (at) gmail.com)
+  Copyright (c) 2005-2011 Gražvydas "notaz" Ignotas (notasas (at) gmail.com)
 
-  Homepage: http://www.finalburn.com/
-  Dave's e-mail: emudave(atsymbol)googlemail.com
-  Replace (atsymbol) with @
+  This code is licensed under the GNU General Public License version 2.0 and the MAME License.
+  You can choose the license that has the most advantages for you.
 
-  Additional coding and bugfixes done by notaz, 2005-2007
-  Homepage: http://notaz.gp2x.de
-  e-mail: notasas(atsymbol)gmail.com
+  Homepage: http://code.google.com/p/cyclone68000/
+
 ___________________________________________________________________________
 
 
@@ -456,11 +455,12 @@ See source code for up to date of register usage, however a summary is here:
   r6  : Pointer to Opcode Jump table
   r7  : Pointer to Cpu Context
   r8  : Current Opcode
-  r9  : Flags (NZCV) in highest four bits
- (r10 : Temporary source value or Memory Base)
+  r10 : Flags (NZCV) in highest four bits
  (r11 : Temporary register)
 
 Flags are mapped onto ARM flags whenever possible, which speeds up the processing of opcode.
+r9 is not used intentionally, because AAPCS defines it as "platform register", so it's
+reserved in some systems.
 
 
 Thanks to...
@@ -476,7 +476,12 @@ Thanks to...
 
 What's New
 ----------
-v0.0088 notaz
+v0.0099
+  * Cyclone no longer uses r9, because AAPCS defines it as "platform register",
+    so it's reserved in some systems.
+  * Made SPLIT_MOVEL_PD to affect MOVEM too.
+
+v0.0088
   - Reduced amount of code in opcode handlers by ~23% by doing the following:
     - Removed duplicate opcode handlers
     - Optimized code to use less ARM instructions
@@ -497,7 +502,7 @@ v0.0088 notaz
     upgrading must add "return CYCLONE_INT_ACK_AUTOVECTOR;" to their IrqCallback functions.
   * Updated documentation.
 
-v0.0086 notaz
+v0.0086
   + Cyclone now can be customized to better suit your project, see config.h .
   + Added an option to compress the jumptable at compile-time. Must call CycloneInit()
     at runtime to decompress it if enabled (see config.h).
@@ -514,21 +519,21 @@ v0.0086 notaz
   + Added Uninitialized Interrupt emulation.
   + Altered timing for about half of opcodes to match Musashi's.
 
-v0.0082 Reesy
+v0.0082
   + Change cyclone to clear cycles before returning when halted
   + Added Irq call back function.  This allows emulators to be notified
     when cyclone has taken an interrupt allowing them to set internal flags
     which can help fix timing problems.
 
-v0.0081 notaz
+v0.0081
   + .asm version was broken and did not compile with armasm. Fixed.
   + Finished implementing Stop opcode. Now it really stops the processor.
 
-v0.0080 notaz
+v0.0080
   + Added real cmpm opcode, it was using eor handler before this.
     Fixes Dune and Sensible Soccer.
 
-v0.0078 notaz
+v0.0078
   note: these bugs were actually found Reesy, I reimplemented these by
         using his changelog as a guide.
   + Fixed a problem with divu which was using long divisor instead of word.
@@ -544,14 +549,14 @@ v0.0078 notaz
     There are probably still some flag problems left.
   + Patially implemented Stop and Reset opcodes - Fixes Thunderforce IV
 
-v0.0075 notaz
+v0.0075
   + Added missing displacement addressing mode for movem (Fantastic Dizzy)
   + Added OSP <-> A7 swapping code in opcodes, which change privilege mode
   + Implemented privilege violation, line emulator and divide by zero exceptions
   + Added negx opcode (Shining Force works!)
   + Added overflow detection for divs/divu
 
-v0.0072 notaz
+v0.0072
   note: I could only get v0.0069 cyclone, so I had to implement these myself using Dave's
         changelog as a guide.
   + Fixed a problem with divs - remainder should be negative when divident is negative

@@ -1,11 +1,13 @@
 
 // Cyclone 68000 Emulator - Header File
 
-// (c) Copyright 2004 Dave, All rights reserved.
-// (c) 2005-2007 notaz
-// Cyclone 68000 is free for non-commercial use.
+// Copyright (c) 2004,2011 FinalDave (emudave (at) gmail.com)
+// Copyright (c) 2005-2011 Gražvydas "notaz" Ignotas (notasas (at) gmail.com)
 
-// For commercial use, separate licencing terms must be obtained.
+// This code is licensed under the GNU General Public License version 2.0 and the MAME License.
+// You can choose the license that has the most advantages for you.
+
+// SVN repository can be found at http://code.google.com/p/cyclone68000/
 
 
 #ifndef __CYCLONE_H__
@@ -29,7 +31,7 @@ struct Cyclone
   unsigned int osp;     // [r7,#0x48] Other Stack Pointer (USP/SSP)
   unsigned int xc;      // [r7,#0x4c] Extend flag (bit29: ??X? _)
   unsigned int prev_pc; // [r7,#0x50] Set to start address of currently executed opcode + 2 (if enabled in config.h)
-  unsigned int reserved;// [r7,#0x54] Reserved for possible future use
+  unsigned int jumptab; // [r7,#0x54] Jump table pointer
   int state_flags;      // [r7,#0x58] bit: 0: stopped state, 1: trace state, 2: activity bit, 3: addr error, 4: fatal halt
   int cycles;           // [r7,#0x5c] Number of cycles to execute - 1. Updates to cycles left after CycloneRun()
   int membase;          // [r7,#0x60] Memory Base (ARM address minus 68000 address)
@@ -51,6 +53,9 @@ struct Cyclone
 
 // Initialize. Used only if Cyclone was compiled with compressed jumptable, see config.h
 void CycloneInit(void);
+
+// Reset
+void CycloneReset(struct Cyclone *pcy);
 
 // Run cyclone. Cycles should be specified in context (pcy->cycles)
 void CycloneRun(struct Cyclone *pcy);

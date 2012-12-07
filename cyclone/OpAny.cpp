@@ -1,11 +1,22 @@
 
+// This file is part of the Cyclone 68000 Emulator
+
+// Copyright (c) 2004,2011 FinalDave (emudave (at) gmail.com)
+// Copyright (c) 2005-2011 Gražvydas "notaz" Ignotas (notasas (at) gmail.com)
+
+// This code is licensed under the GNU General Public License version 2.0 and the MAME License.
+// You can choose the license that has the most advantages for you.
+
+// SVN repository can be found at http://code.google.com/p/cyclone68000/
+
+
 #include "app.h"
 
 int opend_op_changes_cycles, opend_check_interrupt, opend_check_trace;
 
 static unsigned char OpData[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-static unsigned short CPU_CALL OpRead16(unsigned int a)
+static unsigned short OpRead16(unsigned int a)
 {
   return (unsigned short)( (OpData[a&15]<<8) | OpData[(a+1)&15] );
 }
@@ -138,17 +149,17 @@ int OpBase(int op,int size,int sepa)
 // Get flags, trashes r2
 int OpGetFlags(int subtract,int xbit,int specialz)
 {
-  if (specialz) ot("  orr r2,r9,#0xb0000000 ;@ for old Z\n");
+  if (specialz) ot("  orr r2,r10,#0xb0000000 ;@ for old Z\n");
 
-  ot("  mrs r9,cpsr ;@ r9=flags\n");
+  ot("  mrs r10,cpsr ;@ r10=flags\n");
 
-  if (specialz) ot("  andeq r9,r9,r2 ;@ fix Z\n");
+  if (specialz) ot("  andeq r10,r10,r2 ;@ fix Z\n");
 
-  if (subtract) ot("  eor r9,r9,#0x20000000 ;@ Invert carry\n");
+  if (subtract) ot("  eor r10,r10,#0x20000000 ;@ Invert carry\n");
 
   if (xbit)
   {
-    ot("  str r9,[r7,#0x4c] ;@ Save X bit\n");
+    ot("  str r10,[r7,#0x4c] ;@ Save X bit\n");
   }
   return 0;
 }

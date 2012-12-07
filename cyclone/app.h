@@ -1,4 +1,15 @@
 
+// This file is part of the Cyclone 68000 Emulator
+
+// Copyright (c) 2004,2011 FinalDave (emudave (at) gmail.com)
+// Copyright (c) 2005-2011 Gražvydas "notaz" Ignotas (notasas (at) gmail.com)
+
+// This code is licensed under the GNU General Public License version 2.0 and the MAME License.
+// You can choose the license that has the most advantages for you.
+
+// SVN repository can be found at http://code.google.com/p/cyclone68000/
+
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -33,8 +44,8 @@ int EaAn(int ea);
 // Main.cpp
 extern int *CyJump;   // Jump table
 extern int  ms;       // If non-zero, output in Microsoft ARMASM format
-extern const char *Narm[4]; // Normal ARM Extensions for operand sizes 0,1,2
-extern const char *Sarm[4]; // Sign-extend ARM Extensions for operand sizes 0,1,2
+extern const char * const Narm[4]; // Normal ARM Extensions for operand sizes 0,1,2
+extern const char * const Sarm[4]; // Sign-extend ARM Extensions for operand sizes 0,1,2
 extern int  Cycles;   // Current cycles for opcode
 extern int  pc_dirty; // something changed PC during processing
 extern int  arm_op_count; // for stats

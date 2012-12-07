@@ -16,7 +16,6 @@
  * Mega Drive system. As VDP chip in these systems had control of the bus,
  * several instructions were acting differently, for example TAS did'n have
  * the write-back phase. That will be emulated, if this option is enabled.
- * This option also alters timing slightly.
  */
 #define CYCLONE_FOR_GENESIS         2
 
@@ -65,6 +64,17 @@
 #define MEMHANDLERS_CHANGE_PC       0
 #define MEMHANDLERS_CHANGE_FLAGS    0
 #define MEMHANDLERS_CHANGE_CYCLES   0
+
+/*
+ * If the following macro is defined, Cyclone no longer calls read*, write*,
+ * fetch* and checkpc from it's context, it calls these functions directly
+ * instead, prefixed with prefix selected below. For example, if
+ * MEMHANDLERS_DIRECT_PREFIX is set to cyclone_, it will call cyclone_read8
+ * on byte reads.
+ * This is to avoid indirect jumps, which are slower. It also saves one ARM
+ * instruction.
+ */
+/* MEMHANDLERS_DIRECT_PREFIX "cyclone_" */
 
 /*
  * If enabled, Cyclone will call .IrqCallback routine from it's context whenever it
@@ -133,8 +143,8 @@
 
 /*
  * When this option is enabled Cyclone will do two word writes instead of one
- * long write when handling MOVE.L with pre-decrementing destination, as described in
- * Bart Trzynadlowski's doc (http://www.trzy.org/files/68knotes.txt).
+ * long write when handling MOVE.L or MOVEM.L with pre-decrementing destination,
+ * as described in Bart Trzynadlowski's doc (http://www.trzy.org/files/68knotes.txt).
  * Enable this if you are emulating a 16 bit system.
  */
 #define SPLIT_MOVEL_PD              1

@@ -1,4 +1,15 @@
 
+// This file is part of the Cyclone 68000 Emulator
+
+// Copyright (c) 2004,2011 FinalDave (emudave (at) gmail.com)
+// Copyright (c) 2005-2011 Gražvydas "notaz" Ignotas (notasas (at) gmail.com)
+
+// This code is licensed under the GNU General Public License version 2.0 and the MAME License.
+// You can choose the license that has the most advantages for you.
+
+// SVN repository can be found at http://code.google.com/p/cyclone68000/
+
+
 #include "app.h"
 
 int earead_check_addrerr = 1, eawrite_check_addrerr = 0;
@@ -130,8 +141,12 @@ static int EaCalcReg(int r,int ea,int mask,int forceor,int shift,int noshift=0)
 int EaCalc(int a,int mask,int ea,int size,int top,int sign_extend)
 {
   char text[32]="";
+  int func=0;
 
   DisaPc=2; DisaGetEa(text,ea,size); // Get text version of the effective address
+  func=0x68+(size<<2); // Get correct read handler
+  (void)func;
+
   if (ea<0x10)
   {
     int noshift=0;
@@ -142,7 +157,7 @@ int EaCalc(int a,int mask,int ea,int size,int top,int sign_extend)
     EaCalcReg(a,ea,mask,0,2,noshift);
     return 0;
   }
-  
+
   ot(";@ EaCalc : Get '%s' into r%d:\n",text,a);
   // (An), (An)+, -(An)
   if (ea<0x28)
@@ -299,7 +314,7 @@ int EaRead(int a,int v,int ea,int size,int mask,int top,int sign_extend)
 {
   char text[32]="";
   int shift=0;
- 
+
   shift=32-(8<<size);
 
   DisaPc=2; DisaGetEa(text,ea,size); // Get text version of the effective address
