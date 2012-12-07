@@ -185,16 +185,7 @@ int md::reset()
 #endif
 #ifdef WITH_CYCLONE
 	md_set_cyclone(1);
-	// Go to default state (not stopped, halted, etc.)
-	cyclonecpu.state_flags = 0;
-	// Set supervisor mode.
-	cyclonecpu.srh = 0x27;
-	// Get Stack Pointer.
-	cyclonecpu.a[7] = cyclonecpu.read32(0);
-	// Will be set by checkpc().
-	cyclonecpu.membase = 0;
-	// Get Program Counter.
-	cyclonecpu.pc = cyclonecpu.checkpc(cyclonecpu.read32(4));
+	CycloneReset(&cyclonecpu);
 	md_set_cyclone(0);
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
