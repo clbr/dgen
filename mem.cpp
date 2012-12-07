@@ -604,13 +604,29 @@ extern "C" void cyclone_write_memory_32(uint32_t address, uint32_t value)
 
 uintptr_t md::checkpc(uintptr_t pc)
 {
+	static uint8_t zero[(M68K_EMPTY1_END + 1)];
+
 	pc -= cyclonecpu.membase; // Get the real program counter.
 
-	if (pc < romlen)
+	pc &= 0x00ffffff; // Clip to 24-bit.
+	if ((save_active) && (save_len) &&
+	    (pc >= save_start) && ((pc - save_start) < save_len)) {
+		cyclonecpu.membase = (uintptr_t)saveram;
+		pc -= save_start;
+	}
+	if (pc <= romlen)
 		cyclonecpu.membase = (uintptr_t)rom; // Jump to ROM.
-	else {
+	else if (pc <= M68K_EMPTY1_END)
+		cyclonecpu.membase = (uintptr_t)zero; // Scratch area.
+	else if (pc >= 0xe00000) {
 		pc &= 0xffff;
 		cyclonecpu.membase = (uintptr_t)ram; // Jump to RAM.
+	}
+	else {
+		DEBUG(("PC out of bounds: %06x", pc));
+		// Freeze, avoid crashing the emulator.
+		cyclonecpu.membase = (uintptr_t)no_rom;
+		pc = 0;
 	}
 	return (cyclonecpu.membase + pc); // New program counter.
 }
