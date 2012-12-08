@@ -287,12 +287,13 @@ static int debug_should_wp_fire(struct dgen_wp *w)
 }
 
 // musa breakpoint/watchpoint handler, fired atfer every m68k instr
-void debug_musa_callback()
+int debug_musa_callback()
 {
 	unsigned int		pc;
 	int			i;
+	int			ret = 0;
 
-	pc = m68k_get_reg(NULL, M68K_REG_PPC);
+	pc = m68k_get_reg(NULL, M68K_REG_PC);
 
 	// break points
 	if ((!debug_step_m68k) && (!debug_is_bp_set()))
@@ -310,12 +311,13 @@ void debug_musa_callback()
 		if (pc ==  debug_bp_m68k[i].addr) {
 			printf("m68k breakpoint hit @ 0x%08x\n", pc);
 			debug_m68k_bp_set_hit();
+			ret = 1;
 			goto watches;
 		}
 	}
 watches:
 	if (!debug_is_wp_set())
-		return;
+		return ret;
 
 	for (i = 0; i < MAX_WATCHPOINTS; i++) {
 		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
@@ -326,11 +328,11 @@ watches:
 			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
 			debug_print_wp(i);
 			debug_m68k_wp_set_hit();
-			return;
+			return 1;
 		}
 	}
 
-	return;
+	return ret;
 }
 
 static void debug_rm_bp_m68k(int index)

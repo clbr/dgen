@@ -38,7 +38,7 @@ extern int m68k_bp_hit;
 extern int m68k_wp_hit;
 
 extern "C" void		debug_init(void);
-extern "C" void		debug_musa_callback(void);
+extern "C" int		debug_musa_callback(void);
 extern "C" void		debug_show_ym2612_regs(void); // fm.c
 
 #endif
