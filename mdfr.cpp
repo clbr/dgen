@@ -325,16 +325,18 @@ void md::z80_sync(int fake)
 }
 
 // Trigger Z80 IRQ
-void md::z80_irq()
+void md::z80_irq(int vector)
 {
+	z80_st_irq = 1;
+	z80_irq_vector = vector;
 #ifdef WITH_CZ80
 	if (z80_core == Z80_CORE_CZ80)
-		Cz80_Set_IRQ(&cz80, 0);
+		Cz80_Set_IRQ(&cz80, vector);
 	else
 #endif
 #ifdef WITH_MZ80
 	if (z80_core == Z80_CORE_MZ80)
-		mz80int(0);
+		mz80int(vector);
 	else
 #endif
 		(void)0;
@@ -343,6 +345,8 @@ void md::z80_irq()
 // Clear Z80 IRQ
 void md::z80_irq_clear()
 {
+	z80_st_irq = 0;
+	z80_irq_vector = 0;
 #ifdef WITH_CZ80
 	if (z80_core == Z80_CORE_CZ80)
 		Cz80_Clear_IRQ(&cz80);
@@ -395,7 +399,6 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 {
 	int hints;
 	int m68k_max, z80_max;
-	int zirq = 0;
 	unsigned int vblank = md::vblank();
 
 #ifdef WITH_DEBUGGER
@@ -484,10 +487,8 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	// Blank everything and trigger vint
 	if (vdp.reg[1] & 0x20)
 		m68k_irq(6);
-	if (!z80_st_reset) {
-		z80_irq();
-		zirq = 1;
-	}
+	if (!z80_st_reset)
+		z80_irq(0);
 	fm_timer_callback();
 	// Run remaining cycles
 	m68k_run();
@@ -510,7 +511,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	m68k_run();
 	z80_run();
 	// Clear Z80 interrupt
-	if (zirq)
+	if (z80_st_irq)
 		z80_irq_clear();
 	++ras;
 	// Remaining lines

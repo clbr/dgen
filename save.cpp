@@ -118,6 +118,8 @@ void md::m68k_state_restore()
 void md::z80_state_dump()
 {
 	/* 16-bit values must be stored LSB first. */
+	z80_state.irq_asserted = z80_st_irq;
+	z80_state.irq_vector = z80_irq_vector;
 	switch (z80_core) {
 #ifdef WITH_CZ80
 	case Z80_CORE_CZ80:
@@ -211,6 +213,10 @@ void md::z80_state_restore()
 	default:
 		break;
 	}
+	if (z80_state.irq_asserted)
+		z80_irq(z80_state.irq_vector);
+	else
+		z80_irq_clear();
 }
 
 /*

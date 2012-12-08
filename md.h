@@ -191,6 +191,8 @@ typedef struct {
 	uint8_t i;
 	uint8_t iff; /* x x x x x x IFF2 IFF1 */
 	uint8_t im; /* interrupt mode */
+	uint8_t irq_asserted; /* IRQ asserted */
+	uint8_t irq_vector; /* IRQ vector */
 } z80_state_t;
 
 #define MCLK_CYCLES_PER_LINE 3416 /* 3420 */
@@ -347,7 +349,9 @@ private:
 	unsigned int z80_st_busreq: 1; // in BUSREQ state
 	unsigned int z80_st_reset: 1; // in RESET state
 	unsigned int z80_st_running: 1; // Z80 is running
+	unsigned int z80_st_irq: 1; // Z80 IRQ asserted
 	unsigned int m68k_st_running: 1; // M68K is running
+	int z80_irq_vector; // Z80 IRQ vector
 	struct {
 		int m68k;
 		int m68k_max;
@@ -379,7 +383,7 @@ private:
 	int z80_odo(); // Z80 odometer
 	void z80_run(); // Run Z80 to odo.z80_max
 	void z80_sync(int fake); // Synchronize Z80 with M68K
-	void z80_irq(); // Trigger Z80 IRQ
+	void z80_irq(int vector); // Trigger Z80 IRQ
 	void z80_irq_clear(); // Clear Z80 IRQ
 
 	 // Number of microseconds spent in current frame
