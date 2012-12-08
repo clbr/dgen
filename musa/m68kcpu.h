@@ -740,7 +740,7 @@ typedef struct
 	void (*reset_instr_callback)(void);               /* Called when a RESET instruction is encountered */
 	void (*pc_changed_callback)(unsigned int new_pc); /* Called when the PC changes by a large amount */
 	void (*set_fc_callback)(unsigned int new_fc);     /* Called when the CPU function code changes */
-	void (*instr_hook_callback)(void);                /* Called every instruction cycle prior to execution */
+	int (*instr_hook_callback)(void);                 /* Called every instruction cycle prior to execution */
 
 } m68ki_cpu_core;
 

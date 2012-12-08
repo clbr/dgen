@@ -395,8 +395,9 @@ static void default_set_fc_callback(unsigned int new_fc)
 }
 
 /* Called every instruction cycle prior to execution */
-static void default_instr_hook_callback(void)
+static int default_instr_hook_callback(void)
 {
+	return 0;
 }
 
 
@@ -542,7 +543,7 @@ void m68k_set_fc_callback(void  (*callback)(unsigned int new_fc))
 	CALLBACK_SET_FC = callback ? callback : default_set_fc_callback;
 }
 
-void m68k_set_instr_hook_callback(void  (*callback)(void))
+void m68k_set_instr_hook_callback(int  (*callback)(void))
 {
 	CALLBACK_INSTR_HOOK = callback ? callback : default_instr_hook_callback;
 }
@@ -647,8 +648,13 @@ int m68k_execute(int num_cycles)
 			/* Set the address space for reads */
 			m68ki_use_data_space(); /* auto-disable (see m68kcpu.h) */
 
-			/* Call external hook to peek at CPU */
-			m68ki_instr_hook(); /* auto-disable (see m68kcpu.h) */
+			/* Call external hook to peek at CPU (auto-disable) */
+#if M68K_INSTRUCTION_HOOK
+			if (m68ki_instr_hook()) {
+				m68k_end_timeslice();
+				break;
+			}
+#endif
 
 			/* Record previous program counter */
 			REG_PPC = REG_PC;

@@ -232,9 +232,11 @@ void m68k_set_fc_callback(void  (*callback)(unsigned int new_fc));
  * You must enable M68K_INSTRUCTION_HOOK in m68kconf.h.
  * The CPU calls this callback just before fetching the opcode in the
  * instruction cycle.
+ * If this callback returns a nonzero value, the instruction isn't processed
+ * and m68k_execute() returns.
  * Default behavior: do nothing.
  */
-void m68k_set_instr_hook_callback(void  (*callback)(void));
+void m68k_set_instr_hook_callback(int  (*callback)(void));
 
 
 
