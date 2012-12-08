@@ -512,12 +512,21 @@ md::md(bool pal, char region):
   rom = (uint8_t*)no_rom;
   romlen = no_rom_size;
   mem=ram=z80ram=NULL;
-  mem=(unsigned char *)malloc(0x20000);
+  mem=(unsigned char *)malloc(0x20008);
 	if (mem == NULL)
 		goto cleanup;
   memset(mem,0,0x20000);
   ram=   mem+0x00000;
   z80ram=mem+0x10000;
+  // Hack for DrZ80 to avoid crashing when PC leaves z80ram.
+  z80ram[0x10000] = 0x00; // NOP
+  z80ram[0x10001] = 0x00; // NOP
+  z80ram[0x10002] = 0x00; // NOP
+  z80ram[0x10003] = 0x00; // NOP
+  z80ram[0x10004] = 0x00; // NOP
+  z80ram[0x10005] = 0xc3; // JP 0x0000
+  z80ram[0x10006] = 0x00;
+  z80ram[0x10007] = 0x00;
 
 #ifdef WITH_STAR
 	md_set_star(1);
