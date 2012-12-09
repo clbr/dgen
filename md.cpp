@@ -377,9 +377,10 @@ bool md::init_sound()
 		(void)0;
 		ok_sn76496 = false;
 	}
-	if (YM2612Init(1,
+	// Initialize two additional chips when MJazz is enabled.
+	if (YM2612Init((dgen_mjazz ? 3 : 1),
 		       (((pal) ? PAL_MCLK : NTSC_MCLK) / 7),
-		       dgen_soundrate, NULL, NULL))
+		       dgen_soundrate, dgen_mjazz, NULL, NULL))
 		return false;
 	ok_ym2612 = true;
 	if (SN76496_init(0,

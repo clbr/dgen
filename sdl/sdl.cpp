@@ -2913,7 +2913,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	else if ((rc->variable == &dgen_sound) ||
 		 (rc->variable == &dgen_soundrate) ||
 		 (rc->variable == &dgen_soundsegs) ||
-		 (rc->variable == &dgen_soundsamples))
+		 (rc->variable == &dgen_soundsamples) ||
+		 (rc->variable == &dgen_mjazz))
 		init_sound = true;
 	else if (rc->variable == &dgen_fullscreen) {
 		if (screen.want_fullscreen != (!!dgen_fullscreen)) {

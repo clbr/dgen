@@ -4737,7 +4737,7 @@ static int dacen;
 
 /* Generate samples for one of the YM2612s */
 void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length,
-		     unsigned int volume)
+		     unsigned int volume, int loud)
 {
 	YM2612 *F2612 = &(FM2612[num]);
 	FM_OPN *OPN   = &(FM2612[num].OPN);
@@ -4847,7 +4847,8 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length,
 			/* Mix with buffer. */
 			lt += *buffer;
 			/* Make it louder. */
-			lt = ((lt * 3) >> 1);
+			if (loud)
+				lt = ((lt * 3) >> 1);
 			/* Lower volume? */
 			if (volume != 100)
 				lt = ((lt * (int)volume) / 100);
@@ -4856,7 +4857,8 @@ void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length,
 			*(buffer++) = lt;
 
 			rt += *buffer;
-			rt = ((rt * 3) >> 1);
+			if (loud)
+				rt = ((rt * 3) >> 1);
 			if (volume != 100)
 				rt = ((rt * (int)volume) / 100);
 			rt = ((abs(rt + 32767) - abs(rt - 32767)) >> 1);
@@ -4923,7 +4925,7 @@ static void YM2612_save_state(void)
 #endif /* _STATE_H */
 
 /* initialize YM2612 emulator(s) */
-int YM2612Init(int num, int clock, int rate,
+int YM2612Init(int num, int clock, int rate, int mjazz,
                FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler)
 {
 	int i;
@@ -4954,6 +4956,8 @@ int YM2612Init(int num, int clock, int rate,
 		FM2612[i].OPN.P_CH = FM2612[i].CH;
 		FM2612[i].OPN.ST.clock = clock;
 		FM2612[i].OPN.ST.rate = rate;
+		if (mjazz)
+			FM2612[i].OPN.ST.rate <<= i;
 		/* FM2612[i].OPN.ST.irq = 0; */
 		/* FM2612[i].OPN.ST.status = 0; */
 		/* Extend handler */

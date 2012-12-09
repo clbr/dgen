@@ -13,6 +13,7 @@
 #endif
 #include "md.h"
 #include "debug.h"
+#include "rc-vars.h"
 
 // Set and unset contexts (Musashi, StarScream, MZ80)
 
@@ -711,7 +712,11 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
     }
 
   // Add in the stereo FM buffer
-  YM2612UpdateOne(0, sndi->lr, len, dgen_volume);
+  YM2612UpdateOne(0, sndi->lr, len, dgen_volume, 1);
+  if (dgen_mjazz) {
+    YM2612UpdateOne(1, sndi->lr, len, dgen_volume, 0);
+    YM2612UpdateOne(2, sndi->lr, len, dgen_volume, 0);
+  }
 
   // Clear the dac for next frame
   dac_clear();

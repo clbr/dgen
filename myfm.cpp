@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "md.h"
+#include "rc-vars.h"
 
 // REMEMBER NOT TO USE ANY STATIC variables, because they
 // will exist thoughout ALL megadrives!
@@ -58,8 +59,13 @@ int md::myfm_write(int a, int v, int md)
 	// stash all values
 	fm_reg[sid][(fm_sel[sid])] = v;
 end:
-	if (pass)
+	if (pass) {
 		YM2612Write(0, a, v);
+		if (dgen_mjazz) {
+			YM2612Write(1, a, v);
+			YM2612Write(2, a, v);
+		}
+	}
 	return 0;
 }
 
@@ -112,4 +118,8 @@ void md::fm_reset()
 	memset(fm_ticker, 0, sizeof(fm_ticker));
 	memset(fm_reg, 0, sizeof(fm_reg));
 	YM2612ResetChip(0);
+	if (dgen_mjazz) {
+		YM2612ResetChip(1);
+		YM2612ResetChip(2);
+	}
 }

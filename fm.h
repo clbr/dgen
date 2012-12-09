@@ -203,12 +203,12 @@ int YM2610TimerOver(int n, int c );
 #endif /* BUILD_YM2610 */
 
 #if BUILD_YM2612
-int YM2612Init(int num, int baseclock, int rate,
+int YM2612Init(int num, int baseclock, int rate, int mjazz,
                FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler);
 void YM2612Shutdown(void);
 void YM2612ResetChip(int num);
 void YM2612UpdateOne(int num, INT16 *buffer, unsigned int length,
-		     unsigned int volume);
+		     unsigned int volume, int loud);
 
 int YM2612Write(int n, int a,unsigned char v);
 unsigned char YM2612Read(int n,int a);

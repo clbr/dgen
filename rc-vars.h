@@ -91,6 +91,7 @@ RCVAR(dgen_soundrate, 22050);
 RCVAR(dgen_soundsegs, 8);
 RCVAR(dgen_soundsamples, 0);
 RCVAR(dgen_volume, 100);
+RCVAR(dgen_mjazz, 0);
 
 RCVAR(dgen_hz, 60);
 RCVAR(dgen_pal, 0);

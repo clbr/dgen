@@ -151,6 +151,10 @@ int_soundsegs = 8
 # machines).
 int_soundsamples = 0
 
+# MJazz option - puts 2 more FM chips in the Megadrive for a sort of 22 channel
+# sound boost. Can sound good. Slows things down a lot.
+bool_mjazz = no
+
 # Volume level, in percent.
 int_volume = 100
 

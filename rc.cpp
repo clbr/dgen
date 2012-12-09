@@ -474,6 +474,7 @@ struct rc_field rc_fields[] = {
   { "int_volume", rc_number, &dgen_volume },
   { "key_volume_inc", rc_keysym, &dgen_volume_inc },
   { "key_volume_dec", rc_keysym, &dgen_volume_dec },
+  { "bool_mjazz", rc_boolean, &dgen_mjazz }, // SH
   { "int_nice", rc_number, &dgen_nice },
   { "int_hz", rc_number, &dgen_hz }, // SH
   { "bool_pal", rc_boolean, &dgen_pal }, // SH
