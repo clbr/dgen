@@ -168,12 +168,12 @@ void md::z80_state_dump()
 #endif
 #ifdef WITH_DRZ80
 	case Z80_CORE_DRZ80:
-		z80_state.alt[0].fa = h2le16((drz80.Z80A >> 24) |
+		z80_state.alt[0].fa = h2le16(((drz80.Z80A >> 16) & 0xff00) |
 					     (drz80.Z80F >> 24));
 		z80_state.alt[0].cb = h2le16(drz80.Z80BC >> 16);
 		z80_state.alt[0].ed = h2le16(drz80.Z80DE >> 16);
 		z80_state.alt[0].lh = h2le16(drz80.Z80HL >> 16);
-		z80_state.alt[1].fa = h2le16((drz80.Z80A2 >> 24) |
+		z80_state.alt[1].fa = h2le16(((drz80.Z80A2 >> 16) & 0xff00) |
 					     (drz80.Z80F2 >> 24));
 		z80_state.alt[1].cb = h2le16(drz80.Z80BC2 >> 16);
 		z80_state.alt[1].ed = h2le16(drz80.Z80DE2 >> 16);
