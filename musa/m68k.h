@@ -6,10 +6,10 @@
 /* ======================================================================== */
 /*
  *                                  MUSASHI
- *                                Version 3.3
+ *                                Version 3.31
  *
  * A portable Motorola M680x0 processor emulation engine.
- * Copyright 1998-2001 Karl Stenerud.  All rights reserved.
+ * Copyright 1998-2007 Karl Stenerud.  All rights reserved.
  *
  * This code may be freely used for non-commercial purposes as long as this
  * copyright notice remains unaltered in the source code and any binary files
@@ -22,6 +22,12 @@
  * http://kstenerud.cjb.net
  */
 
+/* ======================================================================== */
+/* ============================= CONFIGURATION ============================ */
+/* ======================================================================== */
+
+/* Import the configuration for this build */
+#include "m68kconf.h"
 
 
 /* ======================================================================== */
@@ -65,6 +71,7 @@ enum
 {
 	M68K_CPU_TYPE_INVALID,
 	M68K_CPU_TYPE_68000,
+	M68K_CPU_TYPE_68008,
 	M68K_CPU_TYPE_68010,
 	M68K_CPU_TYPE_68EC020,
 	M68K_CPU_TYPE_68020,
@@ -106,8 +113,8 @@ typedef enum
 
 	/* Assumed registers */
 	/* These are cheat registers which emulate the 1-longword prefetch
-	 * present in the 68000 and 68010.
-	 */ 
+     * present in the 68000 and 68010.
+     */
 	M68K_REG_PREF_ADDR,	/* Last prefetch address */
 	M68K_REG_PREF_DATA,	/* Last prefetch data */
 
@@ -165,6 +172,15 @@ void m68k_write_memory_8(unsigned int address, unsigned int value);
 void m68k_write_memory_16(unsigned int address, unsigned int value);
 void m68k_write_memory_32(unsigned int address, unsigned int value);
 
+/* Special call to simulate undocumented 68k behavior when move.l with a
+ * predecrement destination mode is executed.
+ * To simulate real 68k behavior, first write the high word to
+ * [address+2], and then write the low word to [address].
+ *
+ * Enable this functionality with M68K_SIMULATE_PD_WRITES in m68kconf.h.
+ */
+void m68k_write_memory_32_pd(unsigned int address, unsigned int value);
+
 
 
 /* ======================================================================== */
@@ -209,6 +225,30 @@ void m68k_set_bkpt_ack_callback(void (*callback)(unsigned int data));
 void m68k_set_reset_instr_callback(void  (*callback)(void));
 
 
+/* Set the callback for the CMPI.L #v, Dn instruction.
+ * You must enable M68K_CMPILD_HAS_CALLBACK in m68kconf.h.
+ * The CPU calls this callback every time it encounters a CMPI.L #v, Dn instruction.
+ * Default behavior: do nothing.
+ */
+void m68k_set_cmpild_instr_callback(void  (*callback)(unsigned int val, int reg));
+
+
+/* Set the callback for the RTE instruction.
+ * You must enable M68K_RTE_HAS_CALLBACK in m68kconf.h.
+ * The CPU calls this callback every time it encounters a RTE instruction.
+ * Default behavior: do nothing.
+ */
+void m68k_set_rte_instr_callback(void  (*callback)(void));
+
+/* Set the callback for the TAS instruction.
+ * You must enable M68K_TAS_HAS_CALLBACK in m68kconf.h.
+ * The CPU calls this callback every time it encounters a TAS instruction.
+ * Default behavior: return 1, allow writeback.
+ */
+void m68k_set_tas_instr_callback(int  (*callback)(void));
+
+
+
 /* Set the callback for informing of a large PC change.
  * You must enable M68K_MONITOR_PC in m68kconf.h.
  * The CPU calls this callback with the new PC value every time the PC changes
@@ -232,11 +272,9 @@ void m68k_set_fc_callback(void  (*callback)(unsigned int new_fc));
  * You must enable M68K_INSTRUCTION_HOOK in m68kconf.h.
  * The CPU calls this callback just before fetching the opcode in the
  * instruction cycle.
- * If this callback returns a nonzero value, the instruction isn't processed
- * and m68k_execute() returns.
  * Default behavior: do nothing.
  */
-void m68k_set_instr_hook_callback(int  (*callback)(void));
+void m68k_set_instr_hook_callback(void  (*callback)(void));
 
 
 
@@ -245,10 +283,15 @@ void m68k_set_instr_hook_callback(int  (*callback)(void));
 /* ======================================================================== */
 
 /* Use this function to set the CPU type you want to emulate.
- * Currently supported types are: M68K_CPU_TYPE_68000, M68K_CPU_TYPE_68010,
- * M68K_CPU_TYPE_EC020, and M68K_CPU_TYPE_68020.
+ * Currently supported types are: M68K_CPU_TYPE_68000, M68K_CPU_TYPE_68008,
+ * M68K_CPU_TYPE_68010, M68K_CPU_TYPE_EC020, and M68K_CPU_TYPE_68020.
  */
 void m68k_set_cpu_type(unsigned int cpu_type);
+
+/* Do whatever initialisations the core requires.  Should be called
+ * at least once at init time.
+ */
+void m68k_init(void);
 
 /* Pulse the RESET pin on the CPU.
  * You *MUST* reset the CPU at least once to initialize the emulation
@@ -293,18 +336,8 @@ unsigned int m68k_get_context(void* dst);
 /* set the current cpu context */
 void m68k_set_context(void* dst);
 
-/* Save the current cpu context to disk.
- * You must provide a function pointer of the form:
- * void save_value(char* identifier, unsigned int value)
- */
-void m68k_save_context(	void (*save_value)(char* identifier, unsigned int value));
-
-/* Load a cpu context from disk.
- * You must provide a function pointer of the form:
- * unsigned int load_value(char* identifier)
- */
-void m68k_load_context(unsigned int (*load_value)(char* identifier));
-
+/* Register the CPU state information */
+void m68k_state_register(const char *type, int index);
 
 
 /* Peek at the internals of a CPU context.  This can either be a context
@@ -324,14 +357,19 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
  */
 unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_type);
 
+/* Same as above but accepts raw opcode data directly rather than fetching
+ * via the read/write interfaces.
+ */
+unsigned int m68k_disassemble_raw(char* str_buff, unsigned int pc, const unsigned char* opdata, const unsigned char* argdata, unsigned int cpu_type);
+
 
 /* ======================================================================== */
-/* ============================= CONFIGURATION ============================ */
+/* ============================== MAME STUFF ============================== */
 /* ======================================================================== */
 
-/* Import the configuration for this build */
-#include "m68kconf.h"
-
+#if M68K_COMPILE_FOR_MAME == OPT_ON
+#include "m68kmame.h"
+#endif /* M68K_COMPILE_FOR_MAME */
 
 
 /* ======================================================================== */

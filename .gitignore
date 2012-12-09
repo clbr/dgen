@@ -18,9 +18,6 @@ Makefile.in
 /depcomp
 /INSTALL
 /musa/m68kmake
-/musa/m68kopac.c
-/musa/m68kopdm.c
-/musa/m68kopnz.c
 /musa/m68kops.c
 /musa/m68kops.h
 /mz80/makez80

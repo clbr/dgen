@@ -12,7 +12,7 @@ DIR = $(top_srcdir)/musa
 $(M68KMAKE): $(DIR)/m68kmake.c $(DIR)/m68k_in.c
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) -o $@ $(DIR)/m68kmake.c
 
-BUILT_SOURCES = m68kops.c m68kopac.c m68kopdm.c m68kopnz.c m68kops.h
+BUILT_SOURCES = m68kops.c m68kops.h
 
 $(BUILT_SOURCES): $(M68KMAKE)
 	./$(M68KMAKE) . $(DIR)/m68k_in.c
