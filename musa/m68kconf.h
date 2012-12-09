@@ -24,6 +24,7 @@
 #ifndef M68KCONF__HEADER
 #define M68KCONF__HEADER
 
+#include <limits.h>
 
 /* Configuration switches.
  * Use OPT_SPECIFY_HANDLER for configuration options that allow callbacks.
@@ -146,7 +147,11 @@
 /* If ON, CPU will call the instruction hook callback before every
  * instruction.
  */
+#ifdef WITH_DEBUGGER
+#define M68K_INSTRUCTION_HOOK       OPT_ON
+#else
 #define M68K_INSTRUCTION_HOOK       OPT_OFF
+#endif
 #define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_function()
 
 
@@ -179,8 +184,13 @@
 
 /* If ON, the enulation core will use 64-bit integers to speed up some
  * operations.
-*/
+ * Unsigned long is usually a good indicator for this purpose.
+ */
+#if ULONG_MAX > 0xffffffff
+#define M68K_USE_64_BIT  OPT_ON
+#else
 #define M68K_USE_64_BIT  OPT_OFF
+#endif
 
 
 /* Set to your compiler's static inline keyword to enable it, or
@@ -189,7 +199,7 @@
  * NOTE: not enabling inline functions will SEVERELY slow down emulation.
  */
 #ifndef INLINE
-#define INLINE static __inline__
+#define INLINE static inline
 #endif /* INLINE */
 
 #endif /* M68K_COMPILE_FOR_MAME */

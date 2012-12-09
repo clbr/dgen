@@ -470,6 +470,10 @@ md::md(bool pal, char region):
 	ctx_musa = calloc(1, m68k_context_size());
 	if (ctx_musa == NULL)
 		goto cleanup;
+	md_set_musa(1);
+	m68k_init();
+	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+	md_set_musa(0);
 #endif
 
 #ifdef WITH_STAR

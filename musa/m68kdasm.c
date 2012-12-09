@@ -3527,6 +3527,7 @@ unsigned int m68k_disassemble_raw(char* str_buff, unsigned int pc, const unsigne
 {
 	unsigned int result;
 
+	(void)argdata;
 	g_rawop = opdata;
 	g_rawbasepc = pc;
 	result = m68k_disassemble(str_buff, pc, cpu_type);

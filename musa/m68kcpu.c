@@ -72,7 +72,7 @@ const char* m68ki_cpu_names[] =
 #endif /* M68K_LOG_ENABLE */
 
 /* The CPU core */
-m68ki_cpu_core m68ki_cpu = {0};
+m68ki_cpu_core m68ki_cpu;
 
 #if M68K_EMULATE_ADDRESS_ERROR
 jmp_buf m68ki_aerr_trap;
@@ -472,6 +472,8 @@ static void default_reset_instr_callback(void)
 /* Called when a cmpi.l #v, dn instruction is executed */
 static void default_cmpild_instr_callback(unsigned int val, int reg)
 {
+	(void)val;
+	(void)reg;
 }
 
 /* Called when a rte instruction is executed */
@@ -500,8 +502,9 @@ static void default_set_fc_callback(unsigned int new_fc)
 }
 
 /* Called every instruction cycle prior to execution */
-static void default_instr_hook_callback(void)
+static int default_instr_hook_callback(void)
 {
+	return 0;
 }
 
 
@@ -670,7 +673,7 @@ void m68k_set_fc_callback(void  (*callback)(unsigned int new_fc))
 	CALLBACK_SET_FC = callback ? callback : default_set_fc_callback;
 }
 
-void m68k_set_instr_hook_callback(void  (*callback)(void))
+void m68k_set_instr_hook_callback(int  (*callback)(void))
 {
 	CALLBACK_INSTR_HOOK = callback ? callback : default_instr_hook_callback;
 }
@@ -808,7 +811,12 @@ int m68k_execute(int num_cycles)
 			m68ki_use_data_space(); /* auto-disable (see m68kcpu.h) */
 
 			/* Call external hook to peek at CPU */
-			m68ki_instr_hook(); /* auto-disable (see m68kcpu.h) */
+#if M68K_INSTRUCTION_HOOK
+			if (m68ki_instr_hook()) {
+				m68k_end_timeslice();
+				break;
+			}
+#endif
 
 			/* Record previous program counter */
 			REG_PPC = REG_PC;
