@@ -265,7 +265,7 @@ AS_IF(
 			[USE_ASM=no]
 		)],
 
-		[arm-*],
+		[arm*-*],
 		[AC_MSG_NOTICE([ARM-specific ASM routines enabled])]
 		[USE_ASM=yes]
 		[USE_ARM_ASM=yes],
