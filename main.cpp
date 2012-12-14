@@ -199,7 +199,7 @@ fail:
 
 int main(int argc, char *argv[])
 {
-  int c = 0, running = 1, usec = 0, start_slot = -1;
+  int c = 0, stop = 0, usec = 0, start_slot = -1;
   unsigned long frames, frames_old, fps;
   char *patches = NULL, *rom = NULL;
   unsigned long oldclk, newclk, startclk, fpsclk;
@@ -509,7 +509,7 @@ next_rom:
 	frames = 0;
 	frames_old = 0;
 	fps = 0;
-	while (running) {
+	while (!stop) {
 		const unsigned int usec_frame = (1000000 / dgen_hz);
 		unsigned long tmp;
 		int frames_todo;
@@ -572,6 +572,7 @@ next_rom:
 				else
 					megad->one_frame(NULL, NULL, NULL);
 				--frames_todo;
+				stop |= (pd_handle_events(*megad) ^ 1);
 			}
 			--frames_todo;
 		do_not_skip:
@@ -590,7 +591,7 @@ next_rom:
 			++frames;
 		}
 
-		running = pd_handle_events(*megad);
+		stop |= (pd_handle_events(*megad) ^ 1);
 
 		if (dgen_nice) {
 #ifdef __BEOS__
@@ -632,7 +633,7 @@ next_rom:
 	}
 	if ((++optind) < argc) {
 		rom = argv[optind];
-		running = 1;
+		stop = 0;
 		goto next_rom;
 	}
 clean_up:
