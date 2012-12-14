@@ -1,13 +1,14 @@
-/*
-  The following is a full featured parser for configuration files using
-  basic format "key = value".
-
-  Well, it's big, but it can properly manage spaces, empty lines,
-  single and double-quoted strings, hex numbers, comments, semicolons
-  and more. It also happens to be much more robust than the original one.
-
-  -- zamaz
-*/
+/**
+ * @file
+ * The following is a full featured parser for configuration files using
+ * basic format "key = value".
+ *
+ * Well, it's big, but it can properly manage spaces, empty lines,
+ * single and double-quoted strings, hex numbers, comments, semicolons
+ * and more. It also happens to be much more robust than the original one.
+ *
+ * @author zamaz
+ */
 
 #include <stddef.h>
 #include <assert.h>
@@ -15,36 +16,36 @@
 
 enum {
 	STATE_ERROR = 1,
-	STATE_BEGIN,     /* initial state */
-	STATE_COMMENT,   /* currently in a comment */
-	STATE_KEY,       /* (key) currently in a key */
-	STATE_KEYBS,     /* (key) backslash prefix */
-	STATE_KEYBSX1,   /* (key) first character of an hex value (\x) */
-	STATE_KEYBSX2,   /* (key) second character of an hex value (\x) */
-	STATE_KEYSQ,     /* (key) currently in a simple quoted key */
-	STATE_KEYDQ,     /* (key) currently in a double quoted key */
-	STATE_KEYDQBS,   /* (key) backslash prefix while in double quotes */
-	STATE_KEYDQBSX1, /* (key) first value of \x in double quotes */
-	STATE_KEYDQBSX2, /* (key) second value of \x in double quotes */
-	STATE_BEQ,       /* before '=' between key and value */
-	STATE_AEQ,       /* after '=' between key and value */
-	STATE_VALUE,     /* (value) same as (key) things above, for values */
-	STATE_VALBS,
-	STATE_VALBSX1,
-	STATE_VALBSX2,
-	STATE_VALSQ,
-	STATE_VALDQ,
-	STATE_VALDQBS,
-	STATE_VALDQBSX1,
-	STATE_VALDQBSX2,
-	STATE_VALEND,    /* end of a value, ready to take a new key */
-	ACTION_KEY        = 0x0100, /* key complete */
-	ACTION_VALUE      = 0x0200, /* value complete */
-	ACTION_ERROR      = 0x0400, /* caught an error */
-	ACTION_STORE      = 0x1000, /* character must be stored as is */
-	ACTION_STORE_MOD  = 0x2000, /* store filtered character */
-	ACTION_STORE_HEX1 = 0x4000, /* store first hex digit */
-	ACTION_STORE_HEX2 = 0x8000  /* store second hex digit */
+	STATE_BEGIN,     /**< initial state */
+	STATE_COMMENT,   /**< currently in a comment */
+	STATE_KEY,       /**< (key) currently in a key */
+	STATE_KEYBS,     /**< (key) backslash */
+	STATE_KEYBSX1,   /**< (key) first character of a hex value (\x) */
+	STATE_KEYBSX2,   /**< (key) second character of a hex value (\x) */
+	STATE_KEYSQ,     /**< (key) currently in a simple quoted key */
+	STATE_KEYDQ,     /**< (key) currently in a double quoted key */
+	STATE_KEYDQBS,   /**< (key) backslash while in double quotes */
+	STATE_KEYDQBSX1, /**< (key) first value of \x in double quotes */
+	STATE_KEYDQBSX2, /**< (key) second value of \x in double quotes */
+	STATE_BEQ,       /**< before '=' between key and value */
+	STATE_AEQ,       /**< after '=' between key and value */
+	STATE_VALUE,     /**< (value) same as (key) things above, for values */
+	STATE_VALBS,     /**< (value) backslash */
+	STATE_VALBSX1,   /**< (value) first character of an hex value (\x) */
+	STATE_VALBSX2,   /**< (value) second character of a hex value (\x) */
+	STATE_VALSQ,     /**< (value) currently in a simple quoted value */
+	STATE_VALDQ,     /**< (value) currently in a double quoted value */
+	STATE_VALDQBS,   /**< (value) backslash while in double quotes */
+	STATE_VALDQBSX1, /**< (value) first value of \x in double quotes */
+	STATE_VALDQBSX2, /**< (value) second values of \x in double quotes */
+	STATE_VALEND,    /**< end of a value, ready to take a new key */
+	ACTION_KEY        = 0x0100, /**< key complete */
+	ACTION_VALUE      = 0x0200, /**< value complete */
+	ACTION_ERROR      = 0x0400, /**< caught an error */
+	ACTION_STORE      = 0x1000, /**< character must be stored as is */
+	ACTION_STORE_MOD  = 0x2000, /**< store filtered character */
+	ACTION_STORE_HEX1 = 0x4000, /**< store first hex digit */
+	ACTION_STORE_HEX2 = 0x8000  /**< store second hex digit */
 };
 
 #define	HEX_INDICES(st)						\
@@ -55,32 +56,36 @@ enum {
 	['A'] = (st), ['B'] = (st), ['C'] = (st), ['D'] = (st),	\
 	['E'] = (st), ['F'] = (st)
 
-/*
-  ckvp_parse() takes the current state (ckvp), a buffer in[size] and returns
-  the number of characters processed.
-
-  Each time ckvp_parse() returns, ckvp->state must be checked. If no error
-  occured, ckvp_parse() must be called again with the remaining characters
-  if any, otherwise the next input buffer.
-
-  At the end of input, ckvp_parse() must be called with a zero size.
-
-  This function doesn't allocate anything.
-*/
-
+/**
+ * ckvp_parse() takes the current state (ckvp), a buffer in[size] and returns
+ * the number of characters processed.
+ *
+ * Each time ckvp_parse() returns, ckvp->state must be checked. If no error
+ * occured, ckvp_parse() must be called again with the remaining characters
+ * if any, otherwise the next input buffer.
+ *
+ * At the end of input, ckvp_parse() must be called with a zero size.
+ *
+ * This function doesn't allocate anything.
+ *
+ * @param[in,out] ckvp Current state.
+ * @param size Number of characters in buffer "in".
+ * @param in Input buffer to parse.
+ * @return Number of characters processed.
+ */
 size_t ckvp_parse(ckvp_t *ckvp, size_t size, const char in[])
 {
-	/*
-	   State machine definition:
-
-	   st[current_state][current_character] = next state | action
-
-	   Special indices for current_character are:
-
-	   - 0x100 for action on characters not in the list
-	   - 0x101 for action when encountering end of input while in the
-                   current state (often ACTION_ERROR)
-	*/
+	/**
+	 * State machine definition:
+	 *
+	 * st[current_state][current_character] = next state | action
+	 *
+	 * Special indices for current_character are:
+	 *
+	 * - 0x100 for action on characters not in the list
+	 * - 0x101 for action when encountering end of input while in the
+	 *         current state (often ACTION_ERROR)
+	 */
 	static const unsigned int st[][0x102] = {
 		[STATE_ERROR] = {
 			[0x100] = (STATE_ERROR | ACTION_ERROR),
