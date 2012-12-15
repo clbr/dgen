@@ -498,6 +498,7 @@ struct rc_field rc_fields[] = {
   { "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit }, // SH
   { "bool_opengl_swap", rc_boolean, &dgen_swab }, // SH deprecated -> bool_swab
   { "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
+  { "bool_doublebuffer", rc_boolean, &dgen_doublebuffer }, // SH
   { "bool_joystick", rc_boolean, &dgen_joystick },
   { "int_joystick1_dev", rc_number, &dgen_joystick1_dev }, // SH
   { "int_joystick2_dev", rc_number, &dgen_joystick2_dev }, // SH

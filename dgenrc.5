@@ -158,6 +158,10 @@ Display the current number of frames per second.
 Swap bytes in the video output. Sometimes useful when video output is located
 on a different system. This is implemented as a CTV filter which must be
 compiled-in to work.
+.It bool_doublebuffer [true]
+Toggle double buffering. Enabling this should prevent screen tearing from
+happening. Disabling this may improve the number of displayed frames per
+second on some systems.
 .El
 .Sh SAVE STATES
 .Bl -tag -width xxxx

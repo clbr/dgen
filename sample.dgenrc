@@ -196,6 +196,9 @@ str_region_order = JUEX
 # Run fullscreen?
 bool_fullscreen = no
 
+# Prevent screen tearing.
+bool_doublebuffer = yes
+
 # If you want to increase the size of the rendered screen, increase this value.
 # It currently must be a whole number. See scaling filters.
 int_scale = -1

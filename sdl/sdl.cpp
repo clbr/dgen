@@ -1985,12 +1985,13 @@ static int screen_init(unsigned int width, unsigned int height)
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, !!dgen_doublebuffer);
 		flags |= SDL_OPENGL;
 	}
 	else
 #endif
-		flags |= (SDL_DOUBLEBUF | SDL_ASYNCBLIT);
+		flags |= ((dgen_doublebuffer ? SDL_DOUBLEBUF : 0) |
+			  SDL_ASYNCBLIT);
 	// Disallow screens smaller than original.
 	if (width == 0) {
 		if (dgen_width > 0)
@@ -2927,7 +2928,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		 (rc->variable == &dgen_height) ||
 		 (rc->variable == &dgen_x_scale) ||
 		 (rc->variable == &dgen_y_scale) ||
-		 (rc->variable == &dgen_depth))
+		 (rc->variable == &dgen_depth) ||
+		 (rc->variable == &dgen_doublebuffer))
 		init_video = true;
 	else if (rc->variable == &dgen_swab) {
 #ifdef WITH_CTV
