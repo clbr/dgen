@@ -678,6 +678,12 @@ void m68k_set_instr_hook_callback(int  (*callback)(void))
 	CALLBACK_INSTR_HOOK = callback ? callback : default_instr_hook_callback;
 }
 
+void m68k_register_memory(m68k_mem_t memory[], unsigned int len)
+{
+	m68ki_cpu.mem = (void *)memory;
+	m68ki_cpu.mem_len = len;
+}
+
 #include <stdio.h>
 /* Set the CPU type. */
 void m68k_set_cpu_type(unsigned int cpu_type)

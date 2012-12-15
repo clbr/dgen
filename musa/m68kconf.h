@@ -77,6 +77,12 @@
  */
 #define M68K_SIMULATE_PD_WRITES     OPT_OFF
 
+/* If ON, m68k_register_memory() can be used to register an array of memory
+ * regions directly accessible from Musashi without having to call
+ * intermediate read/write functions.
+ */
+#define M68K_REGISTER_MEMORY        OPT_ON
+
 /* If ON, CPU will call the interrupt acknowledge callback when it services an
  * interrupt.
  * If off, all interrupts will be autovectored and all interrupt requests will

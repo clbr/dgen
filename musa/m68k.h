@@ -124,6 +124,22 @@ typedef enum
 	M68K_REG_CPU_TYPE	/* Type of CPU being run */
 } m68k_register_t;
 
+typedef struct
+{
+	/* If any of the R/W/X bits is disabled, call the associated
+	 * m68k_(read|write)_*() function instead of accessing it
+	 * directly.
+	 */
+	unsigned int r:1;    /* Read */
+	unsigned int w:1;    /* Write */
+	unsigned int x:1;    /* Execute (PC) */
+	unsigned int swab:1; /* Swap bytes during access */
+	unsigned int addr;   /* First address in M68K memory */
+	unsigned int size;   /* Size of this region in M68K memory */
+	unsigned int mask;   /* Mask addresses with mask before accessing mem */
+	void *mem;           /* First address in program memory */
+} m68k_mem_t;
+
 /* ======================================================================== */
 /* ====================== FUNCTIONS CALLED BY THE CPU ===================== */
 /* ======================================================================== */
@@ -181,6 +197,13 @@ void m68k_write_memory_32(unsigned int address, unsigned int value);
  */
 void m68k_write_memory_32_pd(unsigned int address, unsigned int value);
 
+/* Register an array of memory regions directly accessible from Musashi
+ * for faster direct access without having to use the above functions.
+ * See m68k_mem_t definition.
+ *
+ * Enable this functionality with M68K_REGISTER_MEMORY in m68kconf.h.
+ */
+void m68k_register_memory(m68k_mem_t memory[], unsigned int len);
 
 
 /* ======================================================================== */

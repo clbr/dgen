@@ -847,6 +847,10 @@ typedef struct
 	uint8* cyc_instruction;
 	uint8* cyc_exception;
 
+	/* Memory regions if defined */
+	m68k_mem_t (*mem)[];
+	unsigned int mem_len;
+
 	/* Callbacks to host */
 	int  (*int_ack_callback)(int int_line);           /* Interrupt Acknowledge */
 	void (*bkpt_ack_callback)(unsigned int data);     /* Breakpoint Acknowledge */
@@ -1057,6 +1061,122 @@ INLINE uint m68ki_read_imm_32(void)
 
 /* ------------------------- Top level read/write ------------------------- */
 
+#if M68K_REGISTER_MEMORY
+
+INLINE m68k_mem_t *m68ki_locate_memory(uint address)
+{
+	unsigned int i;
+
+	if (m68ki_cpu.mem == NULL)
+		return NULL;
+	for (i = 0; (i != m68ki_cpu.mem_len); ++i) {
+		m68k_mem_t *mem = &(*m68ki_cpu.mem)[i];
+
+		if (((address ^ mem->swab) >= mem->addr) &&
+		    ((address ^ mem->swab) < (mem->addr + mem->size)))
+			return mem;
+	}
+	return NULL;
+}
+
+#define m68ki_read_memory_8_direct(a)					\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL)					\
+			return ((uint8 *)mem->mem)			\
+				[((((a) - mem->addr) ^ mem->swab) &	\
+				  mem->mask)];				\
+	}								\
+	while (0)
+
+#define m68ki_read_memory_16_direct(a)					\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL) {					\
+			uint8 *m = &((uint8 *)mem->mem)			\
+				[(((a) - mem->addr) & mem->mask)];	\
+									\
+			return ((m[mem->swab] << 8) |			\
+				m[(mem->swab ^ 1)]);			\
+		}							\
+	}								\
+	while (0)
+
+#define m68ki_read_memory_32_direct(a)					\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL) {					\
+			uint8 *m = &((uint8 *)mem->mem)			\
+				[(((a) - mem->addr) & mem->mask)];	\
+									\
+			return ((m[mem->swab] << 24) |			\
+				(m[(mem->swab ^ 1)] << 16) |		\
+				(m[(mem->swab + 2)] << 8) |		\
+				m[((mem->swab + 2) ^ 1)]);		\
+		}							\
+	}								\
+	while (0)
+
+#define m68ki_write_memory_8_direct(a, v)				\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL) {					\
+			((uint8 *)mem->mem)				\
+				[((((a) - mem->addr) ^ mem->swab) &	\
+				  mem->mask)] = (v);			\
+			return;						\
+		}							\
+	}								\
+	while (0);
+
+#define m68ki_write_memory_16_direct(a, v)				\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL) {					\
+			uint8 *m = &((uint8 *)mem->mem)			\
+				[(((a) - mem->addr) & mem->mask)];	\
+									\
+			m[mem->swab] = ((v) >> 8);			\
+			m[(mem->swab ^ 1)] = (v);			\
+			return;						\
+		}							\
+	}								\
+	while (0);
+
+#define m68ki_write_memory_32_direct(a, v)				\
+	do {								\
+		m68k_mem_t *mem = m68ki_locate_memory(a);		\
+									\
+		if (mem != NULL) {					\
+			uint8 *m = &((uint8 *)mem->mem)			\
+				[(((a) - mem->addr) & mem->mask)];	\
+									\
+			m[mem->swab] = ((v) >> 24);			\
+			m[(mem->swab ^ 1)] = ((v) >> 16);		\
+			m[(mem->swab + 2)] = ((v) >> 8);		\
+			m[((mem->swab + 2) ^ 1)] = (v);			\
+			return;						\
+		}							\
+	}								\
+	while (0);
+
+#else /* M68K_REGISTER_MEMORY */
+
+#define m68ki_read_memory_8_direct(a) (void)0
+#define m68ki_read_memory_16_direct(a) (void)0
+#define m68ki_read_memory_32_direct(a) (void)0
+
+#define m68ki_write_memory_8_direct(a, v) (void)0
+#define m68ki_write_memory_16_direct(a, v) (void)0
+#define m68ki_write_memory_32_direct(a, v) (void)0
+
+#endif /* M68K_REGISTER_MEMORY */
+
 /* Handles all memory accesses (except for immediate reads if they are
  * configured to use separate functions in m68kconf.h).
  * All memory accesses must go through these top level functions.
@@ -1066,36 +1186,42 @@ INLINE uint m68ki_read_imm_32(void)
 INLINE uint m68ki_read_8_fc(uint address, uint fc)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_read_memory_8_direct(ADDRESS_68K(address));
 	return m68k_read_memory_8(ADDRESS_68K(address));
 }
 INLINE uint m68ki_read_16_fc(uint address, uint fc)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
 	m68ki_check_address_error_010_less(address, MODE_READ, fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_read_memory_16_direct(ADDRESS_68K(address));
 	return m68k_read_memory_16(ADDRESS_68K(address));
 }
 INLINE uint m68ki_read_32_fc(uint address, uint fc)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
 	m68ki_check_address_error_010_less(address, MODE_READ, fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_read_memory_32_direct(ADDRESS_68K(address));
 	return m68k_read_memory_32(ADDRESS_68K(address));
 }
 
 INLINE void m68ki_write_8_fc(uint address, uint fc, uint value)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_write_memory_8_direct(ADDRESS_68K(address), value);
 	m68k_write_memory_8(ADDRESS_68K(address), value);
 }
 INLINE void m68ki_write_16_fc(uint address, uint fc, uint value)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
 	m68ki_check_address_error_010_less(address, MODE_WRITE, fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_write_memory_16_direct(ADDRESS_68K(address), value);
 	m68k_write_memory_16(ADDRESS_68K(address), value);
 }
 INLINE void m68ki_write_32_fc(uint address, uint fc, uint value)
 {
 	m68ki_set_fc(fc); /* auto-disable (see m68kcpu.h) */
 	m68ki_check_address_error_010_less(address, MODE_WRITE, fc); /* auto-disable (see m68kcpu.h) */
+	m68ki_write_memory_32_direct(ADDRESS_68K(address), value);
 	m68k_write_memory_32(ADDRESS_68K(address), value);
 }
 
