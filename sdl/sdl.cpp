@@ -23,6 +23,10 @@
 # include <SDL_opengl.h>
 #endif
 
+#ifdef WITH_THREADS
+#include <SDL_thread.h>
+#endif
+
 #ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
 #endif
@@ -111,6 +115,13 @@ static struct {
 	unsigned int is_opengl: 1; // OpenGL enabled
 	unsigned int opengl_ok: 1; // if textures are initialized
 #endif
+#ifdef WITH_THREADS
+	unsigned int want_thread: 1; // want updates from a separate thread
+	unsigned int is_thread: 1; // thread is present
+	SDL_Thread *thread; // thread itself
+	SDL_mutex *lock; // lock for updates
+	SDL_cond *cond; // condition variable to signal updates
+#endif
 	SDL_Color color[64]; // SDL colors for 8bpp modes
 } screen;
 
@@ -136,6 +147,12 @@ static struct {
 // No syscalls allowed before screen_unlock().
 static int screen_lock()
 {
+#ifdef WITH_THREADS
+	if (screen.is_thread) {
+		assert(screen.lock != NULL);
+		SDL_LockMutex(screen.lock);
+	}
+#endif
 #ifdef WITH_OPENGL
 	if (screen.is_opengl)
 		return 0;
@@ -148,6 +165,12 @@ static int screen_lock()
 // Call this after accessing screen.buf.
 static void screen_unlock()
 {
+#ifdef WITH_THREADS
+	if (screen.is_thread) {
+		assert(screen.lock != NULL);
+		SDL_UnlockMutex(screen.lock);
+	}
+#endif
 #ifdef WITH_OPENGL
 	if (screen.is_opengl)
 		return;
@@ -157,8 +180,8 @@ static void screen_unlock()
 	SDL_UnlockSurface(screen.surface);
 }
 
-// Call this after writing into screen.buf.
-static void screen_update()
+// Do not call this directly, use screen_update() instead.
+static void screen_update_once()
 {
 #ifdef WITH_OPENGL
 	if (screen.is_opengl) {
@@ -167,6 +190,95 @@ static void screen_update()
 	}
 #endif
 	SDL_Flip(screen.surface);
+}
+
+#ifdef WITH_THREADS
+
+static int screen_update_thread(void *)
+{
+	assert(screen.lock != NULL);
+	assert(screen.cond != NULL);
+	SDL_LockMutex(screen.lock);
+	while (screen.want_thread) {
+		SDL_CondWait(screen.cond, screen.lock);
+		screen_update_once();
+	}
+	SDL_UnlockMutex(screen.lock);
+	return 0;
+}
+
+static void screen_update_thread_start()
+{
+	DEBUG(("starting thread..."));
+	assert(screen.want_thread);
+	assert(screen.lock == NULL);
+	assert(screen.cond == NULL);
+	assert(screen.thread == NULL);
+#ifdef WITH_OPENGL
+	if (screen.is_opengl) {
+		DEBUG(("this is not supported when OpenGL is enabled"));
+		return;
+	}
+#endif
+	if ((screen.lock = SDL_CreateMutex()) == NULL) {
+		DEBUG(("unable to create lock"));
+		goto error;
+	}
+
+	if ((screen.cond = SDL_CreateCond()) == NULL) {
+		DEBUG(("unable to create condition variable"));
+		goto error;
+	}
+	screen.thread = SDL_CreateThread(screen_update_thread, NULL);
+	if (screen.thread == NULL) {
+		DEBUG(("unable to start thread"));
+		goto error;
+	}
+	screen.is_thread = 1;
+	DEBUG(("thread started"));
+	return;
+error:
+	if (screen.cond != NULL) {
+		SDL_DestroyCond(screen.cond);
+		screen.cond = NULL;
+	}
+	if (screen.lock != NULL) {
+		SDL_DestroyMutex(screen.lock);
+		screen.lock = NULL;
+	}
+}
+
+static void screen_update_thread_stop()
+{
+	if (!screen.is_thread) {
+		assert(screen.thread == NULL);
+		return;
+	}
+	DEBUG(("stopping thread..."));
+	assert(screen.thread != NULL);
+	screen.want_thread = 0;
+	SDL_CondSignal(screen.cond);
+	SDL_WaitThread(screen.thread, NULL);
+	screen.thread = NULL;
+	SDL_DestroyCond(screen.cond);
+	screen.cond = NULL;
+	SDL_DestroyMutex(screen.lock);
+	screen.lock = NULL;
+	screen.is_thread = 0;
+	DEBUG(("thread stopped"));
+}
+
+#endif // WITH_THREADS
+
+// Call this after writing into screen.buf.
+static void screen_update()
+{
+#ifdef WITH_THREADS
+	if (screen.is_thread)
+		SDL_CondSignal(screen.cond);
+	else
+#endif // WITH_THREADS
+		screen_update_once();
 }
 
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
@@ -1976,6 +2088,10 @@ static int screen_init(unsigned int width, unsigned int height)
 
 	DEBUG(("want width=%u height=%u", width, height));
 	stopped = 1;
+#ifdef WITH_THREADS
+	screen_update_thread_stop();
+	screen.want_thread = dgen_screen_thread;
+#endif
 	if (screen.want_fullscreen)
 		flags |= SDL_FULLSCREEN;
 #ifdef WITH_OPENGL
@@ -2282,6 +2398,10 @@ opengl_failed:
 	}
 	else
 		mdpal = NULL;
+#ifdef WITH_THREADS
+	if (screen.want_thread)
+		screen_update_thread_start();
+#endif
 	// Set up the Mega Drive screen.
 	if ((mdscr.data == NULL) ||
 	    ((unsigned int)mdscr.bpp != screen.bpp) ||
@@ -2929,7 +3049,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		 (rc->variable == &dgen_x_scale) ||
 		 (rc->variable == &dgen_y_scale) ||
 		 (rc->variable == &dgen_depth) ||
-		 (rc->variable == &dgen_doublebuffer))
+		 (rc->variable == &dgen_doublebuffer) ||
+		 (rc->variable == &dgen_screen_thread))
 		init_video = true;
 	else if (rc->variable == &dgen_swab) {
 #ifdef WITH_CTV
@@ -4704,6 +4825,9 @@ void pd_show_carthead(md& megad)
 /* Clean up this awful mess :) */
 void pd_quit()
 {
+#ifdef WITH_THREADS
+	screen_update_thread_stop();
+#endif
 	if (mdscr.data) {
 		free((void*)mdscr.data);
 		mdscr.data = NULL;

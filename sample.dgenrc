@@ -199,6 +199,10 @@ bool_fullscreen = no
 # Prevent screen tearing.
 bool_doublebuffer = yes
 
+# Additional thread to offload the displaying of frames in specific cases,
+# see dgenrc.5.
+bool_screen_thread = no
+
 # If you want to increase the size of the rendered screen, increase this value.
 # It currently must be a whole number. See scaling filters.
 int_scale = -1

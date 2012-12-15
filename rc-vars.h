@@ -126,6 +126,7 @@ RCVAR(dgen_opengl_linear, 1);
 RCVAR(dgen_opengl_32bit, 1);
 RCVAR(dgen_opengl_square, 0);
 RCVAR(dgen_doublebuffer, 1);
+RCVAR(dgen_screen_thread, 0);
 
 // Keep values in sync with rc.cpp and enums in md.h
 

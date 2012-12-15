@@ -1,4 +1,4 @@
-.Dd December 09, 2012
+.Dd December 15, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -162,6 +162,13 @@ compiled-in to work.
 Toggle double buffering. Enabling this should prevent screen tearing from
 happening. Disabling this may improve the number of displayed frames per
 second on some systems.
+.It bool_screen_thread [false]
+When enabled, a separate thread is created to offload the displaying of
+frames. This is only useful on slower machines where flipping video buffers
+takes time, especially when V-sync is enabled and doing so blocks until the
+next frame without consuming CPU time (sometimes the case when
+bool_doublebuffer is enabled). This currently has no effect when OpenGL is
+enabled and only works if multi-threading support is compiled-in.
 .El
 .Sh SAVE STATES
 .Bl -tag -width xxxx
