@@ -746,7 +746,9 @@ int md::plug_in(unsigned char *cart,int len)
       saveram = NULL;
     }
 #ifdef WITH_STAR
-  memory_map(); // Update memory map to include this cartridge
+	md_set_star(1);
+	memory_map(); // Update memory map to include this cartridge
+	md_set_star(0);
 #endif
   reset(); // Reset megadrive
   return 0;
@@ -790,7 +792,9 @@ int md::unplug()
   saveram = NULL;
   save_start = save_len = 0;
 #ifdef WITH_STAR
-  memory_map(); // Update memory map to include no rom
+	md_set_star(1);
+	memory_map(); // Update memory map to include no rom
+	md_set_star(0);
 #endif
   memset(romname, 0, sizeof(romname));
   memset(&cart_head, 0, sizeof(cart_head));
