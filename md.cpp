@@ -152,6 +152,24 @@ int md::memory_map()
 }
 #endif
 
+#ifdef WITH_MUSA
+/**
+ * This sets up an array of memory locations for Musashi.
+ */
+void md::musa_memory_map()
+{
+	const m68k_mem_t mem[2] = {
+		// r, w, x, swab, addr, size, mask, mem
+		{ 1, 1, 1, 1, 0x000000, romlen, 0x7fffff, rom }, // M68K ROM
+		{ 1, 1, 1, 1, 0xe00000, 0x200000, 0x00ffff, ram } // M68K RAM
+	};
+
+	assert(sizeof(mem) == sizeof(musa_memory));
+	memcpy(musa_memory, mem, sizeof(mem));
+	m68k_register_memory(musa_memory, 3);
+}
+#endif
+
 #ifdef WITH_CYCLONE
 extern "C" uint32_t cyclone_read_memory_8(uint32_t address);
 extern "C" uint32_t cyclone_read_memory_16(uint32_t address);
@@ -473,6 +491,7 @@ md::md(bool pal, char region):
 	md_set_musa(1);
 	m68k_init();
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+	m68k_register_memory(NULL, 0);
 	md_set_musa(0);
 #endif
 
@@ -533,6 +552,11 @@ md::md(bool pal, char region):
   z80ram[0x10006] = 0x00;
   z80ram[0x10007] = 0x00;
 
+#ifdef WITH_MUSA
+	md_set_musa(1);
+	musa_memory_map();
+	md_set_musa(0);
+#endif
 #ifdef WITH_STAR
 	md_set_star(1);
 	if (s68000init() != 0) {
@@ -745,6 +769,11 @@ int md::plug_in(unsigned char *cart,int len)
       save_start = save_len = 0;
       saveram = NULL;
     }
+#ifdef WITH_MUSA
+	md_set_musa(1);
+	musa_memory_map();
+	md_set_musa(0);
+#endif
 #ifdef WITH_STAR
 	md_set_star(1);
 	memory_map(); // Update memory map to include this cartridge
@@ -791,6 +820,11 @@ int md::unplug()
   free(saveram);
   saveram = NULL;
   save_start = save_len = 0;
+#ifdef WITH_MUSA
+	md_set_musa(1);
+	musa_memory_map();
+	md_set_musa(0);
+#endif
 #ifdef WITH_STAR
 	md_set_star(1);
 	memory_map(); // Update memory map to include no rom
