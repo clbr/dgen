@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <assert.h>
 
 extern "C" {
 #include "musa/m68k.h"
@@ -195,8 +196,11 @@ static int debug_find_wp_m68k(uint32_t addr)
 // sets a global flag telling CPP to enter the debugger (sigh)
 static void debug_m68k_bp_set_hit()
 {
-	debug_step_m68k = 0;
-	m68k_bp_hit = 1;
+	assert(debug_step_m68k >= 0);
+	if (debug_step_m68k > 0)
+		--debug_step_m68k;
+	if (debug_step_m68k == 0)
+		m68k_bp_hit = 1;
 	m68k_end_timeslice();
 }
 
@@ -755,7 +759,8 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\tm/mem <addr>\t\tdump %u bytes of memory at 'addr'\n"
 	    "\th/help/?\t\tshow this message\n"
 	    "\tr/reg\t\t\tshow registers of current cpu\n"
-	    "\ts/step <cpu>\t\tstep one instruction on specified cpu\n"
+	    "\ts/step\t\t\tstep one instruction\n"
+	    "\ts/step <num>\t\tstep 'num' instructions\n"
 	    "\t-w/-watch <#num/addr>\tremove watchpoint for current cpu\n"
 	    "\tw/watch <addr> <len>\tset multi-byte watchpoint for current cpu\n"
 	    "\tw/watch <addr>\t\tset 1-byte watchpoint for current cpu\n"
@@ -857,11 +862,14 @@ int md::debug_cmd_cpu(int n_args, char **args)
 
 int md::debug_cmd_step(int n_args, char **args)
 {
-	(void) n_args;
-	(void) args;
+	uint32_t		num = 1;
 
+	if ((n_args >= 1) && (debug_strtou32(args[0], &num) < 0)) {
+		printf("malformed number: %s\n", args[0]);
+		return (1);
+	}
 	if (debug_context == DBG_CONTEXT_M68K)
-		debug_step_m68k = 1;
+		debug_step_m68k = num;
 	else if (debug_context == DBG_CONTEXT_Z80) {
 		printf("z80 breakpoints not implemented\n");
 		return (1);
@@ -1125,6 +1133,8 @@ const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		{(char *) "reg",	0,	&md::debug_cmd_reg},
 		{(char *) "r",		0,	&md::debug_cmd_reg},
 		// step
+		{(char *) "step",	1,	&md::debug_cmd_step},
+		{(char *) "s",		1,	&md::debug_cmd_step},
 		{(char *) "step",	0,	&md::debug_cmd_step},
 		{(char *) "s",		0,	&md::debug_cmd_step},
 		// watch points
