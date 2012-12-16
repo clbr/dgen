@@ -160,13 +160,13 @@ void md::musa_memory_map()
 {
 	const m68k_mem_t mem[2] = {
 		// r, w, x, swab, addr, size, mask, mem
-		{ 1, 1, 1, 1, 0x000000, romlen, 0x7fffff, rom }, // M68K ROM
+		{ 1, 0, 1, 1, 0x000000, romlen, 0x7fffff, rom }, // M68K ROM
 		{ 1, 1, 1, 1, 0xe00000, 0x200000, 0x00ffff, ram } // M68K RAM
 	};
 
 	assert(sizeof(mem) == sizeof(musa_memory));
 	memcpy(musa_memory, (void *)mem, sizeof(mem));
-	m68k_register_memory(musa_memory, 3);
+	m68k_register_memory(musa_memory, (sizeof(mem) / sizeof(mem[0])));
 }
 #endif
 
