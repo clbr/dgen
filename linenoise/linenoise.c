@@ -1020,6 +1020,7 @@ process_char:
             history_len--;
             free(history[history_len]);
 	    current->new = 1;
+	    current->history_index = 0;
             return current->len;
         case ctrl('C'):     /* ctrl-c */
             errno = EAGAIN;
