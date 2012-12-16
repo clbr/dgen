@@ -177,7 +177,7 @@ struct current {
     int rev_searchpos;    /* Reverse-i-search pos */
     unsigned int nb:1;    /* Non-blocking mode */
     unsigned int new:1;   /* This is a new prompt */
-    unsigned int rev:1;   /* Reverse-i-search mode */
+    unsigned int rev:2;   /* Reverse-i-search mode */
 #ifndef NO_COMPLETION
     unsigned int compl:1; /* Completion mode enabled */
     size_t compl_off;     /* Completion offset */
@@ -987,8 +987,10 @@ static int linenoisePrompt(struct current *current) {
 	current->new = 0;
     }
 
-    if (current->rev)
+    if (current->rev) {
+	current->rev = 3; /* Do not display the prompt again. */
 	goto rev_i_search;
+    }
 
     while(1) {
         int dir = -1;
@@ -1089,9 +1091,14 @@ process_char:
                     int skipsame = 0;
                     int searchdir = -1;
 
+                    c = fd_read(current);
+                    if ((c == -1) && (current->rev == 3))
+                        goto process_char;
 		    snprintf(rprompt, sizeof(rprompt), "(reverse-i-search)'%s': ", rbuf);
 		    refreshLine(rprompt, current);
-                    c = fd_read(current);
+                    current->rev = 2;
+                    if (c == -1)
+                        goto process_char;
                     if (c == ctrl('H') || c == 127) {
                         if (rchars) {
                             int p = utf8_index(rbuf, --rchars);
@@ -1133,8 +1140,6 @@ process_char:
                         /* Adding a new char resets the search location */
                         searchpos = history_len - 1;
                     }
-		    else if (c == -1)
-			break;
                     else {
                         /* Exit from incremental search mode */
 			current->rev = 0;
