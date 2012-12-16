@@ -618,6 +618,100 @@ int md::debug_cmd_mem(int n_args, char **args)
 	return (1);
 }
 
+int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
+{
+	uint32_t		addr = 0;
+	m68k_register_t		reg = (m68k_register_t)-1;
+	uint32_t		val;
+
+	(void)n_args;
+	assert(n_args == 2);
+	if (debug_context != DBG_CONTEXT_M68K) {
+		printf("memory setting not implemented on %s core\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
+		return 1;
+	}
+	if (type == ~0u) {
+		/* See definitions in m68k.h. */
+#define REGID(id) { # id, M68K_REG_ ## id }
+		static const struct {
+			const char *name;
+			m68k_register_t value;
+		} regid[] = {
+			REGID(D0), REGID(D1), REGID(D2), REGID(D3),
+			REGID(D4), REGID(D5), REGID(D6), REGID(D7),
+			REGID(A0), REGID(A1), REGID(A2), REGID(A3),
+			REGID(A4), REGID(A5), REGID(A6), REGID(A7),
+			REGID(PC), REGID(SR), REGID(SP), REGID(USP),
+			REGID(ISP), REGID(MSP), REGID(SFC), REGID(DFC),
+			REGID(VBR), REGID(CACR), REGID(CAAR)
+		};
+
+		for (addr = 0;
+		     (addr != (sizeof(regid) / sizeof(regid[0])));
+		     ++addr)
+			if (!strcasecmp(regid[addr].name, args[0])) {
+				reg = regid[addr].value;
+				break;
+			}
+		if (reg == (m68k_register_t)-1) {
+			printf("unknown register %s", args[0]);
+			return 1;
+		}
+	}
+	else if (debug_strtou32(args[0], &addr) < 0) {
+		printf("addr malformed: %s", args[0]);
+		return 1;
+	}
+	if (debug_strtou32(args[1], &val) < 0) {
+		printf("value malformed: %s", args[1]);
+		return 1;
+	}
+	switch (type) {
+	case 1:
+		/* byte */
+		misc_writebyte(addr, val);
+		break;
+	case 2:
+		/* word */
+		misc_writeword(addr, val);
+		break;
+	case 4:
+		/* long */
+		misc_writeword(addr, ((val >> 16) & 0xffff));
+		misc_writeword((addr + 2), (val & 0xffff));
+		break;
+	case ~0u:
+		/* register */
+		m68k_set_reg((m68k_register_t)reg, val);
+		m68k_state_dump();
+		break;
+	default:
+		printf("unknown type size %u\n", type);
+	}
+	return 1;
+}
+
+int md::debug_cmd_setb(int n_args, char **args)
+{
+	return debug_cmd_setbwlr(n_args, args, 1);
+}
+
+int md::debug_cmd_setw(int n_args, char **args)
+{
+	return debug_cmd_setbwlr(n_args, args, 2);
+}
+
+int md::debug_cmd_setl(int n_args, char **args)
+{
+	return debug_cmd_setbwlr(n_args, args, 4);
+}
+
+int md::debug_cmd_setr(int n_args, char **args)
+{
+	return debug_cmd_setbwlr(n_args, args, ~0u);
+}
+
 int md::debug_cmd_dis(int n_args, char **args)
 {
 	uint32_t		addr = m68k_state.pc;
@@ -757,6 +851,10 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\td/dis\t\t\tdisasm %u instrs starting at the current instr\n"
 	    "\tm/mem <addr> <len>\tdump 'len' bytes of memory at 'addr'\n"
 	    "\tm/mem <addr>\t\tdump %u bytes of memory at 'addr'\n"
+	    "\tset/setb <addr> <val>\twrite byte 'val' to memory at 'addr'\n"
+	    "\tsetw <addr> <val>\twrite word 'val' to memory at 'addr'\n"
+	    "\tsetl <addr> <val>\twrite long 'val' to memory at 'addr'\n"
+	    "\tsetr <reg> <val>\twrite 'val' to register 'reg'\n"
 	    "\th/help/?\t\tshow this message\n"
 	    "\tr/reg\t\t\tshow registers of current cpu\n"
 	    "\ts/step\t\t\tstep one instruction\n"
@@ -1124,6 +1222,11 @@ const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		{(char *) "mem",	1,	&md::debug_cmd_mem},
 		{(char *) "m",		2,	&md::debug_cmd_mem},
 		{(char *) "mem",	2,	&md::debug_cmd_mem},
+		{(char *) "set",	2,	&md::debug_cmd_setb},
+		{(char *) "setb",	2,	&md::debug_cmd_setb},
+		{(char *) "setw",	2,	&md::debug_cmd_setw},
+		{(char *) "setl",	2,	&md::debug_cmd_setl},
+		{(char *) "setr",	2,	&md::debug_cmd_setr},
 		// quit
 		{(char *) "quit",	0,	&md::debug_cmd_quit},
 		{(char *) "q",		0,	&md::debug_cmd_quit},

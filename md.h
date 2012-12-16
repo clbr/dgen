@@ -613,6 +613,11 @@ public:
   int debug_cmd_cpu(int n_args, char **args);
   int debug_cmd_dis(int n_args, char **args);
   int debug_cmd_mem(int n_args, char **args);
+  int debug_cmd_setbwlr(int n_args, char **args, unsigned int type);
+  int debug_cmd_setb(int n_args, char **args);
+  int debug_cmd_setw(int n_args, char **args);
+  int debug_cmd_setl(int n_args, char **args);
+  int debug_cmd_setr(int n_args, char **args);
   int debug_cmd_watch(int n_args, char **args);
   int debug_cmd_minus_watch(int n_args, char **args);
   // misc
