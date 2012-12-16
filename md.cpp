@@ -206,6 +206,9 @@ int md::reset()
 	CycloneReset(&cyclonecpu);
 	md_set_cyclone(0);
 #endif
+#ifdef WITH_DEBUGGER
+	debug_m68k_instr_count = 0;
+#endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 
     aoo3_toggle=aoo5_toggle=aoo3_six=aoo5_six
@@ -639,6 +642,7 @@ md::md(bool pal, char region):
 	debug_init();
 	m68k_set_instr_hook_callback(debug_musa_callback);
 	debug_trap = false;
+	debug_m68k_instr_count = 0;
 #endif
 	md_set_musa(0);
 #endif

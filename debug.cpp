@@ -291,7 +291,7 @@ static int debug_should_wp_fire(struct dgen_wp *w)
 	return (0);
 }
 
-// musa breakpoint/watchpoint handler, fired atfer every m68k instr
+// musa breakpoint/watchpoint handler, fired before every m68k instruction
 int debug_musa_callback()
 {
 	unsigned int		pc;
@@ -322,7 +322,7 @@ int debug_musa_callback()
 	}
 watches:
 	if (!debug_is_wp_set())
-		return ret;
+		goto ret;
 
 	for (i = 0; i < MAX_WATCHPOINTS; i++) {
 		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
@@ -333,10 +333,16 @@ watches:
 			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
 			debug_print_wp(i);
 			debug_m68k_wp_set_hit();
-			return 1;
+			ret = 1;
+			goto ret;
 		}
 	}
-
+ret:
+	// increment instructions count
+	if (ret == 0) {
+		assert(md::md_musa != NULL);
+		++md::md_musa->debug_m68k_instr_count;
+	}
 	return ret;
 }
 
@@ -761,7 +767,8 @@ void md::debug_show_m68k_regs()
 {
 	int			i;
 
-	printf("m68k:\n");
+	printf("m68k (%lu instructions):\n",
+	       debug_m68k_instr_count);
 
 	printf("\tpc:\t0x%08x\n\tsr:\t0x%08x\n", m68k_state.pc, m68k_state.sr);
 
