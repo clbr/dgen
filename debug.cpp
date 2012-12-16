@@ -199,9 +199,10 @@ static void debug_m68k_bp_set_hit()
 	assert(debug_step_m68k >= 0);
 	if (debug_step_m68k > 0)
 		--debug_step_m68k;
-	if (debug_step_m68k == 0)
+	if (debug_step_m68k == 0) {
 		m68k_bp_hit = 1;
-	m68k_end_timeslice();
+		m68k_end_timeslice();
+	}
 }
 
 static void debug_m68k_wp_set_hit()
