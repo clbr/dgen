@@ -29,6 +29,7 @@ extern "C" {
 struct dgen_bp		 debug_bp_m68k[MAX_BREAKPOINTS];
 struct dgen_wp		 debug_wp_m68k[MAX_WATCHPOINTS];
 int			 debug_step_m68k;
+unsigned int		 debug_trace_m68k;
 int			 m68k_bp_hit = 0;
 int			 m68k_wp_hit = 0;
 int			 debug_context = DBG_CONTEXT_M68K;
@@ -322,7 +323,7 @@ int debug_musa_callback()
 	}
 watches:
 	if (!debug_is_wp_set())
-		goto ret;
+		goto trace;
 
 	for (i = 0; i < MAX_WATCHPOINTS; i++) {
 		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
@@ -336,6 +337,14 @@ watches:
 			ret = 1;
 			goto ret;
 		}
+	}
+trace:
+	if (debug_trace_m68k) {
+		assert(md::md_musa != NULL);
+		md::md_musa->debug_print_disassemble
+			(m68k_get_reg(NULL, M68K_REG_PC), 1);
+		if (debug_trace_m68k != ~0u)
+			--debug_trace_m68k;
 	}
 ret:
 	// increment instructions count
@@ -867,6 +876,7 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\tr/reg\t\t\tshow registers of current cpu\n"
 	    "\ts/step\t\t\tstep one instruction\n"
 	    "\ts/step <num>\t\tstep 'num' instructions\n"
+	    "\tt/trace [bool|num]\ttoggle instructions tracing\n"
 	    "\t-w/-watch <#num/addr>\tremove watchpoint for current cpu\n"
 	    "\tw/watch <addr> <len>\tset multi-byte watchpoint for current cpu\n"
 	    "\tw/watch <addr>\t\tset 1-byte watchpoint for current cpu\n"
@@ -987,6 +997,56 @@ int md::debug_cmd_step(int n_args, char **args)
 	debug_trap = false;
 	pd_sound_start();
 	return (0); // continue executing
+}
+
+int md::debug_cmd_trace(int n_args, char **args)
+{
+	static const struct {
+		const char *param;
+		unsigned int value;
+	} opt[] = {
+		{ "true", ~0u }, { "false", 0 },
+		{ "yes", ~0u }, { "no", 0 },
+		{ "on", ~0u }, { "off", 0 },
+		{ "enable", ~0u }, { "disable", 0 }
+	};
+
+	if (debug_context != DBG_CONTEXT_M68K) {
+		printf("instructions tracing not implemented for this cpu.\n");
+		return 1;
+	}
+	if (n_args == 1) {
+		uint32_t i;
+
+		for (i = 0; (i != (sizeof(opt) / sizeof(opt[0]))); ++i)
+			if (!strcasecmp(args[0], opt[i].param)) {
+				debug_trace_m68k = opt[i].value;
+				break;
+			}
+		if (i == (sizeof(opt) / sizeof(opt[0]))) {
+			if (debug_strtou32(args[0], &i) == -1) {
+				printf("invalid argument: %s\n", args[0]);
+				return 1;
+			}
+			debug_trace_m68k = i;
+		}
+	}
+	else
+		debug_trace_m68k = (!debug_trace_m68k * ~0u);
+	printf("instructions tracing ");
+	switch (debug_trace_m68k) {
+	case 0:
+		printf("disabled.\n");
+		break;
+	case ~0u:
+		printf("enabled permanently.\n");
+		break;
+	default:
+		printf("enabled for the next %u instruction(s).\n",
+		       debug_trace_m68k);
+		break;
+	}
+	return 1;
 }
 
 int md::debug_cmd_minus_watch(int n_args, char **args)
@@ -1249,6 +1309,10 @@ const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		{(char *) "s",		1,	&md::debug_cmd_step},
 		{(char *) "step",	0,	&md::debug_cmd_step},
 		{(char *) "s",		0,	&md::debug_cmd_step},
+		{(char *) "trace",	1,	&md::debug_cmd_trace},
+		{(char *) "t",		1,	&md::debug_cmd_trace},
+		{(char *) "trace",	0,	&md::debug_cmd_trace},
+		{(char *) "t",		0,	&md::debug_cmd_trace},
 		// watch points
 		{(char *) "watch",	2,	&md::debug_cmd_watch},
 		{(char *) "w",		2,	&md::debug_cmd_watch},

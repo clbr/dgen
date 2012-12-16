@@ -610,6 +610,7 @@ public:
   int debug_cmd_break(int n_args, char **args);
   int debug_cmd_quit(int n_args, char **args);
   int debug_cmd_step(int n_args, char **args);
+  int debug_cmd_trace(int n_args, char **args);
   int debug_cmd_minus_break(int n_args, char **args);
   int debug_cmd_cpu(int n_args, char **args);
   int debug_cmd_dis(int n_args, char **args);
