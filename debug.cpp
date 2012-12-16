@@ -1173,6 +1173,7 @@ void md::debug_enter()
 		break;
 	default:
 		printf("unknown cpu. should not happen");
+		md_set_musa(0);
 		return;
 	};
 
