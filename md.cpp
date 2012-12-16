@@ -165,7 +165,7 @@ void md::musa_memory_map()
 	};
 
 	assert(sizeof(mem) == sizeof(musa_memory));
-	memcpy(musa_memory, mem, sizeof(mem));
+	memcpy(musa_memory, (void *)mem, sizeof(mem));
 	m68k_register_memory(musa_memory, 3);
 }
 #endif
