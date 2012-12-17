@@ -36,17 +36,30 @@ int			 debug_context = DBG_CONTEXT_M68K;
 const char		*debug_context_names[] =
 			     {"M68K", "Z80", "YM2612", "SN76489"};
 
-/* aliases for the various cpus */
+/**
+ * Aliases for the various cores.
+ * @{
+ */
+/** Aliases for SN76489 core. */
 const char	*psg_aliases[] = { "sn", "sn76489", "psg", NULL };
+/** Aliases for YM2612 core. */
 const char	*fm_aliases[] = { "fm", "ym", "ym2612", NULL };
+/** Aliases for Z80 core. */
 const char	*z80_aliases[] = { "z80", "z", NULL};
+/** Aliases for M68K core. */
 const char	*m68k_aliases[] = { "m68k", "m", "68000", "m68000", NULL};
+/** @} */
 
 #define CURRENT_DEBUG_CONTEXT_NAME	debug_context_names[debug_context]
 
 // ===[ C Functions ]=========================================================
 
-// linenoise completion callback
+/**
+ * Linenoise completion callback.
+ *
+ * @param buf String so far.
+ * @param lc List of linenoise completions.
+ */
 #ifndef NO_COMPLETION
 void completion(const char *buf, linenoiseCompletions *lc) {
 
@@ -63,6 +76,7 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 }
 #endif
 
+/** @{ Callbacks for Musashi. */
 uint32_t m68k_read_disassembler_8(unsigned int addr)
 {
 	    return m68k_read_memory_8(addr);
@@ -77,9 +91,15 @@ uint32_t m68k_read_disassembler_32(unsigned int addr)
 {
 	    return m68k_read_memory_32(addr);
 }
+/** @} */
 
-// simple wrapper around strtoul with error check
-// -1 on error
+/**
+ * A simple wrapper around strtoul() with error check.
+ *
+ * @param[in] str String to convert to number.
+ * @param[out] ret Number "str" represents.
+ * @return -1 on error.
+ */
 static int debug_strtou32(const char *str, uint32_t *ret)
 {
 	char			*end = NULL;
@@ -98,6 +118,11 @@ static int debug_strtou32(const char *str, uint32_t *ret)
 	return (0);
 }
 
+/**
+ * Check if at least one breakpoint is set.
+ *
+ * @return 1 if true, or if the user has "stepped", 0 otherwise.
+ */
 static int debug_is_bp_set()
 {
 	if (debug_step_m68k)
@@ -111,6 +136,11 @@ static int debug_is_bp_set()
 	return (0);
 }
 
+/**
+ * Check if at least one watchpoint is set.
+ *
+ * @return 1 if true, 0 otherwise.
+ */
 static int debug_is_wp_set()
 {
 	if (debug_wp_m68k[0].flags & BP_FLAG_USED)
@@ -121,6 +151,11 @@ static int debug_is_wp_set()
 	return (0);
 }
 
+/**
+ * Get the ID of the next free M68K watchpoint.
+ *
+ * @return ID or -1 if none free.
+ */
 static int debug_next_free_wp_m68k()
 {
 	int			i;
@@ -133,6 +168,11 @@ static int debug_next_free_wp_m68k()
 	return (-1); // no free slots
 }
 
+/**
+ * Get the ID of the next free M68K breakpoint.
+ *
+ * @return ID or -1 if none free.
+ */
 static int debug_next_free_bp_m68k()
 {
 	int			i;
@@ -145,6 +185,11 @@ static int debug_next_free_bp_m68k()
 	return (-1); // no free slots
 }
 
+/**
+ * Initialise the debugger.
+ *
+ * All breakpoints are disabled by default.
+ */
 void debug_init()
 {
 	printf("debugger enabled\n");
@@ -161,7 +206,13 @@ void debug_init()
 	debug_step_m68k = 0;
 }
 
-// find the index of a m68k breakpoint
+/**
+ * Find the index of a M68K breakpoint.
+ *
+ * @param addr Address to look for.
+ * @return -1 if no breakpoint is found, otherwise its index in
+ * debug_bp_m68k[].
+ */
 static int debug_find_bp_m68k(uint32_t addr)
 {
 	int			i;
@@ -178,7 +229,13 @@ static int debug_find_bp_m68k(uint32_t addr)
 	return (-1); // not found
 }
 
-// find the index of a m68k watchpoint (by start addr)
+/**
+ * Find the index of a M68K watchpoint by its start address.
+ *
+ * @param addr Address to look for.
+ * @return -1 if no watchpoint at the given address, otherwise its index in
+ * debug_wp_m68k[].
+ */
 static int debug_find_wp_m68k(uint32_t addr)
 {
 	int			i;
@@ -195,7 +252,9 @@ static int debug_find_wp_m68k(uint32_t addr)
 	return (-1); // not found
 }
 
-// sets a global flag telling CPP to enter the debugger (sigh)
+/**
+ * Set a global flag to enter the debugger when hitting a breakpoint.
+ */
 static void debug_m68k_bp_set_hit()
 {
 	assert(debug_step_m68k >= 0);
@@ -207,12 +266,22 @@ static void debug_m68k_bp_set_hit()
 	}
 }
 
+/**
+ * Set a global flag to enter the debugger when hitting a watchpoint.
+ */
 static void debug_m68k_wp_set_hit()
 {
 	m68k_wp_hit = 1;
 	m68k_end_timeslice();
 }
 
+/**
+ * Pretty prints hex dump.
+ *
+ * @param[in] buf Buffer to pretty print.
+ * @param len Number of bytes to print.
+ * @param addr_label_start The address of the first byte.
+ */
 static void debug_print_hex_buf(
     unsigned char *buf, size_t len, size_t addr_label_start)
 {
@@ -271,6 +340,11 @@ static void debug_print_hex_buf(
 	fflush(stdout);
 }
 
+/**
+ * Print a watchpoint in a human-readable form.
+ *
+ * @param idx Index of watchpoint to print.
+ */
 static void debug_print_wp(int idx)
 {
 	struct dgen_wp		*w = &(debug_wp_m68k[idx]);
@@ -282,6 +356,12 @@ static void debug_print_wp(int idx)
 	fflush(stdout);
 }
 
+/**
+ * Check the given watchpoint against cached memory to see if it should fire.
+ *
+ * @param[in] w Watch point to check.
+ * @return 1 if true, else 0.
+ */
 static int debug_should_wp_fire(struct dgen_wp *w)
 {
 	unsigned int		i;
@@ -295,7 +375,12 @@ static int debug_should_wp_fire(struct dgen_wp *w)
 	return (0);
 }
 
-// musa breakpoint/watchpoint handler, fired before every m68k instruction
+/**
+ * Breakpoint/watchpoint handler for Musashi, fired before every M68K
+ * instruction.
+ *
+ * @return 1 if a break/watchpoint is hit, 0 otherwise.
+ */
 int debug_musa_callback()
 {
 	unsigned int		pc;
@@ -359,6 +444,11 @@ ret:
 	return ret;
 }
 
+/**
+ * Remove a M68K breakpoint.
+ *
+ * @param index Index of breakpoint to remove.
+ */
 static void debug_rm_bp_m68k(int index)
 {
 	if (!(debug_bp_m68k[index].flags & BP_FLAG_USED)) {
@@ -381,6 +471,11 @@ static void debug_rm_bp_m68k(int index)
 	}
 }
 
+/**
+ * Remove a M68K watchpoint.
+ *
+ * @parm index Index of watchpoint to remove.
+ */
 static void debug_rm_wp_m68k(int index)
 {
 	if (!(debug_wp_m68k[index].flags & WP_FLAG_USED)) {
@@ -405,6 +500,9 @@ static void debug_rm_wp_m68k(int index)
 	}
 }
 
+/**
+ * Pretty print M68K breakpoints.
+ */
 static void debug_list_bps_m68k()
 {
 	int			i;
@@ -422,6 +520,9 @@ static void debug_list_bps_m68k()
 	fflush(stdout);
 }
 
+/**
+ * Pretty print M68K watchpoints.
+ */
 static void debug_list_wps_m68k()
 {
 	int			i;
@@ -438,6 +539,12 @@ static void debug_list_wps_m68k()
 	fflush(stdout);
 }
 
+/**
+ * Add a M68K breakpoint.
+ *
+ * @param addr Address to break on.
+ * @return Always 1.
+ */
 static int debug_set_bp_m68k(uint32_t addr)
 {
 	int		slot;
@@ -461,6 +568,12 @@ out:
 	return (1);
 }
 
+/**
+ * Convert a core name to a context ID.
+ *
+ * @param[in] arg NUL-terminated core name.
+ * @return Core context ID or -1 on error.
+ */
 static int debug_parse_cpu(char *arg)
 {
 	uint32_t	  num;
@@ -499,6 +612,12 @@ static int debug_parse_cpu(char *arg)
 
 // ===[ C++ Methods ]=========================================================
 
+/**
+ * Add a M68K watchpoint to a range of addresses.
+ *
+ * @param start_addr Start address of watchpoint range.
+ * @param end_addr End address of watchpoint range.
+ */
 void md::debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr)
 {
 	int		slot;
@@ -526,7 +645,11 @@ out:
 	fflush(stdout);
 }
 
-// update the data ptr of a single watch point
+/**
+ * Update the data pointer of a single watchpoint.
+ *
+ * @param w Watchpoint to update.
+ */
 void md::debug_update_wp_cache(struct dgen_wp *w)
 {
 	unsigned int		 addr;
@@ -540,7 +663,9 @@ void md::debug_update_wp_cache(struct dgen_wp *w)
 	md_set_musa(0);
 }
 
-// resync watch points based on actual data
+/**
+ * Resynchronise all watchpoints based on actual data.
+ */
 void md::debug_update_fired_wps()
 {
 	int			i;
@@ -558,6 +683,19 @@ void md::debug_update_fired_wps()
 	}
 }
 
+/**
+ * Watchpoints (watch) command handler.
+ *
+ * - If n_args == 0 then list watchpoints.
+ * - If n_args == 1 then add a watchpoint with length 1 with start address
+ *   defined in args[0].
+ * - If n_args == 2 then add a watch point with start address args[0] and
+ *   length args[1].
+ *
+ * @param n_args Number of arguments.
+ * @param args Arguments, see above.
+ * @return Always 1.
+ */
 int md::debug_cmd_watch(int n_args, char **args)
 {
 	uint32_t		start, len = 1;
@@ -592,6 +730,12 @@ out:
 	return (1);
 }
 
+/**
+ * Pretty print a block of memory as a hex dump.
+ *
+ * @param addr Start address.
+ * @param len Length (in bytes) to dump.
+ */
 void md::debug_dump_mem(uint32_t addr, uint32_t len)
 {
 	uint32_t		 i;
@@ -614,6 +758,18 @@ void md::debug_dump_mem(uint32_t addr, uint32_t len)
 	free(buf);
 }
 
+/**
+ * Memory dump (mem) command handler.
+ *
+ * - If n_args == 1 then args[0] is start address to dump from for
+ *   DEBUG_DFLT_MEMDUMP_LEN bytes.
+ * - If n_args == 2 then args[0] is start address and args[1] is number of
+ *   bytes to dump.
+ *
+ * @param n_args Number of arguments.
+ * @param args Arguments, see above.
+ * @return Always 1.
+ */
 int md::debug_cmd_mem(int n_args, char **args)
 {
 	uint32_t		addr, len = DEBUG_DFLT_MEMDUMP_LEN;
@@ -645,6 +801,20 @@ out:
 	return (1);
 }
 
+/**
+ * Memory/registers write (setb/setw/setl/setr) commands handler.
+ *
+ * - args[1] is the numerical value to write to registers/memory.
+ * - If type == ~0u, args[0] is a register name.
+ * - If type == 1, args[0] is the address of a byte.
+ * - If type == 2, args[0] is the address of a word.
+ * - If type == 4, args[0] is the address of a long word.
+ *
+ * @param n_args Number of arguments (ignored, always 2).
+ * @param args Arguments, see above.
+ * @param type Data type to write, see above.
+ * @return Always 1.
+ */
 int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 {
 	uint32_t		addr = 0;
@@ -721,26 +891,59 @@ out:
 	return 1;
 }
 
+/**
+ * Set byte (setb) command handler, see debug_cmd_setbwlr().
+ *
+ * @return Always 1.
+ */
 int md::debug_cmd_setb(int n_args, char **args)
 {
 	return debug_cmd_setbwlr(n_args, args, 1);
 }
 
+/**
+ * Set word (setw) command handler, see debug_cmd_setbwlr().
+ *
+ * @return Always 1.
+ */
 int md::debug_cmd_setw(int n_args, char **args)
 {
 	return debug_cmd_setbwlr(n_args, args, 2);
 }
 
+/**
+ * Set long word (setl) command handler, see debug_cmd_setbwlr().
+ *
+ * @return Always 1.
+ */
 int md::debug_cmd_setl(int n_args, char **args)
 {
 	return debug_cmd_setbwlr(n_args, args, 4);
 }
 
+/**
+ * Set register (setr) command handler, see debug_cmd_setbwlr().
+ *
+ * @return Always 1.
+ */
 int md::debug_cmd_setr(int n_args, char **args)
 {
 	return debug_cmd_setbwlr(n_args, args, ~0u);
 }
 
+/**
+ * Disassemble (dis) command handler.
+ *
+ * - If n_args == 0, do nothing.
+ * - If n_args == 1 start disassembling from address args[0] for
+ *   DEBUG_DFLT_DASM_LEN instructions.
+ * - If n_args == 2 start disassembling from address args[0] for args[1]
+ *   instructions.
+ *
+ * @param n_args Number of arguments.
+ * @param[in] args Arguments list.
+ * @return Always 1.
+ */
 int md::debug_cmd_dis(int n_args, char **args)
 {
 	uint32_t		addr = m68k_state.pc;
@@ -776,6 +979,13 @@ out:
 	return (1);
 }
 
+/**
+ * Continue (cont) command handler. This command drops out of debug mode.
+ *
+ * @param n_args Number of arguments (ignored).
+ * @param args Arguments (ignored).
+ * @return Always 0 (debugger should exit).
+ */
 int md::debug_cmd_cont(int n_args, char **args)
 {
 	(void) n_args;
@@ -786,7 +996,9 @@ int md::debug_cmd_cont(int n_args, char **args)
 	return (0); // causes debugger to exit
 }
 
-// uses m68k_state from md::
+/**
+ * Pretty print the M68K registers using m68k_state from class md.
+ */
 void md::debug_show_m68k_regs()
 {
 	int			i;
@@ -831,7 +1043,9 @@ void md::debug_show_m68k_regs()
 	    (x & Z80_SR_PARITY_OVERFLOW) ? 1 : 0,			\
 	    (x & Z80_SR_ADD_SUB) ? 1 : 0,				\
 	    (x & Z80_SR_CARRY) ? 1 : 0);
-// uses z80_state md::
+/**
+ * Pretty print Z80 registers using z80_state from class md.
+ */
 void md::debug_show_z80_regs()
 {
 	int			i;
@@ -869,6 +1083,13 @@ void md::debug_show_z80_regs()
 	fflush(stdout);
 }
 
+/**
+ * Help (help) command handler.
+ *
+ * @param n_args Number of arguments (ignored).
+ * @param args List of arguments (ignored).
+ * @return Always 1.
+ */
 int md::debug_cmd_help(int n_args, char **args)
 {
 	(void) n_args;
@@ -909,6 +1130,14 @@ int md::debug_cmd_help(int n_args, char **args)
 	return (1);
 }
 
+/**
+ * Dump registers (reg) command handler.
+ * This command pretty prints registers for the current context.
+ *
+ * @param n_args Number of arguments (ignored).
+ * @param[in] args List of arguments (ignored).
+ * @return Always 1.
+ */
 int md::debug_cmd_reg(int n_args, char **args)
 {
 	(void) n_args;
@@ -933,7 +1162,16 @@ int md::debug_cmd_reg(int n_args, char **args)
 	return (1);
 }
 
-
+/**
+ * Breakpoint (break) command handler.
+ *
+ * - If n_args == 0, list breakpoints.
+ * - If n_args == 1, set a breakpoint at address args[0].
+ *
+ * @param n_args Number of arguments.
+ * @param[in] args List of arguments.
+ * @return Always 1.
+ */
 int md::debug_cmd_break(int n_args, char **args)
 {
 	uint32_t		num;
@@ -966,6 +1204,14 @@ out:
 	return (1);
 }
 
+/**
+ * Quit (quit) command handler.
+ * This command makes DGen/SDL quit.
+ *
+ * @param n_args Number of arguments (ignored).
+ * @param args List of arguments (ignored).
+ * @return Always 1.
+ */
 int md::debug_cmd_quit(int n_args, char **args)
 {
 	(void) n_args;
@@ -977,6 +1223,14 @@ int md::debug_cmd_quit(int n_args, char **args)
 	return (1); // noreach
 }
 
+/**
+ * Core/CPU selection (cpu) command.
+ * Switch to the core/CPU given in args[0].
+ *
+ * @param n_args Number of arguments (should always be 1).
+ * @param args List of arguments.
+ * @return Always 1.
+ */
 int md::debug_cmd_cpu(int n_args, char **args)
 {
 	(void) n_args;
@@ -995,6 +1249,16 @@ out:
 	return (1);
 }
 
+/**
+ * Step (step) command handler for the current core.
+ *
+ * - If n_args == 0, step one instruction.
+ * - If n_args == 1, step args[0] instructions.
+ *
+ * @param n_args Number of arguments.
+ * @param args List of arguments.
+ * @return 0 if execution should continue, 1 otherwise.
+ */
 int md::debug_cmd_step(int n_args, char **args)
 {
 	uint32_t		num = 1;
@@ -1021,6 +1285,19 @@ out:
 	return (1);
 }
 
+/**
+ * Trace toggle (trace) command handler.
+ *
+ * - If n_args == 0, toggle (enable/disable) instructions tracing permanently.
+ * - If n_args == 1 and args[0] is a number, enable instructions tracing for
+ *   this number of instructions.
+ * - If n_args == 1 and args[0] is a boolean string, toggle instructions
+ *   tracing accordingly.
+ *
+ * @param n_args Number of arguments.
+ * @param args Arguments.
+ * @return Always 1.
+ */
 int md::debug_cmd_trace(int n_args, char **args)
 {
 	static const struct {
@@ -1073,6 +1350,16 @@ out:
 	return 1;
 }
 
+/**
+ * Watchpoint removal (-watch) command handler.
+ *
+ * If args[0] starts with a #, remove a watchpoint by ID. Otherwise, remove
+ * it by address.
+ *
+ * @param n_args Number of arguments (always 1).
+ * @param[in] args List of arguments.
+ * @return Always 1.
+ */
 int md::debug_cmd_minus_watch(int n_args, char **args)
 {
 	int			index = -1;
@@ -1118,6 +1405,16 @@ out:
 }
 
 
+/**
+ * Breakpoint removal (-break) command handler.
+ *
+ * If args[0] starts with a #, remove a breakpoint by ID. Otherwise, remove
+ * it by address.
+ *
+ * @param n_args Number of arguments (always 1).
+ * @param args List of arguments.
+ * @return Always 1.
+ */
 int md::debug_cmd_minus_break(int n_args, char **args)
 {
 	int			index = -1;
@@ -1169,6 +1466,13 @@ out:
 	return (1);
 }
 
+/**
+ * Dispatch a command to the relevant handler method.
+ *
+ * @param n_toks Number of tokens (arguments).
+ * @param toks List of tokens (arguments).
+ * @return 1 if n_toks is 0, otherwise the command handler's return value.
+ */
 int md::debug_despatch_cmd(int n_toks, char **toks)
 {
 
@@ -1196,6 +1500,12 @@ int md::debug_despatch_cmd(int n_toks, char **toks)
 }
 
 #define MAX_DISASM		128
+/**
+ * Pretty print a M68K disassembly.
+ *
+ * @param from Address to start disassembling from.
+ * @param len Number of instructions to disassemble.
+ */
 void md::debug_print_disassemble(uint32_t from, int len)
 {
 	int			i;
@@ -1216,6 +1526,9 @@ void md::debug_print_disassemble(uint32_t from, int len)
 	fflush(stdout);
 }
 
+/**
+ * Leave debugger.
+ */
 void md::debug_leave()
 {
 	if (debug_trap == false)
@@ -1225,6 +1538,9 @@ void md::debug_leave()
 	pd_sound_start();
 }
 
+/**
+ * Enter debugger and show command prompt.
+ */
 void md::debug_enter()
 {
 	char				*cmd, prompt[32];
@@ -1290,6 +1606,10 @@ void md::debug_enter()
 	md_set_musa(0);
 }
 
+
+/**
+ * List of commands.
+ */
 const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		// breakpoints
 		{(char *) "break",	1,	&md::debug_cmd_break},
