@@ -237,7 +237,7 @@ AC_ARG_WITH(
 		[--with-libarchive],
 		[use libarchive for compressed ROMs [default=auto]]
 	)],
-	[USE_LIBARCHIVE=$enableval],
+	[USE_LIBARCHIVE=$withval],
 	[USE_LIBARCHIVE=auto]
 )
 AS_IF(
