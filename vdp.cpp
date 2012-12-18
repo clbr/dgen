@@ -12,6 +12,8 @@
 
 void md_vdp::reset()
 {
+	hint_pending = false;
+	vint_pending = false;
 	command_pending = false;
 	rw_mode = 0x00;
 	rw_addr = 0;

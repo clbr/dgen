@@ -150,6 +150,12 @@ int md::memory_map()
 
   return 0;
 }
+
+void star_irq_callback(void)
+{
+	assert(md::md_star != NULL);
+	md::md_star->m68k_vdp_irq_handler();
+}
 #endif
 
 #ifdef WITH_MUSA
@@ -168,6 +174,14 @@ void md::musa_memory_map()
 	memcpy(musa_memory, (void *)mem, sizeof(mem));
 	m68k_register_memory(musa_memory, (sizeof(mem) / sizeof(mem[0])));
 }
+
+int musa_irq_callback(int level)
+{
+	(void)level;
+	assert(md::md_musa != NULL);
+	md::md_musa->m68k_vdp_irq_handler();
+	return M68K_INT_ACK_AUTOVECTOR;
+}
 #endif
 
 #ifdef WITH_CYCLONE
@@ -178,6 +192,14 @@ extern "C" void cyclone_write_memory_8(uint32_t address, uint8_t value);
 extern "C" void cyclone_write_memory_16(uint32_t address, uint16_t value);
 extern "C" void cyclone_write_memory_32(uint32_t address, uint32_t value);
 extern "C" uintptr_t cyclone_checkpc(uintptr_t pc);
+
+int cyclone_irq_callback(int level)
+{
+	(void)level;
+	assert(md::md_cyclone != NULL);
+	md::md_cyclone->m68k_vdp_irq_handler();
+	return CYCLONE_INT_ACK_AUTOVECTOR;
+}
 #endif
 
 /**
@@ -496,6 +518,7 @@ md::md(bool pal, char region):
 	m68k_init();
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_register_memory(NULL, 0);
+	m68k_set_int_ack_callback(musa_irq_callback);
 	md_set_musa(0);
 #endif
 
@@ -517,7 +540,10 @@ md::md(bool pal, char region):
   cyclonecpu.fetch8 = cyclone_read_memory_8;
   cyclonecpu.fetch16 = cyclone_read_memory_16;
   cyclonecpu.fetch32 = cyclone_read_memory_32;
+  cyclonecpu.IrqCallback = cyclone_irq_callback;
+  md_set_cyclone(1);
   CycloneInit();
+  md_set_cyclone(0);
 #endif
 
 #ifdef WITH_MZ80
@@ -588,6 +614,7 @@ md::md(bool pal, char region):
   cpu.s_writebyte = cpu.u_writebyte = writebyte;
   cpu.s_writeword = cpu.u_writeword = writeword;
 
+	cpu.inthandler = star_irq_callback;
 	md_set_star(1);
 	s68000reset();
 	md_set_star(0);

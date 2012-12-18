@@ -271,11 +271,48 @@ void md::m68k_irq(int i)
 	else
 #endif
 #ifdef WITH_STAR
-	if (cpu_emu == CPU_EMU_STAR)
-		s68000interrupt(i, -1);
+	if (cpu_emu == CPU_EMU_STAR) {
+		if (i)
+			s68000interrupt(i, -1);
+		else {
+			s68000GetContext(&cpu);
+			memset(cpu.interrupts, 0, sizeof(cpu.interrupts));
+			s68000SetContext(&cpu);
+		}
+	}
 	else
 #endif
 		(void)0;
+}
+
+// Trigger M68K IRQ or disable them according to VDP status.
+void md::m68k_vdp_irq_trigger()
+{
+	if ((vdp.vint_pending) && (vdp.reg[1] & 0x20))
+		m68k_irq(6);
+	else if ((vdp.hint_pending) && (vdp.reg[0] & 0x10))
+		m68k_irq(4);
+	else
+		m68k_irq(0);
+}
+
+// Called whenever M68K acknowledges an interrupt.
+void md::m68k_vdp_irq_handler()
+{
+	if ((vdp.vint_pending) && (vdp.reg[1] & 0x20)) {
+		vdp.vint_pending = false;
+		coo5 &= ~0x80;
+		if ((vdp.hint_pending) && (vdp.reg[0] & 0x10))
+			m68k_irq(4);
+		else {
+			vdp.hint_pending = false;
+			m68k_irq(0);
+		}
+	}
+	else {
+		vdp.hint_pending = false;
+		m68k_irq(0);
+	}
 }
 
 // Return current Z80 odometer
@@ -491,12 +528,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	coo4 = 0x02; // Init status register (FIXME)
 	if (vdp.reg[12] & 0x2)
 		coo5 ^= 0x10; // Toggle odd/even for interlace
-	if (vdp.reg[1] & 0x40)
-		coo5 &= ~0x88; // Clear vblank and vint
-	else
-		coo5 &= ~0x08; // Clear vblank
-	if (!(vdp.reg[1] & 0x20))
-		coo5 |= 0x80; // If vint disabled, vint happened
+	coo5 &= ~0x08; // Clear vblank
 	coo5 |= !!pal;
 	// Is permanently set
 	hints = vdp.reg[10]; // Set hint counter
@@ -504,10 +536,11 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	for (ras = 0; ((unsigned int)ras < vblank); ++ras) {
 		pad_update(); // Update 6-button pads
 		fm_timer_callback(); // Update sound timers
-		if ((vdp.reg[0] & 0x10) && (--hints < 0)) {
+		if (--hints < 0) {
 			// Trigger hint
-			m68k_irq(4);
 			hints = vdp.reg[10];
+			vdp.hint_pending = true;
+			m68k_vdp_irq_trigger();
 			may_want_to_get_pic(bm, retpal, 1);
 		}
 		else
@@ -533,10 +566,11 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	// The following was roughly adapted from Genplus GX
 	// Enable v-blank
 	coo5 |= 0x08;
-	if ((vdp.reg[0] & 0x10) && (--hints < 0)) {
+	if (--hints < 0) {
 		// Trigger hint
-		m68k_irq(4);
 		hints = vdp.reg[10];
+		vdp.hint_pending = true;
+		m68k_vdp_irq_trigger();
 	}
 	// Save m68k_max and z80_max
 	m68k_max = (odo.m68k_max + M68K_CYCLES_PER_LINE);
@@ -561,8 +595,8 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	odo.m68k_max = m68k_max;
 	odo.z80_max = z80_max;
 	// Blank everything and trigger vint
-	if (vdp.reg[1] & 0x20)
-		m68k_irq(6);
+	vdp.vint_pending = true;
+	m68k_vdp_irq_trigger();
 	if (!z80_st_reset)
 		z80_irq(0);
 	fm_timer_callback();

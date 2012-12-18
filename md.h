@@ -116,6 +116,8 @@ public:
   uint8_t *vram, *cram, *vsram;
   uint8_t reg[0x20];
   int rw_mode,rw_addr,rw_dma;
+  bool hint_pending;
+  bool vint_pending;
 private:
   int poke_vram (int addr,unsigned char d);
   int poke_cram (int addr,unsigned char d);
@@ -361,14 +363,17 @@ private:
   STARSCREAM_PROGRAMREGION *fetch;
   STARSCREAM_DATAREGION    *readbyte,*readword,*writebyte,*writeword;
   int memory_map();
+	friend void star_irq_callback(void);
 #endif
 #ifdef WITH_MUSA
 	void *ctx_musa;
 	void musa_memory_map();
 	m68k_mem_t musa_memory[2]; // [0] = ROM, [1] = RAM
+	friend int musa_irq_callback(int);
 #endif
 #ifdef WITH_CYCLONE
 	struct Cyclone cyclonecpu;
+	friend int cyclone_irq_callback(int);
 #endif
 
 	uint32_t z80_bank68k;
@@ -405,6 +410,8 @@ private:
 	void m68k_busreq_request(); // Issue BUSREQ
 	void m68k_busreq_cancel(); // Cancel BUSREQ
 	void m68k_irq(int i); // Trigger M68K IRQ
+	void m68k_vdp_irq_trigger(); // Trigger IRQ from VDP status
+	void m68k_vdp_irq_handler(); // Called when interrupts are acknowledged
 
 	int z80_odo(); // Z80 odometer
 	void z80_run(); // Run Z80 to odo.z80_max

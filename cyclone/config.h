@@ -86,7 +86,7 @@
  * If disabled, it simply uses appropriate autovector, clears the IRQ level and
  * continues execution.
  */
-#define USE_INT_ACK_CALLBACK        0
+#define USE_INT_ACK_CALLBACK        1
 
 /*
  * Enable this if you need old PC, flags or cycles;
