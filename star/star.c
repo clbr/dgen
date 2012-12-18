@@ -7,7 +7,7 @@
 */
 
 /*
-  DGen/SDL modifications to address compilation issues:
+  DGen/SDL modifications:
 
   2008-08-20 - Remove default label at end of block in selective_usereg().
   2011-08-21 - Add default label back followed by a break statement.
@@ -16,6 +16,7 @@
                in their names. It should be up to NASM to prefix them as
                necessary.
              - Append -dgen to version number.
+  2012-12-18 - Add inthandler callback.
 */
 
 #define STAR_VERSION "0.26a-dgen"
@@ -324,6 +325,7 @@ static void gen_variables(void) {
 	*/
 	if(cputype >= 68000) {
 		emit("__resethandler         dd 0\n");
+		emit("__inthandler           dd 0\n");
 		emit("__reg:\n");
 		emit("__dreg                 dd 0,0,0,0,0,0,0,0\n");
 		emit("__areg                 dd 0,0,0,0,0,0,0\n");
@@ -1224,6 +1226,12 @@ static void gen_flush_interrupts(void) {
 	emit("shl edx,2\n");
 	emit("call group_1_exception\n");
 	emit("sub edi,byte %d\n", cycles);
+	emit("mov ecx,[__inthandler]\n");
+	emit("or ecx,ecx\n");
+	emit("jz short .intdone\n");
+	airlock_exit();
+	emit("call ecx\n");
+	airlock_enter();
 	emit("jmp short .intdone\n");
 	emit(".noint:\n");
 	emit("dec edx\n");

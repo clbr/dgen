@@ -691,6 +691,11 @@ Pending interrupts are checked at the following times:
    This has no effect if called from within a read/write, RESET, or BKPT
    handler.
 
+Starscream can call a user-defined function when handling interrupts.
+The handler must take no arguments, and return void.
+
+   s68000context.inthandler = my_int_handler;
+
 
 3.8.  Emulating More Than One CPU
 ---------------------------------
