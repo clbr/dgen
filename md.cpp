@@ -230,6 +230,7 @@ int md::reset()
   z80_reset();
   z80_st_busreq = 1;
   z80_st_reset = 1;
+  z80_st_irq = 0;
   return 0;
 }
 
