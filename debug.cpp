@@ -148,6 +148,7 @@ static int debug_next_free_bp_m68k()
 void debug_init()
 {
 	printf("debugger enabled\n");
+	fflush(stdout);
 
 	// start with all breakpoints and watchpoints disabled
 	memset(debug_bp_m68k, 0, sizeof(debug_bp_m68k));
@@ -267,6 +268,7 @@ static void debug_print_hex_buf(
 
 	// print rest of ascii
 	printf(" |%s|\n", ascii);
+	fflush(stdout);
 }
 
 static void debug_print_wp(int idx)
@@ -277,6 +279,7 @@ static void debug_print_wp(int idx)
 	    w->start_addr, w->end_addr, w->end_addr - w->start_addr + 1);
 
 	debug_print_hex_buf(w->bytes, w->end_addr - w->start_addr + 1, w->start_addr);
+	fflush(stdout);
 }
 
 static int debug_should_wp_fire(struct dgen_wp *w)
@@ -352,6 +355,7 @@ ret:
 		assert(md::md_musa != NULL);
 		++md::md_musa->debug_m68k_instr_count;
 	}
+	fflush(stdout);
 	return ret;
 }
 
@@ -359,6 +363,7 @@ static void debug_rm_bp_m68k(int index)
 {
 	if (!(debug_bp_m68k[index].flags & BP_FLAG_USED)) {
 		printf("breakpoint not set\n");
+		fflush(stdout);
 		return;
 	}
 
@@ -380,6 +385,7 @@ static void debug_rm_wp_m68k(int index)
 {
 	if (!(debug_wp_m68k[index].flags & WP_FLAG_USED)) {
 		printf("watchpoint not set\n");
+		fflush(stdout);
 		return;
 	}
 
@@ -413,7 +419,7 @@ static void debug_list_bps_m68k()
 
 	if (i == 0)
 		printf("\tno m68k breakpoints set\n");
-
+	fflush(stdout);
 }
 
 static void debug_list_wps_m68k()
@@ -429,7 +435,7 @@ static void debug_list_wps_m68k()
 
 	if (i == 0)
 		printf("\tno m68k watchpoints set\n");
-
+	fflush(stdout);
 }
 
 static int debug_set_bp_m68k(uint32_t addr)
@@ -438,19 +444,20 @@ static int debug_set_bp_m68k(uint32_t addr)
 
 	if ((debug_find_bp_m68k(addr)) != -1) {
 		printf("breakpoint already set at this address\n");
-		return (1);
+		goto out;
 	}
 
 	slot = debug_next_free_bp_m68k();
 	if (slot == -1) {
 		printf("No space for another break point\n");
-		return (1);
+		goto out;
 	}
 
 	debug_bp_m68k[slot].addr = addr;
 	debug_bp_m68k[slot].flags = BP_FLAG_USED;
 	printf("m68k breakpoint #%d set @ 0x%08x\n", slot, addr);
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -499,7 +506,7 @@ void md::debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr)
 	slot = debug_next_free_wp_m68k();
 	if (slot == -1) {
 		printf("No space for another watch point\n");
-		return;
+		goto out;
 	}
 
 	debug_wp_m68k[slot].start_addr = start_addr;
@@ -508,13 +515,15 @@ void md::debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr)
 	debug_wp_m68k[slot].bytes = (unsigned char *) malloc(end_addr - start_addr + 1);
 	if (debug_wp_m68k[slot].bytes == NULL) {
 		perror("malloc");
-		return;
+		goto out;
 	}
 
 	debug_update_wp_cache(&(debug_wp_m68k[slot]));
 
 	printf("m68k watchpoint #%d set @ 0x%08x-0x%08x (%u bytes)\n",
 	    slot, start_addr, end_addr, end_addr - start_addr + 1);
+out:
+	fflush(stdout);
 }
 
 // update the data ptr of a single watch point
@@ -556,20 +565,20 @@ int md::debug_cmd_watch(int n_args, char **args)
 	if (debug_context != DBG_CONTEXT_M68K){
 		printf("watchpoints not supported on %s core\n",
 		    CURRENT_DEBUG_CONTEXT_NAME);
-		return (1);
+		goto out;
 	}
 
 	switch (n_args) {
 	case 2:
 		if ((debug_strtou32(args[1], &len)) < 0) {
 			printf("length malformed: %s\n", args[1]);
-			return (1);
+			goto out;
 		}
 		// fallthru
 	case 1:
 		if ((debug_strtou32(args[0], &start)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 		debug_set_wp_m68k(start, start+len-1); // one byte
 		break;
@@ -578,7 +587,8 @@ int md::debug_cmd_watch(int n_args, char **args)
 		debug_list_wps_m68k();
 		break;
 	};
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -611,26 +621,27 @@ int md::debug_cmd_mem(int n_args, char **args)
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("memory dumping not implemented on %s core\n",
 		    CURRENT_DEBUG_CONTEXT_NAME);
-		return (1);
+		goto out;
 	}
 
 	switch (n_args) {
 	case 2: /* specified length */
 		if ((debug_strtou32(args[1], &len)) < 0) {
 			printf("length malformed: %s\n", args[1]);
-			return (1);
+			goto out;
 		}
 		/* FALLTHRU */
 	case 1: /* default length */
 		if ((debug_strtou32(args[0], &addr)) < 0) {
 			printf("addr malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 
 		debug_dump_mem(addr, len);
 		break;
 	};
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -645,7 +656,7 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("memory setting not implemented on %s core\n",
 		       CURRENT_DEBUG_CONTEXT_NAME);
-		return 1;
+		goto out;
 	}
 	if (type == ~0u) {
 		/* See definitions in m68k.h. */
@@ -672,16 +683,16 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 			}
 		if (reg == (m68k_register_t)-1) {
 			printf("unknown register %s", args[0]);
-			return 1;
+			goto out;
 		}
 	}
 	else if (debug_strtou32(args[0], &addr) < 0) {
 		printf("addr malformed: %s", args[0]);
-		return 1;
+		goto out;
 	}
 	if (debug_strtou32(args[1], &val) < 0) {
 		printf("value malformed: %s", args[1]);
-		return 1;
+		goto out;
 	}
 	switch (type) {
 	case 1:
@@ -705,6 +716,8 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 	default:
 		printf("unknown type size %u\n", type);
 	}
+out:
+	fflush(stdout);
 	return 1;
 }
 
@@ -736,7 +749,7 @@ int md::debug_cmd_dis(int n_args, char **args)
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("disassembly is not implemented on %s core\n",
 		    CURRENT_DEBUG_CONTEXT_NAME);
-		return (1);
+		goto out;
 	}
 
 	switch (n_args) {
@@ -746,18 +759,20 @@ int md::debug_cmd_dis(int n_args, char **args)
 		case 2:
 			if ((debug_strtou32(args[1], &length)) < 0) {
 				printf("length malformed: %s\n", args[1]);
-				return (1);
+				goto out;
 			}
 			// fallthru
 		case 1:
 			if ((debug_strtou32(args[0], &addr)) < 0) {
 				printf("address malformed: %s\n", args[0]);
-				return (1);
+				goto out;
 			}
 			break;
 	};
 
 	debug_print_disassemble(addr, length);
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -805,6 +820,7 @@ void md::debug_show_m68k_regs()
 	// a*
 	for (i =  0; i < 8; i++)
 			printf("\ta%d:\t0x%08x\n", i, m68k_state.a[i]);
+	fflush(stdout);
 }
 
 #define PRINT_Z80_FLAGS(x)						\
@@ -850,6 +866,7 @@ void md::debug_show_z80_regs()
 	    z80_state.i,
 	    z80_state.iff,
 	    z80_state.im);
+	fflush(stdout);
 }
 
 int md::debug_cmd_help(int n_args, char **args)
@@ -888,7 +905,7 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\t'sn', 'sn76489', 'psg'  or '%d' refers to the sn76489 sound chip\n",
 	    DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_DASM_LEN, DEBUG_DFLT_MEMDUMP_LEN,
 	    DBG_CONTEXT_M68K, DBG_CONTEXT_Z80, DBG_CONTEXT_YM2612, DBG_CONTEXT_SN76489);
-
+	fflush(stdout);
 	return (1);
 }
 
@@ -912,7 +929,7 @@ int md::debug_cmd_reg(int n_args, char **args)
 		    CURRENT_DEBUG_CONTEXT_NAME);
 		break;
 	};
-
+	fflush(stdout);
 	return (1);
 }
 
@@ -923,7 +940,7 @@ int md::debug_cmd_break(int n_args, char **args)
 
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("z80 breakpoints are not implemented\n");
-		return (1);
+		goto out;
 	}
 
 	switch (n_args) {
@@ -931,7 +948,7 @@ int md::debug_cmd_break(int n_args, char **args)
 		// setting a bp
 		if ((debug_strtou32(args[0], &num)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 		debug_set_bp_m68k(num);
 		break;
@@ -944,7 +961,8 @@ int md::debug_cmd_break(int n_args, char **args)
 		printf("NOTE: m68k breakpoints will only fire using musa cpu core\n"
 		       "      you are not currently using this cpu core.\n");
 	}
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -954,7 +972,7 @@ int md::debug_cmd_quit(int n_args, char **args)
 	(void) args;
 
 	printf("quit dgen - bye\n");
-
+	fflush(stdout);
 	exit (0);
 	return (1); // noreach
 }
@@ -968,11 +986,12 @@ int md::debug_cmd_cpu(int n_args, char **args)
 	ctx = debug_parse_cpu(args[0]);
 	if (ctx < 0) {
 		printf("unknown cpu: %s\n", args[0]);
-		return (1);
+		goto out;
 	}
 
 	debug_context = ctx;
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -982,21 +1001,24 @@ int md::debug_cmd_step(int n_args, char **args)
 
 	if ((n_args >= 1) && (debug_strtou32(args[0], &num) < 0)) {
 		printf("malformed number: %s\n", args[0]);
-		return (1);
+		goto out;
 	}
 	if (debug_context == DBG_CONTEXT_M68K)
 		debug_step_m68k = num;
 	else if (debug_context == DBG_CONTEXT_Z80) {
 		printf("z80 breakpoints not implemented\n");
-		return (1);
+		goto out;
 	} else {
 		printf("unknown cpu\n");
-		return (1);
+		goto out;
 	}
-
+	fflush(stdout);
 	debug_trap = false;
 	pd_sound_start();
 	return (0); // continue executing
+out:
+	fflush(stdout);
+	return (1);
 }
 
 int md::debug_cmd_trace(int n_args, char **args)
@@ -1013,7 +1035,7 @@ int md::debug_cmd_trace(int n_args, char **args)
 
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("instructions tracing not implemented for this cpu.\n");
-		return 1;
+		goto out;
 	}
 	if (n_args == 1) {
 		uint32_t i;
@@ -1026,7 +1048,7 @@ int md::debug_cmd_trace(int n_args, char **args)
 		if (i == (sizeof(opt) / sizeof(opt[0]))) {
 			if (debug_strtou32(args[0], &i) == -1) {
 				printf("invalid argument: %s\n", args[0]);
-				return 1;
+				goto out;
 			}
 			debug_trace_m68k = i;
 		}
@@ -1046,6 +1068,8 @@ int md::debug_cmd_trace(int n_args, char **args)
 		       debug_trace_m68k);
 		break;
 	}
+out:
+	fflush(stdout);
 	return 1;
 }
 
@@ -1058,37 +1082,38 @@ int md::debug_cmd_minus_watch(int n_args, char **args)
 
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("z80 watchpoints are not implemented\n");
-		return (1);
+		goto out;
 	}
 
 	if (args[0][0] == '#') { // remove by index
 
 		if (strlen(args[0]) < 2) {
 			printf("parse error\n");
-			return (1);
+			goto out;
 		}
 
 		if ((debug_strtou32(args[0]+1, &num)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 		index = num;
 
 		if ((index < 0) || (index >= MAX_BREAKPOINTS)) {
 			printf("breakpoint out of range\n");
-			return (1);
+			goto out;
 		}
 	} else { // remove by address
 		if ((debug_strtou32(args[0], &num)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 
 		index = debug_find_wp_m68k(num);
 	}
 
 	debug_rm_wp_m68k(index);
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -1102,44 +1127,45 @@ int md::debug_cmd_minus_break(int n_args, char **args)
 
 	if (debug_context != DBG_CONTEXT_M68K) {
 		printf("z80 breakpoints not implemented\n");
-		return (1);
+		goto out;
 	}
 
 	if (args[0][0] == '#') { // remove by index
 
 		if (strlen(args[0]) < 2) {
 		    printf("parse error\n");
-		    return (1);
+		    goto out;
 		}
 
 		if ((debug_strtou32(args[0]+1, &num)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 		index = num;
 
 		if ((index < 0) || (index >= MAX_BREAKPOINTS)) {
 			printf("breakpoint out of range\n");
-			return (1);
+			goto out;
 		}
 
 	} else { // remove by address
 		if ((debug_strtou32(args[0], &num)) < 0) {
 			printf("address malformed: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 
 		index = debug_find_bp_m68k(num);
 
 		if (index < 0) {
 			printf("no breakpoint here: %s\n", args[0]);
-			return (1);
+			goto out;
 		}
 	}
 
 	// we now have an index into our bp array
 	debug_rm_bp_m68k(index);
-
+out:
+	fflush(stdout);
 	return (1);
 }
 
@@ -1161,6 +1187,7 @@ int md::debug_despatch_cmd(int n_toks, char **toks)
 
 	if (found == NULL) {
 		printf("unknown command/wrong argument count (type '?' for help)\n");
+		fflush(stdout);
 		return (1);
 	}
 
@@ -1186,6 +1213,7 @@ void md::debug_print_disassemble(uint32_t from, int len)
 		from += sz;
 	}
 	md_set_musa(0);
+	fflush(stdout);
 }
 
 void md::debug_leave()
@@ -1234,6 +1262,7 @@ void md::debug_enter()
 	default:
 		printf("unknown cpu. should not happen");
 		md_set_musa(0);
+		fflush(stdout);
 		return;
 	};
 
