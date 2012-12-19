@@ -61,6 +61,18 @@ enum path_type {
 
 #ifdef __MINGW32__
 
+/**
+ * Check whether a path is absolute or relative.
+ *
+ * Examples:
+ * /foo/bar, \foo\bar, c:/foo/bar are absolute,
+ * ./foo/bar, ., .., are relative.
+ *
+ * @param[in] path Path to parse.
+ * @param len Length of path.
+ * @return Path type (PATH_TYPE_ABSOLUTE, PATH_TYPE_RELATIVE or
+ * PATH_TYPE_UNSPECIFIED).
+ */
 enum path_type path_type(const char *path, size_t len)
 {
 	if ((len == 0) || (path[0] == '\0'))
@@ -85,6 +97,18 @@ enum path_type path_type(const char *path, size_t len)
 
 #else /* __MINGW32__ */
 
+/**
+ * Check whether a path is absolute or relative.
+ *
+ * Examples:
+ * /foo/bar, \foo\bar are absolute,
+ * ./foo/bar, ., .., are relative.
+ *
+ * @param[in] path Path to parse.
+ * @param len Length of path.
+ * @return Path type (PATH_TYPE_ABSOLUTE, PATH_TYPE_RELATIVE or
+ * PATH_TYPE_UNSPECIFIED).
+ */
 enum path_type path_type(const char *path, size_t len)
 {
 	if ((len == 0) || (path[0] == '\0'))
@@ -101,12 +125,17 @@ enum path_type path_type(const char *path, size_t len)
 
 #endif /* __MINGW32__ */
 
-/*
-  Return user's home directory.
-  The returned string doesn't have a trailing '/' and must be freed using
-  free() (unless buf is provided).
-*/
-
+/**
+ * Return user's home directory.
+ * The returned string doesn't have a trailing '/' and must be freed using
+ * free() (unless "buf" is provided).
+ *
+ * @param[in,out] buf Used to store path in. If NULL, memory is allocated.
+ * @param[in,out] size Size of "buf" when provided, then the returned path
+ * size.
+ * @return User's home directory (either as "buf" or a new buffer),
+ * NULL in case of error.
+ */
 char *dgen_userdir(char *buf, size_t *size)
 {
 	char *path;
@@ -161,12 +190,18 @@ char *dgen_userdir(char *buf, size_t *size)
 	return path;
 }
 
-/*
-  Return DGen's home directory with an optional subdirectory (or file).
-  The returned string doesn't have a trailing '/' and must be freed using
-  free() (unless buf is provided).
-*/
-
+/**
+ * Return DGen's home directory with an optional subdirectory (or file).
+ * The returned string doesn't have a trailing '/' and must be freed using
+ * free() (unless "buf" is provided).
+ *
+ * @param[in,out] buf Buffer to store result in. If NULL, memory is allocated.
+ * @param[in,out] size Size of "buf" when provided, then the returned path
+ * size.
+ * @param[in] sub NUL-terminated string to append to the path.
+ * @return DGen's home directory (either as "buf" or a new buffer),
+ * NULL in case of error.
+ */
 char *dgen_dir(char *buf, size_t *size, const char *sub)
 {
 	char *path;
@@ -235,18 +270,27 @@ char *dgen_dir(char *buf, size_t *size, const char *sub)
 	return path;
 }
 
-/*
-  Open a file relative to DGen's home directory (when "relative" is NULL or
-  path_type(relative) returns PATH_TYPE_UNSPECIFIED) and create the directory
-  hierarchy if necessary, unless the file name is already relative to
-  something or found in the current directory if mode contains DGEN_CURRENT.
-*/
-
+/**
+ * Open a file relative to DGen's home directory (when "relative" is NULL or
+ * path_type(relative) returns PATH_TYPE_UNSPECIFIED) and create the directory
+ * hierarchy if necessary, unless the file name is already relative to
+ * something or found in the current directory if mode contains DGEN_CURRENT.
+ *
+ * @param[in] relative Subdirectory to look in.
+ * @param[in] file File name to open.
+ * @param mode Mode flags to use (DGEN_READ, DGEN_WRITE and others).
+ * @return File pointer, or NULL in case of error.
+ * @see dgen_freopen()
+ * @see system.h
+ */
 FILE *dgen_fopen(const char *relative, const char *file, unsigned int mode)
 {
 	return dgen_freopen(relative, file, mode, NULL);
 }
 
+/**
+ * @see dgen_fopen()
+ */
 FILE *dgen_freopen(const char *relative, const char *file, unsigned int mode,
 		   FILE *f)
 {
@@ -311,11 +355,13 @@ error:
 	return NULL;
 }
 
-/*
-  Return the base name in path, like basename() but without allocating anything
-  nor modifying the argument.
-*/
-
+/**
+ * Return the base name in path, like basename() but without allocating
+ * anything nor modifying the "path" argument.
+ *
+ * @param[in] path Path to extract the last component from.
+ * @return Last component from "path".
+ */
 const char *dgen_basename(const char *path)
 {
 	char *tmp;
@@ -334,10 +380,11 @@ struct chunk {
 	uint8_t data[];
 };
 
-/*
-  Unload pointer returned by load().
-*/
-
+/**
+ * Unload pointer returned by load().
+ *
+ * @param[in] data Pointer to unload.
+ */
 void unload(uint8_t *data)
 {
 	struct chunk *chunk = ((struct chunk *)data - 1);
@@ -357,10 +404,11 @@ void unload(uint8_t *data)
 #define FOFFT long
 #endif
 
-/*
-  Call this when you're done with your file.
-*/
-
+/**
+ * Call this when you're done with your file.
+ *
+ * @param[in,out] context Context returned by load().
+ */
 void load_finish(void **context)
 {
 #ifdef WITH_LIBARCHIVE
@@ -372,10 +420,11 @@ void load_finish(void **context)
 	*context = NULL;
 }
 
-/*
-  Return the file size from the current file offset.
-*/
-
+/**
+ * Return the remaining file size from the current file offset.
+ *
+ * @param[in] file File pointer.
+ */
 static size_t load_size(FILE *file)
 {
 	FOFFT old = FTELL(file);
@@ -391,17 +440,20 @@ static size_t load_size(FILE *file)
 	return ret;
 }
 
-/*
-  Allocate a buffer and stuff the file inside using transparent decompression
-  if libarchive is available. If file_size is non-NULL, store the final size
-  there. If max_size is nonzero, refuse to load anything bigger.
-  In case the returned value is NULL, errno should contain the error.
-
-  If an error is returned but errno is 0, EOF has been reached.
-
-  The first time load() is called, "context" must point to a NULL value.
-*/
-
+/**
+ * Allocate a buffer and stuff the file inside using transparent decompression
+ * if libarchive is available. If file_size is non-NULL, store the final size
+ * there. If max_size is nonzero, refuse to load anything larger.
+ * In case the returned value is NULL, errno should contain the error.
+ *
+ * If an error is returned but errno is 0, EOF has been reached.
+ *
+ * @param[in,out] context On first call of load() this should point to NULL.
+ * @param[out] Final size.
+ * @param max_size If nonzero, refuse to load anything larger.
+ * @param[in] file File pointer to load data from.
+ * @return Buffer containing loaded data.
+ */
 uint8_t *load(void **context,
 	      size_t *file_size, FILE *file, size_t max_size)
 {
@@ -543,12 +595,14 @@ error:
 	return NULL;
 }
 
-/*
-  Free NULL-terminated list of strings and set source pointer to NULL.
-  This function can skip a given number of indices (starting from 0)
-  which won't be freed.
-*/
-
+/**
+ * Free NULL-terminated list of strings and set source pointer to NULL.
+ * This function can skip a given number of indices (starting from 0)
+ * which won't be freed.
+ *
+ * @param[in,out] pppc Pointer to an array of strings.
+ * @param skip Number of indices to skip in *pppc[].
+ */
 static void free_pppc(char ***pppc, size_t skip)
 {
 	char **p = *pppc;
@@ -566,11 +620,14 @@ static void free_pppc(char ***pppc, size_t skip)
 	free(p);
 }
 
-/*
-  Return a list of pathnames that match "len" characters of "path" on the
-  file system, or NULL if none was found or if an error occured.
-*/
-
+/**
+ * Return a list of path names that match "len" characters of "path" on the
+ * file system, or NULL if none was found or if an error occured.
+ *
+ * @param[in] path Path name to match.
+ * @param len Number of characters in "path" to match.
+ * @return List of matching path names or NULL.
+ */
 static char **complete_path_simple(const char *path, size_t len)
 {
 	size_t rlen;
@@ -666,16 +723,19 @@ error:
 #define COMPLETE_USERDIR_EXACT 0x02
 #define COMPLETE_USERDIR_ALL 0x04
 
-/*
-  Return the list of home directories that match "len" characters of a
-  user's name ("prefix").
-  COMPLETE_USERDIR_TILDE - Instead of directories, the returned strings are
-  tilde-prefixed user names.
-  COMPLETE_USERDIR_EXACT - Prefix must exactly match a user name.
-  COMPLETE_USERDIR_ALL - When prefix length is 0, return all user names
-  instead of the current user only.
-*/
-
+/**
+ * Return the list of home directories that match "len" characters of a
+ * user's name ("prefix").
+ * COMPLETE_USERDIR_TILDE - Instead of directories, the returned strings are
+ * tilde-prefixed user names.
+ * COMPLETE_USERDIR_EXACT - Prefix must exactly match a user name.
+ * COMPLETE_USERDIR_ALL - When prefix length is 0, return all user names
+ * instead of the current user only.
+ *
+ * @param[in] prefix Path name to match.
+ * @param len Number of characters to match in "path".
+ * @return List of home directories that match "len" characters of "prefix".
+ */
 static char **complete_userdir(const char *prefix, size_t len, int flags)
 {
 	char **ret = NULL;
@@ -755,19 +815,23 @@ err:
 	return NULL;
 }
 
-/*
-  Return a list of pathnames that match "len" characters of "prefix" on the
-  file system, or NULL if none was found or if an error occured. This is done
-  using glob() in order to handle wildcard characters in "prefix".
-
-  When "prefix" isn't explicitly relative nor absolute, if "relative" is
-  non-NULL, then the path will be completed as if "prefix" was a subdirectory
-  of "relative". If "relative" is NULL, DGen's home directory will be used.
-
-  If "relative" isn't explicitly relative nor absolute, it will be considered
-  a subdirectory of DGen's home directory.
-*/
-
+/**
+ * Return a list of pathnames that match "len" characters of "prefix" on the
+ * file system, or NULL if none was found or if an error occured. This is done
+ * using glob() in order to handle wildcard characters in "prefix".
+ *
+ * When "prefix" isn't explicitly relative nor absolute, if "relative" is
+ * non-NULL, then the path will be completed as if "prefix" was a subdirectory
+ * of "relative". If "relative" is NULL, DGen's home directory will be used.
+ *
+ * If "relative" isn't explicitly relative nor absolute, it will be considered
+ * a subdirectory of DGen's home directory.
+ *
+ * @param[in] prefix Path name to match.
+ * @param len Number of characters to match in "path".
+ * @param[in] relative If non-NULL, consider path relative to this.
+ * @return List of path names that match "len" characters of "prefix".
+ */
 char **complete_path(const char *prefix, size_t len, const char *relative)
 {
 	char *s;
@@ -883,18 +947,22 @@ err:
 
 #else /* defined(HAVE_GLOB_H) && !defined(__MINGW32__) */
 
-/*
-  Return a list of pathnames that match "len" characters of "prefix" on the
-  file system, or NULL if none was found or if an error occured.
-
-  When "prefix" isn't explicitly relative nor absolute, if "relative" is
-  non-NULL, then the path will be completed as if "prefix" was a subdirectory
-  of "relative". If "relative" is NULL, DGen's home directory will be used.
-
-  If "relative" isn't explicitly relative nor absolute, it will be considered
-  a subdirectory of DGen's home directory.
-*/
-
+/**
+ * Return a list of pathnames that match "len" characters of "prefix" on the
+ * file system, or NULL if none was found or if an error occured.
+ *
+ * When "prefix" isn't explicitly relative nor absolute, if "relative" is
+ * non-NULL, then the path will be completed as if "prefix" was a subdirectory
+ * of "relative". If "relative" is NULL, DGen's home directory will be used.
+ *
+ * If "relative" isn't explicitly relative nor absolute, it will be considered
+ * a subdirectory of DGen's home directory.
+ *
+ * @param[in] prefix Path name to match.
+ * @param len Number of characters to match in "path".
+ * @param[in] relative If non-NULL, consider path relative to this.
+ * @return List of path names that match "len" characters of "prefix".
+ */
 char **complete_path(const char *prefix, size_t len, const char *relative)
 {
 	char *s;
@@ -960,13 +1028,24 @@ char **complete_path(const char *prefix, size_t len, const char *relative)
 
 #endif /* defined(HAVE_GLOB_H) && !defined(__MINGW32__) */
 
-/* Free return value of complete*() functions. */
-
+/**
+ * Free return value of complete*() functions.
+ *
+ * @param[in, out] cp Buffer to pass to free_pppc().
+ */
 void complete_path_free(char **cp)
 {
 	free_pppc(&cp, 0);
 }
 
+/**
+ * Create an escaped version of a string.
+ *
+ * @param[in] src String to escape.
+ * @param size Number of characters from "src" to process.
+ * @param flags BACKSLASHIFY_* flags.
+ * @return Escaped version of "src", NULL on error.
+ */
 char *backslashify(const uint8_t *src, size_t size, unsigned int flags,
 		   size_t *pos)
 {
@@ -1059,11 +1138,15 @@ again:
 	return dst;
 }
 
-/*
-  Convert a UTF-8 character to its 32 bit representation.
-  Return the number of valid bytes for this character.
-  On error, u32 is set to (uint32_t)-1.
-*/
+/**
+ * Convert a UTF-8 character to its 32 bit representation.
+ * Return the number of valid bytes for this character.
+ * On error, u32 is set to (uint32_t)-1.
+ *
+ * @param[out] u32 Converted character, (uint32_t)-1 on error.
+ * @param[in] u8 Multibyte character to convert.
+ * @return Number of bytes read.
+ */
 size_t utf8u32(uint32_t *u32, const uint8_t *u8)
 {
 	static const uint8_t fb[] = {
@@ -1104,10 +1187,13 @@ error:
 	return i;
 }
 
-/*
-  The opposite of the above function.
-  Return the number of characters written, 0 on error.
-*/
+/**
+ * The opposite of utf8u32().
+ *
+ * @param[out] u8 Converted character.
+ * @param u32 Character to convert.
+ * @return Number of characters written to "u8", 0 on error.
+ */
 size_t utf32u8(uint8_t *u8, uint32_t u32)
 {
 	size_t l;
