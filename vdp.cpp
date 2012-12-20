@@ -1,15 +1,19 @@
-// DGen v1.13+
-// Megadrive's VDP C++ module
-//
-// A useful resource for the Genesis VDP:
-// http://cgfm2.emuviews.com/txt/genvdp.txt
-// Thanks to Charles MacDonald for writing these docs.
+/**
+ * @file
+ * DGen v1.13+
+ * Megadrive's VDP C++ module
+ *
+ * A useful resource for the Genesis VDP:
+ * http://cgfm2.emuviews.com/txt/genvdp.txt
+ * Thanks to Charles MacDonald for writing these docs.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "md.h"
 
+/** Reset the VDP. */
 void md_vdp::reset()
 {
 	hint_pending = false;
@@ -28,6 +32,11 @@ void md_vdp::reset()
 	dest = NULL;
 }
 
+/**
+ * VDP constructor.
+ *
+ * @param md The md instance this VDP belongs to.
+ */
 md_vdp::md_vdp(md& md): belongs(md)
 {
 	vram = (mem + 0x00000);
@@ -39,14 +48,19 @@ md_vdp::md_vdp(md& md): belongs(md)
 	reset();
 }
 
+/**
+ * VDP destructor.
+ */
 md_vdp::~md_vdp()
 {
 	vram = cram = vsram = NULL;
 }
 
+/** Calculate the DMA length. */
 int md_vdp::dma_len()
 { return (reg[0x14]<<8)+reg[0x13]; }
 
+/** Calculate DMA start address. */
 int md_vdp::dma_addr()
 {
   int addr=0;
@@ -57,17 +71,28 @@ int md_vdp::dma_addr()
 }
 
 
-// DMA can read from anywhere
+/**
+ * Do a DMA read.
+ * DMA can read from anywhere.
+ *
+ * @param addr Address where to read from.
+ * @return Byte read at "addr".
+ */
 unsigned char md_vdp::dma_mem_read(int addr)
 {
   return belongs.misc_readbyte(addr);
 }
 
-// Must go through these calls to update the dirty flags
+/**
+ * Set value in VRAM.
+ * Must go through these calls to update the dirty flags.
+ *
+ * @param addr Address to write to.
+ * @param d Byte to write.
+ * @return Always 0.
+ */
 int md_vdp::poke_vram(int addr,unsigned char d)
 {
-// Keeping GCC happy over unused vars. [PKH]
-//  int diff=0;
   addr&=0xffff;
   if (vram[addr]!=d)
   {
@@ -79,9 +104,16 @@ int md_vdp::poke_vram(int addr,unsigned char d)
   }
   return 0;
 }
+
+/**
+ * Set value in CRAM.
+ *
+ * @param addr Address to write to.
+ * @param d Byte to write.
+ * @return Always 0.
+ */
 int md_vdp::poke_cram(int addr,unsigned char d)
 {
-//  int diff=0;
   addr&=0x007f;
   if (cram[addr]!=d)
   {
@@ -94,6 +126,14 @@ int md_vdp::poke_cram(int addr,unsigned char d)
 
   return 0;
 }
+
+/**
+ * Set value in VSRAM.
+ *
+ * @param addr Address to write to.
+ * @param d Byte to write.
+ * @return Always 0.
+ */
 int md_vdp::poke_vsram(int addr,unsigned char d)
 {
 //  int diff=0;
@@ -103,6 +143,12 @@ int md_vdp::poke_vsram(int addr,unsigned char d)
   return 0;
 }
 
+/**
+ * Write a word to memory and update dirty flags.
+ *
+ * @param d 16-bit data to write.
+ * @return Always 0.
+ */
 int md_vdp::putword(unsigned short d)
 {
   // Called by dma or a straight write
@@ -131,9 +177,14 @@ int md_vdp::putword(unsigned short d)
   return 0;
 }
 
+/**
+ * Write a byte to memory and update dirty flags.
+ *
+ * @param d 8-bit data to write.
+ * @return Always 0.
+ */
 int md_vdp::putbyte(unsigned char d)
 {
-//  int diff=0;
   // Called by dma or a straight write
   switch(rw_mode)
   {
@@ -147,6 +198,11 @@ int md_vdp::putbyte(unsigned char d)
 
 #undef MAYCHANGE
 
+/**
+ * Read a word from memory.
+ *
+ * @return Read word.
+ */
 unsigned short md_vdp::readword()
 {
   // Called by a straight read only
@@ -164,6 +220,11 @@ unsigned short md_vdp::readword()
   return result;
 }
 
+/**
+ * Read a byte from memory.
+ *
+ * @return Read byte.
+ */
 unsigned char md_vdp::readbyte()
 {
   // Called by a straight read only
@@ -178,7 +239,7 @@ unsigned char md_vdp::readbyte()
   return result;
 }
 
-/*
+/**
  * VDP commands
  *
  * A VDP command is 32-bits in length written into the control port
@@ -203,6 +264,8 @@ unsigned char md_vdp::readbyte()
  *
  * In these cases the pending flag is cleared, and the first half of
  * the command remains comitted.
+ *
+ * @return Always 0.
  */
 int md_vdp::command(uint16_t cmd)
 {
@@ -277,6 +340,12 @@ int md_vdp::command(uint16_t cmd)
   return 0;
 }
 
+/**
+ * Write a word to the VDP.
+ *
+ * @param d 16-bit data to write.
+ * @return Always 0.
+ */
 int md_vdp::writeword(unsigned short d)
 {
   if (rw_dma)
@@ -300,6 +369,12 @@ int md_vdp::writeword(unsigned short d)
   return 0;
 }
 
+/**
+ * Write a byte to the VDP.
+ *
+ * @param d 8-bit data to write.
+ * @return Always 0.
+ */
 int md_vdp::writebyte(unsigned char d)
 {
   if (rw_dma)
@@ -334,7 +409,12 @@ bool md_vdp::get_command_pending()
 	return command_pending;
 }
 
-// write away a vdp register
+/**
+ * Write away a VDP register.
+ *
+ * @param addr Address of register.
+ * @param data 8-bit data to write.
+ */
 void md_vdp::write_reg(uint8_t addr, uint8_t data)
 {
 	uint8_t byt, bit;
