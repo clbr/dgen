@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "system.h"
 #include "md.h"
+#include "rc-vars.h"
 
 // This is marked each time the palette is updated. Handy for the 8bpp
 // implementation, so we don't waste time changing the palette unnecessarily.
@@ -676,6 +677,13 @@ void md_vdp::draw_plane_front1(int line)
 #undef FRONT
 }
 
+// Allow frame components to be hidden when WITH_DEBUG_VDP is defined.
+#ifdef WITH_DEBUG_VDP
+#define vdp_hide_if(a, b) ((a) ? (void)0 : (void)(b))
+#else
+#define vdp_hide_if(a, b) (void)(b)
+#endif
+
 // The main interface function, to generate a scanline
 void md_vdp::draw_scanline(struct bmap *bits, int line)
 {
@@ -764,15 +772,15 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 	}
       // Draw, from the bottom up
       // Low priority
-      draw_plane_back1(line);
-      draw_plane_back0(line);
-      draw_window(line, 0);
-      draw_sprites(line, 0);
+      vdp_hide_if(dgen_vdp_hide_plane_b, draw_plane_back1(line));
+      vdp_hide_if(dgen_vdp_hide_plane_a, draw_plane_back0(line));
+      vdp_hide_if(dgen_vdp_hide_plane_w, draw_window(line, 0));
+      vdp_hide_if(dgen_vdp_hide_sprites, draw_sprites(line, 0));
       // High priority
-      draw_plane_front1(line);
-      draw_plane_front0(line);
-      draw_window(line, 1);
-      draw_sprites(line, 1);
+      vdp_hide_if(dgen_vdp_hide_plane_b, draw_plane_front1(line));
+      vdp_hide_if(dgen_vdp_hide_plane_a, draw_plane_front0(line));
+      vdp_hide_if(dgen_vdp_hide_plane_w, draw_window(line, 1));
+      vdp_hide_if(dgen_vdp_hide_sprites, draw_sprites(line, 1));
     } else {
       // The display is off, paint it black
       // Do it a dword at a time

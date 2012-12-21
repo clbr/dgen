@@ -101,8 +101,12 @@ key_slot_9 = 9
 key_save = f2
 key_load = f3
 
-# Enter debugger with this keypress.
-key_debug_enter = `
+# VDP plane debugging.
+# Won't do anything unless VDP debugging is enabled at compile time.
+bool_vdp_hide_plane_a = no
+bool_vdp_hide_plane_b = no
+bool_vdp_hide_plane_w = no
+bool_vdp_hide_sprites = no
 
 # There are now multiple CTV effects to try. Pick your favorite:
 #  off       - No CTV

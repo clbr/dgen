@@ -1,4 +1,4 @@
-.Dd December 15, 2012
+.Dd December 21, 2012
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -270,6 +270,15 @@ Generate unfiltered screenshots.
 .It str_rom_path ["roms"]
 Directory where DGen should look for ROMs by default. It's relative to DGen's
 home directory, unless an absolute path is provided.
+.El
+.Sh DEBUGGING
+.Bl -tag -width xxxx
+.It bool_vdp_hide_plane_a [false]
+.It bool_vdp_hide_plane_b [false]
+.It bool_vdp_hide_plane_w [false]
+.It bool_vdp_hide_sprites [false]
+Hide various planes during frame rendering. Require VDP debugging to be
+compiled-in.
 .El
 .Sh EXAMPLES
 See the file "sample.dgenrc" in the DGen/SDL distribution.

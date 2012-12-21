@@ -518,6 +518,17 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	if (debug_trap)
 		return 0;
 #endif
+#ifdef WITH_DEBUG_VDP
+	/*
+	 * If the user is disabling planes for debugging, then we
+	 * paint the screen black before blitting a new frame. This
+	 * stops crap from earlier frames from junking up the display.
+	 */
+	if ((bm != NULL) &&
+	    (dgen_vdp_hide_plane_b | dgen_vdp_hide_plane_a |
+	     dgen_vdp_hide_plane_w | dgen_vdp_hide_sprites))
+		memset(bm->data, 0, (bm->pitch * bm->h));
+#endif
 	md_set(1);
 	// Reset odometers
 	memset(&odo, 0, sizeof(odo));

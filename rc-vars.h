@@ -127,6 +127,10 @@ RCVAR(dgen_opengl_32bit, 1);
 RCVAR(dgen_opengl_square, 0);
 RCVAR(dgen_doublebuffer, 1);
 RCVAR(dgen_screen_thread, 0);
+RCVAR(dgen_vdp_hide_plane_a, 0);
+RCVAR(dgen_vdp_hide_plane_b, 0);
+RCVAR(dgen_vdp_hide_plane_w, 0);
+RCVAR(dgen_vdp_hide_sprites, 0);
 
 // Keep values in sync with rc.cpp and enums in md.h
 
