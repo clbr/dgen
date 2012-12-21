@@ -481,7 +481,7 @@ AC_ARG_WITH(
 	[WITH_STAR=$USE_X86_ASM]
 )
 AS_IF(
-	[test "x$with_star" = xyes -a "x$USE_X86_ASM" = xno],
+	[test "x$WITH_STAR" = xyes -a "x$USE_X86_ASM" = xno],
 	[AC_MSG_FAILURE(
 		[StarScream can only be enabled on x86 targets with a \
 working ASM support]
@@ -512,7 +512,7 @@ AC_ARG_WITH(
 	[WITH_CYCLONE=$USE_ARM_ASM]
 )
 AS_IF(
-	[test "x$with_cyclone" = xyes -a "x$USE_ARM_ASM" = xno],
+	[test "x$WITH_CYCLONE" = xyes -a "x$USE_ARM_ASM" = xno],
 	[AC_MSG_FAILURE(
 		[Cyclone 68000 can only be enabled on ARM targets with a \
 working ASM support]
@@ -549,7 +549,7 @@ AC_ARG_WITH(
 	[WITH_DRZ80=$USE_ARM_ASM]
 )
 AS_IF(
-	[test "x$with_drz80" = xyes -a "x$USE_ARM_ASM" = xno],
+	[test "x$WITH_DRZ80" = xyes -a "x$USE_ARM_ASM" = xno],
 	[AC_MSG_FAILURE(
 		[DrZ80 can only be enabled on ARM targets with a \
 working ASM support]
