@@ -210,12 +210,12 @@ uint8_t md::m68k_VDP_read(uint32_t a)
 	if (a < 0xc00004) {
 		if (a & 0x01)
 			return 0;
-		vdp.set_command_pending(false);
+		vdp.cmd_pending = false;
 		return vdp.readbyte();
 	}
 	/* control */
 	if (a < 0xc00008) {
-		vdp.set_command_pending(false);
+		vdp.cmd_pending = false;
 		if ((a & 0x01) == 0)
 			return coo4;
 		return coo5;
@@ -427,7 +427,7 @@ uint16_t md::misc_readword(uint32_t a)
 		if (a < 0xc00004) {
 			if (a & 0x01)
 				return 0;
-			vdp.set_command_pending(false);
+			vdp.cmd_pending = false;
 			return vdp.readword();
 		}
 		if (a < 0xc00008) {
@@ -476,14 +476,14 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 			if (a & 0x01)
 				return;
 			vdp.writeword(d);
-			vdp.set_command_pending(false);
+			vdp.cmd_pending = false;
 			return;
 		}
 		if (a < 0xc00008) {
 			if (a & 0x01)
 				return;
 			/* second half of a command */
-			if (vdp.get_command_pending()) {
+			if (vdp.cmd_pending) {
 				vdp.command(d);
 				return;
 			}
@@ -495,7 +495,7 @@ void md::misc_writeword(uint32_t a, uint16_t d)
 			}
 			/* first half of a command */
 			vdp.command(d);
-			vdp.set_command_pending(true);
+			vdp.cmd_pending = true;
 			return;
 		}
 	}

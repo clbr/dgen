@@ -118,6 +118,7 @@ public:
   int rw_mode,rw_addr,rw_dma;
   bool hint_pending;
   bool vint_pending;
+  bool cmd_pending; // set when first half of command arrives
 private:
   int poke_vram (int addr,unsigned char d);
   int poke_cram (int addr,unsigned char d);
@@ -149,7 +150,6 @@ private:
   unsigned int Bpp_times8;
   unsigned char *dest;
   md& belongs;
-  bool command_pending; // set when first half of command arrives
 public:
   md_vdp(md&);
   ~md_vdp();
@@ -166,8 +166,6 @@ public:
   uint32_t highpal[64];
   // Draw a scanline
   void draw_scanline(struct bmap *bits, int line);
-  void set_command_pending(bool f);
-  bool get_command_pending();
   void write_reg(uint8_t addr, uint8_t data);
 };
 

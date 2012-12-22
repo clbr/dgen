@@ -18,7 +18,7 @@ void md_vdp::reset()
 {
 	hint_pending = false;
 	vint_pending = false;
-	command_pending = false;
+	cmd_pending = false;
 	rw_mode = 0x00;
 	rw_addr = 0;
 	rw_dma = 0;
@@ -269,7 +269,7 @@ unsigned char md_vdp::readbyte()
  */
 int md_vdp::command(uint16_t cmd)
 {
-  if (get_command_pending()) // If this is the second word of a command
+  if (cmd_pending) // If this is the second word of a command
   {
     uint16_t A14_15 = (cmd & 0x0003) << 14;
     rw_addr = (rw_addr & 0xffff3fff) | A14_15;
@@ -284,7 +284,7 @@ int md_vdp::command(uint16_t cmd)
     // if CD5 == 1
     rw_dma = ((cmd & 0x80) == 0x80);
 
-    set_command_pending(false);
+    cmd_pending = false;
   }
   else // This is the first word of a command
   {
@@ -301,7 +301,7 @@ int md_vdp::command(uint16_t cmd)
     rw_dma = 0;
 
     // we will expect the second half of the command next
-    set_command_pending(true);
+    cmd_pending = true;
 
     return 0;
   }
@@ -397,16 +397,6 @@ int md_vdp::writebyte(unsigned char d)
   }
 
   return 0;
-}
-
-void md_vdp::set_command_pending(bool f)
-{
-	command_pending = f;
-}
-
-bool md_vdp::get_command_pending()
-{
-	return command_pending;
 }
 
 /**
