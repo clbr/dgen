@@ -419,4 +419,6 @@ void md_vdp::write_reg(uint8_t addr, uint8_t data)
 		dirt[0x34] |= 8;
 	}
 	reg[addr] = data;
+	// "Writing to a VDP register will clear the code register."
+	rw_mode = 0;
 }
