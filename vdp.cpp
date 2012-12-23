@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "md.h"
 
 /** Reset the VDP. */
@@ -29,6 +30,8 @@ void md_vdp::reset()
 	memset(sprite_order, 0, sizeof(sprite_order));
 	sprite_base = NULL;
 	sprite_count = 0;
+	sprite_overflow_line[0] = INT_MIN;
+	sprite_overflow_line[1] = INT_MIN;
 	dest = NULL;
 }
 

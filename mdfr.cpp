@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 #ifdef HAVE_MEMCPY_H
 #include "memcpy.h"
@@ -543,6 +544,9 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	coo5 |= !!pal;
 	// Is permanently set
 	hints = vdp.reg[10]; // Set hint counter
+	// Reset sprite overflow line
+	vdp.sprite_overflow_line[0] = INT_MIN;
+	vdp.sprite_overflow_line[1] = INT_MIN;
 	// Video display! :D
 	for (ras = 0; ((unsigned int)ras < vblank); ++ras) {
 		pad_update(); // Update 6-button pads

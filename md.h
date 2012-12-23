@@ -119,6 +119,7 @@ public:
   bool hint_pending;
   bool vint_pending;
   bool cmd_pending; // set when first half of command arrives
+  int sprite_overflow_line[2];
 private:
   int poke_vram (int addr,unsigned char d);
   int poke_cram (int addr,unsigned char d);
@@ -138,7 +139,7 @@ private:
   void draw_tile4(int which, int line, unsigned char *where);
   void draw_tile4_solid(int which, int line, unsigned char *where);
   void draw_window(int line, int front);
-  void draw_sprites(int line, int front);
+  void draw_sprites(int line, bool front);
   void draw_plane_back0(int line);
   void draw_plane_back1(int line);
   void draw_plane_front0(int line);
