@@ -193,8 +193,12 @@ uint8_t md::m68k_IO_read(uint32_t a)
 	if ((a & 0xfffffe) == 0xa11000)
 		return 0xff;
 	/* Z80 BUSREQ */
-	if (a == 0xa11100)
-		return (!z80_st_busreq | 0x80);
+	if (a == 0xa11100) {
+		static uint8_t garbage;
+
+		garbage ^= 0xfe;
+		return (!z80_st_busreq | garbage);
+	}
 	if (a == 0xa11101)
 		return 0xff;
 	/* Z80 RESET */
