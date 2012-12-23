@@ -542,6 +542,40 @@ void md_vdp::draw_window(int line, int front)
 	}
 }
 
+void md_vdp::get_sprite_info(struct sprite_info& info, int index)
+{
+	info.sprite = (sprite_base + (index << 3));
+
+	// Get the sprite's location
+	info.y = get_word(info.sprite);
+	info.x = (get_word(info.sprite + 6) & 0x1ff);
+
+	// Interlace?
+	if (reg[12] & 2)
+		info.y = ((info.y & 0x3fe) >> 1);
+	else
+		info.y &= 0x1ff;
+
+	info.x -= 0x80;
+	info.y -= 0x80;
+
+	// Narrow mode?
+	if (!(reg[12] & 1))
+		info.x += 32;
+
+	info.w = ((info.sprite[2] << 1) & 0x18) + 8;
+	info.h = ((info.sprite[2] & 0x03) << 3) + 8;
+
+	info.prio = (get_word(info.sprite + 4) >> 15);
+}
+
+static bool overlap(int x1, int y1, int w1, int h1,
+		    int x2, int y2, int w2, int h2)
+{
+	return (!(((x1 + w1) < x2) || (x1 > (x2 + w2)) ||
+		  ((y1 + h1) < y2) || (y1 > (y2 + h2))));
+}
+
 void md_vdp::draw_sprites(int line, int front)
 {
   unsigned int which;
@@ -575,32 +609,51 @@ void md_vdp::draw_sprites(int line, int front)
   // However, I have heard that the sprite limiting works forwards. XXX
   for (i = masking_sprite_index; i >= 0; --i)
     {
-      sprite = sprite_base + (sprite_order[i] << 3);
-      // Get the first tile
-      which = get_word(sprite + 4);
-      // Only do it if it's on the right priority
-      if ((which >> 15) == (unsigned int)front)
+      sprite_info info;
+      bool draw;
+
+      get_sprite_info(info, sprite_order[i]);
+      // Only do it if it's on the right priority.
+      if (info.prio == front)
+	draw = true;
+      else
+	draw = false;
+      // If this sprite has the high priority bit set, we need to make sure
+      // it isn't masked by a sprite with a lower index (higher priority)
+      // but with this bit unset.
+      if (info.prio) {
+	int j;
+
+	for (j = (i - 1); (j >= 0); --j) {
+	  sprite_info comp;
+
+	  get_sprite_info(comp, j);
+	  // Only compare it to sprites that have the priority bit unset.
+	  if (!comp.prio) {
+	    // Check if they overlap.
+	    if (overlap(info.x, info.y, info.w, info.h,
+			comp.x, comp.y, comp.w, comp.h)) {
+	      // They do. If we're currently displaying high priority sprites,
+	      // then do not display this one, as if we temporarily cleared
+	      // its high priority bit.
+	      if (front)
+		draw = false;
+	      else
+		draw = true;
+	      break;
+	    }
+	  }
+	}
+      }
+      if (draw)
 	{
+	  which = get_word(info.sprite + 4);
 	  // Get the sprite's location
-	  y = get_word(sprite);
-	  x = get_word(sprite + 6) & 0x1ff;
-
-	  // Interlace?
-	  if(reg[12] & 2)
-	    y = (y & 0x3fe) >> 1;
-	  else
-	    y &= 0x1ff;
-
-	  x -= 0x80;
-	  y -= 0x80;
+	  y = info.y;
+	  x = info.x;
 	  yoff = (line - y);
-
-	  // Narrow mode?
-	  if(!(reg[12] & 1)) x += 32;
-
-	  xend = ((sprite[2] << 1) & 0x18) + x;
-	  ysize = sprite[2] & 0x3;
-
+	  xend = ((info.w - 8) + x);
+	  ysize = ((info.h - 8) >> 3);
 	  // Render if this sprite's on this line
 	  if(xend > -8 && x < 320 && yoff >= 0 && yoff <= (ysize<<3)+7)
 	    {

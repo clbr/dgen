@@ -143,6 +143,15 @@ private:
   void draw_plane_back1(int line);
   void draw_plane_front0(int line);
   void draw_plane_front1(int line);
+  struct sprite_info {
+    unsigned char* sprite;
+    int x;
+    int y;
+    int w;
+    int h;
+    bool prio;
+  };
+  void get_sprite_info(struct sprite_info&, int);
   // Working variables for the above
   unsigned char sprite_order[0x101], *sprite_base;
   int sprite_count;
