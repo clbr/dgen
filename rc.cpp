@@ -401,7 +401,7 @@ intptr_t rc_rom_path(const char *value, intptr_t *)
 
 intptr_t rc_number(const char *value, intptr_t *)
 {
-  return atoi(value);
+	return strtol(value, NULL, 0);
 }
 
 /* This is a table of all the RC options, the variables they affect, and the
@@ -460,6 +460,9 @@ struct rc_field rc_fields[] = {
   { "bool_vdp_hide_plane_b", rc_boolean, &dgen_vdp_hide_plane_b },
   { "bool_vdp_hide_plane_w", rc_boolean, &dgen_vdp_hide_plane_w },
   { "bool_vdp_hide_sprites", rc_boolean, &dgen_vdp_hide_sprites },
+  { "bool_vdp_sprites_boxing", rc_boolean, &dgen_vdp_sprites_boxing },
+  { "int_vdp_sprites_boxing_fg", rc_number, &dgen_vdp_sprites_boxing_fg },
+  { "int_vdp_sprites_boxing_bg", rc_number, &dgen_vdp_sprites_boxing_bg },
   { "bool_autoload", rc_boolean, &dgen_autoload },
   { "bool_autosave", rc_boolean, &dgen_autosave },
   { "bool_autoconf", rc_boolean, &dgen_autoconf },

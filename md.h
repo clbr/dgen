@@ -160,6 +160,7 @@ private:
   int dots_cache;
   unsigned int Bpp;
   unsigned int Bpp_times8;
+  struct bmap *bmap;
   unsigned char *dest;
   md& belongs;
 public:
@@ -179,6 +180,7 @@ public:
   // Draw a scanline
   void sprite_masking_overflow(int line);
   void draw_scanline(struct bmap *bits, int line);
+  void draw_pixel(struct bmap *bits, int x, int y, uint32_t rgb);
   void write_reg(uint8_t addr, uint8_t data);
 };
 

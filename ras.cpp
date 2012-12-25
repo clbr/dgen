@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "system.h"
 #include "md.h"
+#include "pd.h"
 #include "rc-vars.h"
 
 // This is marked each time the palette is updated. Handy for the 8bpp
@@ -695,7 +696,19 @@ void md_vdp::draw_sprites(int line, bool front)
   int tx, ty, x, y, xend, ysize, yoff, i, masking_sprite_index;
   int dots;
   unsigned char *where;
+#ifdef WITH_DEBUG_VDP
+  static int ant[2];
+  static unsigned long ant_last[2];
+  unsigned long ant_cur;
 
+  if ((dgen_vdp_sprites_boxing) && (line == 0)) {
+    ant_cur = pd_usecs();
+    if ((ant_cur - ant_last[front]) > 100000) {
+      ant_last[front] = ant_cur;
+      ant[front] ^= 1;
+    }
+  }
+#endif
   masking_sprite_index = masking_sprite_index_cache;
   dots = dots_cache;
   // Sprites have to be in reverse order :P
@@ -782,6 +795,27 @@ void md_vdp::draw_sprites(int line, bool front)
 		      where += Bpp_times8;
 		    }
 		}
+#ifdef WITH_DEBUG_VDP
+	      if (dgen_vdp_sprites_boxing) {
+		uint32_t color[2] = {
+		  (uint32_t)dgen_vdp_sprites_boxing_bg,
+		  (uint32_t)dgen_vdp_sprites_boxing_fg
+		};
+		int ph;
+		int fx;
+
+		if ((ph = 0, (y == line)) ||
+		    (ph = 1, ((y + info.h - 1) == line)))
+		  for (fx = (ant[front] ^ ph); (fx < info.w); fx += 2)
+		    draw_pixel(this->bmap, (info.x + fx),
+			       line, color[info.prio]);
+		else
+		  draw_pixel(this->bmap,
+			     (((line & 1) == ant[front]) ?
+			      (info.x + info.w - 1) : info.x),
+			     line, color[info.prio]);
+	      }
+#endif
 	    }
 	}
     }
@@ -839,6 +873,7 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 {
   unsigned *ptr, i;
   // Set the destination in the bmap
+  bmap = bits;
   dest = bits->data + (bits->pitch * (line + 8) + 16);
   // If bytes per pixel hasn't yet been set, do it
   if ((Bpp == 0) || (Bpp != BITS_TO_BYTES(bits->bpp)))
@@ -948,4 +983,37 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
       for(i = 0; i < Bpp_times8; ++i)
         destl[i] = destl[i + (72 * Bpp)] = 0;
     }
+}
+
+void md_vdp::draw_pixel(struct bmap *bits, int x, int y, uint32_t rgb)
+{
+	uint8_t *out;
+
+	if ((x < 0) || (x >= bits->w) || (y < 0) || (y >= bits->h))
+		return;
+	out = ((bits->data + (bits->pitch * (y + 8) + 16)) +
+	       (x * BITS_TO_BYTES(bits->bpp)));
+	switch (bits->bpp) {
+		uint16_t tmp;
+
+	case 32:
+		memcpy(out, &rgb, sizeof(rgb));
+		break;
+	case 24:
+		u24cpy((uint24_t *)out,
+		       (const uint24_t *)((uint8_t *)&rgb + 1));
+		break;
+	case 16:
+		tmp = (((rgb >> 5) & 0xf800) |
+		       ((rgb >> 3) & 0x07e0) |
+		       (rgb & 0x1f));
+		memcpy(out, &tmp, sizeof(tmp));
+		break;
+	case 15:
+		tmp = (((rgb >> 6) & 0x7c00) |
+		       ((rgb >> 3) & 0x03e0) |
+		       (rgb & 0x1f));
+		memcpy(out, &tmp, sizeof(tmp));
+		break;
+	}
 }

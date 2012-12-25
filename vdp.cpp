@@ -34,6 +34,7 @@ void md_vdp::reset()
 	dots_cache = 0;
 	sprite_overflow_line = INT_MIN;
 	dest = NULL;
+	bmap = NULL;
 }
 
 /**

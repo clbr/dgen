@@ -131,6 +131,9 @@ RCVAR(dgen_vdp_hide_plane_a, 0);
 RCVAR(dgen_vdp_hide_plane_b, 0);
 RCVAR(dgen_vdp_hide_plane_w, 0);
 RCVAR(dgen_vdp_hide_sprites, 0);
+RCVAR(dgen_vdp_sprites_boxing, 0);
+RCVAR(dgen_vdp_sprites_boxing_fg, 0xffff00); // yellow
+RCVAR(dgen_vdp_sprites_boxing_bg, 0x00ff00); // green
 
 // Keep values in sync with rc.cpp and enums in md.h
 
