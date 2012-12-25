@@ -30,8 +30,9 @@ void md_vdp::reset()
 	memset(sprite_order, 0, sizeof(sprite_order));
 	sprite_base = NULL;
 	sprite_count = 0;
-	sprite_overflow_line[0] = INT_MIN;
-	sprite_overflow_line[1] = INT_MIN;
+	masking_sprite_index_cache = -1;
+	dots_cache = 0;
+	sprite_overflow_line = INT_MIN;
 	dest = NULL;
 }
 

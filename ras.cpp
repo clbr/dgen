@@ -576,107 +576,128 @@ static bool overlap(int x1, int y1, int w1, int h1,
 		  ((y1 + h1) < y2) || (y1 > (y2 + h2))));
 }
 
+void md_vdp::sprite_masking_overflow(int line)
+{
+	int masking_sprite_index;
+	bool masking_effective;
+	int frame_limit;
+	int line_limit;
+	int dots;
+	int i;
+
+	/*
+	 * Search for the highest priority sprite with x = 0. Call this sprite
+	 * s0.  Any sprite with a lower priority than s0 (therefore higher
+	 * index in the array) is not drawn on the scanlines that s0 occupies
+	 * on the y-axis. This is called sprite masking and is used by games
+	 * like Streets of Rage and Lotus Turbo Challenge.
+	 *
+	 * Thanks for Charles MacDonald for explaining this to me (vext01).
+	 *
+	 * This loop also limits the number of sprites per line, which is 20
+	 * in H40 and 16 in H32 _or_ 320 pixels wide in H40 and 256 pixels
+	 * wide in H32, with a possibility for the last sprite to be only
+	 * partially drawn.
+	 */
+	masking_sprite_index = -1;
+	// If sprites on the previous line overflowed, sprite masking becomes
+	// effective by default for the current line (it normally isn't).
+	masking_effective = (sprite_overflow_line == (line - 1));
+	// Set sprites and dots limits for the current line.
+	if (reg[12] & 1) {
+		frame_limit = 80;
+		line_limit = 20;
+		dots = 320;
+	}
+	else {
+		frame_limit = 64;
+		line_limit = 16;
+		dots = 256;
+	}
+	for (i = 0; i < sprite_count; i++) {
+		int x, y, w, h;
+		int idx;
+		uint8_t *sprite;
+
+		// First, make sure the frame limit hasn't been reached.
+		idx = sprite_order[i];
+		if (idx >= frame_limit) {
+			if (masking_sprite_index == -1)
+				masking_sprite_index = (i - 1);
+			break;
+		}
+		// Get current sprite coordinates and dimensions.
+		sprite = (sprite_base + (idx << 3));
+		x = get_word(sprite + 6) & 0x1ff;
+		y = get_word(sprite);
+		if (reg[12] & 2)
+			y = ((y & 0x3fe) >> 1);
+		else
+			y &= 0x1ff;
+		h = (((sprite[2] & 0x03) << 3) + 8);
+		w = (((sprite[2] << 1) & 0x18) + 8);
+		// If this sprite isn't found on the current line, skip it.
+		if (!(((line + 0x80) >= y) && ((line + 0x80) < (y + h))))
+			continue;
+		// Substract sprite from the dots limit and decrease the
+		// sprites limit.
+		dots -= w;
+		--line_limit;
+		// If this sprite is not a masking sprite (x != 0), sprite
+		// masking becomes effective. The next sprite with (x == 0)
+		// will be a masking sprite.
+		if (x != 0)
+			masking_effective = true;
+		// If a dot overflow occured, update sprite_overflow_line with
+		// the current line. This update must be done only once for a
+		// given line.
+		if (dots <= 0) {
+			sprite_overflow_line = line;
+			// If no masking sprite index has been set so far, do
+			// it now.  Otherwise reset dots, because this sprite
+			// must not be truncated.
+			if (masking_sprite_index == -1)
+				masking_sprite_index = i;
+			else
+				dots = 0;
+			// Don't process any more sprites, exit from the loop.
+			break;
+		}
+		// Check whether sprites limit has been reached.
+		if (line_limit == 0) {
+			// If no masking sprite index has been set so far, do
+			// it now.
+			if (masking_sprite_index == -1)
+				masking_sprite_index = i;
+			// Don't process any more sprites, exit from the loop.
+			break;
+		}
+		// If sprite masking is effective and the current sprite is a
+		// masking sprite (x == 0), if we haven't already found one
+		// before, use this one, then continue to process the sprites
+		// list as we still need to know whether a dot overflow
+		// occured.
+		if ((masking_effective) &&
+		    (x == 0) &&
+		    (masking_sprite_index == -1))
+			masking_sprite_index = i;
+	}
+	// If no masking sprite index was found, display them all.
+	if (masking_sprite_index == -1)
+		masking_sprite_index = (sprite_count - 1);
+	masking_sprite_index_cache = masking_sprite_index;
+	dots_cache = dots;
+}
+
 void md_vdp::draw_sprites(int line, bool front)
 {
   unsigned int which;
   int tx, ty, x, y, xend, ysize, yoff, i, masking_sprite_index;
-  bool masking_effective;
-  int frame_limit;
-  int line_limit;
   int dots;
-  unsigned char *where, *sprite;
+  unsigned char *where;
 
-  /*
-   * Search for the highest priority sprite with x = 0. Call this sprite s0.
-   * Any sprite with a lower priority than s0 (therefore higher index in
-   * the array) is not drawn on the scanlines that s0 occupies on the
-   * y-axis. This is called sprite masking and is used by games like Streets
-   * of Rage and Lotus Turbo Challenge.
-   *
-   * Thanks for Charles MacDonald for explaining this to me (vext01).
-   *
-   * This loop also limits the number of sprites per line, which is 20 in H40
-   * and 16 in H32 _or_ 320 pixels wide in H40 and 256 pixels wide in H32,
-   * with a possibility for the last sprite to be only partially drawn.
-   */
-  masking_sprite_index = -1;
-  // If sprites on the previous line overflowed, sprite masking becomes
-  // effective by default for the current line (it normally isn't).
-  masking_effective = (sprite_overflow_line[front] == (line - 1));
-  // Set sprites and dots limits for the current line.
-  if (reg[12] & 1) {
-    frame_limit = 80;
-    line_limit = 20;
-    dots = 320;
-  }
-  else {
-    frame_limit = 64;
-    line_limit = 16;
-    dots = 256;
-  }
-  for (i = 0; i < sprite_count; i++) {
-    int h, w, idx;
-
-    // First, make sure the frame limit hasn't been reached.
-    idx = sprite_order[i];
-    if (idx >= frame_limit) {
-      if (masking_sprite_index == -1)
-	masking_sprite_index = (i - 1);
-      break;
-    }
-    // Get current sprite coordinates and dimensions.
-    sprite = (sprite_base + (idx << 3));
-    x = get_word(sprite + 6) & 0x1ff;
-    y = get_word(sprite);
-    if (reg[12] & 2)
-	    y = ((y & 0x3fe) >> 1);
-    else
-	    y &= 0x1ff;
-    h = (((sprite[2] & 0x03) << 3) + 8);
-    w = (((sprite[2] << 1) & 0x18) + 8);
-    // If this sprite isn't found on the current line, skip it.
-    if (!(((line + 0x80) >= y) && ((line + 0x80) < (y + h))))
-      continue;
-    // Substract sprite from the dots limit and decrease the sprites limit.
-    dots -= w;
-    --line_limit;
-    // If this sprite is not a masking sprite (x != 0), sprite masking becomes
-    // effective. The next sprite with (x == 0) will be a masking sprite.
-    if (x != 0)
-      masking_effective = true;
-    // If a dot overflow occured, update sprite_overflow_line with the current
-    // line. This update must be done only once for a given line which is why
-    // front is used as index.
-    if (dots <= 0) {
-      sprite_overflow_line[front] = line;
-      // If no masking sprite index has been set so far, do it now.
-      // Otherwise reset dots, because this sprite must not be truncated.
-      if (masking_sprite_index == -1)
-	masking_sprite_index = i;
-      else
-	dots = 0;
-      // Don't process any more sprites, exit from the loop.
-      break;
-    }
-    // Check whether sprites limit has been reached.
-    if (line_limit == 0) {
-      // If no masking sprite index has been set so far, do it now.
-      if (masking_sprite_index == -1)
-	masking_sprite_index = i;
-      // Don't process any more sprites, exit from the loop.
-      break;
-    }
-    // If sprite masking is effective and the current sprite is a masking
-    // sprite (x == 0), if we haven't already found one before, use this one,
-    // then continue to process the sprites list as we still need to know
-    // whether a dot overflow occured.
-    if ((masking_effective) && (x == 0) && (masking_sprite_index == -1))
-      masking_sprite_index = i;
-  }
-  // If no masking sprite index was found, display them all.
-  if (masking_sprite_index == -1)
-    masking_sprite_index = (sprite_count - 1);
-
+  masking_sprite_index = masking_sprite_index_cache;
+  dots = dots_cache;
   // Sprites have to be in reverse order :P
   for (i = masking_sprite_index; i >= 0; --i)
     {
@@ -900,6 +921,8 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 	  // Clean up the dirt
 	  dirt[0x30] &= ~0x20; dirt[0x34] &= ~1;
 	}
+      // Calculate sprite masking and overflow.
+      sprite_masking_overflow(line);
       // Draw, from the bottom up
       // Low priority
       vdp_hide_if(dgen_vdp_hide_plane_b, draw_plane_back1(line));

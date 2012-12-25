@@ -119,7 +119,7 @@ public:
   bool hint_pending;
   bool vint_pending;
   bool cmd_pending; // set when first half of command arrives
-  int sprite_overflow_line[2];
+  int sprite_overflow_line;
 private:
   int poke_vram (int addr,unsigned char d);
   int poke_cram (int addr,unsigned char d);
@@ -156,6 +156,8 @@ private:
   // Working variables for the above
   unsigned char sprite_order[0x101], *sprite_base;
   int sprite_count;
+  int masking_sprite_index_cache;
+  int dots_cache;
   unsigned int Bpp;
   unsigned int Bpp_times8;
   unsigned char *dest;
@@ -175,6 +177,7 @@ public:
 
   uint32_t highpal[64];
   // Draw a scanline
+  void sprite_masking_overflow(int line);
   void draw_scanline(struct bmap *bits, int line);
   void write_reg(uint8_t addr, uint8_t data);
 };

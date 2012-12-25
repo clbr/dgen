@@ -545,8 +545,7 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	// Is permanently set
 	hints = vdp.reg[10]; // Set hint counter
 	// Reset sprite overflow line
-	vdp.sprite_overflow_line[0] = INT_MIN;
-	vdp.sprite_overflow_line[1] = INT_MIN;
+	vdp.sprite_overflow_line = INT_MIN;
 	// Video display! :D
 	for (ras = 0; ((unsigned int)ras < vblank); ++ras) {
 		pad_update(); // Update 6-button pads
