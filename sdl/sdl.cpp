@@ -987,6 +987,7 @@ retry:
 				memcpy(&(out[x]), &(line.u32[x]), 3);
 #endif
 			}
+			screen_unlock();
 			if (!fwrite(out, (sizeof(*out) * width), 1, fp))
 				goto error;
 			line.u8 += pitch;
