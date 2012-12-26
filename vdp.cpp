@@ -28,6 +28,7 @@ void md_vdp::reset()
 	memset(dirt, 0xff, 0x35); // mark everything as changed
 	memset(highpal, 0, sizeof(highpal));
 	memset(sprite_order, 0, sizeof(sprite_order));
+	memset(sprite_mask, 0xff, sizeof(sprite_mask));
 	sprite_base = NULL;
 	sprite_count = 0;
 	masking_sprite_index_cache = -1;

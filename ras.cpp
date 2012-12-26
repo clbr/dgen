@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <assert.h>
 #include "system.h"
 #include "md.h"
 #include "pd.h"
@@ -543,8 +544,10 @@ void md_vdp::draw_window(int line, int front)
 	}
 }
 
-void md_vdp::get_sprite_info(struct sprite_info& info, int index)
+inline void md_vdp::get_sprite_info(struct sprite_info& info, int index)
 {
+	uint_fast16_t prop;
+
 	info.sprite = (sprite_base + (index << 3));
 
 	// Get the sprite's location
@@ -552,7 +555,16 @@ void md_vdp::get_sprite_info(struct sprite_info& info, int index)
 	info.x = (get_word(info.sprite + 6) & 0x1ff);
 
 	// Interlace?
-	if (reg[12] & 2)
+	info.inter = (reg[12] >> 1);
+
+	// Properties
+	prop = get_word(info.sprite + 4);
+	info.prio = (prop >> 15);
+	info.xflip = (prop >> 11);
+	info.yflip = (prop >> 12);
+	info.tile = (uint32_t *)(vram + ((prop & 0x07ff) << (5 + info.inter)));
+
+	if (info.inter)
 		info.y = ((info.y & 0x3fe) >> 1);
 	else
 		info.y &= 0x1ff;
@@ -564,17 +576,10 @@ void md_vdp::get_sprite_info(struct sprite_info& info, int index)
 	if (!(reg[12] & 1))
 		info.x += 32;
 
-	info.w = ((info.sprite[2] << 1) & 0x18) + 8;
-	info.h = ((info.sprite[2] & 0x03) << 3) + 8;
-
-	info.prio = (get_word(info.sprite + 4) >> 15);
-}
-
-static bool overlap(int x1, int y1, int w1, int h1,
-		    int x2, int y2, int w2, int h2)
-{
-	return (!(((x1 + w1) < x2) || (x1 > (x2 + w2)) ||
-		  ((y1 + h1) < y2) || (y1 > (y2 + h2))));
+	info.tw = (((info.sprite[2] >> 2) & 0x03) + 1);
+	info.th = ((info.sprite[2] & 0x03) + 1);
+	info.w = (info.tw << 3);
+	info.h = (info.th << 3);
 }
 
 void md_vdp::sprite_masking_overflow(int line)
@@ -690,6 +695,95 @@ void md_vdp::sprite_masking_overflow(int line)
 	dots_cache = dots;
 }
 
+inline void md_vdp::sprite_mask_add(uint8_t* dest, int pitch,
+				    struct sprite_info& info, int value)
+{
+	uint32_t *tile = info.tile;
+	int len = (info.tw * info.h);
+	int lines = (8 << info.inter);
+	int line = 0;
+	int wrap = 0;
+	int unit = 1;
+
+	dest += info.x;
+	dest += (pitch * info.y);
+	if (info.yflip) {
+		dest += (pitch * (info.h - 1));
+		pitch = -pitch;
+	}
+	if (info.xflip) {
+		dest += (info.w - 1);
+		unit = -unit;
+	}
+	while (len) {
+		uint_fast32_t dots = be2h32(*tile);
+		unsigned int tmp;
+
+		for (tmp = 0; (tmp != 8); ++tmp) {
+			assert(dest >= (uint8_t *)sprite_mask);
+			assert(dest < ((uint8_t *)sprite_mask +
+				       sizeof(sprite_mask)));
+#ifdef WORDS_BIGENDIAN
+			if (dots & 0x0000000f)
+				*dest = value;
+			dots >>= 4;
+#else
+			if (dots & 0xf0000000)
+				*dest = value;
+			dots <<= 4;
+#endif
+			dest += unit;
+		}
+		++tile;
+		++line;
+		if (line == lines) {
+			/* Next tile. */
+			line = 0;
+			++wrap;
+			if (wrap == info.th) {
+				/* Next tiles column. */
+				dest -= (pitch * (info.h - 1));
+				wrap = 0;
+			}
+			else {
+				/* Next tiles row. */
+				dest += (pitch - (8 * unit));
+			}
+		}
+		else {
+			/* Next line of dots. */
+			dest -= (8 * unit);
+			dest += pitch;
+		}
+		--len;
+	}
+}
+
+void md_vdp::sprite_mask_generate()
+{
+	int i;
+
+	memset(sprite_mask, 0xff, sizeof(sprite_mask));
+	for (i = (sprite_count - 1); (i >= 0); --i) {
+		sprite_info info;
+
+		get_sprite_info(info, sprite_order[i]);
+		// We only care about sprites with the low priority bit unset.
+		if (info.prio)
+			continue;
+		// Don't bother with hidden sprites.
+		if ((info.x >= 320) || ((info.x + info.w) < 0))
+			continue;
+		if ((info.y >= 256) || ((info.y + info.h) < 0))
+			continue;
+		info.x += 0x80;
+		info.y += 0x80;
+		// Draw overlap mask for this sprite in a 512x512 virtual area.
+		sprite_mask_add((uint8_t *)sprite_mask, sizeof(sprite_mask[0]),
+				info, i);
+	}
+}
+
 void md_vdp::draw_sprites(int line, bool front)
 {
   unsigned int which;
@@ -715,42 +809,10 @@ void md_vdp::draw_sprites(int line, bool front)
   for (i = masking_sprite_index; i >= 0; --i)
     {
       sprite_info info;
-      bool draw;
 
       get_sprite_info(info, sprite_order[i]);
       // Only do it if it's on the right priority.
       if (info.prio == front)
-	draw = true;
-      else
-	draw = false;
-      // If this sprite has the high priority bit set, we need to make sure
-      // it isn't masked by a sprite with a lower index (higher priority)
-      // but with this bit unset.
-      if (info.prio) {
-	int j;
-
-	for (j = (i - 1); (j >= 0); --j) {
-	  sprite_info comp;
-
-	  get_sprite_info(comp, j);
-	  // Only compare it to sprites that have the priority bit unset.
-	  if (!comp.prio) {
-	    // Check if they overlap.
-	    if (overlap(info.x, info.y, info.w, info.h,
-			comp.x, comp.y, comp.w, comp.h)) {
-	      // They do. If we're currently displaying high priority sprites,
-	      // then do not display this one, as if we temporarily cleared
-	      // its high priority bit.
-	      if (front)
-		draw = false;
-	      else
-		draw = true;
-	      break;
-	    }
-	  }
-	}
-      }
-      if (draw)
 	{
 	  which = get_word(info.sprite + 4);
 	  // Get the sprite's location
@@ -774,9 +836,11 @@ void md_vdp::draw_sprites(int line, bool front)
 	      else
 		which += (yoff >> 3);
 	      ++ysize;
-	      // x flipped?
-	      if(which & 0x800)
-		{
+	      // Unconditionally draw this sprite. It's supposed to always
+	      // appear on top of other sprites.
+	      if (!front) {
+		// x flipped?
+		if (which & 0x800) {
 		  where = dest + (xend * (int)Bpp);
 		  for(tx = xend; tx >= x; tx -= 8)
 		    {
@@ -785,7 +849,8 @@ void md_vdp::draw_sprites(int line, bool front)
 		      which += ysize;
 		      where -= Bpp_times8;
 		    }
-	        } else {
+	        }
+		else {
 		  where = dest + (x * (int)Bpp);
 		  for(tx = x; tx <= xend; tx += 8)
 		    {
@@ -795,6 +860,59 @@ void md_vdp::draw_sprites(int line, bool front)
 		      where += Bpp_times8;
 		    }
 		}
+	      }
+	      // Draw sprite with the high priority bit set only where it's
+	      // not covered by a higher priority sprite (lower index in the
+	      // list) but with this bit unset. Those have already been drawn
+	      // during the previous pass.
+	      else {
+		union {
+		  uint32_t t4[8];
+		  uint24_t t3[8];
+		  uint16_t t2[8];
+		  uint8_t t1[8];
+		} tile;
+
+		// x flipped?
+		if (which & 0x800) {
+		  where = dest + (xend * (int)Bpp);
+		  for (tx = xend; (tx >= x); tx -= 8) {
+		    if ((tx > -8) && (tx < 320)) {
+		      int xx;
+		      int xo;
+
+		      memcpy(tile.t1, where, Bpp_times8);
+		      draw_tile(which, ty, tile.t1);
+		      for (xx = tx, xo = 0; (xo != 8); ++xo, ++xx)
+			if (sprite_mask[(line + 0x80)][(xx + 0x80)] >= i)
+			  memcpy(&dest[(xx * (int)Bpp)],
+				 &tile.t1[(xo * (int)Bpp)],
+				 (int)Bpp);
+		    }
+		    which += ysize;
+		    where -= Bpp_times8;
+		  }
+	        }
+		else {
+		  where = dest + (x * (int)Bpp);
+		  for (tx = x; (tx <= xend); tx += 8) {
+		    if ((tx > -8) && (tx < 320)) {
+		      int xx;
+		      int xo;
+
+		      memcpy(tile.t1, where, Bpp_times8);
+		      draw_tile(which, ty, tile.t1);
+		      for (xx = tx, xo = 0; (xo != 8); ++xo, ++xx)
+			if (sprite_mask[(line + 0x80)][(xx + 0x80)] >= i)
+			  memcpy(&dest[(xx * (int)Bpp)],
+				 &tile.t1[(xo * (int)Bpp)],
+				 (int)Bpp);
+		    }
+		    which += ysize;
+		    where += Bpp_times8;
+		  }
+		}
+	      }
 #ifdef WITH_DEBUG_VDP
 	      if (dgen_vdp_sprites_boxing) {
 		uint32_t color[2] = {
@@ -955,6 +1073,8 @@ void md_vdp::draw_scanline(struct bmap *bits, int line)
 	  } while (next && sprite_count < max);
 	  // Clean up the dirt
 	  dirt[0x30] &= ~0x20; dirt[0x34] &= ~1;
+	  // Generate overlap mask for sprites with high priority bit
+	  sprite_mask_generate();
 	}
       // Calculate sprite masking and overflow.
       sprite_masking_overflow(line);

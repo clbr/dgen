@@ -145,16 +145,24 @@ private:
   void draw_plane_front0(int line);
   void draw_plane_front1(int line);
   struct sprite_info {
-    unsigned char* sprite;
-    int x;
-    int y;
-    int w;
-    int h;
-    bool prio;
+    uint8_t* sprite; // sprite location
+    uint32_t* tile; // array of tiles (th * tw)
+    int x; // X position in pixels
+    int y; // Y position in pixels
+    int tw; // width in tiles
+    int th; // height in tiles
+    int w; // width in pixels
+    int h; // height in pixels
+    unsigned int prio:1; // high priority bit
+    unsigned int inter:1; // interlaced mode (8x16 tiles)
+    unsigned int xflip:1; // X-flipped
+    unsigned int yflip:1; // Y-flipped
   };
-  void get_sprite_info(struct sprite_info&, int);
+  inline void get_sprite_info(struct sprite_info&, int);
+  inline void sprite_mask_add(uint8_t*, int, struct sprite_info&, int);
   // Working variables for the above
   unsigned char sprite_order[0x101], *sprite_base;
+  uint8_t sprite_mask[512][512];
   int sprite_count;
   int masking_sprite_index_cache;
   int dots_cache;
@@ -179,6 +187,7 @@ public:
   uint32_t highpal[64];
   // Draw a scanline
   void sprite_masking_overflow(int line);
+  void sprite_mask_generate();
   void draw_scanline(struct bmap *bits, int line);
   void draw_pixel(struct bmap *bits, int x, int y, uint32_t rgb);
   void write_reg(uint8_t addr, uint8_t data);
