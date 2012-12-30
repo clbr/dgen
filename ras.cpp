@@ -136,6 +136,11 @@ inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
 
 #else // WITH_X86_TILES
 
+static bool has_zero_nibbles(uint32_t u32)
+{
+	return ((u32 - 0x11111111) & ~u32 & 0x88888888);
+}
+
 // Blit tile solidly, for 1 byte-per-pixel
 inline void md_vdp::draw_tile1_solid(int which, int line, unsigned char *where)
 {
@@ -190,6 +195,32 @@ inline void md_vdp::draw_tile1(int which, int line, unsigned char *where)
     tile = *(unsigned*)(vram + ((which&0x7ff) << 5) + (line << 2));
   // If the tile is all 0's, why waste the time?
   if(!tile) return;
+
+  // If the tile doesn't have any transparent pixels, draw it solidly.
+  if (!has_zero_nibbles(tile)) {
+    if (which & 0x800) {
+      // x flipped
+      *(where  ) = ((tile & PIXEL7)>>SHIFT7) | pal;
+      *(where+1) = ((tile & PIXEL6)>>SHIFT6) | pal;
+      *(where+2) = ((tile & PIXEL5)>>SHIFT5) | pal;
+      *(where+3) = ((tile & PIXEL4)>>SHIFT4) | pal;
+      *(where+4) = ((tile & PIXEL3)>>SHIFT3) | pal;
+      *(where+5) = ((tile & PIXEL2)>>SHIFT2) | pal;
+      *(where+6) = ((tile & PIXEL1)>>SHIFT1) | pal;
+      *(where+7) = ((tile & PIXEL0)>>SHIFT0) | pal;
+    }
+    else {
+      *(where  ) = ((tile & PIXEL0)>>SHIFT0) | pal;
+      *(where+1) = ((tile & PIXEL1)>>SHIFT1) | pal;
+      *(where+2) = ((tile & PIXEL2)>>SHIFT2) | pal;
+      *(where+3) = ((tile & PIXEL3)>>SHIFT3) | pal;
+      *(where+4) = ((tile & PIXEL4)>>SHIFT4) | pal;
+      *(where+5) = ((tile & PIXEL5)>>SHIFT5) | pal;
+      *(where+6) = ((tile & PIXEL6)>>SHIFT6) | pal;
+      *(where+7) = ((tile & PIXEL7)>>SHIFT7) | pal;
+    }
+    return;
+  }
 
   // Blit the tile!
   if(which & 0x800) // x flipped
@@ -274,6 +305,32 @@ inline void md_vdp::draw_tile2(int which, int line, unsigned char *where)
   // If the tile is all 0's, why waste the time?
   if(!tile) return;
 
+  // If the tile doesn't have any transparent pixels, draw it solidly.
+  if (!has_zero_nibbles(tile)) {
+    if (which & 0x800) {
+      // x flipped
+      *(wwhere  ) = pal[((tile & PIXEL7)>>SHIFT7)];
+      *(wwhere+1) = pal[((tile & PIXEL6)>>SHIFT6)];
+      *(wwhere+2) = pal[((tile & PIXEL5)>>SHIFT5)];
+      *(wwhere+3) = pal[((tile & PIXEL4)>>SHIFT4)];
+      *(wwhere+4) = pal[((tile & PIXEL3)>>SHIFT3)];
+      *(wwhere+5) = pal[((tile & PIXEL2)>>SHIFT2)];
+      *(wwhere+6) = pal[((tile & PIXEL1)>>SHIFT1)];
+      *(wwhere+7) = pal[((tile & PIXEL0)>>SHIFT0)];
+    }
+    else {
+      *(wwhere  ) = pal[((tile & PIXEL0)>>SHIFT0)];
+      *(wwhere+1) = pal[((tile & PIXEL1)>>SHIFT1)];
+      *(wwhere+2) = pal[((tile & PIXEL2)>>SHIFT2)];
+      *(wwhere+3) = pal[((tile & PIXEL3)>>SHIFT3)];
+      *(wwhere+4) = pal[((tile & PIXEL4)>>SHIFT4)];
+      *(wwhere+5) = pal[((tile & PIXEL5)>>SHIFT5)];
+      *(wwhere+6) = pal[((tile & PIXEL6)>>SHIFT6)];
+      *(wwhere+7) = pal[((tile & PIXEL7)>>SHIFT7)];
+    }
+    return;
+  }
+
   // Blit the tile!
   if(which & 0x800) // x flipped
     {
@@ -354,6 +411,32 @@ inline void md_vdp::draw_tile3(int which, int line, unsigned char *where)
     tile = *(unsigned*)(vram + ((which&0x7ff) << 5) + (line << 2));
   // If it's empty, why waste the time?
   if(!tile) return;
+
+  // If the tile doesn't have any transparent pixels, draw it solidly.
+  if (!has_zero_nibbles(tile)) {
+    if (which & 0x800) {
+      // x flipped
+      u24cpy(&wwhere[0], (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
+      u24cpy(&wwhere[1], (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
+      u24cpy(&wwhere[2], (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
+      u24cpy(&wwhere[3], (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
+      u24cpy(&wwhere[4], (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
+      u24cpy(&wwhere[5], (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
+      u24cpy(&wwhere[6], (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
+      u24cpy(&wwhere[7], (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
+    }
+    else {
+      u24cpy(&wwhere[0], (uint24_t *)&pal[((tile & PIXEL0) >> SHIFT0)]);
+      u24cpy(&wwhere[1], (uint24_t *)&pal[((tile & PIXEL1) >> SHIFT1)]);
+      u24cpy(&wwhere[2], (uint24_t *)&pal[((tile & PIXEL2) >> SHIFT2)]);
+      u24cpy(&wwhere[3], (uint24_t *)&pal[((tile & PIXEL3) >> SHIFT3)]);
+      u24cpy(&wwhere[4], (uint24_t *)&pal[((tile & PIXEL4) >> SHIFT4)]);
+      u24cpy(&wwhere[5], (uint24_t *)&pal[((tile & PIXEL5) >> SHIFT5)]);
+      u24cpy(&wwhere[6], (uint24_t *)&pal[((tile & PIXEL6) >> SHIFT6)]);
+      u24cpy(&wwhere[7], (uint24_t *)&pal[((tile & PIXEL7) >> SHIFT7)]);
+    }
+    return;
+  }
 
   // Blit the tile!
   if(which & 0x800) // x flipped
@@ -469,6 +552,32 @@ inline void md_vdp::draw_tile4(int which, int line, unsigned char *where)
     tile = *(unsigned*)(vram + ((which&0x7ff) << 5) + (line << 2));
   // If the tile is all 0's, why waste the time?
   if(!tile) return;
+
+  // If the tile doesn't have any transparent pixels, draw it solidly.
+  if (!has_zero_nibbles(tile)) {
+    if (which & 0x800) {
+      // x flipped
+      *(wwhere  ) = pal[((tile & PIXEL7)>>SHIFT7)];
+      *(wwhere+1) = pal[((tile & PIXEL6)>>SHIFT6)];
+      *(wwhere+2) = pal[((tile & PIXEL5)>>SHIFT5)];
+      *(wwhere+3) = pal[((tile & PIXEL4)>>SHIFT4)];
+      *(wwhere+4) = pal[((tile & PIXEL3)>>SHIFT3)];
+      *(wwhere+5) = pal[((tile & PIXEL2)>>SHIFT2)];
+      *(wwhere+6) = pal[((tile & PIXEL1)>>SHIFT1)];
+      *(wwhere+7) = pal[((tile & PIXEL0)>>SHIFT0)];
+    }
+    else {
+      *(wwhere  ) = pal[((tile & PIXEL0)>>SHIFT0)];
+      *(wwhere+1) = pal[((tile & PIXEL1)>>SHIFT1)];
+      *(wwhere+2) = pal[((tile & PIXEL2)>>SHIFT2)];
+      *(wwhere+3) = pal[((tile & PIXEL3)>>SHIFT3)];
+      *(wwhere+4) = pal[((tile & PIXEL4)>>SHIFT4)];
+      *(wwhere+5) = pal[((tile & PIXEL5)>>SHIFT5)];
+      *(wwhere+6) = pal[((tile & PIXEL6)>>SHIFT6)];
+      *(wwhere+7) = pal[((tile & PIXEL7)>>SHIFT7)];
+    }
+    return;
+  }
 
   // Blit the tile!
   if(which & 0x800) // x flipped
