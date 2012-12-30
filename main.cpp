@@ -208,6 +208,8 @@ int main(int argc, char *argv[])
   unsigned int samples;
   class md *megad;
   bool first = true;
+  bool forced_hz = false;
+  bool forced_pal = false;
 
 	// Parse the RC file
 	if ((dgen_autoconf) &&
@@ -300,16 +302,20 @@ int main(int argc, char *argv[])
 			dgen_hz = hz;
 			dgen_pal = pal;
 		}
+		forced_pal = false;
+		forced_hz = false;
 		break;
 	case 'N':
 		// NTSC mode
 		dgen_hz = NTSC_HZ;
 		dgen_pal = 0;
+		forced_pal = true;
 		break;
 	case 'P':
 		// PAL mode
 		dgen_hz = PAL_HZ;
 		dgen_pal = 1;
+		forced_pal = true;
 		break;
 	case 'H':
 		// Custom frame rate
@@ -318,7 +324,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "main: invalid frame rate (%ld).\n",
 				(long)dgen_hz);
 			dgen_hz = (dgen_pal ? 50 : 60);
+			forced_hz = false;
 		}
+		else
+			forced_hz = true;
 		break;
 #ifdef __MINGW32__
 	case 'm':
@@ -458,6 +467,10 @@ next_rom:
 		int pal;
 
 		md::region_info(c, &pal, &hz, 0, 0, 0);
+		if (forced_hz)
+			hz = dgen_hz;
+		if (forced_pal)
+			pal = dgen_pal;
 		if ((hz != dgen_hz) || (pal != dgen_pal) ||
 		    (c != megad->region)) {
 			megad->region = c;
