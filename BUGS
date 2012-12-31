@@ -11,14 +11,12 @@ Working, with glitches
 Sometimes slower than it should be.
 
 - Sonic 2 prototype
-No sound/music.
+No sound/music (works fine with Cyclone).
 
 - Street Racer
-Intro and some pictures are mangled, palette issues.
+Mangled pictures in the intro.
 
 - Streets of Rage 1
-Starting with level 2, weapons and items are drawn in front of all other
-sprites.
 End of level counter sound is bad.
 
 - Aleste - Full metal fighter Ellinor
@@ -29,14 +27,12 @@ Sky is black and top screen color is wrong.
 
 - Golden Axe 2
 Some sort of loop at start that freezes DGen for a while.
-Issue present with both Musashi and StarScream.
 
 - Gynoug
-Menu/intro backgrounds are mangled.
+Menu/intro backgrounds are mangled (works fine with Cyclone).
 
 - Super Hang-on
 Bad horizon line.
-Sprites sometimes visible behind hills.
 
 - Thunder force 3
 Main weapon sound is bad.
@@ -48,15 +44,6 @@ Some versions don't work at all.
 - Viewpoint
 Menu background is mangled.
 
-- Sonic 3
-The Sonic 3 gumball bonus stage has some graphics problems. Get 50 rings and
-jump into the stars above a lamp-post and play the special stage for a bit --
-the bug is pretty obvious.
-
-- Gunstar Heroes
-The rocket level has some vertical scroll issues. Probably
-the same issue that we see in the Sonic 3 gumball stages.
-
 Non-working (must be fixed)
 ---------------------------
 
@@ -65,15 +52,6 @@ They either display a blank screen or crash after the intro.
 
 - Time killers
 Blank screen.
-
-- Lemmings 2 - The tribes
-Sprites colors are wrong, crashes when trying to start a game.
-
-- Sub Terrania
-Crashes when starting a game.
-
-- Zool
-The game freezes after the EA logo on some versions.
 
 Non-working (this is expected)
 ------------------------------
