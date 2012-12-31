@@ -537,11 +537,16 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	fm_ticker[1] = 0;
 	fm_ticker[3] = 0;
 	// Raster zero causes special things to happen :)
-	coo4 = 0x02; // Init status register (FIXME)
+	// Init status register with fifo always empty (FIXME)
+	coo4 = (0x34 | 0x02); // 00110100b | 00000010b
 	if (vdp.reg[12] & 0x2)
 		coo5 ^= 0x10; // Toggle odd/even for interlace
 	coo5 &= ~0x08; // Clear vblank
 	coo5 |= !!pal;
+	// Clear sprite overflow bit (d6).
+	coo5 &= ~0x40;
+	// Clear sprite collision bit (d5).
+	coo5 &= ~0x20;
 	// Is permanently set
 	hints = vdp.reg[10]; // Set hint counter
 	// Reset sprite overflow line

@@ -784,6 +784,8 @@ void md_vdp::sprite_masking_overflow(int line)
 			// it now.
 			if (masking_sprite_index == -1)
 				masking_sprite_index = i;
+			// Trigger sprite overflow bit (d6).
+			belongs.coo5 |= 0x40;
 			// Don't process any more sprites, exit from the loop.
 			break;
 		}
@@ -832,6 +834,14 @@ inline void md_vdp::sprite_mask_add(uint8_t* dest, int pitch,
 			assert(dest >= (uint8_t *)sprite_mask);
 			assert(dest < ((uint8_t *)sprite_mask +
 				       sizeof(sprite_mask)));
+			/*
+			 * If a non-transparent sprite dot has already been
+			 * drawn here, trigger the collision bit (d5).
+			 * FIXME: doing this here is hackish and doesn't take
+			 * sprites with the high priority bit into account.
+			 */
+			if (*dest != 0xff)
+				belongs.coo5 |= 0x20;
 #ifdef WORDS_BIGENDIAN
 			if (dots & 0x0000000f)
 				*dest = value;
