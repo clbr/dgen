@@ -208,6 +208,8 @@ int cyclone_irq_callback(int level)
  */
 int md::reset()
 {
+	// Reset the VDP.
+	vdp.reset();
 	// Erase CPU states.
 	memset(&m68k_state, 0, sizeof(m68k_state));
 	memset(&z80_state, 0, sizeof(z80_state));
