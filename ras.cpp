@@ -914,6 +914,9 @@ void md_vdp::draw_sprites(int line, bool front)
 #endif
   masking_sprite_index = masking_sprite_index_cache;
   dots = dots_cache;
+  // If dots_cache is less than zero, draw the first sprite partially.
+  if (dots > 0)
+    dots = 0;
   // Sprites have to be in reverse order :P
   for (i = masking_sprite_index; i >= 0; --i)
     {
@@ -929,15 +932,12 @@ void md_vdp::draw_sprites(int line, bool front)
 	  x = info.x;
 	  yoff = (line - y);
 	  xend = ((info.w - 8) + x);
+	  // Partial draw if negative.
+	  xend += dots;
 	  ysize = ((info.h - 8) >> 3);
 	  // Render if this sprite's on this line
 	  if(xend > -8 && x < 320 && yoff >= 0 && yoff <= (ysize<<3)+7)
 	    {
-	      if (dots < 0) {
-		// Draw this sprite partially.
-		xend += dots;
-		dots = 0;
-	      }
 	      ty = yoff & 7;
 	      // y flipped?
 	      if(which & 0x1000)
@@ -1045,6 +1045,7 @@ void md_vdp::draw_sprites(int line, bool front)
 #endif
 	    }
 	}
+      dots = 0;
     }
 }
 
