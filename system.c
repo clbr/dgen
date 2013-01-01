@@ -65,7 +65,7 @@ enum path_type {
  * Check whether a path is absolute or relative.
  *
  * Examples:
- * /foo/bar, \foo\bar, c:/foo/bar are absolute,
+ * /foo/bar, \\foo\\bar, c:/foo/bar are absolute,
  * ./foo/bar, ., .., are relative.
  *
  * @param[in] path Path to parse.
@@ -101,7 +101,7 @@ enum path_type path_type(const char *path, size_t len)
  * Check whether a path is absolute or relative.
  *
  * Examples:
- * /foo/bar, \foo\bar are absolute,
+ * /foo/bar, \\foo\\bar are absolute,
  * ./foo/bar, ., .., are relative.
  *
  * @param[in] path Path to parse.
@@ -449,9 +449,9 @@ static size_t load_size(FILE *file)
  * If an error is returned but errno is 0, EOF has been reached.
  *
  * @param[in,out] context On first call of load() this should point to NULL.
- * @param[out] Final size.
- * @param max_size If nonzero, refuse to load anything larger.
+ * @param[out] file_size Final size.
  * @param[in] file File pointer to load data from.
+ * @param max_size If nonzero, refuse to load anything larger.
  * @return Buffer containing loaded data.
  */
 uint8_t *load(void **context,
@@ -1040,10 +1040,13 @@ void complete_path_free(char **cp)
 
 /**
  * Create an escaped version of a string.
+ * When not NULL, "pos" refers to an offset in string "src". It is updated
+ * with its new offset value in the escaped string.
  *
  * @param[in] src String to escape.
  * @param size Number of characters from "src" to process.
  * @param flags BACKSLASHIFY_* flags.
+ * @param[in, out] pos Offset in string "src" to update.
  * @return Escaped version of "src", NULL on error.
  */
 char *backslashify(const uint8_t *src, size_t size, unsigned int flags,

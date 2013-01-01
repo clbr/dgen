@@ -20,24 +20,24 @@ enum {
 	STATE_COMMENT,   /**< currently in a comment */
 	STATE_KEY,       /**< (key) currently in a key */
 	STATE_KEYBS,     /**< (key) backslash */
-	STATE_KEYBSX1,   /**< (key) first character of a hex value (\x) */
-	STATE_KEYBSX2,   /**< (key) second character of a hex value (\x) */
+	STATE_KEYBSX1,   /**< (key) first character of a hex value (\\x) */
+	STATE_KEYBSX2,   /**< (key) second character of a hex value (\\x) */
 	STATE_KEYSQ,     /**< (key) currently in a simple quoted key */
 	STATE_KEYDQ,     /**< (key) currently in a double quoted key */
 	STATE_KEYDQBS,   /**< (key) backslash while in double quotes */
-	STATE_KEYDQBSX1, /**< (key) first value of \x in double quotes */
-	STATE_KEYDQBSX2, /**< (key) second value of \x in double quotes */
+	STATE_KEYDQBSX1, /**< (key) first value of \\x in double quotes */
+	STATE_KEYDQBSX2, /**< (key) second value of \\x in double quotes */
 	STATE_BEQ,       /**< before '=' between key and value */
 	STATE_AEQ,       /**< after '=' between key and value */
 	STATE_VALUE,     /**< (value) same as (key) things above, for values */
 	STATE_VALBS,     /**< (value) backslash */
-	STATE_VALBSX1,   /**< (value) first character of an hex value (\x) */
-	STATE_VALBSX2,   /**< (value) second character of a hex value (\x) */
+	STATE_VALBSX1,   /**< (value) first character of an hex value (\\x) */
+	STATE_VALBSX2,   /**< (value) second character of a hex value (\\x) */
 	STATE_VALSQ,     /**< (value) currently in a simple quoted value */
 	STATE_VALDQ,     /**< (value) currently in a double quoted value */
 	STATE_VALDQBS,   /**< (value) backslash while in double quotes */
-	STATE_VALDQBSX1, /**< (value) first value of \x in double quotes */
-	STATE_VALDQBSX2, /**< (value) second values of \x in double quotes */
+	STATE_VALDQBSX1, /**< (value) first value of \\x in double quotes */
+	STATE_VALDQBSX2, /**< (value) second values of \\x in double quotes */
 	STATE_VALEND,    /**< end of a value, ready to take a new key */
 	ACTION_KEY        = 0x0100, /**< key complete */
 	ACTION_VALUE      = 0x0200, /**< value complete */

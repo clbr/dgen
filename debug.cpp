@@ -474,7 +474,7 @@ static void debug_rm_bp_m68k(int index)
 /**
  * Remove a M68K watchpoint.
  *
- * @parm index Index of watchpoint to remove.
+ * @param index Index of watchpoint to remove.
  */
 static void debug_rm_wp_m68k(int index)
 {
