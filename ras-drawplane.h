@@ -14,7 +14,7 @@
 		yscroll_amount += line;					\
 									\
 		yoff = ((yscroll_amount >> 3) & (ysize - 1));		\
-		tile_line = (tiles + (xsize * yoff));			\
+		tile_line = (tiles + ((xsize * yoff) & 0x1fff));	\
 		scan = (yscroll_amount & 7);				\
 	}								\
 	while (0)
