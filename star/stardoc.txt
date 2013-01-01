@@ -1,6 +1,7 @@
 -----------------------------------------------------------------------------
-Starscream 680x0 emulation library                              version 0.26a
+Starscream 680x0 emulation library                              version 0.26d
 Copyright 1997, 1998, 1999 Neill Corlett
+Modified by Stéphane Dallongeville
 -----------------------------------------------------------------------------
 
 "Pathetic flesh creatures... can't you see we're INVINCIBLE?  Come,
@@ -81,6 +82,18 @@ its documentation or in the program itself:
 -----------------------------------------------------------------------------
 1.  What's New
 -----------------------------------------------------------------------------
+
+Version 0.26d:
+*  CHK generation fixed.
+*  IDBcc generation fixed (IDBtr added).
+
+Version 0.26c:
+*  Shift bits instructions fixed.
+
+Version 0.26b:
+*  IO DWord Write bug fixed.
+*  Interrupt processing bug fixed.
+   (all lines added are followed by "// Stef Fix (Gens)" )
 
 Version 0.26a:
 *  Egregious GetContext/SetContext bug fixed.

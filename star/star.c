@@ -19,7 +19,7 @@
   2012-12-18 - Add inthandler callback.
 */
 
-#define STAR_VERSION "0.26a-dgen"
+#define STAR_VERSION "0.26d-dgen"
 
 /***************************************************************************/
 /*
@@ -432,6 +432,9 @@ static void gen_variables(void) {
 	emit("__io_fetchbase         dd 0\n");
 	emit("__io_fetchbased_pc     dd 0\n");
 	emit("__access_address       dd 0\n");
+
+emit("save_01				dd 0\n");		// Stef Fix (Gens)
+
 }
 
 /* Prepare to leave into the cold, dark world of compiled C code */
@@ -1220,12 +1223,22 @@ static void gen_flush_interrupts(void) {
 	emit(".loop:\n");
 	emit("test [__interrupts],cl\n");
 	emit("jz short .noint\n");
+
+emit("mov [save_01], dl\n");			// Stef Fix (Gens)
+
 	emit("mov dl,[__interrupts+edx]\n");
 	emit("not cl\n");
 	emit("and [__interrupts],cl\n");
 	emit("shl edx,2\n");
 	emit("call group_1_exception\n");
+
+emit("and [__sr + 1], byte 0xF8\n");	// Stef Fix (Gens)
+emit("mov dl, [save_01]\n");			// Stef Fix (Gens)
+	
 	emit("sub edi,byte %d\n", cycles);
+
+emit("or [__sr + 1], dl\n");			// Stef Fix (Gens)
+
 	emit("mov ecx,[__inthandler]\n");
 	emit("or ecx,ecx\n");
 	emit("jz short .intdone\n");
@@ -1777,6 +1790,9 @@ static void gen_writel(void){
 	emit("rol ecx,16\n");
 	emit("mov [edx-2],ecx\n");
 	emit("mov edx,[__access_address]\n");
+
+emit("rol ecx,16\n");						// Stef Fix (Gens)
+
 	emit("ret\n");
 
 	emit("writel_callio:\n");
@@ -3046,15 +3062,50 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 	}else{
 		if(rotate){
 			emit("mov edx,[__dreg+ebx*4]\n");
+
+/******** Stef Fix (Gens) *********/
+
+// old code
+
+/*
 			if(needxf){
 				emit("mov al,[__xflag]\n");
-				emit("shr al,1\n");
 			}else{
 				emit("mov al,0\n");
 			}
 			emit("%s%c %s,%s\n",
 				op,direction[main_dr],x86dx[main_size],tmps
 			);
+*/
+
+// new code
+
+			if(needxf){
+				emit("mov al,[__xflag]\n");
+				emit("shr al,1\n");
+			}else{
+				emit("mov al,0\n");
+			}
+
+        	switch(tmps[0])
+        	{
+        		case 'c':/* register shift count */
+        			emit("cmp cl, 32\n");
+        			emit("jb short ln%d\n",linenum);
+        			emit("%s%c %s, 16\n", op,direction[main_dr],x86dx[main_size]);
+        			emit("sub cl, 31\n");
+        			emit("%s%c %s, 15\n", op,direction[main_dr],x86dx[main_size]);
+        			emit("ln%d:\n",linenum); linenum++;
+        			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+        			break;
+
+        		default:/* immediate shift count >1 */
+        			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+        			break;
+        	}
+
+/********     End Fix     *********/
+
 			emit("adc al,al\n");
 			emit("or %s,%s\n",
 				x86dx[main_size],x86dx[main_size]
@@ -3069,13 +3120,41 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 		}else{
 			if(needxf){
 				emit("mov al,[__xflag]\n");
-				emit("shr al,1\n");
 			}else{
 				emit("mov al,0\n");
 			}
-			emit("%s%c %s[__dreg+ebx*4],%s\n",
-				op,direction[main_dr],sizename[main_size],tmps
-			);
+
+/******** Stef Fix (Gens) *********/
+
+	switch(tmps[0])
+	{
+		case 'c':/* register shift count */
+			emit("cmp cl, 32\n");
+			emit("jb short ln%d\n",linenum);
+			emit("sub cl, 31\n");
+			if(needxf){
+				emit("shr al, 1\n");
+			}
+			emit("%s%c %s[__dreg+ebx*4], 31\n", op,direction[main_dr],sizename[main_size]);
+			emit("jmp short ln%d\n",linenum + 1);
+			emit("ln%d:\n",linenum); linenum++;
+			if(needxf){
+				emit("shr al, 1\n");
+			}
+			emit("%s%c %s[__dreg+ebx*4],%s\n", op,direction[main_dr],sizename[main_size],tmps);
+			emit("ln%d:\n",linenum); linenum++;
+			break;
+
+		default:/* immediate shift count >1 */
+			if(needxf){
+				emit("shr al, 1\n");
+			}
+			emit("%s%c %s[__dreg+ebx*4],%s\n", op,direction[main_dr],sizename[main_size],tmps);
+			break;
+	}
+
+/********     End Fix     *********/
+
 			emit("lahf\n");
 			if(affectx)c2x();
 		}
@@ -3266,6 +3345,17 @@ static void i_dbra(void){
 		ret_timing(14);
 	}
 }
+
+/******** Stef Fix (Gens) *********/
+
+// code added
+
+static void i_dbtr(void){
+	emit("add esi,byte 2\n");
+	ret_timing(8);
+}
+
+/********     End Fix     *********/
 
 static void i_dbcc(void){
 	getcondition(main_cc);
@@ -4808,7 +4898,19 @@ static void decode4(int n) {
 	eadef_control(n, 0xFFC0, 0x4EC0, i_jmp);
 	eadef_control(n, 0xFFC0, 0x4E80, i_jsr);
 	for(main_reg=0;main_reg<8;main_reg++)eadef_control(n,0xFFC0,0x41C0|(main_reg<<9),i_lea);
-	main_size=2;for(main_reg=0;main_reg<8;main_reg++)eadef_data(n,0xFFC0,0x4100|(main_reg<<9),i_chk);
+	
+/******** Stef Fix (Gens) *********/
+
+// old code
+
+//	main_size=2;for(main_reg=0;main_reg<8;main_reg++)eadef_data(n,0xFFC0,0x4100|(main_reg<<9),i_chk);
+
+// new code
+
+	main_size=2;for(main_reg=0;main_reg<8;main_reg++)eadef_data(n,0xFFC0,0x4180|(main_reg<<9),i_chk);
+
+/********     End Fix     *********/
+	
 	eadef_control(n,0xFFC0,0x4840,i_pea);
 	for(sizedef = 0; sizedef < 3; sizedef++) {
 		main_size = 1 << sizedef;
@@ -4874,7 +4976,17 @@ static void decode5(int n) {
 	for(main_cc = 0x2; main_cc <= 0xF; main_cc++) {
 		idef(n, 0xFFF8, 0x50C8 | (main_cc << 8), i_dbcc);
 	}
+
+/******** Stef Fix (Gens) *********/
+
+// code added
+
+	idef(n, 0xFFF8, 0x50C8, i_dbtr);
+
+/********     End Fix     *********/
+
 	idef(n, 0xFFF8, 0x51C8, i_dbra);
+	
 	main_size = 1;
 	for(main_cc = 0x0; main_cc <= 0xF; main_cc++) {
 		eadef_data_alterable(n, 0xFFC0, 0x50C0 | (main_cc << 8),
