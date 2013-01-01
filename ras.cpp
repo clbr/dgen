@@ -664,7 +664,13 @@ inline void md_vdp::get_sprite_info(struct sprite_info& info, int index)
 	info.x = (get_word(info.sprite + 6) & 0x1ff);
 
 	// Interlace?
-	info.inter = (reg[12] >> 1);
+	// XXX
+	// "& 1" below is a workaround for a GCC (g++) <= 4.2.1 bug seen
+	// in OpenBSD.
+	// info.inter is a bit-field member of size 1 that normally cannot
+	// store anything other than 0 or 1, but which does in practice,
+	// causing info.tile to point to a bad address and crashing.
+	info.inter = ((reg[12] >> 1) & 1);
 
 	// Properties
 	prop = get_word(info.sprite + 4);
