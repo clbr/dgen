@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <strings.h>
+#include <ctype.h>
 
 #include "rc.h"
 #include "ckvp.h"
