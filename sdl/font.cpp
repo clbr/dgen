@@ -1,10 +1,6 @@
-// DGen/SDL v1.29
-// by Joe Groff
-// How's my programming? E-mail <joe@pknet.com>
-
-/* DGen's font renderer.
- * I hope it's pretty well detached from the DGen core, so you can use it in
- * any other SDL app you like. */
+/**
+ * DGen's font renderer.
+ */
 
 #include <stddef.h>
 #include <stdio.h>

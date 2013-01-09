@@ -1,6 +1,6 @@
-// DGen/SDL v1.21+
-// SDL interface
-// OpenGL code added by Andre Duarte de Souza <asouza@olinux.com.br>
+/**
+ * SDL interface
+ */
 
 #ifdef __MINGW32__
 #undef __STRICT_ANSI__
@@ -48,6 +48,7 @@
 #endif
 
 #ifdef WITH_JOYSTICK
+/// Joysticks indices as defined in joystick.cpp.
 extern int js_index[2];
 #endif
 
@@ -63,7 +64,7 @@ static size_t pd_message_display(const char *msg, size_t len,
 				 unsigned int mark, bool update);
 static void pd_message_postpone(const char *msg);
 
-// Generic type for supported depths.
+/// Generic type for supported colour depths.
 typedef union {
 	uint32_t *u32;
 	uint24_t *u24;
@@ -74,20 +75,20 @@ typedef union {
 
 #ifdef WITH_OPENGL
 
-// Framebuffer texture
+/// Framebuffer texture.
 static struct {
-	unsigned int width; // texture width
-	unsigned int height; // texture height
-	unsigned int vis_width; // visible width
-	unsigned int vis_height; // visible height
-	GLuint id; // texture identifier
-	GLuint dlist; // display list
-	unsigned int u32: 1; // texture is 32-bit
-	unsigned int linear: 1; // linear filtering is enabled
+	unsigned int width; ///< texture width
+	unsigned int height; ///< texture height
+	unsigned int vis_width; ///< visible width
+	unsigned int vis_height; ///< visible height
+	GLuint id; ///< texture identifier
+	GLuint dlist; ///< display list
+	unsigned int u32:1; ///< texture is 32-bit
+	unsigned int linear:1; ///< linear filtering is enabled
 	union {
 		uint16_t *u16;
 		uint32_t *u32;
-	} buf; // 16 or 32-bit buffer
+	} buf; ///< 16 or 32-bit buffer
 } texture;
 
 static void release_texture();
@@ -97,54 +98,56 @@ static void update_texture();
 #endif // WITH_OPENGL
 
 static struct {
-	unsigned int width; // window width
-	unsigned int height; // window height
-	unsigned int bpp; // bits per pixel
-	unsigned int Bpp; // bytes per pixel
-	unsigned int x_offset; // horizontal offset
-	unsigned int y_offset; // vertical offset
-	unsigned int info_height; // message bar height
-	bpp_t buf; // generic pointer to pixel data
-	unsigned int pitch; // number of bytes per line in buf
-	SDL_Surface *surface; // SDL surface
-	unsigned int want_fullscreen: 1; // want fullscreen
-	unsigned int is_fullscreen: 1; // fullscreen enabled
+	unsigned int width; ///< window width
+	unsigned int height; ///< window height
+	unsigned int bpp; ///< bits per pixel
+	unsigned int Bpp; ///< bytes per pixel
+	unsigned int x_offset; ///< horizontal offset
+	unsigned int y_offset; ///< vertical offset
+	unsigned int info_height; ///< message bar height
+	bpp_t buf; ///< generic pointer to pixel data
+	unsigned int pitch; ///< number of bytes per line in buf
+	SDL_Surface *surface; ///< SDL surface
+	unsigned int want_fullscreen:1; ///< want fullscreen
+	unsigned int is_fullscreen:1; ///< fullscreen enabled
 #ifdef WITH_OPENGL
-	unsigned int last_video_height; // last video.height value
-	unsigned int want_opengl: 1; // want OpenGL
-	unsigned int is_opengl: 1; // OpenGL enabled
-	unsigned int opengl_ok: 1; // if textures are initialized
+	unsigned int last_video_height; ///< last video.height value
+	unsigned int want_opengl:1; ///< want OpenGL
+	unsigned int is_opengl:1; ///< OpenGL enabled
+	unsigned int opengl_ok:1; ///< if textures are initialized
 #endif
 #ifdef WITH_THREADS
-	unsigned int want_thread: 1; // want updates from a separate thread
-	unsigned int is_thread: 1; // thread is present
-	SDL_Thread *thread; // thread itself
-	SDL_mutex *lock; // lock for updates
-	SDL_cond *cond; // condition variable to signal updates
+	unsigned int want_thread:1; ///< want updates from a separate thread
+	unsigned int is_thread:1; ///< thread is present
+	SDL_Thread *thread; ///< thread itself
+	SDL_mutex *lock; ///< lock for updates
+	SDL_cond *cond; ///< condition variable to signal updates
 #endif
-	SDL_Color color[64]; // SDL colors for 8bpp modes
+	SDL_Color color[64]; ///< SDL colors for 8bpp modes
 } screen;
 
 static struct {
-	const unsigned int width; // 320
-	unsigned int height; // 224 or 240 (NTSC_VBLANK or PAL_VBLANK)
-	unsigned int x_scale; // scale horizontally
-	unsigned int y_scale; // scale vertically
-	unsigned int hz; // refresh rate
-	unsigned int is_pal: 1; // PAL enabled
-	uint8_t palette[256]; // palette for 8bpp modes (mdpal)
+	const unsigned int width; ///< 320
+	unsigned int height; ///< 224 or 240 (NTSC_VBLANK or PAL_VBLANK)
+	unsigned int x_scale; ///< scale horizontally
+	unsigned int y_scale; ///< scale vertically
+	unsigned int hz; ///< refresh rate
+	unsigned int is_pal: 1; ///< PAL enabled
+	uint8_t palette[256]; ///< palette for 8bpp modes (mdpal)
 } video = {
-	320, // width is always 320
-	NTSC_VBLANK, // NTSC height by default
-	2, // default scale for width
-	2, // default scale for height
-	NTSC_HZ, // 60Hz
-	0, // NTSC is enabled
+	320, ///< width is always 320
+	NTSC_VBLANK, ///< NTSC height by default
+	2, ///< default scale for width
+	2, ///< default scale for height
+	NTSC_HZ, ///< 60Hz
+	0, ///< NTSC is enabled
 	{ 0 }
 };
 
-// Call this before accessing screen.buf.
-// No syscalls allowed before screen_unlock().
+/**
+ * Call this before accessing screen.buf.
+ * No syscalls allowed before screen_unlock().
+ */
 static int screen_lock()
 {
 #ifdef WITH_THREADS
@@ -162,7 +165,9 @@ static int screen_lock()
 	return SDL_LockSurface(screen.surface);
 }
 
-// Call this after accessing screen.buf.
+/**
+ * Call this after accessing screen.buf.
+ */
 static void screen_unlock()
 {
 #ifdef WITH_THREADS
@@ -180,7 +185,9 @@ static void screen_unlock()
 	SDL_UnlockSurface(screen.surface);
 }
 
-// Do not call this directly, use screen_update() instead.
+/**
+ * Do not call this directly, use screen_update() instead.
+ */
 static void screen_update_once()
 {
 #ifdef WITH_OPENGL
@@ -270,7 +277,9 @@ static void screen_update_thread_stop()
 
 #endif // WITH_THREADS
 
-// Call this after writing into screen.buf.
+/**
+ * Call this after writing into screen.buf.
+ */
 static void screen_update()
 {
 #ifdef WITH_THREADS
@@ -298,24 +307,24 @@ const char *pd_options =
 
 static void mdscr_splash();
 
-// Sound
+/// Circular buffer and related functions.
 typedef struct {
-	size_t i; /* data start index */
-	size_t s; /* data size */
-	size_t size; /* buffer size */
+	size_t i; ///< data start index
+	size_t s; ///< data size
+	size_t size; ///< buffer size
 	union {
 		uint8_t *u8;
 		int16_t *i16;
-	} data;
+	} data; ///< storage
 } cbuf_t;
 
-static struct {
-	unsigned int rate; // samples rate
-	unsigned int samples; // number of samples required by the callback
-	cbuf_t cbuf; // circular buffer
-} sound;
-
-// Circular buffer management functions
+/**
+ * Write/copy data into a circular buffer.
+ * @param[in,out] cbuf Destination buffer.
+ * @param[in] src Buffer to copy from.
+ * @param size Size of src.
+ * @return Number of bytes copied.
+ */
 size_t cbuf_write(cbuf_t *cbuf, uint8_t *src, size_t size)
 {
 	size_t j;
@@ -344,6 +353,13 @@ size_t cbuf_write(cbuf_t *cbuf, uint8_t *src, size_t size)
 	return size;
 }
 
+/**
+ * Read bytes out of a circular buffer.
+ * @param[out] dst Destination buffer.
+ * @param[in,out] cbuf Circular buffer to read from.
+ * @param size Maximum number of bytes to copy to dst.
+ * @return Number of bytes copied.
+ */
 size_t cbuf_read(uint8_t *dst, cbuf_t *cbuf, size_t size)
 {
 	if (size > cbuf->s)
@@ -361,34 +377,41 @@ size_t cbuf_read(uint8_t *dst, cbuf_t *cbuf, size_t size)
 	return size;
 }
 
-// Messages
+/// Sound
 static struct {
-	unsigned int displayed:1; // whether message is currently displayed
-	unsigned long since; // since this number of microseconds
-	size_t length; // remaining length to display
-	char message[2048];
+	unsigned int rate; ///< samples rate
+	unsigned int samples; ///< number of samples required by the callback
+	cbuf_t cbuf; ///< circular buffer
+} sound;
+
+/// Messages
+static struct {
+	unsigned int displayed:1; ///< whether message is currently displayed
+	unsigned long since; ///< since this number of microseconds
+	size_t length; ///< remaining length to display
+	char message[2048]; ///< message
 } info;
 
-// Prompt
+/// Prompt
 static struct {
-	struct prompt status; // prompt status
-	char** complete; // completion results array
-	unsigned int skip; // number of entries to skip in the array
-	unsigned int common; // common length of all entries
+	struct prompt status; ///< prompt status
+	char** complete; ///< completion results array
+	unsigned int skip; ///< number of entries to skip in the array
+	unsigned int common; ///< common length of all entries
 } prompt;
 
-// Prompt return values.
-#define PROMPT_RET_CONT 0x01 // waiting for more input
-#define PROMPT_RET_EXIT 0x02 // leave prompt normally
-#define PROMPT_RET_ERROR 0x04 // leave prompt with error
-#define PROMPT_RET_ENTER 0x10 // previous line entered
-#define PROMPT_RET_MSG 0x80 // stop_events_msg() has been used
+/// Prompt return values
+#define PROMPT_RET_CONT 0x01 ///< waiting for more input
+#define PROMPT_RET_EXIT 0x02 ///< leave prompt normally
+#define PROMPT_RET_ERROR 0x04 ///< leave prompt with error
+#define PROMPT_RET_ENTER 0x10 ///< previous line entered
+#define PROMPT_RET_MSG 0x80 ///< stop_events_msg() has been used
 
 struct prompt_command {
 	const char* name;
-	// command function pointer
+	/// command function pointer
         int (*cmd)(class md&, unsigned int, const char**);
-	// completion function shoud complete the last entry in the array
+	/// completion function shoud complete the last entry in the array
 	char* (*cmpl)(class md&, unsigned int, const char**, unsigned int);
 };
 
@@ -411,6 +434,9 @@ static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
 #endif
 
+/**
+ * List of commands to auto complete.
+ */
 static const struct prompt_command prompt_command[] = {
 	{ "quit", prompt_cmd_exit, NULL },
 	{ "q", prompt_cmd_exit, NULL },
@@ -434,17 +460,20 @@ static const struct prompt_command prompt_command[] = {
 	{ NULL, NULL, NULL }
 };
 
-// Extra commands return values.
-#define CMD_OK 0x00 // command successful
-#define CMD_EINVAL 0x01 // invalid argument
-#define CMD_FAIL 0x02 // command failed
-#define CMD_ERROR 0x03 // fatal error, DGen should exit
-#define CMD_MSG 0x80 // stop_events_msg() has been used
+/// Extra commands return values.
+#define CMD_OK 0x00 ///< command successful
+#define CMD_EINVAL 0x01 ///< invalid argument
+#define CMD_FAIL 0x02 ///< command failed
+#define CMD_ERROR 0x03 ///< fatal error, DGen should exit
+#define CMD_MSG 0x80 ///< stop_events_msg() has been used
 
-// Stopped flag used by pd_stopped()
+/// Stopped flag used by pd_stopped()
 static int stopped = 0;
 
-// Elapsed time in microseconds
+/**
+ * Elapsed time in microseconds.
+ * @return Microseconds.
+ */
 unsigned long pd_usecs(void)
 {
 	struct timeval tv;
@@ -458,16 +487,27 @@ unsigned long pd_usecs(void)
 extern struct js_button js_map_button[2][16];
 #endif
 
-// Number of microseconds to sustain messages
+/// Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
 
 static void stop_events_msg(unsigned int mark, const char *msg, ...);
 
+/**
+ * Prompt "exit" command handler.
+ * @return Error status to make DGen exit.
+ */
 static int prompt_cmd_exit(class md&, unsigned int, const char**)
 {
 	return (CMD_ERROR | CMD_MSG);
 }
 
+/**
+ * Prompt "load" command handler.
+ * @param md Context.
+ * @param ac Number of arguments in av.
+ * @param av Arguments.
+ * @return Status code.
+ */
 static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 {
 	extern int slot;
@@ -540,6 +580,15 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 
 #ifdef WITH_JOYSTICK
 #define MAX_JS_CALIBRATE_BUTS	7
+
+/**
+ * Interactively calibrate a joystick.
+ * If n_args == 1, joystick 0 will be configured.
+ * If n_args == 2, configure joystick in string args[1].
+ * @param n_args Number of arguments.
+ * @param[in] args List of arguments.
+ * @return Status code.
+ */
 static int
 prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
 {
@@ -713,17 +762,24 @@ static int prompt_cmd_reset(class md& md, unsigned int, const char**)
 
 #ifdef WITH_CTV
 
+/**
+ * Filter that works on an output frame.
+ */
 struct filter {
-	const char *name;
+	const char *name; ///< name of filter
 	void (*func)(bpp_t buf, unsigned int buf_pitch,
 		     unsigned int xsize, unsigned int ysize,
-		     unsigned int bpp);
+		     unsigned int bpp); ///< function that implements filter
 };
 
 static const struct filter *filters_prescale[64];
 static const struct filter *filters_postscale[64];
 
-// Add filter to stack.
+/**
+ * Add filter to stack.
+ * @param stack Stack of filters.
+ * @param f Filter to add.
+ */
 static void filters_push(const struct filter **stack, const struct filter *f)
 {
 	size_t i;
@@ -738,7 +794,11 @@ static void filters_push(const struct filter **stack, const struct filter *f)
 	}
 }
 
-// Add filter to stack if not already in it.
+/**
+ * Add filter to stack if not already in it.
+ * @param stack Stack of filters.
+ * @param f Filter to add.
+ */
 static void filters_push_once(const struct filter **stack,
 			      const struct filter *f)
 {
@@ -756,7 +816,10 @@ static void filters_push_once(const struct filter **stack,
 	}
 }
 
-// Remove last filter from stack.
+/**
+ * Remove last filter from stack.
+ * @param stack Stack of filters.
+ */
 static void filters_pop(const struct filter **stack)
 {
 	size_t i;
@@ -773,7 +836,11 @@ static void filters_pop(const struct filter **stack)
 	stack[(i - 1)] = NULL;
 }
 
-// Remove all occurences of filter from the stack.
+/**
+ * Remove all occurences of filter from the stack.
+ * @param stack Stack of current filters.
+ * @param f Filter to remove.
+ */
 static void filters_pluck(const struct filter **stack, const struct filter *f)
 {
 	size_t i, j;
@@ -792,7 +859,10 @@ static void filters_pluck(const struct filter **stack, const struct filter *f)
 		stack[j] = NULL;
 }
 
-// Empty stack.
+/**
+ * Empty filters stack.
+ * @param stack Stack of filters.
+ */
 static void filters_empty(const struct filter **stack)
 {
 	size_t i;
@@ -808,7 +878,7 @@ static void set_swab();
 #endif // WITH_CTV
 
 struct scaling {
-	const char *name;
+	const char *name; ///< name of scaler
 	void (*func)(bpp_t dst, unsigned int dst_pitch,
 		     bpp_t src, unsigned int src_pitch,
 		     unsigned int xsize, unsigned int xscale,
@@ -822,6 +892,9 @@ static void (*scaling)(bpp_t dst, unsigned int dst_pitch,
 		       unsigned int ysize, unsigned int yscale,
 		       unsigned int bpp);
 
+/**
+ * Take a screenshot.
+ */
 static void do_screenshot(void)
 {
 	static unsigned int n = 0;
@@ -1004,7 +1077,9 @@ error:
 	fclose(fp);
 }
 
-// Document the -f switch
+/**
+ * SDL flags help.
+ */
 void pd_help()
 {
   printf(
@@ -1019,7 +1094,9 @@ void pd_help()
   );
 }
 
-// Handle rc variables
+/**
+ * Handle rc variables
+ */
 void pd_rc()
 {
 	// Set stuff up from the rcfile first, so we can override it with
@@ -1033,7 +1110,10 @@ void pd_rc()
 #endif
 }
 
-// Handle the switches
+/**
+ * Handle the switches.
+ * @param c Switch's value.
+ */
 void pd_option(char c, const char *)
 {
 	int xs, ys;
@@ -1138,6 +1218,11 @@ static void texture_init_dlist()
 	glEndList();
 }
 
+/**
+ * Round a value up to nearest power of two.
+ * @param v Value.
+ * @return Rounded value.
+ */
 static uint32_t roundup2(uint32_t v)
 {
 	--v;
@@ -1848,7 +1933,9 @@ static void filter_swab(bpp_t buf, unsigned int buf_pitch,
 	}
 }
 
-// No-op filter.
+/**
+ *  No-op filter.
+ */
 static void filter_off(bpp_t buf, unsigned int buf_pitch,
 		       unsigned int xsize, unsigned int ysize,
 		       unsigned int bpp)
@@ -1860,7 +1947,9 @@ static void filter_off(bpp_t buf, unsigned int buf_pitch,
 	(void)bpp;
 }
 
-// Available filters.
+/**
+ * List of available filters.
+ */
 static const struct filter filters_list[] = {
 	// The first four filters must match ctv_names in rc.cpp.
 	{ "off", filter_off },
@@ -1998,7 +2087,9 @@ static int set_scaling(const char *name)
 	return -1;
 }
 
-// Display splash screen.
+/**
+ * Display splash screen.
+ */
 static void mdscr_splash()
 {
 	unsigned int x;
@@ -2076,7 +2167,12 @@ static void mdscr_splash()
 	}
 }
 
-// Initialize screen.
+/**
+ * Initialize screen.
+ * @param width Width of display.
+ * @param height Height of display.
+ * @return 0 on success, nonzero on error.
+ */
 static int screen_init(unsigned int width, unsigned int height)
 {
 	SDL_Surface *tmp;
@@ -2434,6 +2530,11 @@ opengl_failed:
 	return ret;
 }
 
+/**
+ * Set fullscreen mode.
+ * @param toggle Nonzero to enable fullscreen, otherwise disable it.
+ * @return 0 on success.
+ */
 static int set_fullscreen(int toggle)
 {
 	unsigned int w;
@@ -2475,7 +2576,13 @@ static int set_fullscreen(int toggle)
 	return screen_init(w, h);
 }
 
-// Initialize SDL, and the graphics
+/**
+ * Initialize SDL, and the graphics.
+ * @param want_sound Nonzero if we want sound.
+ * @param want_pal Nonzero for PAL mode.
+ * @param hz Requested frame rate (between 0 and 1000).
+ * @return Nonzero if successful.
+ */
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
 	prompt_init(&prompt.status);
@@ -2548,7 +2655,12 @@ fail:
 	return 0;
 }
 
-// Reinitialize graphics
+/**
+ * Reinitialize graphics.
+ * @param want_pal Nonzero for PAL mode.
+ * @param hz Requested frame rate (between 0 and 1000).
+ * @return Nonzero if successful.
+ */
 int pd_graphics_reinit(int, int want_pal, int hz)
 {
 	if ((hz <= 0) || (hz > 1000)) {
@@ -2577,7 +2689,9 @@ fail:
 	return 0;
 }
 
-// Update palette
+/**
+ * Update palette.
+ */
 void pd_graphics_palette_update()
 {
 	unsigned int i;
@@ -2593,7 +2707,10 @@ void pd_graphics_palette_update()
 		SDL_SetColors(screen.surface, screen.color, 0, 64);
 }
 
-// Update screen
+/**
+ * Display screen.
+ * @param update False if screen buffer is garbage and must be updated first.
+ */
 void pd_graphics_update(bool update)
 {
 	static unsigned long fps_since = 0;
@@ -2672,7 +2789,11 @@ void pd_graphics_update(bool update)
 	screen_update();
 }
 
-// Callback for sound
+/**
+ * Callback for sound.
+ * @param stream Sound destination buffer.
+ * @param len Length of destination buffer.
+ */
 static void snd_callback(void *, Uint8 *stream, int len)
 {
 	size_t wrote;
@@ -2685,7 +2806,12 @@ static void snd_callback(void *, Uint8 *stream, int len)
 	memset(&stream[wrote], 0, ((size_t)len - wrote));
 }
 
-// Initialize the sound
+/**
+ * Initialize the sound.
+ * @param freq Sound samples rate.
+ * @param[in,out] samples Minimum buffer size in samples.
+ * @return Nonzero on success.
+ */
 int pd_sound_init(long &freq, unsigned int &samples)
 {
 	SDL_AudioSpec wanted;
@@ -2764,7 +2890,9 @@ snd_error:
 	return 0;
 }
 
-// Deinitialize sound subsystem.
+/**
+ * Deinitialize sound subsystem.
+ */
 void pd_sound_deinit()
 {
 	if (sound.cbuf.data.i16 != NULL) {
@@ -2776,18 +2904,25 @@ void pd_sound_deinit()
 	sndi.lr = NULL;
 }
 
-// Start/stop audio processing
+/**
+ * Start/stop audio processing.
+ */
 void pd_sound_start()
 {
   SDL_PauseAudio(0);
 }
 
+/**
+ * Pause sound.
+ */
 void pd_sound_pause()
 {
   SDL_PauseAudio(1);
 }
 
-// Return samples read/write indices in the buffer.
+/**
+ * Return samples read/write indices in the buffer.
+ */
 unsigned int pd_sound_rp()
 {
 	unsigned int ret;
@@ -2808,7 +2943,9 @@ unsigned int pd_sound_wp()
 	return (ret >> 2);
 }
 
-// Write contents of sndi to sound.cbuf
+/**
+ * Write contents of sndi to sound.cbuf.
+ */
 void pd_sound_write()
 {
 	SDL_LockAudio();
@@ -2816,8 +2953,10 @@ void pd_sound_write()
 	SDL_UnlockAudio();
 }
 
-// Tells whether DGen stopped intentionally so emulation can resume without
-// skipping frames.
+/**
+ * Tells whether DGen stopped intentionally so emulation can resume without
+ * skipping frames.
+ */
 int pd_stopped()
 {
 	int ret = stopped;
@@ -2826,12 +2965,18 @@ int pd_stopped()
 	return ret;
 }
 
+/**
+ * Keyboard input.
+ */
 typedef struct {
 	char *buf;
 	size_t pos;
 	size_t size;
 } kb_input_t;
 
+/**
+ * Keyboard input results.
+ */
 enum kb_input {
 	KB_INPUT_ABORTED,
 	KB_INPUT_ENTERED,
@@ -2839,7 +2984,13 @@ enum kb_input {
 	KB_INPUT_IGNORED
 };
 
-// Manage text input with some rudimentary history.
+/**
+ * Manage text input with some rudimentary history.
+ * @param input Input buffer.
+ * @param ksym Keyboard symbol.
+ * @param ksym_uni Unicode translation for keyboard symbol.
+ * @return Input result.
+ */
 static enum kb_input kb_input(kb_input_t *input, uint32_t ksym,
 			      uint16_t ksym_uni)
 {
@@ -2963,7 +3114,9 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 		pd_message_display(&buf[mark], disp_len, 0, true);
 }
 
-// Rehash rc vars that require special handling (see "SH" in rc.cpp).
+/**
+ * Rehash rc vars that require special handling (see "SH" in rc.cpp).
+ */
 static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 {
 	bool fail = false;
@@ -4724,7 +4877,9 @@ static size_t pd_message_display(const char *msg, size_t len,
 	return ret;
 }
 
-// Process status bar message
+/**
+ * Process status bar message.
+ */
 static void pd_message_process(void)
 {
 	size_t len = info.length;
@@ -4747,7 +4902,9 @@ static void pd_message_process(void)
 	info.length -= len;
 }
 
-// Postpone a message
+/**
+ * Postpone a message.
+ */
 static void pd_message_postpone(const char *msg)
 {
 	strncpy(&info.message[info.length], msg,
@@ -4756,7 +4913,9 @@ static void pd_message_postpone(const char *msg)
 	info.displayed = 1;
 }
 
-// Write a message to the status bar
+/**
+ * Write a message to the status bar.
+ */
 void pd_message(const char *msg, ...)
 {
 	va_list vl;
