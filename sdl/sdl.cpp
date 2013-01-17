@@ -1934,7 +1934,189 @@ static void filter_swab(bpp_t buf, unsigned int buf_pitch,
 }
 
 /**
- *  No-op filter.
+ * Special characters interpreted by filter_text().
+ * FILTER_TEXT_BG_NONE  transparent background.
+ * FILTER_TEXT_BG_BLACK black background.
+ * FILTER_TEXT_7X6      use 7x6 font.
+ * FILTER_TEXT_8X13     use 8x13 font.
+ * FILTER_TEXT_16X26    use 16x26 font.
+ * FILTER_TEXT_CENTER   center justify.
+ * FILTER_TEXT_LEFT     left justify.
+ * FILTER_TEXT_RIGHT    right justify.
+ */
+#define FILTER_TEXT_ESCAPE "\033"
+#define FILTER_TEXT_BG_NONE FILTER_TEXT_ESCAPE "\x01\x01"
+#define FILTER_TEXT_BG_BLACK FILTER_TEXT_ESCAPE "\x01\x02"
+#define FILTER_TEXT_7X6 FILTER_TEXT_ESCAPE "\x02\x01"
+#define FILTER_TEXT_8X13 FILTER_TEXT_ESCAPE "\x02\x02"
+#define FILTER_TEXT_16X26 FILTER_TEXT_ESCAPE "\x02\x03"
+#define FILTER_TEXT_CENTER FILTER_TEXT_ESCAPE "\x03\x01"
+#define FILTER_TEXT_LEFT FILTER_TEXT_ESCAPE "\x03\x02"
+#define FILTER_TEXT_RIGHT FILTER_TEXT_ESCAPE "\x03\x03"
+
+static char filter_text_str[2048];
+
+/**
+ * Append message to filter_text_str[].
+ */
+static void filter_text_msg(const char *fmt, ...)
+{
+	size_t off;
+	size_t len = sizeof(filter_text_str);
+	va_list vl;
+
+	assert(filter_text_str[(len - 1)] == '\0');
+	off = strlen(filter_text_str);
+	len -= off;
+	if (len == 0)
+		return;
+	va_start(vl, fmt);
+	vsnprintf(&filter_text_str[off], len, fmt, vl);
+	va_end(vl);
+}
+
+/**
+ * Text overlay filter.
+ */
+static void filter_text(bpp_t buf, unsigned int buf_pitch,
+			unsigned int xsize, unsigned int ysize,
+			unsigned int bpp)
+{
+	unsigned int Bpp = ((bpp + 1) / 8);
+	const char *str = filter_text_str;
+	const char *next = str;
+	bool clear = false;
+	bool flush = false;
+	enum { LEFT, CENTER, RIGHT } justify = LEFT;
+	const struct {
+		enum font_type type;
+		unsigned int width;
+		unsigned int height;
+	} font_data[] = {
+		{ FONT_TYPE_7X5, 7, (5 + 1) }, // +1 for vertical spacing.
+		{ FONT_TYPE_8X13, 8, 13 },
+		{ FONT_TYPE_16X26, 16, 26 }
+	}, *font = &font_data[0], *old_font = font;
+	unsigned int line_length = 0;
+	unsigned int line_off = 0;
+	unsigned int line_width = 0;
+	unsigned int line_height = font->height;
+
+	assert(filter_text_str[(sizeof(filter_text_str) - 1)] == '\0');
+	while (1) {
+		unsigned int len;
+		unsigned int width;
+
+		if ((*next == '\0') || (*next == '\n')) {
+		trunc:
+			if (flush == false) {
+				next = str;
+				assert(line_width <= xsize);
+				switch (justify) {
+				case LEFT:
+					line_off = 0;
+					break;
+				case CENTER:
+					line_off = ((xsize - line_width) / 2);
+					break;
+				case RIGHT:
+					line_off = (xsize - line_width);
+					break;
+				}
+				if (clear)
+					memset(buf.u8, 0,
+					       (buf_pitch * line_height));
+				font = old_font;
+				flush = true;
+			}
+			else if (*next == '\0')
+				break;
+			else {
+				if (*next == '\n')
+					++next;
+				str = next;
+				old_font = font;
+				line_length = 0;
+				line_off = 0;
+				line_width = 0;
+				buf.u8 += (buf_pitch * line_height);
+				ysize -= line_height;
+				line_height = font->height;
+				// Still enough vertical pixels for this line?
+				if (ysize < line_height)
+					break;
+				flush = false;
+			}
+		}
+		else if (*next == *FILTER_TEXT_ESCAPE) {
+			const char *tmp;
+			size_t sz;
+
+#define FILTER_TEXT_IS(f)				\
+			(tmp = (f), sz = strlen(f),	\
+			 !strncmp(tmp, next, sz))
+
+			if (FILTER_TEXT_IS(FILTER_TEXT_BG_NONE))
+				clear = false;
+			else if (FILTER_TEXT_IS(FILTER_TEXT_BG_BLACK))
+				clear = true;
+			else if (FILTER_TEXT_IS(FILTER_TEXT_CENTER))
+				justify = CENTER;
+			else if (FILTER_TEXT_IS(FILTER_TEXT_LEFT))
+				justify = LEFT;
+			else if (FILTER_TEXT_IS(FILTER_TEXT_RIGHT))
+				justify = RIGHT;
+			else if (FILTER_TEXT_IS(FILTER_TEXT_7X6))
+				font = &font_data[0];
+			else if (FILTER_TEXT_IS(FILTER_TEXT_8X13))
+				font = &font_data[1];
+			else if (FILTER_TEXT_IS(FILTER_TEXT_16X26))
+				font = &font_data[2];
+			next += sz;
+		}
+		else if ((line_width + font->width) <= xsize) {
+			++line_length;
+			line_width += font->width;
+			if (line_height < font->height) {
+				line_height = font->height;
+				// Still enough vertical pixels for this line?
+				if (ysize < line_height)
+					break;
+			}
+			++next;
+		}
+		else // Truncate line.
+			goto trunc;
+		if (flush == false)
+			continue;
+		// Compute number of characters and width.
+		len = 0;
+		width = 0;
+		while ((len != line_length) &&
+		       (next[len] != '\0') &&
+		       (next[len] != '\n') &&
+		       (next[len] != *FILTER_TEXT_ESCAPE)) {
+			width += font->width;
+			++len;
+		}
+		// Display.
+		len = font_text((buf.u8 +
+				 // Horizontal offset.
+				 (line_off * Bpp) +
+				 // Vertical offset.
+				 ((line_height - font->height) * buf_pitch)),
+				(xsize - line_off),
+				line_height, Bpp, buf_pitch, next, len, ~0u,
+				font->type);
+		line_off += width;
+		next += len;
+	}
+}
+
+static const struct filter filter_text_def = { "text", filter_text };
+
+/**
+ * No-op filter.
  */
 static void filter_off(bpp_t buf, unsigned int buf_pitch,
 		       unsigned int xsize, unsigned int ysize,
@@ -1951,7 +2133,7 @@ static void filter_off(bpp_t buf, unsigned int buf_pitch,
  * List of available filters.
  */
 static const struct filter filters_list[] = {
-	// The first four filters must match ctv_names in rc.cpp.
+	// The filters must match ctv_names in rc.cpp.
 	{ "off", filter_off },
 	{ "blur", filter_blur },
 	{ "scanline", filter_scanline },
