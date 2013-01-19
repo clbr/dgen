@@ -3093,7 +3093,8 @@ static void stop_events_msg(unsigned int mark, const char *msg, ...)
 	len = (size_t)vsnprintf(buf, sizeof(buf), msg, vl);
 	va_end(vl);
 	buf[(sizeof(buf) - 1)] = '\0';
-	disp_len = font_text_len(screen.width, screen.info_height);
+	disp_len = font_text_max_len(screen.width, screen.info_height,
+				     FONT_TYPE_AUTO);
 	if (mark > len) {
 		if (len <= disp_len)
 			pd_message_display(buf, len, ~0u, true);
@@ -4856,7 +4857,7 @@ static size_t pd_message_write(const char *msg, size_t len, unsigned int mark)
 	if (len != 0)
 		ret = font_text(buf, screen.width, screen.info_height,
 				screen.Bpp, screen.pitch, msg, len,
-				mark);
+				mark, FONT_TYPE_AUTO);
 	screen_unlock();
 	return ret;
 }

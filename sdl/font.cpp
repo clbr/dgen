@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "font.h"	/* The interface functions */
 
 #ifndef FONT_VISIBLE
@@ -26,14 +27,41 @@ const struct dgen_font {
 	{ 0, 0, NULL }
 };
 
-static void font_mark(uint8_t *buf, unsigned int width, unsigned int height,
+static const struct dgen_font *font_select(unsigned int max_width,
+					   unsigned int max_height,
+					   enum font_type type)
+{
+	const struct dgen_font *font = dgen_font;
+
+	assert(type <= FONT_TYPE_AUTO);
+	if (type != FONT_TYPE_AUTO) {
+		// Make sure we're able to display at least one character.
+		font = &font[type];
+		if ((max_width < font->w) || (max_height < font->h))
+			return NULL;
+		return font;
+	}
+	// Chose a font able to display at least FONT_VISIBLE characters.
+	while ((font->data != NULL) &&
+	       ((font->h > max_height) ||
+		((max_width / font->w) < FONT_VISIBLE))) {
+		++font;
+		continue;
+	}
+	if (font->data == NULL)
+		return NULL;
+	return font;
+}
+
+static void font_mark(uint8_t *buf,
+		      unsigned int max_width, unsigned int max_height,
 		      unsigned int bytes_per_pixel, unsigned int pitch,
 		      unsigned int mark_x,
 		      unsigned int font_w, unsigned int font_h)
 {
 	unsigned int y;
 
-	if (((mark_x + font_w) > width) || (height < font_h))
+	if (((mark_x + font_w) > max_width) || (max_height < font_h))
 		return;
 	buf += (mark_x * bytes_per_pixel);
 	for (y = 0; (y != font_h); ++y) {
@@ -46,37 +74,49 @@ static void font_mark(uint8_t *buf, unsigned int width, unsigned int height,
 	}
 }
 
-size_t font_text_len(unsigned int width, unsigned int height)
+size_t font_text_width(const char *msg, size_t len,
+		       unsigned int max_width, unsigned int max_height,
+		       enum font_type type)
 {
-	const struct dgen_font *font = dgen_font;
+	const struct dgen_font *font =
+		font_select(max_width, max_height, type);
+	size_t width = 0;
 
-	while ((font->data != NULL) &&
-	       ((font->h > height) || ((width / font->w) < FONT_VISIBLE))) {
-		++font;
-		continue;
+	if (font == NULL)
+		return 0;
+	while ((*msg != '\0') && (len)) {
+		width += font->w;
+		++msg;
+		--len;
 	}
-	if (font->data == NULL)
-		return ~(size_t)0;
-	return (width / font->w);
+	return width;
 }
 
-size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
-		 unsigned int bytes_per_pixel, unsigned int pitch,
-		 const char *msg, size_t len, unsigned int mark)
+size_t font_text_max_len(unsigned int max_width, unsigned int max_height,
+			 enum font_type type)
 {
-	const struct dgen_font *font = dgen_font;
+	const struct dgen_font *font =
+		font_select(max_width, max_height, type);
+
+	if (font == NULL)
+		return ~(size_t)0;
+	return (max_width / font->w);
+}
+
+size_t font_text(uint8_t *buf,
+		 unsigned int max_width, unsigned int max_height,
+		 unsigned int bytes_per_pixel, unsigned int pitch,
+		 const char *msg, size_t len, unsigned int mark,
+		 enum font_type type)
+{
+	const struct dgen_font *font;
 	uint8_t *p_max;
 	size_t r;
 	unsigned int x;
 
 	if (len == 0)
 		return 0;
-	while ((font->data != NULL) &&
-	       ((font->h > height) || ((width / font->w) < FONT_VISIBLE))) {
-		++font;
-		continue;
-	}
-	if (font->data == NULL) {
+	if ((font = font_select(max_width, max_height, type)) == NULL) {
 		printf("info: %.*s\n", (unsigned int)len, msg);
 		if (mark <= len) {
 			printf("      ");
@@ -86,9 +126,9 @@ size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 		}
 		return len;
 	}
-	p_max = (buf + (pitch * height));
+	p_max = (buf + (pitch * max_height));
 	for (x = 0, r = 0;
-	     ((msg[r] != '\0') && (r != len) && ((x + font->w) <= width));
+	     ((msg[r] != '\0') && (r != len) && ((x + font->w) <= max_width));
 	     ++r, x += font->w) {
 		const short *glyph = (*font->data)[(msg[r] & 0x7f)];
 		uint8_t *p = (buf + (x * bytes_per_pixel));
@@ -111,11 +151,11 @@ size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
 			++glyph;
 		}
 		if (r == mark)
-			font_mark(buf, width, height, bytes_per_pixel, pitch,
-				  x, font->w, font->h);
+			font_mark(buf, max_width, max_height, bytes_per_pixel,
+				  pitch, x, font->w, font->h);
 	}
 	if (r == mark)
-		font_mark(buf, width, height, bytes_per_pixel, pitch,
+		font_mark(buf, max_width, max_height, bytes_per_pixel, pitch,
 			  x, font->w, font->h);
 	return r;
 }

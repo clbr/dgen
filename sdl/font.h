@@ -4,9 +4,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
-extern size_t font_text_len(unsigned int width, unsigned int height);
-extern size_t font_text(uint8_t *buf, unsigned int width, unsigned int height,
+enum font_type {
+	FONT_TYPE_16X26,
+	FONT_TYPE_8X13,
+	FONT_TYPE_7X5,
+	FONT_TYPE_AUTO
+};
+
+extern size_t font_text_width(const char *msg, size_t len,
+			      unsigned int max_width, unsigned int max_height,
+			      enum font_type type);
+extern size_t font_text_max_len(unsigned int max_width,
+				unsigned int max_height,
+				enum font_type type);
+extern size_t font_text(uint8_t *buf,
+			unsigned int max_width, unsigned int max_height,
 			unsigned int bytes_per_pixel, unsigned int pitch,
-			const char *msg, size_t len, unsigned int mark);
+			const char *msg, size_t len, unsigned int mark,
+			enum font_type type);
 
 #endif /* __FONT_H__ */
