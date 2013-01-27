@@ -31,6 +31,7 @@ SYSTEM_H_BEGIN_
 #define DGEN_DIRSEP "\\/"
 #endif
 
+#define elemof(a) (sizeof(a) / sizeof((a)[0]))
 #define BITS_TO_BYTES(v) ((((v) + 7u) & ~7u) >> 3)
 
 #define DGEN_READ 0x1
