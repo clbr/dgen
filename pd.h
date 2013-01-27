@@ -73,6 +73,9 @@ int pd_handle_events(md &megad);
 // skipping frames.
 int pd_stopped();
 
+// If true, stop emulation (display last frame repeatedly).
+extern bool pd_freeze;
+
 // These are called to display and clear game messages.
 void pd_message(const char *fmt, ...);
 void pd_clear_message();

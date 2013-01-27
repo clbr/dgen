@@ -470,6 +470,9 @@ static const struct prompt_command prompt_command[] = {
 /// Stopped flag used by pd_stopped()
 static int stopped = 0;
 
+/// Enable emulation by default.
+bool pd_freeze = false;
+
 /**
  * Elapsed time in microseconds.
  * @return Microseconds.

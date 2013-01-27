@@ -548,8 +548,12 @@ next_rom:
 			frames_old = frames;
 		}
 
-		if (dgen_frameskip == 0)
+		if (dgen_frameskip == 0) {
+			// Check whether megad->one_frame() must be called.
+			if (pd_freeze)
+				goto frozen;
 			goto do_not_skip;
+		}
 
 		// Measure how many frames to do this round.
 		usec += ((newclk - oldclk) & 0x3fffff); // no more than 4 secs
@@ -574,6 +578,10 @@ next_rom:
 			}
 		}
 		else {
+			// Check whether megad->one_frame() must be called.
+			if (pd_freeze)
+				goto frozen;
+
 			// Draw frames.
 			while (frames_todo != 1) {
 				do_demo(*megad, file, &demo_status);
@@ -596,6 +604,7 @@ next_rom:
 			}
 			else
 				megad->one_frame(&mdscr, mdpal, NULL);
+		frozen:
 			if ((mdpal) && (pal_dirty)) {
 				pd_graphics_palette_update();
 				pal_dirty = 0;
