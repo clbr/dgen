@@ -428,10 +428,10 @@ static char* prompt_cmpl_filter_push(class md&, unsigned int, const char**,
 				     unsigned int);
 static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
-#endif
 
 #ifdef WITH_JOYSTICK
 static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
+#endif
 #endif
 
 /**
@@ -453,9 +453,9 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
-#endif
 #ifdef WITH_JOYSTICK
 	{ "calibrate_js", prompt_cmd_calibrate_js, NULL },
+#endif
 #endif
 	{ NULL, NULL, NULL }
 };
@@ -580,101 +580,6 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	}
 	return (CMD_OK | CMD_MSG);
 }
-
-#ifdef WITH_JOYSTICK
-#define MAX_JS_CALIBRATE_BUTS	7
-
-/**
- * Interactively calibrate a joystick.
- * If n_args == 1, joystick 0 will be configured.
- * If n_args == 2, configure joystick in string args[1].
- * @param n_args Number of arguments.
- * @param[in] args List of arguments.
- * @return Status code.
- */
-static int
-prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
-{
-	const char	*but_names[MAX_JS_CALIBRATE_BUTS] =
-			    {"A", "B", "C", "Start", "X", "Y", "Z"};
-	int		 captured[MAX_JS_CALIBRATE_BUTS] = {-1, -1, -1, -1};
-	SDL_Event	 event;
-	int		 but_no = 0, bailout = 0, js_no, pad_type = 6;
-	int		 i;
-
-	/* check args first */
-	if (n_args == 1)
-		js_no = 0;
-	else if (n_args == 2) {
-		js_no = atoi(args[1]) - 1;
-		if ((js_no < 0) || (js_no > 1))
-			return (CMD_EINVAL);
-	} else {
-		return (CMD_EINVAL);
-	}
-
-	/* repeatedly ask the user to press buttons */
-	while ((!bailout) && (but_no < MAX_JS_CALIBRATE_BUTS) && (SDL_WaitEvent(&event))) {
-
-		if (but_no == 4) {
-			pd_message("Press %s on joystick %d (escape to abort, "
-			    "press start again to use only 3 buttons)",
-			    but_names[but_no], js_no + 1);
-		} else {
-			pd_message("Press %s on joystick %d (escape to abort)",
-			    but_names[but_no], js_no + 1);
-		}
-
-		screen_update();
-
-		switch(event.type) {
-		case SDL_JOYBUTTONDOWN:
-			/* check they pressed on the right controller */
-			if (event.jaxis.which != js_index[js_no])
-				break;
-
-			/* if they only want 3 buttons */
-			if ((but_no == 4) &&  (event.jbutton.button == captured[3])) {
-				pad_type = 3;
-				while (but_no < MAX_JS_CALIBRATE_BUTS)
-					captured[but_no++] = 0;
-				break;
-			}
-			captured[but_no++] = event.jbutton.button;
-			break;
-		case SDL_KEYDOWN:
-			if (event.key.keysym.sym == SDLK_ESCAPE)
-				bailout = 1;
-			break;
-		};
-	}
-
-	if (bailout) {
-		pd_message("Aborted");
-		return (CMD_FAIL | CMD_MSG);
-	}
-
-	/* update mapping */
-	js_map_button[js_no][captured[0]].mask = MD_A_MASK;
-	js_map_button[js_no][captured[1]].mask = MD_B_MASK;
-	js_map_button[js_no][captured[2]].mask = MD_C_MASK;
-	js_map_button[js_no][captured[3]].mask = MD_START_MASK;
-	js_map_button[js_no][captured[4]].mask = MD_X_MASK;
-	js_map_button[js_no][captured[5]].mask = MD_Y_MASK;
-	js_map_button[js_no][captured[6]].mask = MD_Z_MASK;
-
-	/* Clear any commands. */
-	for (i = 0; (i < 7); ++i) {
-		free(js_map_button[js_no][i].value);
-		js_map_button[js_no][i].value = NULL;
-	}
-
-	pd_message("Calibration of (%d-button) joystick %d complete!",
-	    pad_type, js_no + 1);
-
-	return (CMD_OK | CMD_MSG);
-}
-#endif
 
 static void rehash_prompt_complete_common()
 {
@@ -2242,6 +2147,170 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 	filters_empty(filters_prescale);
 	return CMD_OK;
 }
+
+#ifdef WITH_JOYSTICK
+
+static struct {
+	char const* name;
+	unsigned int const mask;
+	struct js_button *jsb;
+} calibrate_js_step[] = {
+	{ "START", MD_START_MASK, NULL },
+	{ "MODE", MD_MODE_MASK, NULL },
+	{ "A", MD_A_MASK, NULL },
+	{ "B", MD_B_MASK, NULL },
+	{ "C", MD_C_MASK, NULL },
+	{ "X", MD_X_MASK, NULL },
+	{ "Y", MD_Y_MASK, NULL },
+	{ "Z", MD_Z_MASK, NULL },
+	{ "UP", MD_UP_MASK, NULL },
+	{ "DOWN", MD_DOWN_MASK, NULL },
+	{ "LEFT", MD_LEFT_MASK, NULL },
+	{ "RIGHT", MD_RIGHT_MASK, NULL }
+};
+
+static unsigned int calibrate_js_state = 0; ///< nonzero during calibration
+static int calibrate_js_no = 0; ///< index of joypad being calibrated
+static struct js_button *calibrate_js_ok = NULL; ///< confirmation when done
+
+static void calibrate_js_over()
+{
+	calibrate_js_state = 0;
+	pd_freeze = false;
+	filters_pluck(filters_prescale, &filter_text_def);
+}
+
+static void calibrate_js_start()
+{
+	unsigned int i;
+
+	if (js_index[calibrate_js_no] < 0) {
+		calibrate_js_over();
+		return;
+	}
+	for (i = 0; (i != elemof(calibrate_js_step)); ++i)
+		calibrate_js_step[i].jsb = NULL;
+	filter_text_str[0] = '\0';
+	filter_text_msg(FILTER_TEXT_BG_BLACK
+			FILTER_TEXT_CENTER
+			FILTER_TEXT_8X13
+			"CONTROLLER %u BUTTONS\n"
+			FILTER_TEXT_7X6
+			"\n"
+			"MD controller %u uses joystick %d\n"
+			"\n"
+			FILTER_TEXT_LEFT
+			"Configure controller buttons by pressing\n"
+			"them twice, or skip them by pressing two\n"
+			"different buttons.\n"
+			"\n"
+			"Press %s: ",
+			(calibrate_js_no + 1),
+			(calibrate_js_no + 1),
+			js_index[calibrate_js_no],
+			calibrate_js_step[0].name);
+	calibrate_js_state = 1;
+	calibrate_js_ok = NULL;
+}
+
+static void calibrate_js_process(struct js_button *jsb, int js,
+				 unsigned int button)
+{
+	unsigned int state = calibrate_js_state;
+	struct js_button **target;
+
+	if (js != js_index[calibrate_js_no]) {
+		calibrate_js_over();
+		return;
+	}
+	if (state > elemof(calibrate_js_step))
+		target = &calibrate_js_ok;
+	else {
+		--state;
+		target = &calibrate_js_step[state].jsb;
+	}
+	if (*target == NULL) {
+		*target = jsb;
+		filter_text_msg("button %u, confirm: ", button);
+		return;
+	}
+	if (*target != jsb) {
+		*target = NULL;
+		filter_text_msg("none\n");
+	}
+	else
+		filter_text_msg("OK\n");
+	++state;
+	if (state < elemof(calibrate_js_step))
+		filter_text_msg("Press %s: ", calibrate_js_step[state].name);
+	else if (state == elemof(calibrate_js_step))
+		filter_text_msg("\n"
+				"Press any button twice to validate.\n"
+				"OK? ");
+	else {
+		if (*target == jsb) {
+			unsigned int i;
+			int idx = calibrate_js_no;
+
+			// Clean up old configuration.
+			for (i = 0; (i < elemof(js_map_button[idx])); ++i) {
+				free(js_map_button[idx][i].value);
+				memset(js_map_button[idx], 0,
+				       sizeof(js_map_button[idx]));
+			}
+			// Save new mapping.
+			for (i = 0; (i != elemof(calibrate_js_step)); ++i) {
+				jsb = calibrate_js_step[i].jsb;
+				if (jsb != NULL)
+					jsb->mask = calibrate_js_step[i].mask;
+			}
+			stop_events_msg(~0u,
+					"Controller %d configuration saved.",
+					(calibrate_js_no + 1));
+		}
+		else
+			stop_events_msg(~0u,
+					"Controller %d configuration aborted.",
+					(calibrate_js_no + 1));
+		calibrate_js_over();
+		return;
+	}
+	++calibrate_js_state;
+}
+
+/**
+ * Interactively calibrate a joystick.
+ * If n_args == 1, joystick 0 will be configured.
+ * If n_args == 2, configure joystick in string args[1].
+ * @param n_args Number of arguments.
+ * @param[in] args List of arguments.
+ * @return Status code.
+ */
+static int
+prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
+{
+	/* check args first */
+	if (n_args == 1)
+		calibrate_js_no = 0;
+	else if (n_args == 2) {
+		calibrate_js_no = (atoi(args[1]) - 1);
+		if (calibrate_js_no > 1)
+			return CMD_EINVAL;
+	}
+	else
+		return CMD_EINVAL;
+	if (js_index[calibrate_js_no] < 0) {
+		stop_events_msg(~0u, "There's no joystick for controller %d.",
+				(calibrate_js_no + 1));
+		return (CMD_FAIL | CMD_MSG);
+	}
+	pd_freeze = true;
+	calibrate_js_start();
+	filters_push_once(filters_prescale, &filter_text_def);
+	return CMD_OK;
+}
+
+#endif // WITH_JOYSTICK
 
 #endif // WITH_CTV
 
@@ -4904,9 +4973,20 @@ int pd_handle_events(md &megad)
 		// Ignore more than 16 buttons (a reasonable limit :)
 		if (event.jbutton.button > 15)
 			break;
-		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
-		    (pad = 1, event.jaxis.which != js_index[pad]))
+		if ((pad = 0, event.jbutton.which != js_index[pad]) &&
+		    (pad = 1, event.jbutton.which != js_index[pad]))
 			break;
+#ifdef WITH_CTV
+		if (calibrate_js_state) {
+			if (event.type == SDL_JOYBUTTONUP)
+				break;
+			calibrate_js_process
+				(&js_map_button[pad][event.jbutton.button],
+				 event.jbutton.which,
+				 event.jbutton.button);
+			break;
+		}
+#endif
 		jsb = &js_map_button[pad][event.jbutton.button];
 		if (event.type == SDL_JOYBUTTONDOWN)
 			megad.pad[pad] &= ~jsb->mask;
@@ -4948,6 +5028,9 @@ int pd_handle_events(md &megad)
 		break;
 #endif // WITH_JOYSTICK
 	case SDL_KEYDOWN:
+#if defined(WITH_JOYSTICK) && defined(WITH_CTV)
+		calibrate_js_over();
+#endif // defined(WITH_JOYSTICK) && defined(WITH_CTV)
 		ksym = event.key.keysym.sym;
 		ksym_uni = event.key.keysym.unicode;
 		if ((ksym_uni < 0x20) ||
