@@ -47,11 +47,6 @@
 #include "hqx.h"
 #endif
 
-#ifdef WITH_JOYSTICK
-/// Joysticks indices as defined in joystick.cpp.
-extern int js_index[2];
-#endif
-
 #ifdef WITH_SCALE2X
 extern "C" {
 #include "scalebit.h"
@@ -430,7 +425,9 @@ static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 
 #ifdef WITH_JOYSTICK
+#if 0 // XXX temporarily disabled.
 static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
+#endif // 0
 #endif
 #endif
 
@@ -454,7 +451,9 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
 #ifdef WITH_JOYSTICK
+#if 0 // XXX temporarily disabled.
 	{ "calibrate_js", prompt_cmd_calibrate_js, NULL },
+#endif // 0
 #endif
 #endif
 	{ NULL, NULL, NULL }
@@ -484,11 +483,6 @@ unsigned long pd_usecs(void)
 	gettimeofday(&tv, NULL);
 	return (unsigned long)((tv.tv_sec * 1000000) + tv.tv_usec);
 }
-
-#ifdef WITH_JOYSTICK
-// Extern joystick stuff
-extern struct js_button js_map_button[2][16];
-#endif
 
 /// Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
@@ -1864,6 +1858,7 @@ static void filter_swab(bpp_t buf, unsigned int buf_pitch,
 
 static char filter_text_str[2048];
 
+#if 0 // XXX temporarily disabled.
 /**
  * Append message to filter_text_str[].
  */
@@ -1882,6 +1877,7 @@ static void filter_text_msg(const char *fmt, ...)
 	vsnprintf(&filter_text_str[off], len, fmt, vl);
 	va_end(vl);
 }
+#endif // XXX 0
 
 /**
  * Text overlay filter.
@@ -2149,6 +2145,7 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 }
 
 #ifdef WITH_JOYSTICK
+#if 0 // XXX temporarily disabled.
 
 static struct {
 	char const* name;
@@ -2310,6 +2307,7 @@ prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
 	return CMD_OK;
 }
 
+#endif // 0
 #endif // WITH_JOYSTICK
 
 #endif // WITH_CTV
@@ -3485,9 +3483,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		(void)0;
 #endif
 	}
-	else if ((rc->variable == &dgen_joystick) ||
-		 (rc->variable == &dgen_joystick1_dev) ||
-		 (rc->variable == &dgen_joystick2_dev))
+	else if (rc->variable == &dgen_joystick)
 		init_joystick = true;
 	else if (rc->variable == &dgen_hz) {
 		// See md::md().
@@ -3596,8 +3592,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 #ifdef WITH_JOYSTICK
 		megad.deinit_joysticks();
 		if (dgen_joystick)
-			megad.init_joysticks(dgen_joystick1_dev,
-					     dgen_joystick2_dev);
+			megad.init_joysticks();
 #else
 		fail = true;
 #endif
@@ -3636,52 +3631,15 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	else if (rc->parser == rc_boolean)
 		stop_events_msg(~0u, "%s is %s", rc->fieldname,
 				((val) ? "true" : "false"));
-	else if (rc->parser == rc_jsmap) {
-		const char *pad;
-		struct js_button *jsb =
-			(struct js_button *)rc->variable;
+	else if (rc->parser == rc_joypad) {
+		char *js = dump_joypad(val);
 
-		if (jsb->mask == MD_UP_MASK)
-			pad = "up";
-		else if (jsb->mask == MD_DOWN_MASK)
-			pad = "down";
-		else if (jsb->mask == MD_LEFT_MASK)
-			pad = "left";
-		else if (jsb->mask == MD_RIGHT_MASK)
-			pad = "right";
-		else if (jsb->mask == MD_B_MASK)
-			pad = "B";
-		else if (jsb->mask == MD_C_MASK)
-			pad = "C";
-		else if (jsb->mask == MD_A_MASK)
-			pad = "A";
-		else if (jsb->mask == MD_START_MASK)
-			pad = "start";
-		else if (jsb->mask == MD_Z_MASK)
-			pad = "Z";
-		else if (jsb->mask == MD_Y_MASK)
-			pad = "Y";
-		else if (jsb->mask == MD_X_MASK)
-			pad = "X";
-		else if (jsb->mask == MD_MODE_MASK)
-			pad = "mode";
+		if ((js == NULL) || (js[0] == '\0'))
+			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
 		else
-			pad = jsb->value;
-		if (pad == NULL)
-			stop_events_msg(~0u, "%s isn't mapped", rc->fieldname);
-		else {
-			char *s = backslashify((const uint8_t *)pad,
-					       strlen(pad), 0, NULL);
-
-			if (s == NULL)
-				stop_events_msg(~0u, "%s is mapped to \"%s\"",
-						rc->fieldname, pad);
-			else {
-				stop_events_msg(~0u, "%s is mapped to \"%s\"",
-						rc->fieldname, s);
-				free(s);
-			}
-		}
+			stop_events_msg(~0u, "%s is bound to \"%s\"",
+					rc->fieldname, js);
+		free(js);
 	}
 	else if (rc->parser == rc_ctv) {
 		i = val;
@@ -4279,11 +4237,11 @@ gg:
 			if (event.key.keysym.mod & KMOD_META)
 				ksym |= KEYSYM_MOD_META;
 			if (gg == 0) {
-				if (ksym == dgen_game_genie) {
+				if (ksym == dgen_game_genie[0]) {
 					gg = 2;
 					goto gg;
 				}
-				if (ksym == dgen_prompt) {
+				if (ksym == dgen_prompt[0]) {
 					gg = 4;
 					goto gg;
 				}
@@ -4362,12 +4320,12 @@ gg:
 					break;
 				}
 			// We can still quit :)
-			if (event.key.keysym.sym == dgen_quit) {
+			if (event.key.keysym.sym == dgen_quit[0]) {
 				handle_prompt_complete_clear();
 				SDL_EnableKeyRepeat(0, 0);
 				return 0;
 			}
-			if (event.key.keysym.sym == dgen_stop)
+			if (event.key.keysym.sym == dgen_stop[0])
 				goto resume;
 			break;
 		case SDL_QUIT: {
@@ -4463,13 +4421,15 @@ enum ctl_e {
 // Controls definitions.
 struct ctl {
 	enum ctl_e type;
-	intptr_t const* ksym;
-	int (*const press)(struct ctl const&, md&);
-	int (*const release)(struct ctl const&, md&);
+	intptr_t const (*rc)[2];
+	bool pressed;
+	int (*const press)(struct ctl&, md&);
+	int (*const release)(struct ctl&, md&);
 };
 
-static int ctl_pad1(struct ctl const& ctl, md& megad)
+static int ctl_pad1(struct ctl& ctl, md& megad)
 {
+	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
 		megad.pad[0] &= ~0x01;
@@ -4513,8 +4473,9 @@ static int ctl_pad1(struct ctl const& ctl, md& megad)
 	return 1;
 }
 
-static int ctl_pad1_release(struct ctl const& ctl, md& megad)
+static int ctl_pad1_release(struct ctl& ctl, md& megad)
 {
+	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
 		megad.pad[0] |= 0x01;
@@ -4558,8 +4519,9 @@ static int ctl_pad1_release(struct ctl const& ctl, md& megad)
 	return 1;
 }
 
-static int ctl_pad2(struct ctl const& ctl, md& megad)
+static int ctl_pad2(struct ctl& ctl, md& megad)
 {
+	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
 		megad.pad[1] &= ~0x01;
@@ -4603,8 +4565,9 @@ static int ctl_pad2(struct ctl const& ctl, md& megad)
 	return 1;
 }
 
-static int ctl_pad2_release(struct ctl const& ctl, md& megad)
+static int ctl_pad2_release(struct ctl& ctl, md& megad)
 {
+	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
 		megad.pad[1] |= 0x01;
@@ -4648,12 +4611,12 @@ static int ctl_pad2_release(struct ctl const& ctl, md& megad)
 	return 1;
 }
 
-static int ctl_dgen_quit(struct ctl const&, md&)
+static int ctl_dgen_quit(struct ctl&, md&)
 {
 	return 0;
 }
 
-static int ctl_dgen_craptv_toggle(struct ctl const&, md&)
+static int ctl_dgen_craptv_toggle(struct ctl&, md&)
 {
 #ifdef WITH_CTV
 	dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
@@ -4663,7 +4626,7 @@ static int ctl_dgen_craptv_toggle(struct ctl const&, md&)
 	return 1;
 }
 
-static int ctl_dgen_scaling_toggle(struct ctl const&, md&)
+static int ctl_dgen_scaling_toggle(struct ctl&, md&)
 {
 	dgen_scaling = ((dgen_scaling + 1) % NUM_SCALING);
 	if (set_scaling(scaling_names[dgen_scaling]))
@@ -4675,34 +4638,34 @@ static int ctl_dgen_scaling_toggle(struct ctl const&, md&)
 	return 1;
 }
 
-static int ctl_dgen_reset(struct ctl const&, md& megad)
+static int ctl_dgen_reset(struct ctl&, md& megad)
 {
 	megad.reset();
 	pd_message("Genesis reset.");
 	return 1;
 }
 
-static int ctl_dgen_slot(struct ctl const& ctl, md&)
+static int ctl_dgen_slot(struct ctl& ctl, md&)
 {
 	slot = ((int)ctl.type - CTL_DGEN_SLOT0);
 	pd_message("Selected save slot %d.", slot);
 	return 1;
 }
 
-static int ctl_dgen_save(struct ctl const&, md& megad)
+static int ctl_dgen_save(struct ctl&, md& megad)
 {
 	md_save(megad);
 	return 1;
 }
 
-static int ctl_dgen_load(struct ctl const&, md& megad)
+static int ctl_dgen_load(struct ctl&, md& megad)
 {
 	md_load(megad);
 	return 1;
 }
 
 // Cycle Z80 core.
-static int ctl_dgen_z80_toggle(struct ctl const&, md& megad)
+static int ctl_dgen_z80_toggle(struct ctl&, md& megad)
 {
 	const char *msg;
 
@@ -4733,7 +4696,7 @@ static int ctl_dgen_z80_toggle(struct ctl const&, md& megad)
 
 // Added this CPU core hot swap.  Compile both Musashi and StarScream
 // in, and swap on the fly like DirectX DGen. [PKH]
-static int ctl_dgen_cpu_toggle(struct ctl const&, md& megad)
+static int ctl_dgen_cpu_toggle(struct ctl&, md& megad)
 {
 	const char *msg;
 
@@ -4762,28 +4725,28 @@ static int ctl_dgen_cpu_toggle(struct ctl const&, md& megad)
 	return 1;
 }
 
-static int ctl_dgen_stop(struct ctl const&, md& megad)
+static int ctl_dgen_stop(struct ctl&, md& megad)
 {
 	megad.pad[0] = MD_PAD_UNTOUCHED;
 	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 0);
 }
 
-static int ctl_dgen_prompt(struct ctl const&, md& megad)
+static int ctl_dgen_prompt(struct ctl&, md& megad)
 {
 	megad.pad[0] = MD_PAD_UNTOUCHED;
 	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 3);
 }
 
-static int ctl_dgen_game_genie(struct ctl const&, md& megad)
+static int ctl_dgen_game_genie(struct ctl&, md& megad)
 {
 	megad.pad[0] = MD_PAD_UNTOUCHED;
 	megad.pad[1] = MD_PAD_UNTOUCHED;
 	return stop_events(megad, 1);
 }
 
-static int ctl_dgen_volume(struct ctl const& ctl, md&)
+static int ctl_dgen_volume(struct ctl& ctl, md&)
 {
 	if (ctl.type == CTL_DGEN_VOLUME_INC)
 		++dgen_volume;
@@ -4797,7 +4760,7 @@ static int ctl_dgen_volume(struct ctl const& ctl, md&)
 	return 1;
 }
 
-static int ctl_dgen_fullscreen_toggle(struct ctl const&, md&)
+static int ctl_dgen_fullscreen_toggle(struct ctl&, md&)
 {
 	switch (set_fullscreen(!screen.is_fullscreen)) {
 	case -2:
@@ -4814,20 +4777,20 @@ static int ctl_dgen_fullscreen_toggle(struct ctl const&, md&)
 	return 1;
 }
 
-static int ctl_dgen_fix_checksum(struct ctl const&, md& megad)
+static int ctl_dgen_fix_checksum(struct ctl&, md& megad)
 {
 	pd_message("Checksum fixed.");
 	megad.fix_rom_checksum();
 	return 1;
 }
 
-static int ctl_dgen_screenshot(struct ctl const&, md&)
+static int ctl_dgen_screenshot(struct ctl&, md&)
 {
 	do_screenshot();
 	return 1;
 }
 
-static int ctl_dgen_debug_enter(struct ctl const&, md& megad)
+static int ctl_dgen_debug_enter(struct ctl&, md& megad)
 {
 #ifdef WITH_DEBUGGER
 	stopped = 1;
@@ -4842,65 +4805,71 @@ static int ctl_dgen_debug_enter(struct ctl const&, md& megad)
 	return 1;
 }
 
-static struct ctl const control[] = {
+static struct ctl control[] = {
 	// Array indices and control[].type must match enum ctl_e's order.
-	{ CTL_PAD1_UP, &pad1_up, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_DOWN, &pad1_down, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_LEFT, &pad1_left, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_RIGHT, &pad1_right, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_A, &pad1_a, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_B, &pad1_b, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_C, &pad1_c, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_X, &pad1_x, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_Y, &pad1_y, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_Z, &pad1_z, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_MODE, &pad1_mode, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_START, &pad1_start, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD2_UP, &pad2_up, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_DOWN, &pad2_down, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_LEFT, &pad2_left, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_RIGHT, &pad2_right, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_A, &pad2_a, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_B, &pad2_b, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_C, &pad2_c, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_X, &pad2_x, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_Y, &pad2_y, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_Z, &pad2_z, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_MODE, &pad2_mode, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_START, &pad2_start, ctl_pad2, ctl_pad2_release },
-	{ CTL_DGEN_QUIT, &dgen_quit, ctl_dgen_quit, NULL },
+	{ CTL_PAD1_UP, &pad1_up, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_DOWN, &pad1_down, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_LEFT, &pad1_left, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_RIGHT, &pad1_right, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_A, &pad1_a, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_B, &pad1_b, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_C, &pad1_c, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_X, &pad1_x, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_Y, &pad1_y, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_Z, &pad1_z, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_MODE, &pad1_mode, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD1_START, &pad1_start, false, ctl_pad1, ctl_pad1_release },
+	{ CTL_PAD2_UP, &pad2_up, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_DOWN, &pad2_down, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_LEFT, &pad2_left, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_RIGHT, &pad2_right, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_A, &pad2_a, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_B, &pad2_b, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_C, &pad2_c, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_X, &pad2_x, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_Y, &pad2_y, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_Z, &pad2_z, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_MODE, &pad2_mode, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD2_START, &pad2_start, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_DGEN_QUIT, &dgen_quit, false, ctl_dgen_quit, NULL },
 	{ CTL_DGEN_CRAPTV_TOGGLE,
-	  &dgen_craptv_toggle, ctl_dgen_craptv_toggle, NULL },
+	  &dgen_craptv_toggle, false, ctl_dgen_craptv_toggle, NULL },
 	{ CTL_DGEN_SCALING_TOGGLE,
-	  &dgen_scaling_toggle, ctl_dgen_scaling_toggle, NULL },
-	{ CTL_DGEN_RESET, &dgen_reset, ctl_dgen_reset, NULL },
-	{ CTL_DGEN_SLOT0, &dgen_slot_0, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT1, &dgen_slot_1, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT2, &dgen_slot_2, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT3, &dgen_slot_3, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT4, &dgen_slot_4, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT5, &dgen_slot_5, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT6, &dgen_slot_6, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT7, &dgen_slot_7, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT8, &dgen_slot_8, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT9, &dgen_slot_9, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SAVE, &dgen_save, ctl_dgen_save, NULL },
-	{ CTL_DGEN_LOAD, &dgen_load, ctl_dgen_load, NULL },
-	{ CTL_DGEN_Z80_TOGGLE, &dgen_z80_toggle, ctl_dgen_z80_toggle, NULL },
-	{ CTL_DGEN_CPU_TOGGLE, &dgen_cpu_toggle, ctl_dgen_cpu_toggle, NULL },
-	{ CTL_DGEN_STOP, &dgen_stop, ctl_dgen_stop, NULL },
-	{ CTL_DGEN_PROMPT, &dgen_prompt, ctl_dgen_prompt, NULL },
-	{ CTL_DGEN_GAME_GENIE, &dgen_game_genie, ctl_dgen_game_genie, NULL },
-	{ CTL_DGEN_VOLUME_INC, &dgen_volume_inc, ctl_dgen_volume, NULL },
-	{ CTL_DGEN_VOLUME_DEC, &dgen_volume_dec, ctl_dgen_volume, NULL },
+	  &dgen_scaling_toggle, false, ctl_dgen_scaling_toggle, NULL },
+	{ CTL_DGEN_RESET, &dgen_reset, false, ctl_dgen_reset, NULL },
+	{ CTL_DGEN_SLOT0, &dgen_slot_0, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT1, &dgen_slot_1, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT2, &dgen_slot_2, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT3, &dgen_slot_3, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT4, &dgen_slot_4, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT5, &dgen_slot_5, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT6, &dgen_slot_6, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT7, &dgen_slot_7, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT8, &dgen_slot_8, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT9, &dgen_slot_9, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SAVE, &dgen_save, false, ctl_dgen_save, NULL },
+	{ CTL_DGEN_LOAD, &dgen_load, false, ctl_dgen_load, NULL },
+	{ CTL_DGEN_Z80_TOGGLE,
+	  &dgen_z80_toggle, false, ctl_dgen_z80_toggle, NULL },
+	{ CTL_DGEN_CPU_TOGGLE,
+	  &dgen_cpu_toggle, false, ctl_dgen_cpu_toggle, NULL },
+	{ CTL_DGEN_STOP, &dgen_stop, false, ctl_dgen_stop, NULL },
+	{ CTL_DGEN_PROMPT, &dgen_prompt, false, ctl_dgen_prompt, NULL },
+	{ CTL_DGEN_GAME_GENIE,
+	  &dgen_game_genie, false, ctl_dgen_game_genie, NULL },
+	{ CTL_DGEN_VOLUME_INC,
+	  &dgen_volume_inc, false, ctl_dgen_volume, NULL },
+	{ CTL_DGEN_VOLUME_DEC,
+	  &dgen_volume_dec, false, ctl_dgen_volume, NULL },
 	{ CTL_DGEN_FULLSCREEN_TOGGLE,
-	  &dgen_fullscreen_toggle, ctl_dgen_fullscreen_toggle, NULL },
+	  &dgen_fullscreen_toggle, false, ctl_dgen_fullscreen_toggle, NULL },
 	{ CTL_DGEN_FIX_CHECKSUM,
-	  &dgen_fix_checksum, ctl_dgen_fix_checksum, NULL },
-	{ CTL_DGEN_SCREENSHOT, &dgen_screenshot, ctl_dgen_screenshot, NULL },
+	  &dgen_fix_checksum, false, ctl_dgen_fix_checksum, NULL },
+	{ CTL_DGEN_SCREENSHOT,
+	  &dgen_screenshot, false, ctl_dgen_screenshot, NULL },
 	{ CTL_DGEN_DEBUG_ENTER,
-	  &dgen_debug_enter, ctl_dgen_debug_enter, NULL },
-	{ CTL_, NULL, NULL, NULL }
+	  &dgen_debug_enter, false, ctl_dgen_debug_enter, NULL },
+	{ CTL_, NULL, false, NULL, NULL }
 };
 
 // The massive event handler!
@@ -4910,6 +4879,21 @@ static struct ctl const control[] = {
 // interface.
 int pd_handle_events(md &megad)
 {
+#ifdef WITH_JOYSTICK
+	static int const hat_value[] = {
+		SDL_HAT_CENTERED,
+		SDL_HAT_UP,
+		SDL_HAT_RIGHTUP,
+		SDL_HAT_RIGHT,
+		SDL_HAT_RIGHTDOWN,
+		SDL_HAT_DOWN,
+		SDL_HAT_LEFTDOWN,
+		SDL_HAT_LEFT,
+		SDL_HAT_LEFTUP
+	};
+	intptr_t joypad;
+	bool pressed;
+#endif
 	SDL_Event event;
 	uint16_t ksym_uni;
 	intptr_t ksym;
@@ -4924,113 +4908,78 @@ int pd_handle_events(md &megad)
       switch(event.type)
 	{
 #ifdef WITH_JOYSTICK
-		int pad;
-		struct js_button *jsb;
-
 	case SDL_JOYAXISMOTION:
-		if ((pad = 0, event.jaxis.which != js_index[pad]) &&
-		    (pad = 1, event.jaxis.which != js_index[pad]))
-			break;
-		// x-axis
-		if (event.jaxis.axis == js_map_axis[pad][0][0]) {
-			// reverse?
-			if (js_map_axis[pad][0][1])
-				event.jaxis.value = -event.jaxis.value;
-			if (event.jaxis.value < -16384) {
-				megad.pad[pad] &= ~0x04;
-				megad.pad[pad] |=  0x08;
-				break;
-			}
-			if (event.jaxis.value > 16384) {
-				megad.pad[pad] |=  0x04;
-				megad.pad[pad] &= ~0x08;
-				break;
-			}
-			megad.pad[pad] |= 0xc;
-			break;
+		if (event.jaxis.value <= -16384) {
+			joypad = JS_AXIS(event.jaxis.which,
+					 event.jaxis.axis,
+					 JS_AXIS_NEGATIVE);
+			pressed = true;
 		}
-		// y-axis
-		if (event.jaxis.axis == js_map_axis[pad][1][0]) {
-			// reverse?
-			if (js_map_axis[pad][1][1])
-				event.jaxis.value = -event.jaxis.value;
-			if (event.jaxis.value < -16384) {
-				megad.pad[pad] &= ~0x01;
-				megad.pad[pad] |=  0x02;
-				break;
-			}
-			if (event.jaxis.value > 16384) {
-				megad.pad[pad] |=  0x01;
-				megad.pad[pad] &= ~0x02;
-				break;
-			}
-			megad.pad[pad] |= 0x3;
+		else if (event.jaxis.value >= 16384) {
+			joypad = JS_AXIS(event.jaxis.which,
+					 event.jaxis.axis,
+					 JS_AXIS_POSITIVE);
+			pressed = true;
+		}
+		else {
+			joypad = JS_AXIS(event.jaxis.which,
+					 event.jaxis.axis,
+					 JS_AXIS_BETWEEN);
+			pressed = false;
+		}
+		goto joypad_axis;
+	case SDL_JOYHATMOTION:
+		if (event.jhat.value >= (int)elemof(hat_value))
 			break;
+		if (hat_value[event.jhat.value] != JS_HAT_CENTERED)
+			pressed = true;
+		else
+			pressed = false;
+		joypad = JS_HAT(event.jhat.which,
+				event.jhat.hat,
+				hat_value[event.jhat.value]);
+	joypad_axis:
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			// Release button first.
+			if ((ctl->pressed == true) &&
+			    (((*ctl->rc)[1] & ~0xff) == (joypad & ~0xff)) &&
+			    (ctl->release != NULL) &&
+			    (ctl->release(*ctl, megad) == 0))
+				return 0;
+			if ((pressed == true) &&
+			    ((*ctl->rc)[1] == joypad)) {
+				assert(ctl->press != NULL);
+				if (ctl->press(*ctl, megad) == 0)
+					return 0;
+			}
 		}
 		break;
 	case SDL_JOYBUTTONDOWN:
+		assert(event.jbutton.state == SDL_PRESSED);
+		pressed = true;
+		goto joypad_button;
 	case SDL_JOYBUTTONUP:
-		// Ignore more than 16 buttons (a reasonable limit :)
-		if (event.jbutton.button > 15)
-			break;
-		if ((pad = 0, event.jbutton.which != js_index[pad]) &&
-		    (pad = 1, event.jbutton.which != js_index[pad]))
-			break;
-#ifdef WITH_CTV
-		if (calibrate_js_state) {
-			if (event.type == SDL_JOYBUTTONUP)
-				break;
-			calibrate_js_process
-				(&js_map_button[pad][event.jbutton.button],
-				 event.jbutton.which,
-				 event.jbutton.button);
-			break;
-		}
-#endif
-		jsb = &js_map_button[pad][event.jbutton.button];
-		if (event.type == SDL_JOYBUTTONDOWN)
-			megad.pad[pad] &= ~jsb->mask;
-		else
-			megad.pad[pad] |= jsb->mask;
-		if (jsb->value == NULL)
-			break;
-		/* For key_*, perform related action. */
-		if (!strncasecmp("key_", jsb->value, 4)) {
-			struct rc_field* rcf;
-			struct ctl const* ctl;
-
-			for (rcf = rc_fields;
-			     (rcf->fieldname != NULL); ++rcf) {
-				if (strcasecmp(jsb->value, rcf->fieldname))
-					continue;
-				for (ctl = control;
-				     (ctl->ksym != NULL); ++ctl) {
-					if (rcf->variable != ctl->ksym)
-						continue;
-					if (event.type == SDL_JOYBUTTONDOWN) {
-						assert(ctl->press != NULL);
-						return ctl->press(*ctl, megad);
-					}
-					else if (ctl->release != NULL)
-						return ctl->release(*ctl,
-								    megad);
-				}
-				break;
+		assert(event.jbutton.state == SDL_RELEASED);
+		pressed = false;
+	joypad_button:
+		joypad = JS_BUTTON(event.jbutton.which, event.jbutton.button);
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			if ((*ctl->rc)[1] != joypad)
+				continue;
+			if (pressed == false) {
+				if ((ctl->release != NULL) &&
+				    (ctl->release(*ctl, megad) == 0))
+					return 0;
 			}
-			break;
+			else {
+				assert(ctl->press != NULL);
+				if (ctl->press(*ctl, megad) == 0)
+					return 0;
+			}
 		}
-		/* Otherwise, handle it as a normal command. */
-		handle_prompt_complete_clear();
-		prompt_replace(&prompt.status, 0, 0,
-			       (uint8_t const*)jsb->value, strlen(jsb->value));
-		if (handle_prompt_enter(megad) & PROMPT_RET_ERROR)
-			return 0;
 		break;
 #endif // WITH_JOYSTICK
 	case SDL_KEYDOWN:
-#if defined(WITH_JOYSTICK) && defined(WITH_CTV)
-		calibrate_js_over();
-#endif // defined(WITH_JOYSTICK) && defined(WITH_CTV)
 		ksym = event.key.keysym.sym;
 		ksym_uni = event.key.keysym.unicode;
 		if ((ksym_uni < 0x20) ||
@@ -5050,12 +4999,12 @@ int pd_handle_events(md &megad)
 		if (event.key.keysym.mod & KMOD_META)
 			ksym |= KEYSYM_MOD_META;
 
-		for (struct ctl const* ctl = control;
-		     (ctl->ksym != NULL); ++ctl) {
-			if (ksym != *ctl->ksym)
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			if (ksym != (*ctl->rc)[0])
 				continue;
 			assert(ctl->press != NULL);
-			return ctl->press(*ctl, megad);
+			if (ctl->press(*ctl, megad) == 0)
+				return 0;
 		}
 		break;
 	case SDL_KEYUP:
@@ -5070,12 +5019,12 @@ int pd_handle_events(md &megad)
 
 		// The only time we care about key releases is for the
 		// controls, but ignore key modifiers so they never get stuck.
-		for (struct ctl const* ctl = control;
-		     (ctl->ksym != NULL); ++ctl) {
-			if (ksym != (*ctl->ksym & ~KEYSYM_MOD_MASK))
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			if (ksym != ((*ctl->rc)[0] & ~KEYSYM_MOD_MASK))
 				continue;
-			if (ctl->release != NULL)
-				return ctl->release(*ctl, megad);
+			if ((ctl->release != NULL) &&
+			    (ctl->release(*ctl, megad) == 0))
+				return 0;
 			break;
 		}
 		break;

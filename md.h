@@ -593,7 +593,7 @@ public:
 
 #ifdef WITH_JOYSTICK
   // Added by Phillip K. Hornung <redx@pknet.com>
-  void init_joysticks(int, int);
+  void init_joysticks();
   void deinit_joysticks();
 #endif
 

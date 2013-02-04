@@ -128,30 +128,6 @@ struct rc_keysym rc_keysyms[] = {
 /* Define all the external RC variables */
 #include "rc-vars.h"
 
-struct js_button js_map_button[2][16] = {
-	{
-		{ MD_A_MASK, NULL }, { MD_C_MASK, NULL },
-		{ MD_A_MASK, NULL }, { MD_B_MASK, NULL },
-		{ MD_Y_MASK, NULL }, { MD_Z_MASK, NULL },
-		{ MD_X_MASK, NULL }, { MD_X_MASK, NULL },
-		{ MD_START_MASK, NULL }, { MD_MODE_MASK, NULL }
-	},
-	{
-		{ MD_A_MASK, NULL }, { MD_C_MASK, NULL },
-		{ MD_A_MASK, NULL }, { MD_B_MASK, NULL },
-		{ MD_Y_MASK, NULL }, { MD_Z_MASK, NULL },
-		{ MD_X_MASK, NULL }, { MD_X_MASK, NULL },
-		{ MD_START_MASK, NULL }, { MD_MODE_MASK, NULL }
-	}
-};
-
-// X and Y for both controllers.
-intptr_t js_map_axis[2][2][2] = {
-	// { { X, reverse? }, { Y, reverse? } }
-	{ { 0, 0 }, { 1, 0 } },
-	{ { 0, 0 }, { 1, 0 } }
-};
-
 static const struct {
 	const char *name;
 	uint32_t flag;
@@ -254,67 +230,157 @@ intptr_t rc_boolean(const char *value, intptr_t *)
   return atoi(value);
 }
 
-static void rc_jsmap_cleanup(void)
-{
-	unsigned int i, j;
+static const char *joypad_axis_type[] = {
+	"max", "p", "positive",
+	"min", "n", "negative",
+	"between", "b", NULL
+};
 
-	for (i = 0;
-	     (i < (sizeof(js_map_button) / sizeof(js_map_button[0])));
-	     ++i)
-		for (j = 0;
-		     (j < (sizeof(js_map_button[0]) /
-			   sizeof(js_map_button[0][0])));
-		     ++j)
-			free(js_map_button[i][j].value);
-	memset(js_map_button, 0, sizeof(js_map_button));
+static const unsigned int joypad_axis_value[] = {
+	JS_AXIS_POSITIVE, JS_AXIS_POSITIVE, JS_AXIS_POSITIVE,
+	JS_AXIS_NEGATIVE, JS_AXIS_NEGATIVE, JS_AXIS_NEGATIVE,
+	JS_AXIS_BETWEEN, JS_AXIS_BETWEEN
+};
+
+static const char *joypad_hat_type[] = {
+	"centered", "up", "right_up", "right",
+	"right_down", "down", "left_down",
+	"left", "left_up", NULL
+};
+
+static const unsigned int joypad_hat_value[] = {
+	JS_HAT_CENTERED, JS_HAT_UP, JS_HAT_RIGHT_UP, JS_HAT_RIGHT,
+	JS_HAT_RIGHT_DOWN, JS_HAT_DOWN, JS_HAT_LEFT_DOWN,
+	JS_HAT_LEFT, JS_HAT_LEFT_UP
+};
+
+/* Convert a joypad entry to text. */
+char *dump_joypad(intptr_t js)
+{
+	char *str = NULL;
+	unsigned int id = JS_GET_IDENTIFIER(js);
+	const char *arg0 = NULL;
+	unsigned int val0 = 0;
+	const char *arg1 = NULL;
+	unsigned int i;
+
+	if (JS_IS_BUTTON(js)) {
+		arg0 = "button";
+		val0 = JS_GET_BUTTON(js);
+	}
+	else if (JS_IS_AXIS(js)) {
+		arg0 = "axis";
+		val0 = JS_GET_AXIS(js);
+		for (i = 0; (i != elemof(joypad_axis_value)); ++i)
+			if (joypad_axis_value[i] == JS_GET_AXIS_DIR(js)) {
+				arg1 = joypad_axis_type[i];
+				break;
+			}
+		if (arg1 == NULL)
+			return NULL;
+	}
+	else if (JS_IS_HAT(js)) {
+		arg0 = "hat";
+		val0 = JS_GET_HAT(js);
+		for (i = 0; (i != elemof(joypad_hat_value)); ++i)
+			if (joypad_hat_value[i] == JS_GET_HAT_DIR(js)) {
+				arg1 = joypad_hat_type[i];
+				break;
+			}
+		if (arg1 == NULL)
+			return NULL;
+	}
+	else
+		return NULL;
+	i = 0;
+	while (1) {
+		i = snprintf(str, i, "joystick%u-%s%u%s%s",
+			     id, arg0, val0,
+			     (arg1 ? "-" : ""), (arg1 ? arg1 : ""));
+		if ((str != NULL) ||
+		    ((str = (char *)malloc(++i)) == NULL))
+			break;
+	}
+	return str;
 }
 
-intptr_t rc_jsmap(const char *value, intptr_t *variable)
+/*
+ * Parse a joystick/joypad command (joy_*). The following syntaxes are
+ * supported:
+ *
+ * Normal buttons:
+ *   (j|js|joystick|joypad)X-(b|button)Y
+ * Axes:
+ *   (j|js|joystick|joypad)X-(a|axis)Y-(max|p|positive|min|n|negative)
+ * Hats:
+ *   (j|js|joystick|joypad)X-(h|hat)Y-\
+ *     (up|right_up|right|right_down|down|left_down|left|left_up)
+ */
+intptr_t rc_joypad(const char *value, intptr_t *)
 {
-	static bool atexit_registered = false;
-	static const struct {
-		const char *value;
-		intptr_t mask;
-	} arg[] = {
-		{ "up", MD_UP_MASK },
-		{ "down", MD_DOWN_MASK },
-		{ "left", MD_LEFT_MASK },
-		{ "right", MD_RIGHT_MASK },
-		{ "mode", MD_MODE_MASK },
-		{ "start", MD_START_MASK },
-		{ "a", MD_A_MASK },
-		{ "b", MD_B_MASK },
-		{ "c", MD_C_MASK },
-		{ "x", MD_X_MASK },
-		{ "y", MD_Y_MASK },
-		{ "z", MD_Z_MASK },
-		{ "", 0 },
-		{ NULL, 0 }
-	};
-	unsigned int i;
-	struct js_button *jsb = (struct js_button *)variable;
+	static const char *r_js[] = { "j", "js", "joystick", "joypad", NULL };
+	static const char *r_button[] = { "b", "button", NULL };
+	static const char *r_axis[] = { "a", "axis", NULL };
+	static const char **r_axis_type = joypad_axis_type;
+	static const unsigned int *r_axis_value = joypad_axis_value;
+	static const char *r_hat[] = { "h", "hat", NULL };
+	static const char **r_hat_type = joypad_hat_type;
+	static const unsigned int *r_hat_value = joypad_hat_value;
+	int i;
+	unsigned int id;
+	unsigned int arg;
 
-	/* Check for basic buttons. */
-	for (i = 0; (arg[i].value != NULL); ++i) {
-		if (strcasecmp(value, arg[i].value))
-			continue;
-		jsb->mask = arg[i].mask;
-		free(jsb->value);
-		jsb->value = NULL;
-		return arg[i].mask;
-	}
-	if (atexit_registered == false) {
-		if (atexit(rc_jsmap_cleanup))
-			return -1;
-		atexit_registered = true;
-	}
-	/* Other values are commands for the front-end. */
-	jsb->mask = 0;
-	free(jsb->value);
-	jsb->value = strdup(value);
-	if (jsb->value == NULL)
+	if (*value == '\0')
+		return 0;
+	if ((i = prefix_casematch(value, r_js)) == -1)
 		return -1;
-	return 0;
+	value += strlen(r_js[i]);
+	if ((i = prefix_getuint(value, &id)) == 0)
+		return -1;
+	value += i;
+	if (*value != '-')
+		return -1;
+	++value;
+	if ((i = prefix_casematch(value, r_button)) != -1) {
+		value += strlen(r_button[i]);
+		if ((i = prefix_getuint(value, &arg)) == 0)
+			return -1;
+		value += i;
+		if (*value != '\0')
+			return -1;
+		return JS_BUTTON(id, arg);
+	}
+	if ((i = prefix_casematch(value, r_axis)) != -1) {
+		value += strlen(r_axis[i]);
+		if ((i = prefix_getuint(value, &arg)) == 0)
+			return -1;
+		value += i;
+		if (*value != '-')
+			return -1;
+		++value;
+		if ((i = prefix_casematch(value, r_axis_type)) == -1)
+			return -1;
+		value += strlen(r_axis_type[i]);
+		if (*value != '\0')
+			return -1;
+		return JS_AXIS(id, arg, r_axis_value[i]);
+	}
+	if ((i = prefix_casematch(value, r_hat)) != -1) {
+		value += strlen(r_hat[i]);
+		if ((i = prefix_getuint(value, &arg)) == 0)
+			return -1;
+		value += i;
+		if (*value != '-')
+			return -1;
+		++value;
+		if ((i = prefix_casematch(value, r_hat_type)) == -1)
+			return -1;
+		value += strlen(r_hat_type[i]);
+		if (*value != '\0')
+			return -1;
+		return JS_HAT(id, arg, r_hat_value[i]);
+	}
+	return -1;
 }
 
 /* Parse the CTV type. As new CTV filters get submitted expect this to grow ;)
@@ -408,55 +474,104 @@ intptr_t rc_number(const char *value, intptr_t *)
 /* This is a table of all the RC options, the variables they affect, and the
  * functions to parse their values. */
 struct rc_field rc_fields[] = {
-  { "key_pad1_up", rc_keysym, &pad1_up },
-  { "key_pad1_down", rc_keysym, &pad1_down },
-  { "key_pad1_left", rc_keysym, &pad1_left },
-  { "key_pad1_right", rc_keysym, &pad1_right },
-  { "key_pad1_a", rc_keysym, &pad1_a },
-  { "key_pad1_b", rc_keysym, &pad1_b },
-  { "key_pad1_c", rc_keysym, &pad1_c },
-  { "key_pad1_x", rc_keysym, &pad1_x },
-  { "key_pad1_y", rc_keysym, &pad1_y },
-  { "key_pad1_z", rc_keysym, &pad1_z },
-  { "key_pad1_mode", rc_keysym, &pad1_mode },
-  { "key_pad1_start", rc_keysym, &pad1_start },
-  { "key_pad2_up", rc_keysym, &pad2_up },
-  { "key_pad2_down", rc_keysym, &pad2_down },
-  { "key_pad2_left", rc_keysym, &pad2_left },
-  { "key_pad2_right", rc_keysym, &pad2_right },
-  { "key_pad2_a", rc_keysym, &pad2_a },
-  { "key_pad2_b", rc_keysym, &pad2_b },
-  { "key_pad2_c", rc_keysym, &pad2_c },
-  { "key_pad2_x", rc_keysym, &pad2_x },
-  { "key_pad2_y", rc_keysym, &pad2_y },
-  { "key_pad2_z", rc_keysym, &pad2_z },
-  { "key_pad2_mode", rc_keysym, &pad2_mode },
-  { "key_pad2_start", rc_keysym, &pad2_start },
-  { "key_fix_checksum", rc_keysym, &dgen_fix_checksum },
-  { "key_quit", rc_keysym, &dgen_quit },
-  { "key_craptv_toggle", rc_keysym, &dgen_craptv_toggle },
-  { "key_scaling_toggle", rc_keysym, &dgen_scaling_toggle },
-  { "key_screenshot", rc_keysym, &dgen_screenshot },
-  { "key_reset", rc_keysym, &dgen_reset },
-  { "key_slot_0", rc_keysym, &dgen_slot_0 },
-  { "key_slot_1", rc_keysym, &dgen_slot_1 },
-  { "key_slot_2", rc_keysym, &dgen_slot_2 },
-  { "key_slot_3", rc_keysym, &dgen_slot_3 },
-  { "key_slot_4", rc_keysym, &dgen_slot_4 },
-  { "key_slot_5", rc_keysym, &dgen_slot_5 },
-  { "key_slot_6", rc_keysym, &dgen_slot_6 },
-  { "key_slot_7", rc_keysym, &dgen_slot_7 },
-  { "key_slot_8", rc_keysym, &dgen_slot_8 },
-  { "key_slot_9", rc_keysym, &dgen_slot_9 },
-  { "key_save", rc_keysym, &dgen_save },
-  { "key_load", rc_keysym, &dgen_load },
-  { "key_z80_toggle", rc_keysym, &dgen_z80_toggle },
-  { "key_cpu_toggle", rc_keysym, &dgen_cpu_toggle },
-  { "key_stop", rc_keysym, &dgen_stop },
-  { "key_game_genie", rc_keysym, &dgen_game_genie },
-  { "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle },
-  { "key_debug_enter", rc_keysym, &dgen_debug_enter },
-  { "key_prompt", rc_keysym, &dgen_prompt },
+  { "key_pad1_up", rc_keysym, &pad1_up[0] },
+  { "joy_pad1_up", rc_joypad, &pad1_up[1] },
+  { "key_pad1_down", rc_keysym, &pad1_down[0] },
+  { "joy_pad1_down", rc_joypad, &pad1_down[1] },
+  { "key_pad1_left", rc_keysym, &pad1_left[0] },
+  { "joy_pad1_left", rc_joypad, &pad1_left[1] },
+  { "key_pad1_right", rc_keysym, &pad1_right[0] },
+  { "joy_pad1_right", rc_joypad, &pad1_right[1] },
+  { "key_pad1_a", rc_keysym, &pad1_a[0] },
+  { "joy_pad1_a", rc_joypad, &pad1_a[1] },
+  { "key_pad1_b", rc_keysym, &pad1_b[0] },
+  { "joy_pad1_b", rc_joypad, &pad1_b[1] },
+  { "key_pad1_c", rc_keysym, &pad1_c[0] },
+  { "joy_pad1_c", rc_joypad, &pad1_c[1] },
+  { "key_pad1_x", rc_keysym, &pad1_x[0] },
+  { "joy_pad1_x", rc_joypad, &pad1_x[1] },
+  { "key_pad1_y", rc_keysym, &pad1_y[0] },
+  { "joy_pad1_y", rc_joypad, &pad1_y[1] },
+  { "key_pad1_z", rc_keysym, &pad1_z[0] },
+  { "joy_pad1_z", rc_joypad, &pad1_z[1] },
+  { "key_pad1_mode", rc_keysym, &pad1_mode[0] },
+  { "joy_pad1_mode", rc_joypad, &pad1_mode[1] },
+  { "key_pad1_start", rc_keysym, &pad1_start[0] },
+  { "joy_pad1_start", rc_joypad, &pad1_start[1] },
+  { "key_pad2_up", rc_keysym, &pad2_up[0] },
+  { "joy_pad2_up", rc_joypad, &pad2_up[1] },
+  { "key_pad2_down", rc_keysym, &pad2_down[0] },
+  { "joy_pad2_down", rc_joypad, &pad2_down[1] },
+  { "key_pad2_left", rc_keysym, &pad2_left[0] },
+  { "joy_pad2_left", rc_joypad, &pad2_left[1] },
+  { "key_pad2_right", rc_keysym, &pad2_right[0] },
+  { "joy_pad2_right", rc_joypad, &pad2_right[1] },
+  { "key_pad2_a", rc_keysym, &pad2_a[0] },
+  { "joy_pad2_a", rc_joypad, &pad2_a[1] },
+  { "key_pad2_b", rc_keysym, &pad2_b[0] },
+  { "joy_pad2_b", rc_joypad, &pad2_b[1] },
+  { "key_pad2_c", rc_keysym, &pad2_c[0] },
+  { "joy_pad2_c", rc_joypad, &pad2_c[1] },
+  { "key_pad2_x", rc_keysym, &pad2_x[0] },
+  { "joy_pad2_x", rc_joypad, &pad2_x[1] },
+  { "key_pad2_y", rc_keysym, &pad2_y[0] },
+  { "joy_pad2_y", rc_joypad, &pad2_y[1] },
+  { "key_pad2_z", rc_keysym, &pad2_z[0] },
+  { "joy_pad2_z", rc_joypad, &pad2_z[1] },
+  { "key_pad2_mode", rc_keysym, &pad2_mode[0] },
+  { "joy_pad2_mode", rc_joypad, &pad2_mode[1] },
+  { "key_pad2_start", rc_keysym, &pad2_start[0] },
+  { "joy_pad2_start", rc_joypad, &pad2_start[1] },
+  { "key_fix_checksum", rc_keysym, &dgen_fix_checksum[0] },
+  { "joy_fix_checksum", rc_joypad, &dgen_fix_checksum[1] },
+  { "key_quit", rc_keysym, &dgen_quit[0] },
+  { "joy_quit", rc_joypad, &dgen_quit[1] },
+  { "key_craptv_toggle", rc_keysym, &dgen_craptv_toggle[0] },
+  { "joy_craptv_toggle", rc_joypad, &dgen_craptv_toggle[1] },
+  { "key_scaling_toggle", rc_keysym, &dgen_scaling_toggle[0] },
+  { "joy_scaling_toggle", rc_joypad, &dgen_scaling_toggle[1] },
+  { "key_screenshot", rc_keysym, &dgen_screenshot[0] },
+  { "joy_screenshot", rc_joypad, &dgen_screenshot[1] },
+  { "key_reset", rc_keysym, &dgen_reset[0] },
+  { "joy_reset", rc_joypad, &dgen_reset[1] },
+  { "key_slot_0", rc_keysym, &dgen_slot_0[0] },
+  { "joy_slot_0", rc_joypad, &dgen_slot_0[1] },
+  { "key_slot_1", rc_keysym, &dgen_slot_1[0] },
+  { "joy_slot_1", rc_joypad, &dgen_slot_1[1] },
+  { "key_slot_2", rc_keysym, &dgen_slot_2[0] },
+  { "joy_slot_2", rc_joypad, &dgen_slot_2[1] },
+  { "key_slot_3", rc_keysym, &dgen_slot_3[0] },
+  { "joy_slot_3", rc_joypad, &dgen_slot_3[1] },
+  { "key_slot_4", rc_keysym, &dgen_slot_4[0] },
+  { "joy_slot_4", rc_joypad, &dgen_slot_4[1] },
+  { "key_slot_5", rc_keysym, &dgen_slot_5[0] },
+  { "joy_slot_5", rc_joypad, &dgen_slot_5[1] },
+  { "key_slot_6", rc_keysym, &dgen_slot_6[0] },
+  { "joy_slot_6", rc_joypad, &dgen_slot_6[1] },
+  { "key_slot_7", rc_keysym, &dgen_slot_7[0] },
+  { "joy_slot_7", rc_joypad, &dgen_slot_7[1] },
+  { "key_slot_8", rc_keysym, &dgen_slot_8[0] },
+  { "joy_slot_8", rc_joypad, &dgen_slot_8[1] },
+  { "key_slot_9", rc_keysym, &dgen_slot_9[0] },
+  { "joy_slot_9", rc_joypad, &dgen_slot_9[1] },
+  { "key_save", rc_keysym, &dgen_save[0] },
+  { "joy_save", rc_joypad, &dgen_save[1] },
+  { "key_load", rc_keysym, &dgen_load[0] },
+  { "joy_load", rc_joypad, &dgen_load[1] },
+  { "key_z80_toggle", rc_keysym, &dgen_z80_toggle[0] },
+  { "joy_z80_toggle", rc_joypad, &dgen_z80_toggle[1] },
+  { "key_cpu_toggle", rc_keysym, &dgen_cpu_toggle[0] },
+  { "joy_cpu_toggle", rc_joypad, &dgen_cpu_toggle[1] },
+  { "key_stop", rc_keysym, &dgen_stop[0] },
+  { "joy_stop", rc_joypad, &dgen_stop[1] },
+  { "key_game_genie", rc_keysym, &dgen_game_genie[0] },
+  { "joy_game_genie", rc_joypad, &dgen_game_genie[1] },
+  { "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle[0] },
+  { "joy_fullscreen_toggle", rc_joypad, &dgen_fullscreen_toggle[1] },
+  { "key_debug_enter", rc_keysym, &dgen_debug_enter[0] },
+  { "joy_debug_enter", rc_joypad, &dgen_debug_enter[1] },
+  { "key_prompt", rc_keysym, &dgen_prompt[0] },
+  { "joy_prompt", rc_joypad, &dgen_prompt[1] },
   { "bool_vdp_hide_plane_a", rc_boolean, &dgen_vdp_hide_plane_a },
   { "bool_vdp_hide_plane_b", rc_boolean, &dgen_vdp_hide_plane_b },
   { "bool_vdp_hide_plane_w", rc_boolean, &dgen_vdp_hide_plane_w },
@@ -480,8 +595,10 @@ struct rc_field rc_fields[] = {
   { "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
   { "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
   { "int_volume", rc_number, &dgen_volume },
-  { "key_volume_inc", rc_keysym, &dgen_volume_inc },
-  { "key_volume_dec", rc_keysym, &dgen_volume_dec },
+  { "key_volume_inc", rc_keysym, &dgen_volume_inc[0] },
+  { "joy_volume_inc", rc_joypad, &dgen_volume_inc[1] },
+  { "key_volume_dec", rc_keysym, &dgen_volume_dec[0] },
+  { "joy_volume_dec", rc_joypad, &dgen_volume_dec[1] },
   { "bool_mjazz", rc_boolean, &dgen_mjazz }, // SH
   { "int_nice", rc_number, &dgen_nice },
   { "int_hz", rc_number, &dgen_hz }, // SH
@@ -508,49 +625,7 @@ struct rc_field rc_fields[] = {
   { "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
   { "bool_doublebuffer", rc_boolean, &dgen_doublebuffer }, // SH
   { "bool_screen_thread", rc_boolean, &dgen_screen_thread }, // SH
-  { "bool_joystick", rc_boolean, &dgen_joystick },
-  { "int_joystick1_dev", rc_number, &dgen_joystick1_dev }, // SH
-  { "int_joystick2_dev", rc_number, &dgen_joystick2_dev }, // SH
-  { "int_joystick1_axisX", rc_number, &js_map_axis[0][0][0] },
-  { "int_joystick1_axisY", rc_number, &js_map_axis[0][1][0] },
-  { "int_joystick2_axisX", rc_number, &js_map_axis[1][0][0] },
-  { "int_joystick2_axisY", rc_number, &js_map_axis[1][1][0] },
-  { "bool_joystick1_axisX", rc_boolean, &js_map_axis[0][0][1] },
-  { "bool_joystick1_axisY", rc_boolean, &js_map_axis[0][1][1] },
-  { "bool_joystick2_axisX", rc_boolean, &js_map_axis[1][0][1] },
-  { "bool_joystick2_axisY", rc_boolean, &js_map_axis[1][1][1] },
-  { "joypad1_b0", rc_jsmap, (intptr_t *)&js_map_button[0][0] },
-  { "joypad1_b1", rc_jsmap, (intptr_t *)&js_map_button[0][1] },
-  { "joypad1_b2", rc_jsmap, (intptr_t *)&js_map_button[0][2] },
-  { "joypad1_b3", rc_jsmap, (intptr_t *)&js_map_button[0][3] },
-  { "joypad1_b4", rc_jsmap, (intptr_t *)&js_map_button[0][4] },
-  { "joypad1_b5", rc_jsmap, (intptr_t *)&js_map_button[0][5] },
-  { "joypad1_b6", rc_jsmap, (intptr_t *)&js_map_button[0][6] },
-  { "joypad1_b7", rc_jsmap, (intptr_t *)&js_map_button[0][7] },
-  { "joypad1_b8", rc_jsmap, (intptr_t *)&js_map_button[0][8] },
-  { "joypad1_b9", rc_jsmap, (intptr_t *)&js_map_button[0][9] },
-  { "joypad1_b10", rc_jsmap, (intptr_t *)&js_map_button[0][10] },
-  { "joypad1_b11", rc_jsmap, (intptr_t *)&js_map_button[0][11] },
-  { "joypad1_b12", rc_jsmap, (intptr_t *)&js_map_button[0][12] },
-  { "joypad1_b13", rc_jsmap, (intptr_t *)&js_map_button[0][13] },
-  { "joypad1_b14", rc_jsmap, (intptr_t *)&js_map_button[0][14] },
-  { "joypad1_b15", rc_jsmap, (intptr_t *)&js_map_button[0][15] },
-  { "joypad2_b0", rc_jsmap, (intptr_t *)&js_map_button[1][0] },
-  { "joypad2_b1", rc_jsmap, (intptr_t *)&js_map_button[1][1] },
-  { "joypad2_b2", rc_jsmap, (intptr_t *)&js_map_button[1][2] },
-  { "joypad2_b3", rc_jsmap, (intptr_t *)&js_map_button[1][3] },
-  { "joypad2_b4", rc_jsmap, (intptr_t *)&js_map_button[1][4] },
-  { "joypad2_b5", rc_jsmap, (intptr_t *)&js_map_button[1][5] },
-  { "joypad2_b6", rc_jsmap, (intptr_t *)&js_map_button[1][6] },
-  { "joypad2_b7", rc_jsmap, (intptr_t *)&js_map_button[1][7] },
-  { "joypad2_b8", rc_jsmap, (intptr_t *)&js_map_button[1][8] },
-  { "joypad2_b9", rc_jsmap, (intptr_t *)&js_map_button[1][9] },
-  { "joypad2_b10", rc_jsmap, (intptr_t *)&js_map_button[1][10] },
-  { "joypad2_b11", rc_jsmap, (intptr_t *)&js_map_button[1][11] },
-  { "joypad2_b12", rc_jsmap, (intptr_t *)&js_map_button[1][12] },
-  { "joypad2_b13", rc_jsmap, (intptr_t *)&js_map_button[1][13] },
-  { "joypad2_b14", rc_jsmap, (intptr_t *)&js_map_button[1][14] },
-  { "joypad2_b15", rc_jsmap, (intptr_t *)&js_map_button[1][15] },
+  { "bool_joystick", rc_boolean, &dgen_joystick }, // SH
   { NULL, NULL, NULL } // Terminator
 };
 
@@ -731,44 +806,12 @@ void dump_rc(FILE *file)
 		}
 		else if (rc->parser == rc_boolean)
 			fprintf(file, "%s", ((val) ? "true" : "false"));
-		else if (rc->parser == rc_jsmap) {
-			char *s;
-			const char *pad;
-			struct js_button *jsb =
-				(struct js_button *)rc->variable;
+		else if (rc->parser == rc_joypad) {
+			char *js = dump_joypad(val);
 
-			if (jsb->mask == MD_UP_MASK)
-				pad = "up";
-			else if (jsb->mask == MD_DOWN_MASK)
-				pad = "down";
-			else if (jsb->mask == MD_LEFT_MASK)
-				pad = "left";
-			else if (jsb->mask == MD_RIGHT_MASK)
-				pad = "right";
-			else if (jsb->mask == MD_B_MASK)
-				pad = "B";
-			else if (jsb->mask == MD_C_MASK)
-				pad = "C";
-			else if (jsb->mask == MD_A_MASK)
-				pad = "A";
-			else if (jsb->mask == MD_START_MASK)
-				pad = "start";
-			else if (jsb->mask == MD_Z_MASK)
-				pad = "Z";
-			else if (jsb->mask == MD_Y_MASK)
-				pad = "Y";
-			else if (jsb->mask == MD_X_MASK)
-				pad = "X";
-			else if (jsb->mask == MD_MODE_MASK)
-				pad = "mode";
-			else
-				pad = jsb->value;
-			if ((pad != NULL) &&
-			    ((s = backslashify((const uint8_t *)pad,
-					       strlen(pad), 0,
-					       NULL)) != NULL)) {
-				fprintf(file, "%s", s);
-				free(s);
+			if (js != NULL) {
+				fprintf(file, "\"%s\"", js);
+				free(js);
 			}
 			else
 				fputs("''", file);

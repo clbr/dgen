@@ -446,7 +446,7 @@ next_rom:
 	megad->pad[1] = MD_PAD_UNTOUCHED;
 #ifdef WITH_JOYSTICK
 	if (dgen_joystick)
-		megad->init_joysticks(dgen_joystick1_dev, dgen_joystick2_dev);
+		megad->init_joysticks();
 #endif
 	// Load patches, if given.
 	if (patches) {

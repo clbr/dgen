@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "pd-defs.h" // Keysyms are defined in here
+#include "rc.h"
 
 // main.cpp defines IS_MAIN_CPP, which means we actually define the variables.
 // Otherwise, we just declare them as externs
@@ -19,65 +20,67 @@ struct rc_str {
 #ifdef IS_MAIN_CPP
 #define RCVAR(name, def) intptr_t name = def
 #define RCSTR(name, def) struct rc_str name = { def, NULL, NULL }
+#define RCCTL(name, defk, defj) intptr_t name[2] = { defk, defj }
 #else
 #define RCVAR(name, def) extern intptr_t name
 #define RCSTR(name, def) extern struct rc_str name
+#define RCCTL(name, defk, defj) extern intptr_t name[2]
 #endif
 
-RCVAR(pad1_up, PDK_UP);
-RCVAR(pad1_down, PDK_DOWN);
-RCVAR(pad1_left, PDK_LEFT);
-RCVAR(pad1_right, PDK_RIGHT);
-RCVAR(pad1_a, 'a');
-RCVAR(pad1_b, 's');
-RCVAR(pad1_c, 'd');
-RCVAR(pad1_x, 'q');
-RCVAR(pad1_y, 'w');
-RCVAR(pad1_z, 'e');
-RCVAR(pad1_mode, PDK_BACKSPACE);
-RCVAR(pad1_start, PDK_RETURN);
+RCCTL(pad1_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE));
+RCCTL(pad1_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE));
+RCCTL(pad1_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE));
+RCCTL(pad1_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE));
+RCCTL(pad1_a, 'a', JS_BUTTON(0, 0));
+RCCTL(pad1_b, 's', JS_BUTTON(0, 3));
+RCCTL(pad1_c, 'd', JS_BUTTON(0, 1));
+RCCTL(pad1_x, 'q', JS_BUTTON(0, 6));
+RCCTL(pad1_y, 'w', JS_BUTTON(0, 4));
+RCCTL(pad1_z, 'e', JS_BUTTON(0, 5));
+RCCTL(pad1_mode, PDK_BACKSPACE, JS_BUTTON(0, 9));
+RCCTL(pad1_start, PDK_RETURN, JS_BUTTON(0, 8));
 
-RCVAR(pad2_up, PDK_KP8);
-RCVAR(pad2_down, PDK_KP2);
-RCVAR(pad2_left, PDK_KP4);
-RCVAR(pad2_right, PDK_KP6);
-RCVAR(pad2_a, PDK_DELETE);
-RCVAR(pad2_b, PDK_END);
-RCVAR(pad2_c, PDK_PAGEDOWN);
-RCVAR(pad2_x, PDK_INSERT);
-RCVAR(pad2_y, PDK_HOME);
-RCVAR(pad2_z, PDK_PAGEUP);
-RCVAR(pad2_mode, PDK_KP_PLUS);
-RCVAR(pad2_start, PDK_KP_ENTER);
+RCCTL(pad2_up, PDK_KP8, JS_AXIS(1, 1, JS_AXIS_NEGATIVE));
+RCCTL(pad2_down, PDK_KP2, JS_AXIS(1, 1, JS_AXIS_POSITIVE));
+RCCTL(pad2_left, PDK_KP4, JS_AXIS(1, 0, JS_AXIS_NEGATIVE));
+RCCTL(pad2_right, PDK_KP6, JS_AXIS(1, 0, JS_AXIS_POSITIVE));
+RCCTL(pad2_a, PDK_DELETE, JS_BUTTON(1, 0));
+RCCTL(pad2_b, PDK_END, JS_BUTTON(1, 3));
+RCCTL(pad2_c, PDK_PAGEDOWN, JS_BUTTON(1, 1));
+RCCTL(pad2_x, PDK_INSERT, JS_BUTTON(1, 6));
+RCCTL(pad2_y, PDK_HOME, JS_BUTTON(1, 4));
+RCCTL(pad2_z, PDK_PAGEUP, JS_BUTTON(1, 5));
+RCCTL(pad2_mode, PDK_KP_PLUS, JS_BUTTON(1, 9));
+RCCTL(pad2_start, PDK_KP_ENTER, JS_BUTTON(1, 8));
 
-RCVAR(dgen_fix_checksum, PDK_F1);
-RCVAR(dgen_quit, PDK_ESCAPE);
-RCVAR(dgen_craptv_toggle, PDK_F5);
-RCVAR(dgen_scaling_toggle, PDK_F6);
-RCVAR(dgen_screenshot, PDK_F12);
-RCVAR(dgen_reset, PDK_TAB);
-RCVAR(dgen_z80_toggle, PDK_F10);
-RCVAR(dgen_cpu_toggle, PDK_F11);
-RCVAR(dgen_stop, 'z');
-RCVAR(dgen_prompt, ':');
-RCVAR(dgen_game_genie, PDK_F9);
-RCVAR(dgen_fullscreen_toggle, KEYSYM_MOD_ALT | PDK_RETURN);
-RCVAR(dgen_debug_enter, '`');
-RCVAR(dgen_volume_inc, '=');
-RCVAR(dgen_volume_dec, '-');
+RCCTL(dgen_fix_checksum, PDK_F1, 0);
+RCCTL(dgen_quit, PDK_ESCAPE, 0);
+RCCTL(dgen_craptv_toggle, PDK_F5, 0);
+RCCTL(dgen_scaling_toggle, PDK_F6, 0);
+RCCTL(dgen_screenshot, PDK_F12, 0);
+RCCTL(dgen_reset, PDK_TAB, 0);
+RCCTL(dgen_z80_toggle, PDK_F10, 0);
+RCCTL(dgen_cpu_toggle, PDK_F11, 0);
+RCCTL(dgen_stop, 'z', 0);
+RCCTL(dgen_prompt, ':', 0);
+RCCTL(dgen_game_genie, PDK_F9, 0);
+RCCTL(dgen_fullscreen_toggle, (KEYSYM_MOD_ALT | PDK_RETURN), 0);
+RCCTL(dgen_debug_enter, '`', 0);
+RCCTL(dgen_volume_inc, '=', 0);
+RCCTL(dgen_volume_dec, '-', 0);
 
-RCVAR(dgen_slot_0, '0');
-RCVAR(dgen_slot_1, '1');
-RCVAR(dgen_slot_2, '2');
-RCVAR(dgen_slot_3, '3');
-RCVAR(dgen_slot_4, '4');
-RCVAR(dgen_slot_5, '5');
-RCVAR(dgen_slot_6, '6');
-RCVAR(dgen_slot_7, '7');
-RCVAR(dgen_slot_8, '8');
-RCVAR(dgen_slot_9, '9');
-RCVAR(dgen_save, PDK_F2);
-RCVAR(dgen_load, PDK_F3);
+RCCTL(dgen_slot_0, '0', 0);
+RCCTL(dgen_slot_1, '1', 0);
+RCCTL(dgen_slot_2, '2', 0);
+RCCTL(dgen_slot_3, '3', 0);
+RCCTL(dgen_slot_4, '4', 0);
+RCCTL(dgen_slot_5, '5', 0);
+RCCTL(dgen_slot_6, '6', 0);
+RCCTL(dgen_slot_7, '7', 0);
+RCCTL(dgen_slot_8, '8', 0);
+RCCTL(dgen_slot_9, '9', 0);
+RCCTL(dgen_save, PDK_F2, 0);
+RCCTL(dgen_load, PDK_F3, 0);
 
 RCVAR(dgen_autoload, 0);
 RCVAR(dgen_autosave, 0);
@@ -107,8 +110,6 @@ RCVAR(dgen_joystick, 1);
 #else
 RCVAR(dgen_joystick, 0);
 #endif
-RCVAR(dgen_joystick1_dev, 0);
-RCVAR(dgen_joystick2_dev, 1);
 
 RCVAR(dgen_fps, 0);
 RCVAR(dgen_fullscreen, 0);
