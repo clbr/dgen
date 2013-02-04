@@ -726,6 +726,8 @@ void dump_rc(FILE *file)
 				fprintf(file, "\"%s\"", ks);
 				free(ks);
 			}
+			else
+				fputs("''", file);
 		}
 		else if (rc->parser == rc_boolean)
 			fprintf(file, "%s", ((val) ? "true" : "false"));
