@@ -135,6 +135,9 @@ extern char *backslashify(const uint8_t *src, size_t size, unsigned int flags,
 extern size_t utf8u32(uint32_t *u32, const uint8_t *u8);
 extern size_t utf32u8(uint8_t *u8, uint32_t u32);
 
+extern int prefix_casematch(const char *str, const char *argv[]);
+extern size_t prefix_getuint(const char *str, unsigned int *num);
+
 SYSTEM_H_END_
 
 #endif /* SYSTEM_H_ */

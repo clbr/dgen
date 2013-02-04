@@ -1222,3 +1222,53 @@ size_t utf32u8(uint8_t *u8, uint32_t u32)
 	u8[0] = (fb | u32);
 	return l;
 }
+
+/**
+ * Look for the longest common prefix between a string and an array
+ * of strings while ignoring case.
+ *
+ * @param[in] str String to compare argv entries to.
+ * @param[in] argv NULL-terminated array of prefixes to match.
+ * @return Index in argv or -1 if nothing matches.
+ */
+int prefix_casematch(const char *str, const char *argv[])
+{
+	unsigned int i;
+	size_t ret_len = 0;
+	int ret = -1;
+
+	for (i = 0; (argv[i] != NULL); ++i) {
+		size_t len = strlen(argv[i]);
+
+		if ((len < ret_len) ||
+		    (strncasecmp(str, argv[i], len)))
+			continue;
+		ret_len = len;
+		ret = i;
+	}
+	return ret;
+}
+
+/**
+ * Read number from initial portion of a string and convert it.
+ *
+ * @param[in] str String to read from.
+ * @param[out] num If not NULL, stores the converted number.
+ * @return Length of the number in str, 0 on error.
+ */
+size_t prefix_getuint(const char *str, unsigned int *num)
+{
+	size_t len = 0;
+	unsigned int ret = 0;
+
+	while (isdigit(str[len])) {
+		ret *= 10;
+		ret += (str[len] - '0');
+		++len;
+	}
+	if (len == 0)
+		return 0;
+	if (num != NULL)
+		*num = ret;
+	return len;
+}
