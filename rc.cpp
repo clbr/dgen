@@ -474,159 +474,164 @@ intptr_t rc_number(const char *value, intptr_t *)
 /* This is a table of all the RC options, the variables they affect, and the
  * functions to parse their values. */
 struct rc_field rc_fields[] = {
-  { "key_pad1_up", rc_keysym, &pad1_up[0] },
-  { "joy_pad1_up", rc_joypad, &pad1_up[1] },
-  { "key_pad1_down", rc_keysym, &pad1_down[0] },
-  { "joy_pad1_down", rc_joypad, &pad1_down[1] },
-  { "key_pad1_left", rc_keysym, &pad1_left[0] },
-  { "joy_pad1_left", rc_joypad, &pad1_left[1] },
-  { "key_pad1_right", rc_keysym, &pad1_right[0] },
-  { "joy_pad1_right", rc_joypad, &pad1_right[1] },
-  { "key_pad1_a", rc_keysym, &pad1_a[0] },
-  { "joy_pad1_a", rc_joypad, &pad1_a[1] },
-  { "key_pad1_b", rc_keysym, &pad1_b[0] },
-  { "joy_pad1_b", rc_joypad, &pad1_b[1] },
-  { "key_pad1_c", rc_keysym, &pad1_c[0] },
-  { "joy_pad1_c", rc_joypad, &pad1_c[1] },
-  { "key_pad1_x", rc_keysym, &pad1_x[0] },
-  { "joy_pad1_x", rc_joypad, &pad1_x[1] },
-  { "key_pad1_y", rc_keysym, &pad1_y[0] },
-  { "joy_pad1_y", rc_joypad, &pad1_y[1] },
-  { "key_pad1_z", rc_keysym, &pad1_z[0] },
-  { "joy_pad1_z", rc_joypad, &pad1_z[1] },
-  { "key_pad1_mode", rc_keysym, &pad1_mode[0] },
-  { "joy_pad1_mode", rc_joypad, &pad1_mode[1] },
-  { "key_pad1_start", rc_keysym, &pad1_start[0] },
-  { "joy_pad1_start", rc_joypad, &pad1_start[1] },
-  { "key_pad2_up", rc_keysym, &pad2_up[0] },
-  { "joy_pad2_up", rc_joypad, &pad2_up[1] },
-  { "key_pad2_down", rc_keysym, &pad2_down[0] },
-  { "joy_pad2_down", rc_joypad, &pad2_down[1] },
-  { "key_pad2_left", rc_keysym, &pad2_left[0] },
-  { "joy_pad2_left", rc_joypad, &pad2_left[1] },
-  { "key_pad2_right", rc_keysym, &pad2_right[0] },
-  { "joy_pad2_right", rc_joypad, &pad2_right[1] },
-  { "key_pad2_a", rc_keysym, &pad2_a[0] },
-  { "joy_pad2_a", rc_joypad, &pad2_a[1] },
-  { "key_pad2_b", rc_keysym, &pad2_b[0] },
-  { "joy_pad2_b", rc_joypad, &pad2_b[1] },
-  { "key_pad2_c", rc_keysym, &pad2_c[0] },
-  { "joy_pad2_c", rc_joypad, &pad2_c[1] },
-  { "key_pad2_x", rc_keysym, &pad2_x[0] },
-  { "joy_pad2_x", rc_joypad, &pad2_x[1] },
-  { "key_pad2_y", rc_keysym, &pad2_y[0] },
-  { "joy_pad2_y", rc_joypad, &pad2_y[1] },
-  { "key_pad2_z", rc_keysym, &pad2_z[0] },
-  { "joy_pad2_z", rc_joypad, &pad2_z[1] },
-  { "key_pad2_mode", rc_keysym, &pad2_mode[0] },
-  { "joy_pad2_mode", rc_joypad, &pad2_mode[1] },
-  { "key_pad2_start", rc_keysym, &pad2_start[0] },
-  { "joy_pad2_start", rc_joypad, &pad2_start[1] },
-  { "key_fix_checksum", rc_keysym, &dgen_fix_checksum[0] },
-  { "joy_fix_checksum", rc_joypad, &dgen_fix_checksum[1] },
-  { "key_quit", rc_keysym, &dgen_quit[0] },
-  { "joy_quit", rc_joypad, &dgen_quit[1] },
-  { "key_craptv_toggle", rc_keysym, &dgen_craptv_toggle[0] },
-  { "joy_craptv_toggle", rc_joypad, &dgen_craptv_toggle[1] },
-  { "key_scaling_toggle", rc_keysym, &dgen_scaling_toggle[0] },
-  { "joy_scaling_toggle", rc_joypad, &dgen_scaling_toggle[1] },
-  { "key_screenshot", rc_keysym, &dgen_screenshot[0] },
-  { "joy_screenshot", rc_joypad, &dgen_screenshot[1] },
-  { "key_reset", rc_keysym, &dgen_reset[0] },
-  { "joy_reset", rc_joypad, &dgen_reset[1] },
-  { "key_slot_0", rc_keysym, &dgen_slot_0[0] },
-  { "joy_slot_0", rc_joypad, &dgen_slot_0[1] },
-  { "key_slot_1", rc_keysym, &dgen_slot_1[0] },
-  { "joy_slot_1", rc_joypad, &dgen_slot_1[1] },
-  { "key_slot_2", rc_keysym, &dgen_slot_2[0] },
-  { "joy_slot_2", rc_joypad, &dgen_slot_2[1] },
-  { "key_slot_3", rc_keysym, &dgen_slot_3[0] },
-  { "joy_slot_3", rc_joypad, &dgen_slot_3[1] },
-  { "key_slot_4", rc_keysym, &dgen_slot_4[0] },
-  { "joy_slot_4", rc_joypad, &dgen_slot_4[1] },
-  { "key_slot_5", rc_keysym, &dgen_slot_5[0] },
-  { "joy_slot_5", rc_joypad, &dgen_slot_5[1] },
-  { "key_slot_6", rc_keysym, &dgen_slot_6[0] },
-  { "joy_slot_6", rc_joypad, &dgen_slot_6[1] },
-  { "key_slot_7", rc_keysym, &dgen_slot_7[0] },
-  { "joy_slot_7", rc_joypad, &dgen_slot_7[1] },
-  { "key_slot_8", rc_keysym, &dgen_slot_8[0] },
-  { "joy_slot_8", rc_joypad, &dgen_slot_8[1] },
-  { "key_slot_9", rc_keysym, &dgen_slot_9[0] },
-  { "joy_slot_9", rc_joypad, &dgen_slot_9[1] },
-  { "key_save", rc_keysym, &dgen_save[0] },
-  { "joy_save", rc_joypad, &dgen_save[1] },
-  { "key_load", rc_keysym, &dgen_load[0] },
-  { "joy_load", rc_joypad, &dgen_load[1] },
-  { "key_z80_toggle", rc_keysym, &dgen_z80_toggle[0] },
-  { "joy_z80_toggle", rc_joypad, &dgen_z80_toggle[1] },
-  { "key_cpu_toggle", rc_keysym, &dgen_cpu_toggle[0] },
-  { "joy_cpu_toggle", rc_joypad, &dgen_cpu_toggle[1] },
-  { "key_stop", rc_keysym, &dgen_stop[0] },
-  { "joy_stop", rc_joypad, &dgen_stop[1] },
-  { "key_game_genie", rc_keysym, &dgen_game_genie[0] },
-  { "joy_game_genie", rc_joypad, &dgen_game_genie[1] },
-  { "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle[0] },
-  { "joy_fullscreen_toggle", rc_joypad, &dgen_fullscreen_toggle[1] },
-  { "key_debug_enter", rc_keysym, &dgen_debug_enter[0] },
-  { "joy_debug_enter", rc_joypad, &dgen_debug_enter[1] },
-  { "key_prompt", rc_keysym, &dgen_prompt[0] },
-  { "joy_prompt", rc_joypad, &dgen_prompt[1] },
-  { "bool_vdp_hide_plane_a", rc_boolean, &dgen_vdp_hide_plane_a },
-  { "bool_vdp_hide_plane_b", rc_boolean, &dgen_vdp_hide_plane_b },
-  { "bool_vdp_hide_plane_w", rc_boolean, &dgen_vdp_hide_plane_w },
-  { "bool_vdp_hide_sprites", rc_boolean, &dgen_vdp_hide_sprites },
-  { "bool_vdp_sprites_boxing", rc_boolean, &dgen_vdp_sprites_boxing },
-  { "int_vdp_sprites_boxing_fg", rc_number, &dgen_vdp_sprites_boxing_fg },
-  { "int_vdp_sprites_boxing_bg", rc_number, &dgen_vdp_sprites_boxing_bg },
-  { "bool_autoload", rc_boolean, &dgen_autoload },
-  { "bool_autosave", rc_boolean, &dgen_autosave },
-  { "bool_autoconf", rc_boolean, &dgen_autoconf },
-  { "bool_frameskip", rc_boolean, &dgen_frameskip },
-  { "bool_show_carthead", rc_boolean, &dgen_show_carthead },
-  { "str_rom_path", rc_rom_path, (intptr_t *)((void *)&dgen_rom_path) }, // SH
-  { "bool_raw_screenshots", rc_boolean, &dgen_raw_screenshots },
-  { "ctv_craptv_startup", rc_ctv, &dgen_craptv }, // SH
-  { "scaling_startup", rc_scaling, &dgen_scaling }, // SH
-  { "emu_z80_startup", rc_emu_z80, &dgen_emu_z80 }, // SH
-  { "emu_m68k_startup", rc_emu_m68k, &dgen_emu_m68k }, // SH
-  { "bool_sound", rc_boolean, &dgen_sound }, // SH
-  { "int_soundrate", rc_number, &dgen_soundrate }, // SH
-  { "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
-  { "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
-  { "int_volume", rc_number, &dgen_volume },
-  { "key_volume_inc", rc_keysym, &dgen_volume_inc[0] },
-  { "joy_volume_inc", rc_joypad, &dgen_volume_inc[1] },
-  { "key_volume_dec", rc_keysym, &dgen_volume_dec[0] },
-  { "joy_volume_dec", rc_joypad, &dgen_volume_dec[1] },
-  { "bool_mjazz", rc_boolean, &dgen_mjazz }, // SH
-  { "int_nice", rc_number, &dgen_nice },
-  { "int_hz", rc_number, &dgen_hz }, // SH
-  { "bool_pal", rc_boolean, &dgen_pal }, // SH
-  { "region", rc_region, &dgen_region }, // SH
-  { "str_region_order", rc_string, (intptr_t *)((void *)&dgen_region_order) },
-  { "bool_fps", rc_boolean, &dgen_fps },
-  { "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
-  { "int_info_height", rc_number, &dgen_info_height }, // SH
-  { "int_width", rc_number, &dgen_width }, // SH
-  { "int_height", rc_number, &dgen_height }, // SH
-  { "int_scale", rc_number, &dgen_scale }, // SH
-  { "int_scale_x", rc_number, &dgen_x_scale }, // SH
-  { "int_scale_y", rc_number, &dgen_y_scale }, // SH
-  { "int_depth", rc_number, &dgen_depth }, // SH
-  { "bool_swab", rc_boolean, &dgen_swab }, // SH
-  { "bool_opengl", rc_boolean, &dgen_opengl }, // SH
-  { "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect }, // SH
-  { "int_opengl_width", rc_number, &dgen_width }, // deprecated, use int_width
-  { "int_opengl_height", rc_number, &dgen_height }, // and int_height
-  { "bool_opengl_linear", rc_boolean, &dgen_opengl_linear }, // SH
-  { "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit }, // SH
-  { "bool_opengl_swap", rc_boolean, &dgen_swab }, // SH deprecated -> bool_swab
-  { "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
-  { "bool_doublebuffer", rc_boolean, &dgen_doublebuffer }, // SH
-  { "bool_screen_thread", rc_boolean, &dgen_screen_thread }, // SH
-  { "bool_joystick", rc_boolean, &dgen_joystick }, // SH
-  { NULL, NULL, NULL } // Terminator
+	{ "key_pad1_up", rc_keysym, &pad1_up[0] },
+	{ "joy_pad1_up", rc_joypad, &pad1_up[1] },
+	{ "key_pad1_down", rc_keysym, &pad1_down[0] },
+	{ "joy_pad1_down", rc_joypad, &pad1_down[1] },
+	{ "key_pad1_left", rc_keysym, &pad1_left[0] },
+	{ "joy_pad1_left", rc_joypad, &pad1_left[1] },
+	{ "key_pad1_right", rc_keysym, &pad1_right[0] },
+	{ "joy_pad1_right", rc_joypad, &pad1_right[1] },
+	{ "key_pad1_a", rc_keysym, &pad1_a[0] },
+	{ "joy_pad1_a", rc_joypad, &pad1_a[1] },
+	{ "key_pad1_b", rc_keysym, &pad1_b[0] },
+	{ "joy_pad1_b", rc_joypad, &pad1_b[1] },
+	{ "key_pad1_c", rc_keysym, &pad1_c[0] },
+	{ "joy_pad1_c", rc_joypad, &pad1_c[1] },
+	{ "key_pad1_x", rc_keysym, &pad1_x[0] },
+	{ "joy_pad1_x", rc_joypad, &pad1_x[1] },
+	{ "key_pad1_y", rc_keysym, &pad1_y[0] },
+	{ "joy_pad1_y", rc_joypad, &pad1_y[1] },
+	{ "key_pad1_z", rc_keysym, &pad1_z[0] },
+	{ "joy_pad1_z", rc_joypad, &pad1_z[1] },
+	{ "key_pad1_mode", rc_keysym, &pad1_mode[0] },
+	{ "joy_pad1_mode", rc_joypad, &pad1_mode[1] },
+	{ "key_pad1_start", rc_keysym, &pad1_start[0] },
+	{ "joy_pad1_start", rc_joypad, &pad1_start[1] },
+	{ "key_pad2_up", rc_keysym, &pad2_up[0] },
+	{ "joy_pad2_up", rc_joypad, &pad2_up[1] },
+	{ "key_pad2_down", rc_keysym, &pad2_down[0] },
+	{ "joy_pad2_down", rc_joypad, &pad2_down[1] },
+	{ "key_pad2_left", rc_keysym, &pad2_left[0] },
+	{ "joy_pad2_left", rc_joypad, &pad2_left[1] },
+	{ "key_pad2_right", rc_keysym, &pad2_right[0] },
+	{ "joy_pad2_right", rc_joypad, &pad2_right[1] },
+	{ "key_pad2_a", rc_keysym, &pad2_a[0] },
+	{ "joy_pad2_a", rc_joypad, &pad2_a[1] },
+	{ "key_pad2_b", rc_keysym, &pad2_b[0] },
+	{ "joy_pad2_b", rc_joypad, &pad2_b[1] },
+	{ "key_pad2_c", rc_keysym, &pad2_c[0] },
+	{ "joy_pad2_c", rc_joypad, &pad2_c[1] },
+	{ "key_pad2_x", rc_keysym, &pad2_x[0] },
+	{ "joy_pad2_x", rc_joypad, &pad2_x[1] },
+	{ "key_pad2_y", rc_keysym, &pad2_y[0] },
+	{ "joy_pad2_y", rc_joypad, &pad2_y[1] },
+	{ "key_pad2_z", rc_keysym, &pad2_z[0] },
+	{ "joy_pad2_z", rc_joypad, &pad2_z[1] },
+	{ "key_pad2_mode", rc_keysym, &pad2_mode[0] },
+	{ "joy_pad2_mode", rc_joypad, &pad2_mode[1] },
+	{ "key_pad2_start", rc_keysym, &pad2_start[0] },
+	{ "joy_pad2_start", rc_joypad, &pad2_start[1] },
+	{ "key_fix_checksum", rc_keysym, &dgen_fix_checksum[0] },
+	{ "joy_fix_checksum", rc_joypad, &dgen_fix_checksum[1] },
+	{ "key_quit", rc_keysym, &dgen_quit[0] },
+	{ "joy_quit", rc_joypad, &dgen_quit[1] },
+	{ "key_craptv_toggle", rc_keysym, &dgen_craptv_toggle[0] },
+	{ "joy_craptv_toggle", rc_joypad, &dgen_craptv_toggle[1] },
+	{ "key_scaling_toggle", rc_keysym, &dgen_scaling_toggle[0] },
+	{ "joy_scaling_toggle", rc_joypad, &dgen_scaling_toggle[1] },
+	{ "key_screenshot", rc_keysym, &dgen_screenshot[0] },
+	{ "joy_screenshot", rc_joypad, &dgen_screenshot[1] },
+	{ "key_reset", rc_keysym, &dgen_reset[0] },
+	{ "joy_reset", rc_joypad, &dgen_reset[1] },
+	{ "key_slot_0", rc_keysym, &dgen_slot_0[0] },
+	{ "joy_slot_0", rc_joypad, &dgen_slot_0[1] },
+	{ "key_slot_1", rc_keysym, &dgen_slot_1[0] },
+	{ "joy_slot_1", rc_joypad, &dgen_slot_1[1] },
+	{ "key_slot_2", rc_keysym, &dgen_slot_2[0] },
+	{ "joy_slot_2", rc_joypad, &dgen_slot_2[1] },
+	{ "key_slot_3", rc_keysym, &dgen_slot_3[0] },
+	{ "joy_slot_3", rc_joypad, &dgen_slot_3[1] },
+	{ "key_slot_4", rc_keysym, &dgen_slot_4[0] },
+	{ "joy_slot_4", rc_joypad, &dgen_slot_4[1] },
+	{ "key_slot_5", rc_keysym, &dgen_slot_5[0] },
+	{ "joy_slot_5", rc_joypad, &dgen_slot_5[1] },
+	{ "key_slot_6", rc_keysym, &dgen_slot_6[0] },
+	{ "joy_slot_6", rc_joypad, &dgen_slot_6[1] },
+	{ "key_slot_7", rc_keysym, &dgen_slot_7[0] },
+	{ "joy_slot_7", rc_joypad, &dgen_slot_7[1] },
+	{ "key_slot_8", rc_keysym, &dgen_slot_8[0] },
+	{ "joy_slot_8", rc_joypad, &dgen_slot_8[1] },
+	{ "key_slot_9", rc_keysym, &dgen_slot_9[0] },
+	{ "joy_slot_9", rc_joypad, &dgen_slot_9[1] },
+	{ "key_save", rc_keysym, &dgen_save[0] },
+	{ "joy_save", rc_joypad, &dgen_save[1] },
+	{ "key_load", rc_keysym, &dgen_load[0] },
+	{ "joy_load", rc_joypad, &dgen_load[1] },
+	{ "key_z80_toggle", rc_keysym, &dgen_z80_toggle[0] },
+	{ "joy_z80_toggle", rc_joypad, &dgen_z80_toggle[1] },
+	{ "key_cpu_toggle", rc_keysym, &dgen_cpu_toggle[0] },
+	{ "joy_cpu_toggle", rc_joypad, &dgen_cpu_toggle[1] },
+	{ "key_stop", rc_keysym, &dgen_stop[0] },
+	{ "joy_stop", rc_joypad, &dgen_stop[1] },
+	{ "key_game_genie", rc_keysym, &dgen_game_genie[0] },
+	{ "joy_game_genie", rc_joypad, &dgen_game_genie[1] },
+	{ "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle[0] },
+	{ "joy_fullscreen_toggle", rc_joypad, &dgen_fullscreen_toggle[1] },
+	{ "key_debug_enter", rc_keysym, &dgen_debug_enter[0] },
+	{ "joy_debug_enter", rc_joypad, &dgen_debug_enter[1] },
+	{ "key_prompt", rc_keysym, &dgen_prompt[0] },
+	{ "joy_prompt", rc_joypad, &dgen_prompt[1] },
+	{ "bool_vdp_hide_plane_a", rc_boolean, &dgen_vdp_hide_plane_a },
+	{ "bool_vdp_hide_plane_b", rc_boolean, &dgen_vdp_hide_plane_b },
+	{ "bool_vdp_hide_plane_w", rc_boolean, &dgen_vdp_hide_plane_w },
+	{ "bool_vdp_hide_sprites", rc_boolean, &dgen_vdp_hide_sprites },
+	{ "bool_vdp_sprites_boxing", rc_boolean, &dgen_vdp_sprites_boxing },
+	{ "int_vdp_sprites_boxing_fg", rc_number, &dgen_vdp_sprites_boxing_fg },
+	{ "int_vdp_sprites_boxing_bg", rc_number, &dgen_vdp_sprites_boxing_bg },
+	{ "bool_autoload", rc_boolean, &dgen_autoload },
+	{ "bool_autosave", rc_boolean, &dgen_autosave },
+	{ "bool_autoconf", rc_boolean, &dgen_autoconf },
+	{ "bool_frameskip", rc_boolean, &dgen_frameskip },
+	{ "bool_show_carthead", rc_boolean, &dgen_show_carthead },
+	{ "str_rom_path", rc_rom_path,
+	  (intptr_t *)((void *)&dgen_rom_path) }, // SH
+	{ "bool_raw_screenshots", rc_boolean, &dgen_raw_screenshots },
+	{ "ctv_craptv_startup", rc_ctv, &dgen_craptv }, // SH
+	{ "scaling_startup", rc_scaling, &dgen_scaling }, // SH
+	{ "emu_z80_startup", rc_emu_z80, &dgen_emu_z80 }, // SH
+	{ "emu_m68k_startup", rc_emu_m68k, &dgen_emu_m68k }, // SH
+	{ "bool_sound", rc_boolean, &dgen_sound }, // SH
+	{ "int_soundrate", rc_number, &dgen_soundrate }, // SH
+	{ "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
+	{ "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
+	{ "int_volume", rc_number, &dgen_volume },
+	{ "key_volume_inc", rc_keysym, &dgen_volume_inc[0] },
+	{ "joy_volume_inc", rc_joypad, &dgen_volume_inc[1] },
+	{ "key_volume_dec", rc_keysym, &dgen_volume_dec[0] },
+	{ "joy_volume_dec", rc_joypad, &dgen_volume_dec[1] },
+	{ "bool_mjazz", rc_boolean, &dgen_mjazz }, // SH
+	{ "int_nice", rc_number, &dgen_nice },
+	{ "int_hz", rc_number, &dgen_hz }, // SH
+	{ "bool_pal", rc_boolean, &dgen_pal }, // SH
+	{ "region", rc_region, &dgen_region }, // SH
+	{ "str_region_order", rc_string,
+	  (intptr_t *)((void *)&dgen_region_order) },
+	{ "bool_fps", rc_boolean, &dgen_fps },
+	{ "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
+	{ "int_info_height", rc_number, &dgen_info_height }, // SH
+	{ "int_width", rc_number, &dgen_width }, // SH
+	{ "int_height", rc_number, &dgen_height }, // SH
+	{ "int_scale", rc_number, &dgen_scale }, // SH
+	{ "int_scale_x", rc_number, &dgen_x_scale }, // SH
+	{ "int_scale_y", rc_number, &dgen_y_scale }, // SH
+	{ "int_depth", rc_number, &dgen_depth }, // SH
+	{ "bool_swab", rc_boolean, &dgen_swab }, // SH
+	{ "bool_opengl", rc_boolean, &dgen_opengl }, // SH
+	{ "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect }, // SH
+	// deprecated, use int_width
+	{ "int_opengl_width", rc_number, &dgen_width },
+	// deprecated, use int_height
+	{ "int_opengl_height", rc_number, &dgen_height },
+	{ "bool_opengl_linear", rc_boolean, &dgen_opengl_linear }, // SH
+	{ "bool_opengl_32bit", rc_boolean, &dgen_opengl_32bit }, // SH
+	// deprecated, use bool_swab
+	{ "bool_opengl_swap", rc_boolean, &dgen_swab }, // SH
+	{ "bool_opengl_square", rc_boolean, &dgen_opengl_square }, // SH
+	{ "bool_doublebuffer", rc_boolean, &dgen_doublebuffer }, // SH
+	{ "bool_screen_thread", rc_boolean, &dgen_screen_thread }, // SH
+	{ "bool_joystick", rc_boolean, &dgen_joystick }, // SH
+	{ NULL, NULL, NULL }
 };
 
 /* Replace unprintable characters */
