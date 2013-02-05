@@ -2837,6 +2837,8 @@ static int set_fullscreen(int toggle)
  */
 int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
+	SDL_Event event;
+
 	prompt_init(&prompt.status);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
@@ -2901,6 +2903,14 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 			texture.vis_width, texture.vis_height);
 	}
 #endif
+	while (SDL_PollEvent(&event)) {
+		switch (event.type) {
+		case SDL_VIDEORESIZE:
+			if (screen_init(event.resize.w, event.resize.h))
+				goto fail;
+			break;
+		}
+	}
 	return 1;
 fail:
 	fprintf(stderr, "sdl: can't initialize graphics.\n");
