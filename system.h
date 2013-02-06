@@ -32,6 +32,8 @@ SYSTEM_H_BEGIN_
 #endif
 
 #define elemof(a) (sizeof(a) / sizeof((a)[0]))
+#define containerof(p, s, m) (s *)((uintptr_t)(p) - offsetof(s, m))
+
 #define BITS_TO_BYTES(v) ((((v) + 7u) & ~7u) >> 3)
 
 #define DGEN_READ 0x1

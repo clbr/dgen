@@ -3720,6 +3720,20 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 			stop_events_msg(~0u, "%s can't be displayed",
 					rc->fieldname);
 	}
+	else if (rc->parser == rc_bind) {
+		char *s = *(char **)rc->variable;
+
+		assert(s != NULL);
+		assert((intptr_t)s != -1);
+		s = backslashify((uint8_t *)s, strlen(s), 0, NULL);
+		if (s == NULL)
+			stop_events_msg(~0u, "%s can't be displayed",
+					rc->fieldname);
+		else {
+			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
+			free(s);
+		}
+	}
 	else
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
 }
@@ -3730,6 +3744,7 @@ static int handle_prompt_enter(class md& md)
 	struct prompt *p = &prompt.status;
 	size_t i;
 	int ret;
+	bool binding_tried = false;
 
 	if (prompt_parse(p, &pp) == NULL)
 		return PROMPT_RET_ERROR;
@@ -3762,6 +3777,7 @@ static int handle_prompt_enter(class md& md)
 		}
 		goto end;
 	}
+binding_retry:
 	// Look for a variable with that name.
 	for (i = 0; (rc_fields[i].fieldname != NULL); ++i) {
 		intptr_t potential;
@@ -3807,6 +3823,11 @@ static int handle_prompt_enter(class md& md)
 		break;
 	}
 	if (rc_fields[i].fieldname == NULL) {
+		if ((binding_tried == false) &&
+		    (rc_binding_add((char *)pp.argv[0], "") != NULL)) {
+			binding_tried = true;
+			goto binding_retry;
+		}
 		stop_events_msg(~0u, "%s: unknown command",
 				(char *)pp.argv[0]);
 		ret |= PROMPT_RET_MSG;

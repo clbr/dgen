@@ -473,7 +473,7 @@ intptr_t rc_number(const char *value, intptr_t *)
 
 /* This is a table of all the RC options, the variables they affect, and the
  * functions to parse their values. */
-struct rc_field rc_fields[] = {
+struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "key_pad1_up", rc_keysym, &pad1_up[0] },
 	{ "joy_pad1_up", rc_joypad, &pad1_up[1] },
 	{ "key_pad1_down", rc_keysym, &pad1_down[0] },
@@ -634,6 +634,148 @@ struct rc_field rc_fields[] = {
 	{ NULL, NULL, NULL }
 };
 
+struct rc_binding rc_binding_head = {
+	&rc_binding_head,
+	&rc_binding_head,
+	false,
+	0,
+	NULL,
+	NULL
+};
+
+static void rc_binding_cleanup(void)
+{
+	struct rc_binding *rcb = rc_binding_head.next;
+	struct rc_binding *next;
+
+	while (rcb != &rc_binding_head) {
+		next = rcb->next;
+#ifndef NDEBUG
+		memset(rcb, 0x66, sizeof(*rcb));
+#endif
+		free(rcb);
+		rcb = next;
+	}
+}
+
+struct rc_field *rc_binding_add(const char *rc, const char *to)
+{
+	static bool registered = false;
+	size_t rc_sz = (strlen(rc) + 1);
+	struct rc_field *rcf = rc_fields;
+	struct rc_binding *rcb;
+	intptr_t code;
+	bool type;
+	size_t off;
+	char *new_to;
+
+	if ((registered == false) && (atexit(rc_binding_cleanup) == 0))
+		registered = true;
+	// Check if the RC name looks like a valid binding.
+	for (off = 0; (rc[off] != '\0'); ++off) {
+		if (RC_BIND_PREFIX[off] == '\0')
+			break;
+		if (rc[off] != RC_BIND_PREFIX[off])
+			return NULL;
+	}
+	if (rc[off] == '\0')
+		return NULL;
+	// Extract keysym or joypad code from RC name.
+	if ((type = true, ((code = rc_joypad(&rc[off], NULL)) == -1)) &&
+	    (type = false, ((code = rc_keysym(&rc[off], NULL)) == -1)))
+		return NULL;
+	// Find a free entry in rc_fields[].
+	while (rcf->fieldname != NULL)
+		++rcf;
+	if ((rcf - rc_fields) == (elemof(rc_fields) - 1))
+		return NULL;
+	assert(rcf->parser == NULL);
+	assert(rcf->variable == NULL);
+	// Allocate binding.
+	if ((rcb = (struct rc_binding *)malloc(sizeof(*rcb) + rc_sz)) == NULL)
+		return NULL;
+	if (((new_to = strdup(to)) == NULL) || ((intptr_t)new_to == -1)) {
+		// Either strdup() failed, or this pointer equals -1 and
+		// it's invalid ((intptr_t)-1 is special).
+		free(new_to);
+		free(rcb);
+		return NULL;
+	}
+	// Configure binding.
+	rcb->prev = rc_binding_head.prev;
+	rcb->next = &rc_binding_head;
+	rcb->prev->next = rcb;
+	rcb->next->prev = rcb;
+	rcb->type = type;
+	rcb->code = code;
+	rcb->rc = ((char *)rcb + sizeof(*rcb));
+	rcb->to = new_to;
+	memcpy(rcb->rc, rc, rc_sz);
+	// Configure RC field.
+	rcf->fieldname = rcb->rc;
+	rcf->parser = rc_bind;
+	rcf->variable = (intptr_t *)&rcb->to;
+	return rcf;
+}
+
+void rc_binding_del(rc_field *rcf)
+{
+	struct rc_binding *rcb =
+		containerof(rcf->variable, struct rc_binding, to);
+
+	assert(rcf >= &rc_fields[0]);
+	assert(rcf < &rc_fields[(sizeof(rc_fields) - 1)]);
+	assert(rcf->fieldname != NULL);
+	assert(rcf->parser != NULL);
+	assert(rcf->variable != NULL);
+	if (rcf->parser != rc_bind)
+		return;
+	assert(rcb != &rc_binding_head);
+	// Clean-up.
+	rcb->prev->next = rcb->next;
+	rcb->next->prev = rcb->prev;
+	assert(rcb->to != NULL);
+	assert((intptr_t)rcb->to != -1);
+	free(rcb->to);
+#ifndef NDEBUG
+	memset(rcb, 0x88, (sizeof(*rcb) + strlen(rcb->rc) + 1));
+#endif
+	free(rcb);
+	// Shift the next entries.
+	do {
+		memcpy(rcf, (rcf + 1), sizeof(*rcf));
+		++rcf;
+	}
+	while (rcf->fieldname != NULL);
+	assert(rcf < &rc_fields[(sizeof(rc_fields) - 1)]);
+}
+
+intptr_t rc_bind(const char *value, intptr_t *variable)
+{
+	struct rc_binding *rcb = containerof(variable, struct rc_binding, to);
+	char *to;
+
+	assert(*variable != -1);
+	assert(rcb != NULL);
+	assert(rcb->prev != NULL);
+	assert(rcb->next != NULL);
+	assert(rcb->rc != NULL);
+	assert(rcb->to != NULL);
+	assert((intptr_t)rcb->to != -1);
+	if (((to = strdup(value)) == NULL) || ((intptr_t)to == -1)) {
+		// Either strdup() failed, or this pointer equals -1 and
+		// it's invalid ((intptr_t)-1 is special).
+		free(to);
+		// Get the previous value.
+		to = rcb->to;
+	}
+	else
+		free(rcb->to);
+	rcb->to = NULL; // Will be updated by the return value.
+	// This function must always return a valid pointer.
+	return (intptr_t)to;
+}
+
 /* Replace unprintable characters */
 static char *strclean(char *s)
 {
@@ -712,6 +854,9 @@ parse:
 		     ++rc_field)
 			if (!strcasecmp(rc_field->fieldname, ckvp.out))
 				goto key_over;
+		/* Try to add it as a new binding. */
+		if ((rc_field = rc_binding_add(ckvp.out, "")) != NULL)
+			goto key_over;
 		fprintf(stderr, "rc: %s:%u:%u: unknown key `%s'\n",
 			name, ckvp.line, ckvp.column, strclean(ckvp.out));
 	key_over:
@@ -795,8 +940,15 @@ void dump_rc(FILE *file)
 
 	while (rc->fieldname != NULL) {
 		intptr_t val = *rc->variable;
+		char *s = backslashify((const uint8_t *)rc->fieldname,
+				       strlen(rc->fieldname), 0, NULL);
 
-		fprintf(file, "%s = ", rc->fieldname);
+		if (s == NULL) {
+			++rc;
+			continue;
+		}
+		fprintf(file, "%s = ", s);
+		free(s);
 		if (rc->parser == rc_number)
 			fprintf(file, "%ld", (long)val);
 		else if (rc->parser == rc_keysym) {
@@ -838,7 +990,6 @@ void dump_rc(FILE *file)
 		else if ((rc->parser == rc_string) ||
 			 (rc->parser == rc_rom_path)) {
 			struct rc_str *rs = (struct rc_str *)rc->variable;
-			char *s;
 
 			if ((rs->val == NULL) ||
 			    ((s = backslashify
@@ -849,6 +1000,18 @@ void dump_rc(FILE *file)
 				fprintf(file, "\"%s\"", s);
 				free(s);
 			}
+		}
+		else if (rc->parser == rc_bind) {
+			s = *(char **)rc->variable;
+			assert(s != NULL);
+			assert((intptr_t)s != -1);
+			s = backslashify((uint8_t *)s, strlen(s), 0, NULL);
+			fputc('"', file);
+			if (s != NULL) {
+				fputs(s, file);
+				free(s);
+			}
+			fputc('"', file);
 		}
 		fputs("\n", file);
 		++rc;

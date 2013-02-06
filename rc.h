@@ -111,6 +111,7 @@ extern intptr_t rc_emu_m68k(const char *value, intptr_t *);
 extern intptr_t rc_region(const char *value, intptr_t *);
 extern intptr_t rc_string(const char *value, intptr_t *);
 extern intptr_t rc_rom_path(const char *value, intptr_t *);
+extern intptr_t rc_bind(const char *value, intptr_t *variable);
 
 extern struct rc_str *rc_str_list;
 extern void rc_str_cleanup(void);
@@ -121,7 +122,27 @@ struct rc_field {
 	intptr_t *variable;
 };
 
-extern struct rc_field rc_fields[];
+#define RC_BIND_PREFIX "bind_"
+
+struct rc_binding {
+	struct rc_binding *prev;
+	struct rc_binding *next;
+	unsigned int type:1; // 0 for keysym, 1 for joypad.
+	intptr_t code; // keysym or joypad code.
+	char *rc; // RC name for this binding.
+	// struct rc_field.variable points to the following member.
+	char *to; // Related action.
+	// Internal storage, don't touch.
+	// char rc[];
+};
+
+#define RC_FIELDS_SIZE 1024
+
+extern struct rc_field rc_fields[RC_FIELDS_SIZE];
+extern struct rc_binding rc_binding_head;
+
+extern struct rc_field *rc_binding_add(const char *rc, const char *to);
+extern void rc_binding_del(struct rc_field *rcf);
 
 struct rc_keysym {
 	const char *name;
