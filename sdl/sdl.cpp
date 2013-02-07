@@ -417,6 +417,9 @@ static char* prompt_cmpl_load(class md&, unsigned int, const char**,
 			      unsigned int);
 static int prompt_cmd_unload(class md&, unsigned int, const char**);
 static int prompt_cmd_reset(class md&, unsigned int, const char**);
+static int prompt_cmd_unbind(class md&, unsigned int, const char**);
+static char* prompt_cmpl_unbind(class md&, unsigned int, const char**,
+				unsigned int);
 #ifdef WITH_CTV
 static int prompt_cmd_filter_push(class md&, unsigned int, const char**);
 static char* prompt_cmpl_filter_push(class md&, unsigned int, const char**,
@@ -446,6 +449,7 @@ static const struct prompt_command prompt_command[] = {
 	{ "close", prompt_cmd_unload, NULL },
 	{ "unplug", prompt_cmd_unload, NULL },
 	{ "reset", prompt_cmd_reset, NULL },
+	{ "unbind", prompt_cmd_unbind, prompt_cmpl_unbind },
 #ifdef WITH_CTV
 	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
@@ -660,6 +664,66 @@ static int prompt_cmd_reset(class md& md, unsigned int, const char**)
 {
 	md.reset();
 	return CMD_OK;
+}
+
+static int prompt_cmd_unbind(class md&, unsigned int ac, const char** av)
+{
+	unsigned int i;
+	int ret;
+
+	if (ac < 2)
+		return CMD_EINVAL;
+	ret = CMD_FAIL;
+	for (i = 1; (i != ac); ++i) {
+		struct rc_field *rcf = rc_fields;
+
+		while (rcf->fieldname != NULL) {
+			if ((rcf->parser == rc_bind) &&
+			    (!strcasecmp(av[i], rcf->fieldname))) {
+				rc_binding_del(rcf);
+				ret = CMD_OK;
+			}
+			else
+				++rcf;
+		}
+	}
+	return ret;
+}
+
+static char* prompt_cmpl_unbind(class md&, unsigned int ac,
+				const char** av, unsigned int len)
+{
+	const struct rc_binding *rcb;
+	const char *prefix;
+	unsigned int skip;
+
+	assert(ac != 0);
+	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
+		prefix = "";
+		len = 0;
+	}
+	else
+		prefix = av[(ac - 1)];
+	skip = prompt.skip;
+retry:
+	for (rcb = rc_binding_head.next;
+	     (rcb != &rc_binding_head);
+	     rcb = rcb->next) {
+		if (strncasecmp(prefix, rcb->rc, len))
+			continue;
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	if (rcb == &rc_binding_head) {
+		if (prompt.skip != 0) {
+			prompt.skip = 0;
+			goto retry;
+		}
+		return NULL;
+	}
+	++prompt.skip;
+	return strdup(rcb->rc);
 }
 
 #ifdef WITH_CTV
