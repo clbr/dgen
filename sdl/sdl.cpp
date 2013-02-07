@@ -4967,6 +4967,72 @@ static struct ctl control[] = {
 	{ CTL_, NULL, false, NULL, NULL }
 };
 
+static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
+{
+	struct rc_binding *rcb = rc_binding_head.next;
+	size_t pos = 0;
+	size_t seek = 0;
+
+	while (rcb != &rc_binding_head) {
+		if ((pos < seek) ||
+		    (rcb->type != type) ||
+		    (rcb->code != code)) {
+			++pos;
+			rcb = rcb->next;
+			continue;
+		}
+		assert(rcb->to != NULL);
+		assert((intptr_t)rcb->to != -1);
+		// For keyboard and joystick bindings, perform related action.
+		if ((type = false, !strncasecmp("key_", rcb->to, 4)) ||
+		    (type = true, !strncasecmp("joy_", rcb->to, 4))) {
+			struct rc_field *rcf = rc_fields;
+
+			while (rcf->fieldname != NULL) {
+				struct ctl *ctl = control;
+
+				if (strcasecmp(rcb->to, rcf->fieldname)) {
+					++rcf;
+					continue;
+				}
+				while (ctl->rc != NULL) {
+					if (&(*ctl->rc)[type] !=
+					    rcf->variable) {
+						++ctl;
+						continue;
+					}
+					// Got it, finally.
+					if (pressed) {
+						assert(ctl->press != NULL);
+						if (!ctl->press(*ctl, md))
+							return 0;
+					}
+					else if (ctl->release != NULL) {
+						if (!ctl->release(*ctl, md))
+							return 0;
+					}
+					break;
+				}
+				break;
+			}
+		}
+		// Otherwise, pass it to the prompt.
+		else {
+			handle_prompt_complete_clear();
+			prompt_replace(&prompt.status, 0, 0,
+				       (uint8_t *)rcb->to, strlen(rcb->to));
+			if (handle_prompt_enter(md) & PROMPT_RET_ERROR)
+				return 0;
+		}
+		// In case the current (or any other binding) has been
+		// removed, rewind and seek to the next position.
+		rcb = rc_binding_head.next;
+		seek = (pos + 1);
+		pos = 0;
+	}
+	return 1;
+}
+
 // The massive event handler!
 // I know this is an ugly beast, but please don't be discouraged. If you need
 // help, don't be afraid to ask me how something works. Basically, just handle
@@ -5048,6 +5114,8 @@ int pd_handle_events(md &megad)
 					return 0;
 			}
 		}
+		if (manage_bindings(megad, pressed, true, joypad) == 0)
+			return 0;
 		break;
 	case SDL_JOYBUTTONDOWN:
 		assert(event.jbutton.state == SDL_PRESSED);
@@ -5072,6 +5140,8 @@ int pd_handle_events(md &megad)
 					return 0;
 			}
 		}
+		if (manage_bindings(megad, pressed, true, joypad) == 0)
+			return 0;
 		break;
 #endif // WITH_JOYSTICK
 	case SDL_KEYDOWN:
@@ -5101,6 +5171,8 @@ int pd_handle_events(md &megad)
 			if (ctl->press(*ctl, megad) == 0)
 				return 0;
 		}
+		if (manage_bindings(megad, true, false, ksym) == 0)
+			return 0;
 		break;
 	case SDL_KEYUP:
 		ksym = event.key.keysym.sym;
@@ -5120,8 +5192,9 @@ int pd_handle_events(md &megad)
 			if ((ctl->release != NULL) &&
 			    (ctl->release(*ctl, megad) == 0))
 				return 0;
-			break;
 		}
+		if (manage_bindings(megad, false, false, ksym) == 0)
+			return 0;
 		break;
 	case SDL_VIDEORESIZE:
 	{
