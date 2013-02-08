@@ -428,9 +428,7 @@ static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 
 #ifdef WITH_JOYSTICK
-#if 0 // XXX temporarily disabled.
-static int prompt_cmd_calibrate_js(class md&, unsigned int, const char**);
-#endif // 0
+static int prompt_cmd_calibrate(class md&, unsigned int, const char**);
 #endif
 #endif
 
@@ -455,9 +453,8 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
 #ifdef WITH_JOYSTICK
-#if 0 // XXX temporarily disabled.
-	{ "calibrate_js", prompt_cmd_calibrate_js, NULL },
-#endif // 0
+	{ "calibrate", prompt_cmd_calibrate, NULL },
+	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
 #endif
 #endif
 	{ NULL, NULL, NULL }
@@ -1922,7 +1919,6 @@ static void filter_swab(bpp_t buf, unsigned int buf_pitch,
 
 static char filter_text_str[2048];
 
-#if 0 // XXX temporarily disabled.
 /**
  * Append message to filter_text_str[].
  */
@@ -1941,7 +1937,6 @@ static void filter_text_msg(const char *fmt, ...)
 	vsnprintf(&filter_text_str[off], len, fmt, vl);
 	va_end(vl);
 }
-#endif // XXX 0
 
 /**
  * Text overlay filter.
@@ -2209,169 +2204,37 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 }
 
 #ifdef WITH_JOYSTICK
-#if 0 // XXX temporarily disabled.
 
-static struct {
-	char const* name;
-	unsigned int const mask;
-	struct js_button *jsb;
-} calibrate_js_step[] = {
-	{ "START", MD_START_MASK, NULL },
-	{ "MODE", MD_MODE_MASK, NULL },
-	{ "A", MD_A_MASK, NULL },
-	{ "B", MD_B_MASK, NULL },
-	{ "C", MD_C_MASK, NULL },
-	{ "X", MD_X_MASK, NULL },
-	{ "Y", MD_Y_MASK, NULL },
-	{ "Z", MD_Z_MASK, NULL },
-	{ "UP", MD_UP_MASK, NULL },
-	{ "DOWN", MD_DOWN_MASK, NULL },
-	{ "LEFT", MD_LEFT_MASK, NULL },
-	{ "RIGHT", MD_RIGHT_MASK, NULL }
-};
+static bool calibrating = false; //< True during calibration.
+static unsigned int calibrating_controller; ///< Controller being calibrated.
 
-static unsigned int calibrate_js_state = 0; ///< nonzero during calibration
-static int calibrate_js_no = 0; ///< index of joypad being calibrated
-static struct js_button *calibrate_js_ok = NULL; ///< confirmation when done
-
-static void calibrate_js_over()
-{
-	calibrate_js_state = 0;
-	pd_freeze = false;
-	filters_pluck(filters_prescale, &filter_text_def);
-}
-
-static void calibrate_js_start()
-{
-	unsigned int i;
-
-	if (js_index[calibrate_js_no] < 0) {
-		calibrate_js_over();
-		return;
-	}
-	for (i = 0; (i != elemof(calibrate_js_step)); ++i)
-		calibrate_js_step[i].jsb = NULL;
-	filter_text_str[0] = '\0';
-	filter_text_msg(FILTER_TEXT_BG_BLACK
-			FILTER_TEXT_CENTER
-			FILTER_TEXT_8X13
-			"CONTROLLER %u BUTTONS\n"
-			FILTER_TEXT_7X6
-			"\n"
-			"MD controller %u uses joystick %d\n"
-			"\n"
-			FILTER_TEXT_LEFT
-			"Configure controller buttons by pressing\n"
-			"them twice, or skip them by pressing two\n"
-			"different buttons.\n"
-			"\n"
-			"Press %s: ",
-			(calibrate_js_no + 1),
-			(calibrate_js_no + 1),
-			js_index[calibrate_js_no],
-			calibrate_js_step[0].name);
-	calibrate_js_state = 1;
-	calibrate_js_ok = NULL;
-}
-
-static void calibrate_js_process(struct js_button *jsb, int js,
-				 unsigned int button)
-{
-	unsigned int state = calibrate_js_state;
-	struct js_button **target;
-
-	if (js != js_index[calibrate_js_no]) {
-		calibrate_js_over();
-		return;
-	}
-	if (state > elemof(calibrate_js_step))
-		target = &calibrate_js_ok;
-	else {
-		--state;
-		target = &calibrate_js_step[state].jsb;
-	}
-	if (*target == NULL) {
-		*target = jsb;
-		filter_text_msg("button %u, confirm: ", button);
-		return;
-	}
-	if (*target != jsb) {
-		*target = NULL;
-		filter_text_msg("none\n");
-	}
-	else
-		filter_text_msg("OK\n");
-	++state;
-	if (state < elemof(calibrate_js_step))
-		filter_text_msg("Press %s: ", calibrate_js_step[state].name);
-	else if (state == elemof(calibrate_js_step))
-		filter_text_msg("\n"
-				"Press any button twice to validate.\n"
-				"OK? ");
-	else {
-		if (*target == jsb) {
-			unsigned int i;
-			int idx = calibrate_js_no;
-
-			// Clean up old configuration.
-			for (i = 0; (i < elemof(js_map_button[idx])); ++i) {
-				free(js_map_button[idx][i].value);
-				memset(js_map_button[idx], 0,
-				       sizeof(js_map_button[idx]));
-			}
-			// Save new mapping.
-			for (i = 0; (i != elemof(calibrate_js_step)); ++i) {
-				jsb = calibrate_js_step[i].jsb;
-				if (jsb != NULL)
-					jsb->mask = calibrate_js_step[i].mask;
-			}
-			stop_events_msg(~0u,
-					"Controller %d configuration saved.",
-					(calibrate_js_no + 1));
-		}
-		else
-			stop_events_msg(~0u,
-					"Controller %d configuration aborted.",
-					(calibrate_js_no + 1));
-		calibrate_js_over();
-		return;
-	}
-	++calibrate_js_state;
-}
+static void manage_calibration(bool type, intptr_t code);
 
 /**
- * Interactively calibrate a joystick.
- * If n_args == 1, joystick 0 will be configured.
- * If n_args == 2, configure joystick in string args[1].
+ * Interactively calibrate a controller.
+ * If n_args == 1, controller 0 will be configured.
+ * If n_args == 2, configure controller in string args[1].
  * @param n_args Number of arguments.
  * @param[in] args List of arguments.
  * @return Status code.
  */
 static int
-prompt_cmd_calibrate_js(class md&, unsigned int n_args, const char** args)
+prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 {
 	/* check args first */
 	if (n_args == 1)
-		calibrate_js_no = 0;
+		calibrating_controller = 0;
 	else if (n_args == 2) {
-		calibrate_js_no = (atoi(args[1]) - 1);
-		if (calibrate_js_no > 1)
+		calibrating_controller = (atoi(args[1]) - 1);
+		if (calibrating_controller > 1)
 			return CMD_EINVAL;
 	}
 	else
 		return CMD_EINVAL;
-	if (js_index[calibrate_js_no] < 0) {
-		stop_events_msg(~0u, "There's no joystick for controller %d.",
-				(calibrate_js_no + 1));
-		return (CMD_FAIL | CMD_MSG);
-	}
-	pd_freeze = true;
-	calibrate_js_start();
-	filters_push_once(filters_prescale, &filter_text_def);
+	manage_calibration(false, -1);
 	return CMD_OK;
 }
 
-#endif // 0
 #endif // WITH_JOYSTICK
 
 #endif // WITH_CTV
@@ -4516,7 +4379,7 @@ enum ctl_e {
 // Controls definitions.
 struct ctl {
 	enum ctl_e type;
-	intptr_t const (*rc)[2];
+	intptr_t (*rc)[2];
 	bool pressed;
 	int (*const press)(struct ctl&, md&);
 	int (*const release)(struct ctl&, md&);
@@ -4967,6 +4830,155 @@ static struct ctl control[] = {
 	{ CTL_, NULL, false, NULL, NULL }
 };
 
+#if defined(WITH_JOYSTICK) && defined(WITH_CTV)
+
+static struct {
+	char const* name; ///< Controller button name.
+	enum ctl_e const id[2]; ///< Controls indices in control[].
+	bool once; ///< If button has been pressed once.
+	bool twice; ///< If button has been pressed twice.
+	bool type; ///< Type of code, false for keysym, true for joypad.
+	intptr_t code; ///< Temporary keysym or joypad code.
+} calibration_steps[] = {
+	{ "START", { CTL_PAD1_START, CTL_PAD2_START },
+	  false, false, false, -1 },
+	{ "MODE", { CTL_PAD1_MODE, CTL_PAD2_MODE },
+	  false, false, false, -1 },
+	{ "A", { CTL_PAD1_A, CTL_PAD2_A },
+	  false, false, false, -1 },
+	{ "B", { CTL_PAD1_B, CTL_PAD2_B },
+	  false, false, false, -1 },
+	{ "C", { CTL_PAD1_C, CTL_PAD2_C },
+	  false, false, false, -1 },
+	{ "X", { CTL_PAD1_X, CTL_PAD2_X },
+	  false, false, false, -1 },
+	{ "Y", { CTL_PAD1_Y, CTL_PAD2_Y },
+	  false, false, false, -1 },
+	{ "Z", { CTL_PAD1_Z, CTL_PAD2_Z },
+	  false, false, false, -1 },
+	{ "UP", { CTL_PAD1_UP, CTL_PAD2_UP },
+	  false, false, false, -1 },
+	{ "DOWN", { CTL_PAD1_DOWN, CTL_PAD2_DOWN },
+	  false, false, false, -1 },
+	{ "LEFT", { CTL_PAD1_LEFT, CTL_PAD2_LEFT },
+	  false, false, false, -1 },
+	{ "RIGHT", { CTL_PAD1_RIGHT, CTL_PAD2_RIGHT },
+	  false, false, false, -1 },
+	{ NULL, { CTL_, CTL_ },
+	  false, false, false, -1 }
+};
+
+/**
+ * Handle input during calibration process.
+ * @param type Type of code (false for keysym, true for joypad).
+ * @param code keysym/joypad code to process.
+ */
+static void manage_calibration(bool type, intptr_t code)
+{
+	unsigned int step = 0;
+
+	assert(calibrating_controller < 2);
+	if (!calibrating) {
+		// Stop emulation, enter calibration mode.
+		pd_freeze = true;
+		calibrating = true;
+		filter_text_str[0] = '\0';
+		filter_text_msg(FILTER_TEXT_BG_BLACK
+				FILTER_TEXT_CENTER
+				FILTER_TEXT_8X13
+				"CONTROLLER %u CALIBRATION\n"
+				"\n"
+				FILTER_TEXT_7X6
+				FILTER_TEXT_LEFT
+				"Press each button twice,\n"
+				"or two distinct buttons to skip them.\n"
+				"\n",
+				(calibrating_controller + 1));
+		filters_push_once(filters_prescale, &filter_text_def);
+		goto ask;
+	}
+	while (step != elemof(calibration_steps))
+		if ((calibration_steps[step].once == true) &&
+		    (calibration_steps[step].twice == true))
+			++step;
+		else
+			break;
+	if (step == elemof(calibration_steps)) {
+		// Reset everything.
+		for (step = 0; (step != elemof(calibration_steps)); ++step) {
+			calibration_steps[step].once = false;
+			calibration_steps[step].twice = false;
+			calibration_steps[step].type = false;
+			calibration_steps[step].code = -1;
+		}
+		// Restart emulation.
+		pd_freeze = false;
+		calibrating = false;
+		filters_pluck(filters_prescale, &filter_text_def);
+		return;
+	}
+	if (calibration_steps[step].once == false) {
+		char *dump = (type ? dump_joypad(code) : dump_keysym(code));
+
+		assert(calibration_steps[step].twice == false);
+		calibration_steps[step].once = true;
+		calibration_steps[step].type = type;
+		calibration_steps[step].code = code;
+		filter_text_msg("\"%s\", confirm: ", (dump ? dump : ""));
+		free(dump);
+	}
+	else if (calibration_steps[step].twice == false) {
+		calibration_steps[step].twice = true;
+		if ((calibration_steps[step].type == type) &&
+		    (calibration_steps[step].code == code))
+			filter_text_msg("OK\n");
+		else {
+			calibration_steps[step].type = false;
+			calibration_steps[step].code = -1;
+			filter_text_msg("none\n");
+		}
+	}
+	if ((calibration_steps[step].once != true) ||
+	    (calibration_steps[step].twice != true))
+		return;
+	++step;
+ask:
+	if (step == elemof(calibration_steps)) {
+		code = calibration_steps[(elemof(calibration_steps) - 1)].code;
+		if (code == -1)
+			filter_text_msg("\n"
+					"Aborted.");
+		else {
+			unsigned int i;
+
+			for (i = 0; (i != elemof(calibration_steps)); ++i) {
+				enum ctl_e id;
+
+				id = calibration_steps[i].id
+					[calibrating_controller];
+				type = calibration_steps[i].type;
+				code = calibration_steps[i].code;
+				assert((size_t)id < elemof(control));
+				assert(control[id].type == id);
+				if (code == -1)
+					continue;
+				if (id != CTL_)
+					(*control[id].rc)[type] = code;
+			}
+			filter_text_msg("\n"
+					"Applied.");
+		}
+	}
+	else if (calibration_steps[step].name != NULL)
+		filter_text_msg("%s: ", calibration_steps[step].name);
+	else
+		filter_text_msg("\n"
+				"Press any button twice to apply settings:\n"
+				"");
+}
+
+#endif // defined(WITH_JOYSTICK) && defined(WITH_CTV)
+
 static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 {
 	struct rc_binding *rcb = rc_binding_head.next;
@@ -5100,6 +5112,11 @@ int pd_handle_events(md &megad)
 				event.jhat.hat,
 				hat_value[event.jhat.value]);
 	joypad_axis:
+		if (calibrating) {
+			if (pressed)
+				manage_calibration(true, joypad);
+			break;
+		}
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			// Release button first.
 			if ((ctl->pressed == true) &&
@@ -5126,6 +5143,11 @@ int pd_handle_events(md &megad)
 		pressed = false;
 	joypad_button:
 		joypad = JS_BUTTON(event.jbutton.which, event.jbutton.button);
+		if (calibrating) {
+			if (pressed)
+				manage_calibration(true, joypad);
+			break;
+		}
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if ((*ctl->rc)[1] != joypad)
 				continue;
@@ -5164,6 +5186,11 @@ int pd_handle_events(md &megad)
 		if (event.key.keysym.mod & KMOD_META)
 			ksym |= KEYSYM_MOD_META;
 
+		if (calibrating) {
+			manage_calibration(false, ksym);
+			break;
+		}
+
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if (ksym != (*ctl->rc)[0])
 				continue;
@@ -5183,6 +5210,9 @@ int pd_handle_events(md &megad)
 		kpress[(ksym & 0xff)] = 0;
 		if (ksym_uni)
 			ksym = ksym_uni;
+
+		if (calibrating)
+			break;
 
 		// The only time we care about key releases is for the
 		// controls, but ignore key modifiers so they never get stuck.
