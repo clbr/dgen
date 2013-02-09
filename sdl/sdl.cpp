@@ -3699,7 +3699,8 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 			stop_events_msg(~0u, "%s can't be displayed",
 					rc->fieldname);
 		else {
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
+			stop_events_msg(~0u, "%s is bound to \"%s\"",
+					rc->fieldname, s);
 			free(s);
 		}
 	}
@@ -4931,7 +4932,7 @@ static void manage_calibration(bool type, intptr_t code)
 				FILTER_TEXT_7X6
 				FILTER_TEXT_LEFT
 				"Press each button twice,\n"
-				"or two distinct buttons to skip them.\n"
+				"or two different buttons to skip them.\n"
 				"\n",
 				(calibrating_controller + 1));
 #ifdef WITH_CTV
