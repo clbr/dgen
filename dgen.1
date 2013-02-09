@@ -138,8 +138,15 @@ Unload the current ROM.
 Genesis reset.
 .It {ctv_push, ctv_pop, ctv_none}
 Manage the stack of Crap TV filters (if compiled-in).
-.It calibrate_js Ar number
-Interactive calibration of the specified joystick.
+.It calibrate Ar number
+Interactive calibration of the specified gamepad (1 or 2). If
+.Ar number
+isn't specified, default to 1.
+.It unbind Ar binding [...]
+Remove specified bindings (variables prefixed with "bind_").
+See
+.Xr dgenrc 5
+for more information about them.
 .El
 .Ss Variables
 All configuration variables from

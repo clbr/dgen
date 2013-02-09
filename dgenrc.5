@@ -86,6 +86,31 @@ Use joysticks to emulate the controllers. Note that the keyboard keys will
 still work if this value is set. This field is only available if you have
 joystick support enabled.
 .El
+.Sh USER-DEFINED BINDINGS
+.Bl -tag -width xxxx
+.It bind_{keysym} Ar action
+.It bind_{joypad} Ar action
+Defines a new keyboard or joystick/joypad binding to an arbitrary
+action. These variables use the
+.Ar keysym
+format as defined in
+.Sx KEY IDENTIFIERS
+and the
+.Ar joypad
+format as defined in
+.Sx JOYSTICK IDENTIFIERS .
+When
+.Ar action
+is prefixed with "key_" or "joy_", it becomes an alias to the corresponding
+variable in
+.Sx
+CONTROLLERS .
+Otherwise, it is interpreted as if entered at the prompt, and can be used to
+modify variables or execute commands (see
+.Xr dgenrc 5
+for more information).
+No bindings are defined by default.
+.El
 .Sh AUDIO
 .Bl -tag -width xxxx
 .It bool_sound [true]
