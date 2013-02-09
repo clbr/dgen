@@ -852,9 +852,10 @@ static void (*scaling)(bpp_t dst, unsigned int dst_pitch,
 /**
  * Take a screenshot.
  */
-static void do_screenshot(void)
+static void do_screenshot(md& megad)
 {
 	static unsigned int n = 0;
+	static char romname_old[sizeof(megad.romname)];
 	FILE *fp;
 #ifdef HAVE_FTELLO
 	off_t pos;
@@ -867,7 +868,7 @@ static void do_screenshot(void)
 	unsigned int pitch;
 	unsigned int bpp = mdscr.bpp;
 	uint8_t (*out)[3]; // 24 bpp
-	char name[64];
+	char name[(sizeof(megad.romname) + 32)];
 
 	if (dgen_raw_screenshots) {
 		width = video.width;
@@ -893,8 +894,14 @@ static void do_screenshot(void)
 	}
 	// Make take a long time, let the main loop know about it.
 	stopped = 1;
+	// If megad.romname is different from last time, reset n.
+	if (memcmp(romname_old, megad.romname, sizeof(romname_old))) {
+		memcpy(romname_old, megad.romname, sizeof(romname_old));
+		n = 0;
+	}
 retry:
-	snprintf(name, sizeof(name), "shot%06u.tga", n);
+	snprintf(name, sizeof(name), "%s-%06u.tga",
+		 ((megad.romname[0] == '\0') ? "unknown" : megad.romname), n);
 	fp = dgen_fopen("screenshots", name, DGEN_APPEND);
 	if (fp == NULL) {
 		pd_message("Can't open %s.", name);
@@ -4777,9 +4784,9 @@ static int ctl_dgen_fix_checksum(struct ctl&, md& megad)
 	return 1;
 }
 
-static int ctl_dgen_screenshot(struct ctl&, md&)
+static int ctl_dgen_screenshot(struct ctl&, md& megad)
 {
-	do_screenshot();
+	do_screenshot(megad);
 	return 1;
 }
 
