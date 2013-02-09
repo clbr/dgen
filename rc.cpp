@@ -717,7 +717,7 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 	// Configure RC field.
 	rcf->fieldname = rcb->rc;
 	rcf->parser = rc_bind;
-	rcf->variable = (intptr_t *)&rcb->to;
+	rcf->variable = (intptr_t *)((void *)&rcb->to);
 	return rcf;
 }
 
