@@ -50,6 +50,21 @@ key_pad1_start = return
 #key_pad1_mode = backspace
 #key_pad1_start = return
 
+# Joystick/joypad definitions for pad 1
+# Defaults are tailored for Gravis GamePad Pros. (10 button)
+joy_pad1_up = joystick0-axis1-min
+joy_pad1_down = joystick0-axis1-max
+joy_pad1_left = joystick0-axis0-min
+joy_pad1_right = joystick0-axis0-max
+joy_pad1_a = joystick0-button0
+joy_pad1_b = joystick0-button3
+joy_pad1_c = joystick0-button1
+joy_pad1_x = joystick0-button6
+joy_pad1_y = joystick0-button4
+joy_pad1_z = joystick0-button5
+joy_pad1_mode = joystick0-button9
+joy_pad1_start = joystick0-button8
+
 # The same for pad 2
 # Yes, I KNOW the default player 2 keys are awful. Pick your own!
 key_pad2_up = kp_up
@@ -65,40 +80,68 @@ key_pad2_z = page_up
 key_pad2_mode = kp_plus
 key_pad2_start = kp_enter
 
+# Joystick/joypad definitions for pad 2
+# Defaults are tailored for Gravis GamePad Pros. (10 button)
+joy_pad2_up = joystick1-axis1-min
+joy_pad2_down = joystick1-axis1-max
+joy_pad2_left = joystick1-axis0-min
+joy_pad2_right = joystick1-axis0-max
+joy_pad2_a = joystick1-button0
+joy_pad2_b = joystick1-button3
+joy_pad2_c = joystick1-button1
+joy_pad2_x = joystick1-button6
+joy_pad2_y = joystick1-button4
+joy_pad2_z = joystick1-button5
+joy_pad2_mode = joystick1-button9
+joy_pad2_start = joystick1-button8
+
 # Fix checksum, needed by some games with Game Genie codes
 key_fix_checksum = f1
+joy_fix_checksum = ''
 
 # Quit DGen or switch to the next ROM on the command-line.
 key_quit = escape
+joy_quit = ''
 # Toggle crap-tv
 key_craptv_toggle = f5
+joy_craptv_toggle = ''
 # Toggle scaling algorithm.
 key_scaling_toggle = f6
+joy_scaling_toggle = ''
 # Screenshot
 key_screenshot = f12
+joy_screenshot = ''
 # Reset Genesis
 key_reset = tab
+joy_reset = ''
 # Toggle fullscreen mode
 key_fullscreen_toggle = alt-enter
+joy_fullscreen_toggle = ''
 
 # Use this to toggle which CPU core to use, no need to reset!  :)
 # If you don't have multiple CPU cores, it won't do anything!
 key_cpu_toggle = f11
+joy_cpu_toggle = ''
 
 # Same as above, for Z80 core.
 key_z80_toggle = f10
+joy_z80_toggle = ''
 
 # This pauses emulation :)
 key_stop = z
+joy_stop = ''
 
 # Display interactive prompt.
 key_prompt = :
+joy_prompt = ''
 
 # This prompts for a Game Genie code.
 key_game_genie = f9
+joy_game_genie = ''
 
 # Press this to break into the debugger.
 key_debug_enter = `
+joy_debug_enter = ''
 
 # Pick save slot
 key_slot_0 = 0
@@ -111,9 +154,21 @@ key_slot_6 = 6
 key_slot_7 = 7
 key_slot_8 = 8
 key_slot_9 = 9
+joy_slot_0 = ''
+joy_slot_1 = ''
+joy_slot_2 = ''
+joy_slot_3 = ''
+joy_slot_4 = ''
+joy_slot_5 = ''
+joy_slot_6 = ''
+joy_slot_7 = ''
+joy_slot_8 = ''
+joy_slot_9 = ''
 # Save/load game to current slot
 key_save = f2
 key_load = f3
+joy_save = ''
+joy_load = ''
 
 # VDP plane debugging.
 # Won't do anything unless VDP debugging is enabled at compile time.
@@ -183,6 +238,8 @@ int_volume = 100
 # Volume control.
 key_volume_inc = '='
 key_volume_dec = '-'
+joy_volume_inc = ''
+joy_volume_dec = ''
 
 # This is how many microseconds DGen should sleep every frame. Even little
 # amounts can decrease CPU overhead significantly, and the default of 20
@@ -243,20 +300,6 @@ scaling_startup = default
 
 # Use a joystick?
 bool_joystick = yes
-int_joystick1_dev = 0
-int_joystick2_dev = 1
-
-# Joystick axes.
-int_joystick1_axisX = 0
-int_joystick1_axisY = 1
-int_joystick2_axisX = 0
-int_joystick2_axisY = 1
-
-# Don't reverse axes by default.
-bool_joystick1_axisX = false
-bool_joystick1_axisY = false
-bool_joystick2_axisX = false
-bool_joystick2_axisY = false
 
 # Use OpenGL mode?
 bool_opengl = yes
@@ -280,51 +323,72 @@ int_info_height = -1
 # Generate unfiltered screenshots.
 bool_raw_screenshots = false
 
-# These are the joypad mappings for both controllers.  Defaults are
-# tailored for Gravis GamePad Pros. (10 button)  Configure the variables:
-# joypadX_bY, where X is the joypad number (1 or 2) and Y is the
-# corresponding button.  It may take some tweaking to get the values just
-# right.  You can define up to 16 buttons (0-15) and can define Genesis
-# buttons more than once and can leave them blank.  Acceptable identifiers
-# are:
-# A, a, B, b, C, c, X, x, Y, y, Z, z, MODE, mode, M, m, START, start, S, s
-
-# NOTE:  For now, you have to uncomment the buttons you are using, or the
-# default mappings will be used.  You will get warnings about invalid RC
-# lines if you don't compile joystick support in. [PKH]
-
+# The following variables aren't supported anymore. They have been replaced
+# with the joy_* bindings. They are still mentioned here to help convert
+# existing configuration files.
+#
+# Specifying joysticks identifiers, axes and buttons separately isn't required
+# anymore, because each joy_* binding provides all the necessary information
+# using the following format (see dgenrc.5):
+#
+# joy_padX_{control} = joystick{X}-button{Y}
+# joy_padX_{control} = joystick{X}-axis{Y}-(min|max)
+# joy_padX_{control} = joystick{X}-hat{Y}-{direction}
+#
+# This allows more than a single joystick/joypad to manage a game controller,
+# bind joystick/joypad axes to arbitrary actions, and a single joystick/joypad
+# event to several actions.
+#
+# Additionally, you can use the "calibrate" command to define controls easily.
+#
+# Joystick device selection.
+#int_joystick1_dev = 0 # not supported anymore
+#int_joystick2_dev = 1 # not supported anymore
+#
+# Joystick axes.
+#int_joystick1_axisX = 0 # not supported anymore
+#int_joystick1_axisY = 1 # not supported anymore
+#int_joystick2_axisX = 0 # not supported anymore
+#int_joystick2_axisY = 1 # not supported anymore
+#
+# Don't reverse axes by default
+#bool_joystick1_axisX = false # not supported anymore
+#bool_joystick1_axisY = false # not supported anymore
+#bool_joystick2_axisX = false # not supported anymore
+#bool_joystick2_axisY = false # not supported anymore
+#
 # Joypad 1
-#joypad1_b0 = A
-#joypad1_b1 = C
-#joypad1_b2 = A
-#joypad1_b3 = B
-#joypad1_b4 = Y
-#joypad1_b5 = Z
-#joypad1_b6 = X
-#joypad1_b7 = X
-#joypad1_b8 = START
-#joypad1_b9 = MODE
-#joypad1_b10 =
-#joypad1_b11 =
-#joypad1_b12 = 
-#joypad1_b13 = 
-#joypad1_b14 = 
-#joypad1_b15 = 
-
+#joypad1_b0 = A # not supported anymore
+#joypad1_b1 = C # not supported anymore
+#joypad1_b2 = A # not supported anymore
+#joypad1_b3 = B # not supported anymore
+#joypad1_b4 = Y # not supported anymore
+#joypad1_b5 = Z # not supported anymore
+#joypad1_b6 = X # not supported anymore
+#joypad1_b7 = X # not supported anymore
+#joypad1_b8 = START # not supported anymore
+#joypad1_b9 = MODE # not supported anymore
+#joypad1_b10 = # not supported anymore
+#joypad1_b11 = # not supported anymore
+#joypad1_b12 = # not supported anymore
+#joypad1_b13 = # not supported anymore
+#joypad1_b14 = # not supported anymore
+#joypad1_b15 = # not supported anymore
+#
 # Joypad 2
-#joypad2_b0 = A
-#joypad2_b1 = C
-#joypad2_b2 = A
-#joypad2_b3 = B
-#joypad2_b4 = Y
-#joypad2_b5 = Z
-#joypad2_b6 = X
-#joypad2_b7 = X
-#joypad2_b8 = START
-#joypad2_b9 = MODE
-#joypad2_b10 =
-#joypad2_b11 =
-#joypad2_b12 = 
-#joypad2_b13 = 
-#joypad2_b14 = 
-#joypad2_b15 = 
+#joypad2_b0 = A # not supported anymore
+#joypad2_b1 = C # not supported anymore
+#joypad2_b2 = A # not supported anymore
+#joypad2_b3 = B # not supported anymore
+#joypad2_b4 = Y # not supported anymore
+#joypad2_b5 = Z # not supported anymore
+#joypad2_b6 = X # not supported anymore
+#joypad2_b7 = X # not supported anymore
+#joypad2_b8 = START # not supported anymore
+#joypad2_b9 = MODE # not supported anymore
+#joypad2_b10 = # not supported anymore
+#joypad2_b11 = # not supported anymore
+#joypad2_b12 = # not supported anymore
+#joypad2_b13 = # not supported anymore
+#joypad2_b14 = # not supported anymore
+#joypad2_b15 = # not supported anymore
