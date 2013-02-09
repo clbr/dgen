@@ -1,4 +1,4 @@
-.Dd December 25, 2012
+.Dd Febuary 9, 2013
 .Dt DGENRC 5
 .Os
 .Sh NAME
@@ -28,7 +28,11 @@ is prepended by a name, which identifies the type of this field:
 .Bl -tag -width bool_*
 .It Ar key_*
 A key value. May be set to a key identifier listed in the
-.Sx KEY INDENTIFIERS
+.Sx KEY IDENTIFIERS
+section below.
+.It Ar joy_*
+A joystick/joypad value. May be set to a joystick identifier listed in the
+.Sx JOYSTICK IDENTIFIERS
 section below.
 .It Ar bool_*
 A boolean value. "false", "no", and "0" values are taken as false, while
@@ -63,35 +67,24 @@ All of them can be modified interactively from the prompt, as described in
 .It key_pad1_start [return]
 Map keys to the first Genesis controller. Each of these fields has a
 corresponding "key_pad2" field, to map to the second controller.
+.It joy_pad1_up [joystick0-axis1-min]
+.It joy_pad1_down [joystick0-axis1-max]
+.It joy_pad1_left [joystick0-axis0-min]
+.It joy_pad1_right [joystick0-axis0-max]
+.It joy_pad1_a [joystick0-button0]
+.It joy_pad1_b [joystick0-button3]
+.It joy_pad1_c [joystick0-button1]
+.It joy_pad1_x [joystick0-button6]
+.It joy_pad1_y [joystick0-button4]
+.It joy_pad1_z [joystick0-button5]
+.It joy_pad1_mode [joystick0-button9]
+.It joy_pad1_start [joystick0-button8]
+Map joystick/joypad buttons to the first Genesis controller. Each of these
+fields has a corresponding "joy_pad2" field, to map to the second controller.
 .It bool_joystick [true]
 Use joysticks to emulate the controllers. Note that the keyboard keys will
 still work if this value is set. This field is only available if you have
 joystick support enabled.
-.It int_joystick1_dev [0]
-.It int_joystick2_dev [1]
-Select which joystick device to use. Parameter is an integer passed to
-.Fn SDL_JoystickOpen .
-.It int_joystick1_axisX [0]
-.It int_joystick1_axisY [1]
-.It int_joystick2_axisX [0]
-.It int_joystick2_axisY [1]
-Maps joystick axes. Default is 0 for X and 1 for Y. Useful for joysticks with
-more than two or switched axes.
-.It bool_joystick1_axisX [false]
-.It bool_joystick1_axisY [false]
-.It bool_joystick2_axisX [false]
-.It bool_joystick2_axisY [false]
-Enable this to reverse axes.
-.It joypadX_bY [value]
-Maps button number Y, on joystick X to a Genesis controller button. Valid
-button values are "a", "b", "c", "x", "y", "z", "mode", and "start". Joystick
-1 will always emulate controller 1, and joystick 2 will always emulate
-controller 2.
-.It joypadX_bY [key_*]
-Maps button number Y, on joystick X to any key_* action.
-.It joypadX_bY ["string"]
-Maps button number Y, on joystick X to any command described in this manual as
-if typed from the interactive prompt.
 .El
 .Sh AUDIO
 .Bl -tag -width xxxx
@@ -112,7 +105,9 @@ lag (it is unfortunately often required on slower machines).
 Volume level, in percent. Values above 100 cause distorsion.
 .It key_volume_inc [=]
 .It key_volume_dec [-]
-Key bindings for volume control.
+.It joy_volume_inc []
+.It joy_volume_dec []
+Bindings for volume control.
 .It bool_mjazz [false]
 MJazz option - puts 2 more FM chips in the Megadrive for a sort of 22 channel
 sound boost. Can sound good. Slows things down a lot.
@@ -145,7 +140,8 @@ Try to run fullscreen, if possible.
 Amount by which to scale the rendered screen from the default resolution. See
 scaling filters.
 .It key_fullscreen_toggle [alt-enter]
-Key to toggle fullscreen mode (this may do nothing if SDL doesn't support
+.It joy_fullscreen_toggle []
+Button to toggle fullscreen mode (this may do nothing if SDL doesn't support
 fullscreen toggling on your platform.)
 .It int_info_height [-1]
 Height of the text area at the bottom of the screen, in pixels. This also
@@ -173,43 +169,58 @@ enabled and only works if multi-threading support is compiled-in.
 .Sh SAVE STATES
 .Bl -tag -width xxxx
 .It key_slot_X [X]
+.It joy_slot_X []
 Sets the current save-state slot to number X.
 .It key_save [f2]
+.It joy_save []
 Saves state to the current slot.
 .It key_load [f3]
+.It joy_load []
 Loads state from the current slot.
 .El
 .Sh MISCELLANEOUS KEYS
 .Bl -tag -width xxxx
 .It key_fix_checksum [f1]
+.It joy_fix_checksum []
 Fixes the checksum value. Some older games will freeze with a red screen if
 the ROM has been hacked or modified with Game Genie codes. If it does, pressing
 this, and resetting should fix the problem.
 .It key_quit [escape]
+.It joy_quit []
 Exit DGen or switch to the next ROM on the command-line.
 .It key_craptv_toggle [f5]
+.It joy_craptv_toggle []
 Toggles Crap-TV image filters. These filters aren't available in 8 bpp mode.
 .It key_scaling_toggle [f6]
+.It joy_scaling_toggle []
 Toggles scaling algorithms. See scaling_startup below.
 .It key_reset [tab]
+.It joy_reset []
 Restart the Genesis emulation.
 .It key_cpu_toggle [f11]
+.It joy_cpu_toggle []
 Switch CPU emulators. The x86 assembly CPU emulator StarScream is fast, but
 has glitches which affect a few games. Switching to the slower Musashi core
 will fix these problems, at a speed penalty.
 .It key_z80_toggle [f10]
+.It joy_z80_toggle []
 Switch Z80 emulators. MZ80 is a bit faster than CZ80, particularly in its
 assembly version (only available for x86), but CZ80 works with more
 games. This key can also disable Z80 emulation.
 .It key_stop [z]
+.It joy_stop []
 Pause emulation, so you can concentrate on real life for a few seconds. :)
 .It key_game_genie [f9]
+.It joy_game_genie []
 Enter a Game Genie or Hex code. This key also works in stopped mode.
 .It key_screenshot [f12]
+.It joy_screenshot []
 Take a screenshot. Not available in 8 bpp mode.
 .It key_prompt [:]
+.It joy_prompt []
 Pause emulation and display interactive prompt. Also works in stopped mode.
 .It key_debug_enter [`]
+.It joy_debug_enter []
 Break into the debugger. Only meaningful if debugger support is compiled-in.
 .El
 .Sh PREFERENCES
@@ -348,6 +359,22 @@ kp_divide
 kp_minus
 kp_multiply
 kp_plus
+.Sh JOYSTICK IDENTIFIERS
+Like key identifiers, joystick (or joypad) identifiers describe a joystick
+event. Each detected joystick is numbered starting from 0. Three different
+event types are supported.
+.Bl -tag -width xxxx
+.It Buttons: joystickX-buttonY
+For joystick/joypad number X, button number Y. "button" can be abbreviated
+as "b".
+.It Axes: joystickX-axisY-min, joystickX-axisY-max
+For joystick/joypad number X, axis number Y, and its position, which is either
+"min" (also "n", "negative") or "max" (also "p", "positive"). "axis" can be
+abbreviated as "a".
+.It Hats: joystickX-hatY-{direction}
+For joystick/joypad number X, hat number Y and direction. "hat" can be
+abbreviated as "h". Possible directions are "up", "right_up", "right",
+"right_down", "down", "left_down", "left", "left_up".
 .Ed
 .Sh SEE ALSO
 .Xr dgen 1
