@@ -5020,6 +5020,18 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 	size_t pos = 0;
 	size_t seek = 0;
 
+	if (dgen_buttons) {
+		char *dump;
+
+		if (type)
+			dump = dump_joypad(code);
+		else
+			dump = dump_keysym(code);
+		if (dump != NULL) {
+			stop_events_msg(~0u, "Pressed \"%s\".", dump);
+			free(dump);
+		}
+	}
 	while (rcb != &rc_binding_head) {
 		if ((pos < seek) ||
 		    (rcb->type != type) ||

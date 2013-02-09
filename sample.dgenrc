@@ -291,6 +291,9 @@ int_scale_y = -1
 # Display the current number of frames per second.
 bool_fps = false
 
+# Display pressed buttons. Can be used to help configuring them.
+bool_buttons = false
+
 # Swap bytes in the video output.
 bool_swab = false
 

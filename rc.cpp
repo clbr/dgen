@@ -607,6 +607,7 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "str_region_order", rc_string,
 	  (intptr_t *)((void *)&dgen_region_order) },
 	{ "bool_fps", rc_boolean, &dgen_fps },
+	{ "bool_buttons", rc_boolean, &dgen_buttons },
 	{ "bool_fullscreen", rc_boolean, &dgen_fullscreen }, // SH
 	{ "int_info_height", rc_number, &dgen_info_height }, // SH
 	{ "int_width", rc_number, &dgen_width }, // SH

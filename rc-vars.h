@@ -112,6 +112,7 @@ RCVAR(dgen_joystick, 0);
 #endif
 
 RCVAR(dgen_fps, 0);
+RCVAR(dgen_buttons, 0);
 RCVAR(dgen_fullscreen, 0);
 RCVAR(dgen_info_height, -1);
 RCVAR(dgen_width, -1);
