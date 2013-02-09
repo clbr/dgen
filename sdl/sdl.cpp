@@ -5005,8 +5005,6 @@ ask:
 				code = calibration_steps[i].code;
 				assert((size_t)id < elemof(control));
 				assert(control[id].type == id);
-				if (code == -1)
-					continue;
 				if (id != CTL_)
 					(*control[id].rc)[type] = code;
 			}
