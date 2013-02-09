@@ -67,7 +67,7 @@ v1.32 <- v1.31
  * VDP: optimized tiles blitting (but it's hard to notice).
  * VDP: implemented sprite overflow and collision bits.
  * VDP: forced data offset from the name table to wrap at 8K to fix video
-   glitches in some games games (such as Dragon Slayer I & II).
+   glitches in some games (such as Dragon Slayer I & II).
  * Updated StarScream to version 0.26d (was previously 0.26a).
  * Joysticks support has been reworked. They are now managed like the
    keyboard, with similar names in the configuration file (joy_* instead of
