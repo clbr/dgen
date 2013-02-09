@@ -19,7 +19,6 @@
 #include "rc.h"
 #include "ckvp.h"
 #include "pd-defs.h"
-#include "joystick.h"
 #include "romload.h"
 #include "system.h"
 #include "md.h"

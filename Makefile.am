@@ -74,7 +74,6 @@ dgen_SOURCES =		\
 	pd.h		\
 	ckvp.c		\
 	ckvp.h		\
-	joystick.h	\
 	joystick.cpp	\
 	system.c
 

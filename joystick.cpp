@@ -4,7 +4,6 @@
 #include <SDL.h>
 #include <SDL_joystick.h>
 #include "md.h"
-#include "joystick.h"
 
 static SDL_Joystick *(*handles)[];
 static unsigned int handles_n;
