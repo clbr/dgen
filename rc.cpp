@@ -649,6 +649,9 @@ static void rc_binding_cleanup(void)
 
 	while (rcb != &rc_binding_head) {
 		next = rcb->next;
+		assert(rcb->to != NULL);
+		assert((intptr_t)rcb->to != -1);
+		free(rcb->to);
 #ifndef NDEBUG
 		memset(rcb, 0x66, sizeof(*rcb));
 #endif
