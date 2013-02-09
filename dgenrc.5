@@ -103,8 +103,7 @@ When
 .Ar action
 is prefixed with "key_" or "joy_", it becomes an alias to the corresponding
 variable in
-.Sx
-CONTROLLERS .
+.Sx CONTROLLERS .
 Otherwise, it is interpreted as if entered at the prompt, and can be used to
 modify variables or execute commands (see
 .Xr dgenrc 5
@@ -386,6 +385,7 @@ kp_divide
 kp_minus
 kp_multiply
 kp_plus
+.Ed
 .Sh JOYSTICK IDENTIFIERS
 Like key identifiers, joystick (or joypad) identifiers describe a joystick
 event. Each detected joystick is numbered starting from 0. Three different
@@ -402,7 +402,7 @@ abbreviated as "a".
 For joystick/joypad number X, hat number Y and direction. "hat" can be
 abbreviated as "h". Possible directions are "up", "right_up", "right",
 "right_down", "down", "left_down", "left", "left_up".
-.Ed
+.El
 .Sh SEE ALSO
 .Xr dgen 1
 .Sh AUTHORS
