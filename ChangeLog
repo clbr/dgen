@@ -3,6 +3,95 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.32 <- v1.31
+ * Debugger: the displayed instruction after hitting a breakpoint was wrong,
+   this is now fixed.
+ * Debugger: the disassembler doesn't assume instructions have a fixed size
+   anymore.
+ * Debugger: fixed breakpoints support.
+ * Debugger: implemented the ability to step over multiple instructions.
+ * Debugger: implemented set(b|w|l|r) comands to read/write memory and
+   registers.
+ * Debugger: added M68K instructions counter (can be displayed with the "reg"
+   command).
+ * Debugger: added M68K instructions tracing to display instructions while
+   they are executed.
+ * Debugger: other miscellaneous fixes (such as reverse-i-search flickering in
+   linenoise).
+ * Fixed 6-button emulation that wasn't working correctly.
+ * OpenGL: enabled byte-swapping by default for 32-bit textures on big endian
+   machines so users don't have to use bool_swab.
+ * Fixed a crash (infinite loop) while exiting.
+ * Imported Cyclone 68000 0.099, a highly optimized M68K core written in pure
+   ARM assembly. It is much faster than Musashi, especially on low-spec
+   machines such as the Raspberry Pi.
+ * Imported DrZ80, a Z80 core also written in pure ARM assembly (from
+   PicoDrive). A tiny bit faster than CZ80.
+ * Fixed various crashes with Cyclone 68000 and DrZ80 which tend to choke on
+   invalid code.
+ * Cyclone 68000 and DrZ80 are now the default CPU emulators on ARM-based
+   machines.
+ * Fixed remaining CPU core switching bugs.
+ * Implemented MJazz, a feature present in the original Win32 version of DGen.
+   Enabling bool_mjazz initializes three FM chips instead of one. Each
+   additional chip runs at twice the rate of the previous one, causing the
+   MJazz sound effect.
+ * Added autogen.sh to make everyone happier.
+ * Updated Musashi to version 3.31. This new version fixes many games.
+ * Made DGen/SDL more responsive on slow machines by checking input events
+   after each dropped frame.
+ * Double-buffering can now be disabled, useful on slow machines
+   (bool_doublebuffer).
+ * Added an optional separate thread (bool_screen_thread) for displaying
+   frames. Only useful on slower machines where flipping video buffers takes
+   time, especially when V-sync is enabled and doing so blocks DGen/SDL until
+   the next frame without consuming CPU time (such as the case of Dispmanx on
+   the Raspberry Pi when bool_doublebuffer is also enabled).
+ * Optimized Musashi to access memory regions directly without going through
+   callbacks. This idea was taken from Genesis Plus GX. Although not as fast
+   as Cyclone 68000 on ARM, it is noticeably faster than before.
+ * VDP: implemented VDP interrupts properly.
+ * VDP: added the ability to switch VDP planes on and off
+   (bool_vdp_hide_plane_a, bool_vdp_hide_plane_b, bool_vdp_hide_plane_w,
+   bool_vdp_hide_sprites).
+ * VDP: improved sprites priority bit handling to fix sprites glitches in a
+   lot of games (Streets of Rage among others). This unfortunately makes
+   emulation slower.
+ * VDP: implemented sprites limitations (per-line, per-frame, dot overflow),
+   and enhanced masking (DGen/SDL now passes Nemesis' sprite masking test
+   ROM).
+ * VDP: implemented sprites boxing, the ability to draw boxes around sprites
+   for debugging purposes.
+ * VDP: implemented 2-cell vertical column scrolling mode. This fixes video
+   glitches in several games (i.e. Psycho Pinball, Gunstar Heroes, Sonic 3).
+ * VDP: optimized tiles blitting (but it's hard to notice).
+ * VDP: implemented sprite overflow and collision bits.
+ * VDP: forced data offset from the name table to wrap at 8K to fix video
+   glitches in some games games (such as Dragon Slayer I & II).
+ * Updated StarScream to version 0.26d (was previously 0.26a).
+ * Joysticks support has been reworked. They are now managed like the
+   keyboard, with similar names in the configuration file (joy_* instead of
+   key_*). Because of this, some configuration variables have been removed and
+   no longer work in DGen/SDL 1.32. Configuration files must be updated
+   manually.
+ * Implemented the ability to bind/unbind keys and joystick/joypad buttons to
+   arbitrary commands using bind_* variables. This replaces the similar
+   feature that only worked with joystick buttons.
+ * "calibrate_js" has been renamed "calibrate" and now works with both
+   keyboard and joystick events. Makes controllers configuration
+   straightforward.
+ * Implemented "bool_buttons" to display each pressed button in the status
+   bar. Helpful when configuring buttons manually.
+ * Documentation: updated manual pages for all of the above.
+ * Documentation: more files have been converted to Doxygen.
+ * Screenshot files names are now prefixed with the ROM name so they are
+   easier to find.
+ * Emulation bugfixes (code/address register cleared when writing a VDP
+   register, randomization of unused BUSREQ bits, VDP reset).
+ * Miscellaneous bugfixes (libarchive detection during configure, forced
+   flushing of debugger output, autoconf fixes, missed video resize events
+   during init).
+
 v1.31 <- v1.30
  * Joystick axes can now be configured for controllers with more than two.
    They can also be reversed.

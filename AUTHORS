@@ -36,12 +36,20 @@ Edd Barrett <vext01@gmail.com>
   - VDP bugfixes (half-submitted commands) and enhancements (sprite masking).
   - Improved joysticks configuration.
   - Debugger.
+  - VDP planes switching.
+  - VDP 2-cell vertical scrolling mode and other V-scroll improvements.
+  - W.A.S.D. style keybinding documentation.
 EgelMex <ellism88@gmail.com>
   - VDP bugfixes.
-  - Code documentation, some refactoring.
+  - Code documentation with Doxygen, some refactoring.
 Andrea Musuruane <musuruan@users.sourceforge.net>
   - Submitted patches for non-executable stack in ASM files and warnings
     in dgenrc.5.
+Efry <efry@users.sourceforge.net>
+  - Added Cyclone 68000 v0.0088.
+  - Added DrZ80 1.0.
+Arek <arek@users.sourceforge.net>
+  - Fixed libarchive detection in configure.
 
 The following people involuntarily contributed to DGen:
 
