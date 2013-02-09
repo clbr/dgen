@@ -38,7 +38,6 @@
 #include "font.h"
 #include "system.h"
 #include "prompt.h"
-#include "joystick.h"
 #include "romload.h"
 #include "splash.h"
 
@@ -4390,40 +4389,40 @@ static int ctl_pad1(struct ctl& ctl, md& megad)
 	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
-		megad.pad[0] &= ~0x01;
+		megad.pad[0] &= ~MD_UP_MASK;
 		break;
 	case CTL_PAD1_DOWN:
-		megad.pad[0] &= ~0x02;
+		megad.pad[0] &= ~MD_DOWN_MASK;
 		break;
 	case CTL_PAD1_LEFT:
-		megad.pad[0] &= ~0x04;
+		megad.pad[0] &= ~MD_LEFT_MASK;
 		break;
 	case CTL_PAD1_RIGHT:
-		megad.pad[0] &= ~0x08;
+		megad.pad[0] &= ~MD_RIGHT_MASK;
 		break;
 	case CTL_PAD1_A:
-		megad.pad[0] &= ~0x1000;
+		megad.pad[0] &= ~MD_A_MASK;
 		break;
 	case CTL_PAD1_B:
-		megad.pad[0] &= ~0x10;
+		megad.pad[0] &= ~MD_B_MASK;
 		break;
 	case CTL_PAD1_C:
-		megad.pad[0] &= ~0x20;
+		megad.pad[0] &= ~MD_C_MASK;
 		break;
 	case CTL_PAD1_X:
-		megad.pad[0] &= ~0x40000;
+		megad.pad[0] &= ~MD_X_MASK;
 		break;
 	case CTL_PAD1_Y:
-		megad.pad[0] &= ~0x20000;
+		megad.pad[0] &= ~MD_Y_MASK;
 		break;
 	case CTL_PAD1_Z:
-		megad.pad[0] &= ~0x10000;
+		megad.pad[0] &= ~MD_Z_MASK;
 		break;
 	case CTL_PAD1_MODE:
-		megad.pad[0] &= ~0x80000;
+		megad.pad[0] &= ~MD_MODE_MASK;
 		break;
 	case CTL_PAD1_START:
-		megad.pad[0] &= ~0x2000;
+		megad.pad[0] &= ~MD_START_MASK;
 		break;
 	default:
 		break;
@@ -4436,40 +4435,40 @@ static int ctl_pad1_release(struct ctl& ctl, md& megad)
 	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
-		megad.pad[0] |= 0x01;
+		megad.pad[0] |= MD_UP_MASK;
 		break;
 	case CTL_PAD1_DOWN:
-		megad.pad[0] |= 0x02;
+		megad.pad[0] |= MD_DOWN_MASK;
 		break;
 	case CTL_PAD1_LEFT:
-		megad.pad[0] |= 0x04;
+		megad.pad[0] |= MD_LEFT_MASK;
 		break;
 	case CTL_PAD1_RIGHT:
-		megad.pad[0] |= 0x08;
+		megad.pad[0] |= MD_RIGHT_MASK;
 		break;
 	case CTL_PAD1_A:
-		megad.pad[0] |= 0x1000;
+		megad.pad[0] |= MD_A_MASK;
 		break;
 	case CTL_PAD1_B:
-		megad.pad[0] |= 0x10;
+		megad.pad[0] |= MD_B_MASK;
 		break;
 	case CTL_PAD1_C:
-		megad.pad[0] |= 0x20;
+		megad.pad[0] |= MD_C_MASK;
 		break;
 	case CTL_PAD1_X:
-		megad.pad[0] |= 0x40000;
+		megad.pad[0] |= MD_X_MASK;
 		break;
 	case CTL_PAD1_Y:
-		megad.pad[0] |= 0x20000;
+		megad.pad[0] |= MD_Y_MASK;
 		break;
 	case CTL_PAD1_Z:
-		megad.pad[0] |= 0x10000;
+		megad.pad[0] |= MD_Z_MASK;
 		break;
 	case CTL_PAD1_MODE:
-		megad.pad[0] |= 0x80000;
+		megad.pad[0] |= MD_MODE_MASK;
 		break;
 	case CTL_PAD1_START:
-		megad.pad[0] |= 0x2000;
+		megad.pad[0] |= MD_START_MASK;
 		break;
 	default:
 		break;
@@ -4482,40 +4481,40 @@ static int ctl_pad2(struct ctl& ctl, md& megad)
 	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
-		megad.pad[1] &= ~0x01;
+		megad.pad[1] &= ~MD_UP_MASK;
 		break;
 	case CTL_PAD2_DOWN:
-		megad.pad[1] &= ~0x02;
+		megad.pad[1] &= ~MD_DOWN_MASK;
 		break;
 	case CTL_PAD2_LEFT:
-		megad.pad[1] &= ~0x04;
+		megad.pad[1] &= ~MD_LEFT_MASK;
 		break;
 	case CTL_PAD2_RIGHT:
-		megad.pad[1] &= ~0x08;
+		megad.pad[1] &= ~MD_RIGHT_MASK;
 		break;
 	case CTL_PAD2_A:
-		megad.pad[1] &= ~0x1000;
+		megad.pad[1] &= ~MD_A_MASK;
 		break;
 	case CTL_PAD2_B:
-		megad.pad[1] &= ~0x10;
+		megad.pad[1] &= ~MD_B_MASK;
 		break;
 	case CTL_PAD2_C:
-		megad.pad[1] &= ~0x20;
+		megad.pad[1] &= ~MD_C_MASK;
 		break;
 	case CTL_PAD2_X:
-		megad.pad[1] &= ~0x40000;
+		megad.pad[1] &= ~MD_X_MASK;
 		break;
 	case CTL_PAD2_Y:
-		megad.pad[1] &= ~0x20000;
+		megad.pad[1] &= ~MD_Y_MASK;
 		break;
 	case CTL_PAD2_Z:
-		megad.pad[1] &= ~0x10000;
+		megad.pad[1] &= ~MD_Z_MASK;
 		break;
 	case CTL_PAD2_MODE:
-		megad.pad[1] &= ~0x80000;
+		megad.pad[1] &= ~MD_MODE_MASK;
 		break;
 	case CTL_PAD2_START:
-		megad.pad[1] &= ~0x2000;
+		megad.pad[1] &= ~MD_START_MASK;
 		break;
 	default:
 		break;
@@ -4528,40 +4527,40 @@ static int ctl_pad2_release(struct ctl& ctl, md& megad)
 	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
-		megad.pad[1] |= 0x01;
+		megad.pad[1] |= MD_UP_MASK;
 		break;
 	case CTL_PAD2_DOWN:
-		megad.pad[1] |= 0x02;
+		megad.pad[1] |= MD_DOWN_MASK;
 		break;
 	case CTL_PAD2_LEFT:
-		megad.pad[1] |= 0x04;
+		megad.pad[1] |= MD_LEFT_MASK;
 		break;
 	case CTL_PAD2_RIGHT:
-		megad.pad[1] |= 0x08;
+		megad.pad[1] |= MD_RIGHT_MASK;
 		break;
 	case CTL_PAD2_A:
-		megad.pad[1] |= 0x1000;
+		megad.pad[1] |= MD_A_MASK;
 		break;
 	case CTL_PAD2_B:
-		megad.pad[1] |= 0x10;
+		megad.pad[1] |= MD_B_MASK;
 		break;
 	case CTL_PAD2_C:
-		megad.pad[1] |= 0x20;
+		megad.pad[1] |= MD_C_MASK;
 		break;
 	case CTL_PAD2_X:
-		megad.pad[1] |= 0x40000;
+		megad.pad[1] |= MD_X_MASK;
 		break;
 	case CTL_PAD2_Y:
-		megad.pad[1] |= 0x20000;
+		megad.pad[1] |= MD_Y_MASK;
 		break;
 	case CTL_PAD2_Z:
-		megad.pad[1] |= 0x10000;
+		megad.pad[1] |= MD_Z_MASK;
 		break;
 	case CTL_PAD2_MODE:
-		megad.pad[1] |= 0x80000;
+		megad.pad[1] |= MD_MODE_MASK;
 		break;
 	case CTL_PAD2_START:
-		megad.pad[1] |= 0x2000;
+		megad.pad[1] |= MD_START_MASK;
 		break;
 	default:
 		break;
