@@ -425,10 +425,7 @@ static char* prompt_cmpl_filter_push(class md&, unsigned int, const char**,
 				     unsigned int);
 static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
-
-#ifdef WITH_JOYSTICK
 static int prompt_cmd_calibrate(class md&, unsigned int, const char**);
-#endif
 #endif
 
 /**
@@ -451,10 +448,8 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
-#ifdef WITH_JOYSTICK
 	{ "calibrate", prompt_cmd_calibrate, NULL },
 	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
-#endif
 #endif
 	{ NULL, NULL, NULL }
 };
@@ -2202,8 +2197,6 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 	return CMD_OK;
 }
 
-#ifdef WITH_JOYSTICK
-
 static bool calibrating = false; //< True during calibration.
 static unsigned int calibrating_controller; ///< Controller being calibrated.
 
@@ -2233,8 +2226,6 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 	manage_calibration(false, -1);
 	return CMD_OK;
 }
-
-#endif // WITH_JOYSTICK
 
 #endif // WITH_CTV
 
@@ -4829,7 +4820,7 @@ static struct ctl control[] = {
 	{ CTL_, NULL, false, NULL, NULL }
 };
 
-#if defined(WITH_JOYSTICK) && defined(WITH_CTV)
+#ifdef WITH_CTV
 
 static struct {
 	char const* name; ///< Controller button name.
@@ -4976,7 +4967,7 @@ ask:
 				"");
 }
 
-#endif // defined(WITH_JOYSTICK) && defined(WITH_CTV)
+#endif // WITH_CTV
 
 static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 {
