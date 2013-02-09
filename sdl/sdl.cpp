@@ -425,8 +425,8 @@ static char* prompt_cmpl_filter_push(class md&, unsigned int, const char**,
 				     unsigned int);
 static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
-static int prompt_cmd_calibrate(class md&, unsigned int, const char**);
 #endif
+static int prompt_cmd_calibrate(class md&, unsigned int, const char**);
 
 /**
  * List of commands to auto complete.
@@ -448,9 +448,9 @@ static const struct prompt_command prompt_command[] = {
 	{ "ctv_push", prompt_cmd_filter_push, prompt_cmpl_filter_push },
 	{ "ctv_pop", prompt_cmd_filter_pop, NULL },
 	{ "ctv_none", prompt_cmd_filter_none, NULL },
+#endif
 	{ "calibrate", prompt_cmd_calibrate, NULL },
 	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
-#endif
 	{ NULL, NULL, NULL }
 };
 
@@ -1890,6 +1890,8 @@ static void filter_swab(bpp_t buf, unsigned int buf_pitch,
 	}
 }
 
+#endif // WITH_CTV
+
 /**
  * Special characters interpreted by filter_text().
  * FILTER_TEXT_BG_NONE  transparent background.
@@ -1930,7 +1932,46 @@ static void filter_text_msg(const char *fmt, ...)
 	va_start(vl, fmt);
 	vsnprintf(&filter_text_str[off], len, fmt, vl);
 	va_end(vl);
+#ifndef WITH_CTV
+	// Strip special characters from filter_text_str.
+	off = 0;
+	while (off != len) {
+		size_t tmp;
+
+		if (strncmp(&filter_text_str[off], FILTER_TEXT_ESCAPE,
+			    strlen(FILTER_TEXT_ESCAPE))) {
+			++off;
+			continue;
+		}
+		// XXX assume all of them are (strlen(FILTER_TEXT_ESCAPE) + 2).
+		tmp = (strlen(FILTER_TEXT_ESCAPE) + 2);
+		if ((off + tmp) > len)
+			tmp = (len - off);
+		memmove(&filter_text_str[off], &filter_text_str[(off + tmp)],
+			(len - (off + tmp)));
+		len -= tmp;
+	}
+	// Pass each line to stop_events_msg().
+	off = 0;
+	len = 0;
+	while (filter_text_str[(off + len)] != '\0') {
+		if (filter_text_str[(off + len)] != '\n') {
+			++len;
+			continue;
+		}
+		filter_text_str[(off + len)] = '\0';
+		if (len != 0)
+			stop_events_msg(~0u, "%s", &filter_text_str[off]);
+		filter_text_str[(off + len)] = '\n';
+		off = (off + len + 1);
+		len = 0;
+	}
+	if (filter_text_str[off] != '\0')
+		stop_events_msg(~0u, "%s", &filter_text_str[off]);
+#endif
 }
+
+#ifdef WITH_CTV
 
 /**
  * Text overlay filter.
@@ -2197,6 +2238,8 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 	return CMD_OK;
 }
 
+#endif // WITH_CTV
+
 static bool calibrating = false; //< True during calibration.
 static unsigned int calibrating_controller; ///< Controller being calibrated.
 
@@ -2224,10 +2267,12 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 	else
 		return CMD_EINVAL;
 	manage_calibration(false, -1);
+#ifdef WITH_CTV
 	return CMD_OK;
+#else
+	return (CMD_OK | CMD_MSG);
+#endif
 }
-
-#endif // WITH_CTV
 
 // Available scaling functions.
 static const struct scaling scaling_list[] = {
@@ -4820,8 +4865,6 @@ static struct ctl control[] = {
 	{ CTL_, NULL, false, NULL, NULL }
 };
 
-#ifdef WITH_CTV
-
 static struct {
 	char const* name; ///< Controller button name.
 	enum ctl_e const id[2]; ///< Controls indices in control[].
@@ -4884,7 +4927,9 @@ static void manage_calibration(bool type, intptr_t code)
 				"or two distinct buttons to skip them.\n"
 				"\n",
 				(calibrating_controller + 1));
+#ifdef WITH_CTV
 		filters_push_once(filters_prescale, &filter_text_def);
+#endif
 		goto ask;
 	}
 	while (step != elemof(calibration_steps))
@@ -4904,7 +4949,9 @@ static void manage_calibration(bool type, intptr_t code)
 		// Restart emulation.
 		pd_freeze = false;
 		calibrating = false;
+#ifdef WITH_CTV
 		filters_pluck(filters_prescale, &filter_text_def);
+#endif
 		return;
 	}
 	if (calibration_steps[step].once == false) {
@@ -4966,8 +5013,6 @@ ask:
 				"Press any button twice to apply settings:\n"
 				"");
 }
-
-#endif // WITH_CTV
 
 static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 {
