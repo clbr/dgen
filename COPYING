@@ -36,9 +36,6 @@ described in star/stardoc.txt.
 The contents of the mz80/ directory are copyright Neil Bradley, under a licence
 described in mz80/mz80.txt.
 
-Open-source replacements for the above modules would be appreciated, if you
-have the time and ability.
-
 The contents of the cz80/ directory are copyright Stephane Dallongeville, under
 a BSD-like licence described in cz80/readme.txt.
 
@@ -47,3 +44,8 @@ The contents of the hqx/ directory are under LGPL as described in hqx/COPYING.
 The contents of the linenoise/ directory are under a BSD licence.
 
 The contents of the scale2x/ directory are under GPL, see scale2x/COPYING.
+
+The contents of the cyclone/ directory are under GPL, see cyclone/Cyclone.txt.
+
+The contents of the drz80/ directory are copyright Reesy, under a licence
+described in drz80/DrZ80.txt.
