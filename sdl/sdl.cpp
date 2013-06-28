@@ -5026,7 +5026,7 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 	size_t pos = 0;
 	size_t seek = 0;
 
-	if (dgen_buttons) {
+	if ((dgen_buttons) && (pressed)) {
 		char *dump;
 
 		if (type)
@@ -5106,17 +5106,23 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 int pd_handle_events(md &megad)
 {
 #ifdef WITH_JOYSTICK
-	static int const hat_value[] = {
-		SDL_HAT_CENTERED,
-		SDL_HAT_UP,
-		SDL_HAT_RIGHTUP,
-		SDL_HAT_RIGHT,
-		SDL_HAT_RIGHTDOWN,
-		SDL_HAT_DOWN,
-		SDL_HAT_LEFTDOWN,
-		SDL_HAT_LEFT,
-		SDL_HAT_LEFTUP
+	static uint32_t const axis_value[][3] = {
+		// { pressed, [implicitly released ...] }
+		{ JS_AXIS_NEGATIVE, JS_AXIS_BETWEEN, JS_AXIS_POSITIVE },
+		{ JS_AXIS_POSITIVE, JS_AXIS_BETWEEN, JS_AXIS_NEGATIVE },
+		{ JS_AXIS_BETWEEN, JS_AXIS_POSITIVE, JS_AXIS_NEGATIVE }
 	};
+	static uint32_t const hat_value[][2] = {
+		// { SDL value, pressed }
+		{ SDL_HAT_UP, JS_HAT_UP },
+		{ SDL_HAT_RIGHT, JS_HAT_RIGHT },
+		{ SDL_HAT_DOWN, JS_HAT_DOWN },
+		{ SDL_HAT_LEFT, JS_HAT_LEFT }
+	};
+	uint32_t plist[elemof(hat_value)];
+	uint32_t rlist[elemof(hat_value)];
+	unsigned int i, pi, ri;
+	unsigned int hat_value_map;
 	intptr_t joypad;
 	bool pressed;
 #endif
@@ -5135,57 +5141,69 @@ int pd_handle_events(md &megad)
 	{
 #ifdef WITH_JOYSTICK
 	case SDL_JOYAXISMOTION:
-		if (event.jaxis.value <= -16384) {
-			joypad = JS_AXIS(event.jaxis.which,
-					 event.jaxis.axis,
-					 JS_AXIS_NEGATIVE);
-			pressed = true;
-		}
-		else if (event.jaxis.value >= 16384) {
-			joypad = JS_AXIS(event.jaxis.which,
-					 event.jaxis.axis,
-					 JS_AXIS_POSITIVE);
-			pressed = true;
-		}
-		else {
-			joypad = JS_AXIS(event.jaxis.which,
-					 event.jaxis.axis,
-					 JS_AXIS_BETWEEN);
-			pressed = false;
-		}
+		if (event.jaxis.value <= -16384)
+			i = 0;
+		else if (event.jaxis.value >= 16384)
+			i = 1;
+		else
+			i = 2;
+		plist[0] = JS_AXIS(event.jaxis.which,
+				   event.jaxis.axis,
+				   axis_value[i][0]);
+		rlist[0] = JS_AXIS(event.jaxis.which,
+				   event.jaxis.axis,
+				   axis_value[i][1]);
+		rlist[1] = JS_AXIS(event.jaxis.which,
+				   event.jaxis.axis,
+				   axis_value[i][2]);
+		pi = 1;
+		ri = 2;
 		goto joypad_axis;
 	case SDL_JOYHATMOTION:
-		if (event.jhat.value >= (int)elemof(hat_value))
-			break;
-		if (hat_value[event.jhat.value] != JS_HAT_CENTERED)
-			pressed = true;
-		else
-			pressed = false;
-		joypad = JS_HAT(event.jhat.which,
-				event.jhat.hat,
-				hat_value[event.jhat.value]);
+		pi = 0;
+		ri = 0;
+		hat_value_map = 0;
+		for (i = 0; (i != elemof(hat_value)); ++i)
+			if (event.jhat.value & hat_value[i][0]) {
+				plist[pi++] = JS_HAT(event.jhat.which,
+						     event.jhat.hat,
+						     hat_value[i][1]);
+				hat_value_map |= (1 << i);
+			}
+		for (i = 0; (i != elemof(hat_value)); ++i)
+			if ((hat_value_map & (1 << i)) == 0)
+				rlist[ri++] = JS_HAT(event.jhat.which,
+						     event.jhat.hat,
+						     hat_value[i][1]);
 	joypad_axis:
 		if (calibrating) {
-			if (pressed)
-				manage_calibration(true, joypad);
+			for (i = 0; ((calibrating) && (i != pi)); ++i)
+				manage_calibration(true, plist[i]);
 			break;
 		}
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
-			// Release button first.
-			if ((ctl->pressed == true) &&
-			    (((*ctl->rc)[1] & ~0xff) == (joypad & ~0xff)) &&
-			    (ctl->release != NULL) &&
-			    (ctl->release(*ctl, megad) == 0))
-				return 0;
-			if ((pressed == true) &&
-			    ((*ctl->rc)[1] == joypad)) {
-				assert(ctl->press != NULL);
-				if (ctl->press(*ctl, megad) == 0)
+			// Release buttons first.
+			for (i = 0; (i != ri); ++i) {
+				if ((ctl->pressed == true) &&
+				    ((uint32_t)(*ctl->rc)[1] == rlist[i]) &&
+				    (ctl->release != NULL) &&
+				    (ctl->release(*ctl, megad) == 0))
 					return 0;
 			}
+			for (i = 0; (i != pi); ++i) {
+				if ((uint32_t)(*ctl->rc)[1] == plist[i]) {
+					assert(ctl->press != NULL);
+					if (ctl->press(*ctl, megad) == 0)
+						return 0;
+				}
+			}
 		}
-		if (manage_bindings(megad, pressed, true, joypad) == 0)
-			return 0;
+		for (i = 0; (i != ri); ++i)
+			if (!manage_bindings(megad, false, true, rlist[i]))
+				return 0;
+		for (i = 0; (i != pi); ++i)
+			if (!manage_bindings(megad, true, true, plist[i]))
+				return 0;
 		break;
 	case SDL_JOYBUTTONDOWN:
 		assert(event.jbutton.state == SDL_PRESSED);

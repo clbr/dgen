@@ -242,15 +242,11 @@ static const unsigned int joypad_axis_value[] = {
 };
 
 static const char *joypad_hat_type[] = {
-	"centered", "up", "right_up", "right",
-	"right_down", "down", "left_down",
-	"left", "left_up", NULL
+	"centered", "up", "right", "down", "left"
 };
 
 static const unsigned int joypad_hat_value[] = {
-	JS_HAT_CENTERED, JS_HAT_UP, JS_HAT_RIGHT_UP, JS_HAT_RIGHT,
-	JS_HAT_RIGHT_DOWN, JS_HAT_DOWN, JS_HAT_LEFT_DOWN,
-	JS_HAT_LEFT, JS_HAT_LEFT_UP
+	JS_HAT_CENTERED, JS_HAT_UP, JS_HAT_RIGHT, JS_HAT_DOWN, JS_HAT_LEFT
 };
 
 /* Convert a joypad entry to text. */
@@ -312,8 +308,7 @@ char *dump_joypad(intptr_t js)
  * Axes:
  *   (j|js|joystick|joypad)X-(a|axis)Y-(max|p|positive|min|n|negative)
  * Hats:
- *   (j|js|joystick|joypad)X-(h|hat)Y-\
- *     (up|right_up|right|right_down|down|left_down|left|left_up)
+ *   (j|js|joystick|joypad)X-(h|hat)Y-(up|right|down|left)
  */
 intptr_t rc_joypad(const char *value, intptr_t *)
 {

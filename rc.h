@@ -34,22 +34,17 @@
 // i: system identifier for joystick/joypad (0-255).
 // a: axis or hat index (0-255).
 // b: button number (0-255), axis direction (0 if negative, 128 if between,
-//    255 if positive), or hat direction (0 = center, 1 = up, 2 = right-up,
-//    3 = right, 4 = right-down, 5 = down, 6 = left-down, 7 = left,
-//    8 = left-up).
+//    255 if positive), or hat direction (0 = center, 1 = up, 2 = right,
+//    3 = down, 4 = left).
 #define JS_AXIS_NEGATIVE 0x00
 #define JS_AXIS_BETWEEN 0x80
 #define JS_AXIS_POSITIVE 0xff
 
 #define JS_HAT_CENTERED 0
 #define JS_HAT_UP 1
-#define JS_HAT_RIGHT_UP 2
-#define JS_HAT_RIGHT 3
-#define JS_HAT_RIGHT_DOWN 4
-#define JS_HAT_DOWN 5
-#define JS_HAT_LEFT_DOWN 6
-#define JS_HAT_LEFT 7
-#define JS_HAT_LEFT_UP 8
+#define JS_HAT_RIGHT 2
+#define JS_HAT_DOWN 3
+#define JS_HAT_LEFT 4
 
 #define JS_TYPE_BUTTON 0x01
 #define JS_TYPE_AXIS 0x02
