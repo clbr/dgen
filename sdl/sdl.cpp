@@ -3663,9 +3663,11 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	// calling SDL_SetVideoMode(), otherwise we may lose the first resize
 	// event.
 	SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
+#ifndef WITH_PICO
 	SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
 	SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
 	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
+#endif
 	SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
 	// Set the titlebar.
 	SDL_WM_SetCaption("DGen/SDL " VER, "DGen/SDL " VER);
@@ -6168,6 +6170,32 @@ int pd_handle_events(md &megad)
 		}
 		break;
 	}
+#ifdef WITH_PICO
+	case SDL_MOUSEMOTION:
+		if (!megad.pico_enabled)
+			break;
+		megad.pico_pen_coords[0] =
+			(((event.motion.x * 320) / video.width) + 0x3c);
+		megad.pico_pen_coords[1] =
+			(((event.motion.y * 240) / video.height) + 0x1fc);
+		if (megad.pico_pen_coords[0] > 0x17c)
+			megad.pico_pen_coords[0] = 0x17c;
+		if (megad.pico_pen_coords[1] > 0x2f7)
+			megad.pico_pen_coords[1] = 0x2f7;
+		break;
+	case SDL_MOUSEBUTTONDOWN:
+		if (!megad.pico_enabled)
+			break;
+		if (event.button.button == SDL_BUTTON_LEFT)
+			megad.pad[0] &= ~MD_PICO_PENBTN_MASK;
+		break;
+	case SDL_MOUSEBUTTONUP:
+		if (!megad.pico_enabled)
+			break;
+		if (event.button.button == SDL_BUTTON_LEFT)
+			megad.pad[0] |= MD_PICO_PENBTN_MASK;
+		break;
+#endif
 	case SDL_QUIT:
 	  // We've been politely asked to exit, so let's leave
 	  return 0;

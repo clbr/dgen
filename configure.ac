@@ -601,6 +601,17 @@ AS_IF(
 	)]
 )
 
+dnl Check if Sega Pico emulation should be enabled.
+AC_ARG_ENABLE(
+	[pico],
+	[AS_HELP_STRING(
+		[--enable-pico],
+		[enable Sega Pico emulation (experimental) [default=no]]
+	)],
+	[USE_PICO=$enableval],
+	[USE_PICO=no]
+)
+
 dnl Check for Doxygen.
 AC_ARG_WITH(
 	[doxygen],
@@ -638,6 +649,7 @@ AS_IF([test "x$USE_DEBUGGER" = xyes], [AC_DEFINE([WITH_DEBUGGER])])
 AS_IF([test "x$WITH_DZ80" = xyes], [AC_DEFINE([WITH_DZ80])])
 AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
 AS_IF([test "x$USE_DEBUG_VDP" = xyes], [AC_DEFINE([WITH_DEBUG_VDP])])
+AS_IF([test "x$USE_PICO" = xyes], [AC_DEFINE([WITH_PICO])])
 AS_IF([test "x$USE_JOYSTICK" = xyes], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_THREADS" = xyes], [AC_DEFINE([WITH_THREADS])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
@@ -661,6 +673,7 @@ AS_IF([test "x$USE_X86_CTV" = xyes], [AC_DEFINE([WITH_X86_CTV])])
 AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 
 AM_CONDITIONAL([WITH_DEBUG_VDP], [test "x$USE_DEBUG_VDP" = xyes])
+AM_CONDITIONAL([WITH_PICO], [test "x$USE_PICO" = xyes])
 AM_CONDITIONAL([WITH_DEBUGGER], [test "x$USE_DEBUGGER" = xyes])
 AM_CONDITIONAL([WITH_DZ80], [test "x$WITH_DZ80" = xyes])
 AM_CONDITIONAL([WITH_CTV], [test "x$USE_CTV" = xyes])
@@ -727,6 +740,7 @@ Front-end
   dZ80 disassembler: $WITH_DZ80
   Debugging: $USE_DEBUG
   VDP debugging: $USE_DEBUG_VDP
+  Sega Pico: $USE_PICO
 
 CPU cores
   Musashi M68K: $WITH_MUSA

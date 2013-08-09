@@ -288,6 +288,12 @@ int md::reset()
   pad[1] = MD_PAD_UNTOUCHED;
   memset(pad_com, 0, sizeof(pad_com));
 
+#ifdef WITH_PICO
+  // Initialize Pico pen X, Y coordinates
+  pico_pen_coords[0] = 0x3c;
+  pico_pen_coords[1] = 0x1fc;
+#endif
+
   // Reset FM registers
   fm_reset();
   dac_init();
@@ -987,6 +993,16 @@ int md::load(const char *name)
   memcpy((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
   memcpy((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
 
+#ifdef WITH_PICO
+	// Check if cartridge inserted is intended for Sega Pico.
+	// If it is, the Sega Pico I/O area will be enabled, and the
+	// Megadrive I/O area will be disabled.
+	if ((!strncmp(cart_head.system_name, "SEGA PICO", 9)) ||
+	    (!strncmp(cart_head.system_name, "SEGATOYS PICO", 9)))
+		pico_enabled = true;
+	else
+		pico_enabled = false;
+#endif
 	// Plug it into the memory map
 	plug_in(temp, size); // md then deallocates it when it's done
 	plugged = true;

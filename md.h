@@ -270,6 +270,9 @@ typedef struct {
 #define MD_X_MASK      (1 << 18)  //  0x40000
 #define MD_MODE_MASK   (1 << 19)  //  0x80000
 #define MD_PAD_UNTOUCHED 0xf303f
+#ifdef WITH_PICO
+#define MD_PICO_PENBTN_MASK (1 << 7) // 0x00080
+#endif
 
 class md {
 public:
@@ -547,6 +550,10 @@ public:
   void pad_update();
   int pad[2];
   uint8_t pad_com[2];
+#ifdef WITH_PICO
+  bool pico_enabled;
+  uint16_t pico_pen_coords[2];
+#endif
 // c000004 bit 1 write fifo empty, bit 0 write fifo full (???)
 // c000005 vint happened, (sprover, coll, oddinint)
 // invblank, inhblank, dma busy, pal

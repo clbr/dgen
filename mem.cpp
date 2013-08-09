@@ -245,6 +245,39 @@ uint8_t md::misc_readbyte(uint32_t a)
 	if (a <= M68K_ROM_END) {
 		return m68k_ROM_read(a);
 	}
+#ifdef WITH_PICO
+	/* 0x800000-0x80001f: Sega Pico I/O area */
+	if ((pico_enabled) &&
+	    ((a >= 0x800000) && (a <= 0x80001f))) {
+		a &= 0x1f;
+		switch(a) {
+		case 1: // Version register
+			switch (region) {
+			case 'J': // Japan
+				return 0;
+			case 'E': // Europe
+				return 32;
+			case 'U': // USA
+				return 64;
+			}
+			return 0;
+		case 3: // Pico pad
+			return pad[0];
+		case 5: // MSB of X coordinate for pen
+			return pico_pen_coords[0] >> 8;
+		case 7: // LSB of X coordinate for pen
+			return pico_pen_coords[0] & 0xff;
+		case 9: // MSB of Y coordinate for pen
+			return pico_pen_coords[1] >> 8;
+		case 0xB: // LSB of Y coordinate for pen
+			return pico_pen_coords[1] & 0xff;
+		}
+	}
+	/* 0x800020-0xafffff: Sega Pico empty area */
+	if ((pico_enabled) &&
+	    (a <= M68K_IO_END))
+		return 0;
+#endif
 	/* 0x800000-0x9fffff: empty area */
 	if (a <= M68K_EMPTY1_END) {
 		/*
