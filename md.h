@@ -493,6 +493,8 @@ private:
   int myfm_read(int a);
   int mysn_write(int v);
   void fm_reset();
+  void vgm_dump(int a, int v);
+  void vgm_dump_wait_time();
   uint8_t fm_sel[2];
   uint8_t fm_tover;
   int fm_ticker[4];
@@ -554,6 +556,13 @@ public:
   bool pico_enabled;
   uint16_t pico_pen_coords[2];
 #endif
+  uint8_t vgm_port_addr;
+  FILE *vgmFile;
+  int vgm_dumping;
+  int vgm_wait_samples;
+  int vgm_total_samples;
+  void vgm_dump_start();
+  void vgm_dump_stop();
 // c000004 bit 1 write fifo empty, bit 0 write fifo full (???)
 // c000005 vint happened, (sprover, coll, oddinint)
 // invblank, inhblank, dma busy, pal

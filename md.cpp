@@ -565,6 +565,7 @@ md::md(bool pal, char region):
 	rom = (uint8_t*)no_rom;
   mem=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
+  vgm_dumping = false;
 
   fm_reset();
 
@@ -765,6 +766,9 @@ cleanup:
 
 md::~md()
 {
+	if(vgm_dumping)
+		vgm_dump_stop();
+
 	assert(rom != NULL);
 	if (rom != no_rom)
 		unplug();

@@ -153,6 +153,14 @@ Remove specified bindings (variables prefixed with "bind_").
 See
 .Xr dgenrc 5
 for more information about them.
+.It vgmdump start Ar filename
+.It vgmdump stop
+Manages VGM dumping/logging. If the second argument is
+.Ar start
+VGM dumping will be started at the path specified by the third argument.
+If the second argument is
+.Ar stop
+VGM dumping will be stopped and the dump finalized.
 .El
 .Ss Variables
 All configuration variables from

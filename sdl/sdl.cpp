@@ -442,6 +442,7 @@ static int prompt_cmd_config_load(class md&, unsigned int, const char**);
 static int prompt_cmd_config_save(class md&, unsigned int, const char**);
 static char* prompt_cmpl_config_file(class md&, unsigned int, const char**,
 				     unsigned int);
+static int prompt_cmd_vgmdump(class md&, unsigned int, const char**);
 
 /**
  * List of commands to auto complete.
@@ -468,6 +469,7 @@ static const struct prompt_command prompt_command[] = {
 	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
 	{ "config_load", prompt_cmd_config_load, prompt_cmpl_config_file },
 	{ "config_save", prompt_cmd_config_save, prompt_cmpl_config_file },
+	{ "vgmdump", prompt_cmd_vgmdump, NULL },
 	{ NULL, NULL, NULL }
 };
 
@@ -842,6 +844,36 @@ retry:
 	}
 	++prompt.skip;
 	return strdup(rcb->rc);
+}
+
+static int prompt_cmd_vgmdump(class md& md, unsigned int ac, const char** av)
+{
+	if (ac < 2)
+		return CMD_EINVAL;
+	if (strcmp(av[1], "start") == 0) {
+		if (ac < 3) {
+			stop_events_msg(~0u, "Not enough arguments.");
+			return CMD_EINVAL | CMD_MSG;
+		}
+		if (md.vgm_dumping) {
+			stop_events_msg(~0u, "Dumping already active.");
+			return CMD_FAIL | CMD_MSG;
+		}
+		md.vgmFile = fopen(av[2], "wb");
+		if(md.vgmFile == NULL)
+			return CMD_FAIL;
+		md.vgm_dump_start();
+		stop_events_msg(~0u, "Started VGM dumping to \"%s\"", av[2]);
+		return CMD_OK | CMD_MSG;
+	}
+	else if (strcmp(av[1], "stop") == 0) {
+		if ((md.vgmFile == NULL) || (!md.vgm_dumping))
+			return CMD_FAIL;
+		md.vgm_dump_stop();
+		stop_events_msg(~0u, "Stopped VGM dumping");
+		return CMD_OK | CMD_MSG;
+	}
+	return CMD_EINVAL | CMD_MSG;
 }
 
 struct filter_data {
