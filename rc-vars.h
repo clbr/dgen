@@ -79,6 +79,8 @@ RCCTL(dgen_slot_6, '6', 0);
 RCCTL(dgen_slot_7, '7', 0);
 RCCTL(dgen_slot_8, '8', 0);
 RCCTL(dgen_slot_9, '9', 0);
+RCCTL(dgen_slot_next, PDK_F8, 0);
+RCCTL(dgen_slot_prev, PDK_F7, 0);
 RCCTL(dgen_save, PDK_F2, 0);
 RCCTL(dgen_load, PDK_F3, 0);
 

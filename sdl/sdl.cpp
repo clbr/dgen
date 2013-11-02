@@ -4403,6 +4403,8 @@ enum ctl_e {
 	CTL_DGEN_SLOT7,
 	CTL_DGEN_SLOT8,
 	CTL_DGEN_SLOT9,
+	CTL_DGEN_SLOT_NEXT,
+	CTL_DGEN_SLOT_PREV,
 	CTL_DGEN_SAVE,
 	CTL_DGEN_LOAD,
 	CTL_DGEN_Z80_TOGGLE,
@@ -4653,6 +4655,26 @@ static int ctl_dgen_slot(struct ctl& ctl, md&)
 	return 1;
 }
 
+static int ctl_dgen_slot_next(struct ctl&, md&)
+{
+	if (slot == 9)
+		slot = 0;
+	else
+		slot++;
+	pd_message("Selected next save slot (%d).", slot);
+	return 1;
+}
+
+static int ctl_dgen_slot_prev(struct ctl&, md&)
+{
+	if (slot == 0)
+		slot = 9;
+	else
+		slot--;
+	pd_message("Selected previous save slot (%d).", slot);
+	return 1;
+}
+
 static int ctl_dgen_save(struct ctl&, md& megad)
 {
 	md_save(megad);
@@ -4848,6 +4870,8 @@ static struct ctl control[] = {
 	{ CTL_DGEN_SLOT7, &dgen_slot_7, false, ctl_dgen_slot, NULL },
 	{ CTL_DGEN_SLOT8, &dgen_slot_8, false, ctl_dgen_slot, NULL },
 	{ CTL_DGEN_SLOT9, &dgen_slot_9, false, ctl_dgen_slot, NULL },
+	{ CTL_DGEN_SLOT_NEXT, &dgen_slot_next, false, ctl_dgen_slot_next, NULL },
+	{ CTL_DGEN_SLOT_PREV, &dgen_slot_prev, false, ctl_dgen_slot_prev, NULL },
 	{ CTL_DGEN_SAVE, &dgen_save, false, ctl_dgen_save, NULL },
 	{ CTL_DGEN_LOAD, &dgen_load, false, ctl_dgen_load, NULL },
 	{ CTL_DGEN_Z80_TOGGLE,
