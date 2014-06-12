@@ -415,7 +415,7 @@ void load_finish(void **context)
 	struct archive *archive = *context;
 
 	if (archive != NULL)
-		archive_read_finish(archive);
+		archive_read_free(archive);
 #endif
 	*context = NULL;
 }
@@ -475,7 +475,7 @@ uint8_t *load(void **context,
 		error = ENOMEM;
 		goto error;
 	}
-	archive_read_support_compression_all(archive);
+	archive_read_support_filter_all(archive);
 	archive_read_support_format_all(archive);
 	archive_read_support_format_raw(archive);
 	if (archive_read_open_FILE(archive, file) != ARCHIVE_OK) {
