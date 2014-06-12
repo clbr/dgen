@@ -5180,7 +5180,11 @@ int pd_handle_events(md &megad)
 		rlist[1] = JS_AXIS(event.jaxis.which,
 				   event.jaxis.axis,
 				   axis_value[i][2]);
-		pi = 1;
+		// "between" causes problems during calibration, ignore it.
+		if (axis_value[i][0] == JS_AXIS_BETWEEN)
+			pi = 0;
+		else
+			pi = 1;
 		ri = 2;
 		goto joypad_axis;
 	case SDL_JOYHATMOTION:
