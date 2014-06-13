@@ -164,15 +164,52 @@ void star_irq_callback(void)
  */
 void md::musa_memory_map()
 {
-	const m68k_mem_t mem[2] = {
-		// r, w, x, swab, addr, size, mask, mem
-		{ 1, 0, 1, 1, 0x000000, romlen, 0x7fffff, rom }, // M68K ROM
-		{ 1, 1, 1, 1, 0xe00000, 0x200000, 0x00ffff, ram } // M68K RAM
-	};
+	unsigned int rom0_len = romlen;
+	unsigned int rom1_sta = 0;
+	unsigned int rom1_len = 0;
 
-	assert(sizeof(mem) == sizeof(musa_memory));
-	memcpy(musa_memory, (void *)mem, sizeof(mem));
-	m68k_register_memory(musa_memory, (sizeof(mem) / sizeof(mem[0])));
+	m68k_register_memory(NULL, 0);
+	if (save_len) {
+		DEBUG(("[%06x-%06x] ???? (SAVE)",
+		       save_start, (save_start + save_len - 1)));
+		if (save_start < romlen) {
+			/* Punch a hole through the ROM area. */
+			rom0_len = save_start;
+			/* Add entry for ROM leftovers, if any. */
+			if ((save_start + save_len) < romlen) {
+				rom1_sta = (save_start + save_len);
+				rom1_len = (romlen - rom1_sta);
+			}
+		}
+	}
+
+	const m68k_mem_t mem[3] = {
+		// r, w, x, swab, addr, size, mask, mem
+		{ 1, 0, 1, 1, 0x000000, rom0_len, 0x7fffff, rom }, // M68K ROM
+		{ 1, 1, 1, 1, 0xe00000, 0x200000, 0x00ffff, ram }, // M68K RAM
+		{ 1, 0, 1, 1, rom1_sta, rom1_len, 0x7fffff, &rom[rom1_sta] }
+	};
+	unsigned int i;
+	unsigned int j = 0;
+
+	for (i = 0; ((i < elemof(mem)) && (j < elemof(musa_memory))); ++i) {
+		if (mem[i].size == 0)
+			continue;
+		DEBUG(("[%06x-%06x] %c%c%c%c (%s)",
+		       mem[i].addr,
+		       (mem[i].addr + mem[i].size - 1),
+		       (mem[i].r ? 'r' : '-'),
+		       (mem[i].w ? 'w' : '-'),
+		       (mem[i].x ? 'x' : '-'),
+		       (mem[i].swab ? 's' : '-'),
+		       (mem[i].w ? "RAM" : "ROM")));
+		musa_memory[j] = mem[i];
+		++j;
+	}
+	if (j)
+		m68k_register_memory(musa_memory, j);
+	else
+		DEBUG(("no memory region defined"));
 }
 
 int musa_irq_callback(int level)

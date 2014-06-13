@@ -402,7 +402,7 @@ private:
 #ifdef WITH_MUSA
 	void *ctx_musa;
 	void musa_memory_map();
-	m68k_mem_t musa_memory[2]; // [0] = ROM, [1] = RAM
+	m68k_mem_t musa_memory[3];
 	friend int musa_irq_callback(int);
 #endif
 #ifdef WITH_CYCLONE
