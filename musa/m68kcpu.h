@@ -1124,7 +1124,7 @@ INLINE m68k_mem_t *m68ki_locate_memory(uint address)
 	do {								\
 		m68k_mem_t *mem = m68ki_locate_memory(a);		\
 									\
-		if (mem != NULL) {					\
+		if ((mem != NULL) && (mem->w)) {			\
 			((uint8 *)mem->mem)				\
 				[((((a) - mem->addr) ^ mem->swab) &	\
 				  mem->mask)] = (v);			\
@@ -1137,7 +1137,7 @@ INLINE m68k_mem_t *m68ki_locate_memory(uint address)
 	do {								\
 		m68k_mem_t *mem = m68ki_locate_memory(a);		\
 									\
-		if (mem != NULL) {					\
+		if ((mem != NULL) && (mem->w)) {			\
 			uint8 *m = &((uint8 *)mem->mem)			\
 				[(((a) - mem->addr) & mem->mask)];	\
 									\
@@ -1152,7 +1152,7 @@ INLINE m68k_mem_t *m68ki_locate_memory(uint address)
 	do {								\
 		m68k_mem_t *mem = m68ki_locate_memory(a);		\
 									\
-		if (mem != NULL) {					\
+		if ((mem != NULL) && (mem->w)) {			\
 			uint8 *m = &((uint8 *)mem->mem)			\
 				[(((a) - mem->addr) & mem->mask)];	\
 									\
