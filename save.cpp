@@ -417,6 +417,8 @@ int md::import_gst(FILE *hand)
 		fprintf(stderr,
 			"%s: warning: unknown save file version.\n",
 			__func__);
+	/* Reset console first. */
+	reset();
 	/* FIXME: VDP stuff */
 	/* PSG registers (8x16-bit, 16 bytes) */
 	SN76496_restore(0, &(*buf)[0x60]);
