@@ -102,8 +102,8 @@ uint8_t md::m68k_ROM_read(uint32_t a)
 	    (a >= save_start) && ((a - save_start) < save_len))
 		return saveram[((a ^ 1) - save_start)];
 	/* ROM */
-	if ((a ^ 1) < romlen)
-		return rom[(a ^ 1)];
+	if (ROM_ADDR(a) < romlen)
+		return rom[ROM_ADDR(a)];
 	/* empty area */
 	return 0;
 }
@@ -279,8 +279,8 @@ void md::m68k_ROM_write(uint32_t a, uint8_t d)
 		saveram[((a ^ 1) - save_start)] = d;
 #ifdef WITH_DEBUGGER
 	/* Allow debugger to write to the ROM. */
-	if ((debug_trap) && ((a ^ 1) < romlen))
-		rom[(a ^ 1)] = d;
+	if ((debug_trap) && (ROM_ADDR(a) < romlen))
+		rom[ROM_ADDR(a)] = d;
 #endif
 }
 

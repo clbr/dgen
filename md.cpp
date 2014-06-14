@@ -183,11 +183,17 @@ void md::musa_memory_map()
 		}
 	}
 
+#ifdef ROM_BYTESWAP
+#define S 1
+#else
+#define S 0
+#endif
+
 	const m68k_mem_t mem[3] = {
 		// r, w, x, swab, addr, size, mask, mem
-		{ 1, 0, 1, 1, 0x000000, rom0_len, 0x7fffff, rom }, // M68K ROM
+		{ 1, 0, 1, S, 0x000000, rom0_len, 0x7fffff, rom }, // M68K ROM
 		{ 1, 1, 1, 1, 0xe00000, 0x200000, 0x00ffff, ram }, // M68K RAM
-		{ 1, 0, 1, 1, rom1_sta, rom1_len, 0x7fffff, &rom[rom1_sta] }
+		{ 1, 0, 1, S, rom1_sta, rom1_len, 0x7fffff, &rom[rom1_sta] }
 	};
 	unsigned int i;
 	unsigned int j = 0;
@@ -777,6 +783,7 @@ md::~md()
 	lock = false;
 }
 
+#ifdef ROM_BYTESWAP
 /**
  * Byteswaps memory.
  * @param[in] start Byte array of cart memory.
@@ -790,6 +797,7 @@ int byteswap_memory(unsigned char *start,int len)
   { tmp=start[i+0]; start[i+0]=start[i+1]; start[i+1]=tmp; }
   return 0;
 }
+#endif
 
 /**
  * Plug a cart into the MD.
@@ -803,17 +811,19 @@ int md::plug_in(unsigned char *cart,int len)
   // NB - The megadrive will free() it if unplug() is called, or it exits
   // So it must be a single piece of malloced data
   if (cart==NULL) return 1; if (len<=0) return 1;
+#ifdef ROM_BYTESWAP
   byteswap_memory(cart,len); // for starscream
+#endif
   romlen=len;
   rom=cart;
   // Get saveram start, length (remember byteswapping)
   // First check magic, if there is saveram
-  if(rom[0x1b1] == 'R' && rom[0x1b0] == 'A')
+  if(rom[ROM_ADDR(0x1b0)] == 'R' && rom[ROM_ADDR(0x1b1)] == 'A')
     {
-      save_start = rom[0x1b5] << 24 | rom[0x1b4] << 16 |
-                   rom[0x1b7] << 8  | rom[0x1b6];
-      save_len = rom[0x1b9] << 24 | rom[0x1b8] << 16 |
-                 rom[0x1bb] << 8  | rom[0x1ba];
+      save_start = rom[ROM_ADDR(0x1b4)] << 24 | rom[ROM_ADDR(0x1b5)] << 16 |
+                   rom[ROM_ADDR(0x1b6)] << 8  | rom[ROM_ADDR(0x1b7)];
+      save_len = rom[ROM_ADDR(0x1b8)] << 24 | rom[ROM_ADDR(0x1b9)] << 16 |
+                 rom[ROM_ADDR(0x1ba)] << 8  | rom[ROM_ADDR(0x1bb)];
       // Make sure start is even, end is odd, for alignment
 // A ROM that I came across had the start and end bytes of
 // the save ram the same and wouldn't work.  Fix this as seen
@@ -1140,8 +1150,8 @@ static unsigned short calculate_checksum(unsigned char *rom,int len)
   int i;
   for (i=512;i<=(len-2);i+=2)
   {
-    checksum+=(rom[i+1]<<8);
-    checksum+=rom[i+0];
+    checksum+=(rom[ROM_ADDR(i+0)]<<8);
+    checksum+=rom[ROM_ADDR(i+1)];
   }
   return checksum;
 }
@@ -1152,12 +1162,14 @@ static unsigned short calculate_checksum(unsigned char *rom,int len)
 void md::fix_rom_checksum()
 {
   unsigned short cs; cs=calculate_checksum(rom,romlen);
-  if (romlen>=0x190) { rom[0x18f]=cs>>8; rom[0x18e]=cs&255; }
+  if (romlen>=0x190) { rom[ROM_ADDR(0x18e)]=cs>>8; rom[ROM_ADDR(0x18f)]=cs&255; }
 }
 
 /**
  * This is the default ROM, used when nothing is loaded.
  */
+#ifdef ROM_BYTESWAP
+
 const uint8_t md::no_rom[] = {
 	// Note: everything is byte swapped.
 	"\x72\x4e" "\xff\xff" // stop #0xffff
@@ -1165,5 +1177,16 @@ const uint8_t md::no_rom[] = {
 	"\x71\x4e"            // nop
 	"\xf6\x60"            // bra.b 0
 };
+
+#else
+
+const uint8_t md::no_rom[] = {
+	"\x4e\x72" "\xff\xff" // stop #0xffff
+	"\x4e\x71"            // nop
+	"\x4e\x71"            // nop
+	"\x60\xf6"            // bra.b 0
+};
+
+#endif
 
 const size_t md::no_rom_size = sizeof(no_rom);

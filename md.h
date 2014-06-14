@@ -91,6 +91,15 @@ static inline void (*(*debug_(const char *file, unsigned int line,
 #define DEBUG(s) (void)0
 #endif
 
+/* ROM is always byteswapped when StarScream or Cyclone are enabled. */
+#if defined(WITH_STAR) || defined(WITH_CYCLONE)
+#define ROM_BYTESWAP
+#define ROM_ADDR(a) ((a) ^ 1)
+#else
+#undef ROM_BYTESWAP
+#define ROM_ADDR(a) (a)
+#endif
+
 extern "C" int test_ctv(unsigned char *dest, int len);
 extern "C" int blur_bitmap_16(unsigned char *dest, int len);
 extern "C" int blur_bitmap_15(unsigned char *dest, int len);
