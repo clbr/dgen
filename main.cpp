@@ -455,8 +455,6 @@ next_rom:
 		// Use them only once.
 		patches = NULL;
 	}
-	// Fix checksum
-	megad->fix_rom_checksum();
 	// Reset
 	megad->reset();
 

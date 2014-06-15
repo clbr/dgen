@@ -532,7 +532,6 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	// Initialize like main() does.
 	md.pad[0] = MD_PAD_UNTOUCHED;
 	md.pad[1] = MD_PAD_UNTOUCHED;
-	md.fix_rom_checksum();
 	md.reset();
 
 	if (!dgen_region) {
