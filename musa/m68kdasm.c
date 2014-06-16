@@ -251,7 +251,7 @@ static uint dasm_read_imm_8(uint advance)
 	if (g_rawop)
 		result = g_rawop[g_cpu_pc + 1 - g_rawbasepc];
 	else
-		result = m68k_read_disassembler_16(g_cpu_pc & g_address_mask) & 0xffff; // 0xff ???
+		result = m68k_read_disassembler_8(g_cpu_pc & g_address_mask) & 0xff;
 	g_cpu_pc += advance;
 	return result;
 }
@@ -263,7 +263,7 @@ static uint dasm_read_imm_16(uint advance)
 		result = (g_rawop[g_cpu_pc + 0 - g_rawbasepc] << 8) |
 		          g_rawop[g_cpu_pc + 1 - g_rawbasepc];
 	else
-		result = m68k_read_disassembler_16(g_cpu_pc & g_address_mask) & 0xffff; // 0xff ???
+		result = m68k_read_disassembler_16(g_cpu_pc & g_address_mask) & 0xffff;
 	g_cpu_pc += advance;
 	return result;
 }
@@ -277,7 +277,7 @@ static uint dasm_read_imm_32(uint advance)
 		         (g_rawop[g_cpu_pc + 2 - g_rawbasepc] << 8) |
 		          g_rawop[g_cpu_pc + 3 - g_rawbasepc];
 	else
-		result = m68k_read_disassembler_32(g_cpu_pc & g_address_mask) & 0xffff; // 0xff ???
+		result = m68k_read_disassembler_32(g_cpu_pc & g_address_mask) & 0xffffffff;
 	g_cpu_pc += advance;
 	return result;
 }
