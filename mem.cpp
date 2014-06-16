@@ -193,17 +193,15 @@ uint8_t md::m68k_IO_read(uint32_t a)
 	if ((a & 0xfffffe) == 0xa11000)
 		return 0xff;
 	/* Z80 BUSREQ */
-	if (a == 0xa11100) {
-		static uint8_t garbage;
-
-		garbage ^= 0xfe;
-		return (!z80_st_busreq | garbage);
-	}
-	if (a == 0xa11101)
-		return 0xff;
+	if ((a & 0xffff01) == 0xa11100)
+		return (!z80_st_busreq | ((m68k_read_pc() >> 8) & 0xfe));
+	if ((a & 0xffff01) == 0xa11101)
+		return (m68k_read_pc() & 0xff);
 	/* Z80 RESET */
-	if ((a & 0xfffffe) == 0xa11200)
-		return 0xff;
+	if ((a & 0xffff01) == 0xa11200)
+		return (m68k_read_pc() >> 8);
+	if ((a & 0xffff01) == 0xa11201)
+		return (m68k_read_pc() & 0xff);
 	return 0; /* invalid address */
 }
 
@@ -295,7 +293,7 @@ void md::m68k_IO_write(uint32_t a, uint8_t d)
 	}
 	if (a == 0xa11100) {
 		/* Z80 BUSREQ */
-		if (d)
+		if (d & 0x01)
 			m68k_busreq_request();
 		else
 			m68k_busreq_cancel();
@@ -420,11 +418,11 @@ uint16_t md::misc_readword(uint32_t a)
 
 	a &= 0x00ffffff;
 	/* BUSREQ */
-	if (a == 0xa11100)
-		return ((!z80_st_busreq << 8) | 0x00ff);
+	if ((a & 0xffff00) == 0xa11100)
+		return ((!z80_st_busreq << 8) | (m68k_read_pc() & 0xfeff));
 	/* RESET */
-	if (a == 0xa11200)
-		return 0xffff;
+	if ((a & 0xffff00) == 0xa11200)
+		return m68k_read_pc();
 	/* VDP */
 	if ((a >= 0xc00000) && (a < 0xe00000)) {
 		a &= 0xe700ff;

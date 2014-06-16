@@ -452,6 +452,7 @@ private:
 	// Horizontal counter table
 	uint8_t hc_table[512][2];
 
+	unsigned int m68k_read_pc(); // PC data
 	int m68k_odo(); // M68K odometer
 	void m68k_run(); // Run M68K to odo.m68k_max
 	void m68k_busreq_request(); // Issue BUSREQ

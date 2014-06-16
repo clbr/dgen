@@ -168,6 +168,46 @@ void md::md_set(bool set)
 #endif
 }
 
+// Return PC data.
+unsigned int md::m68k_read_pc()
+{
+	static bool rec = false;
+	unsigned int pc;
+
+	// Forbid recursion.
+	if (rec)
+		return h2be16(0xdead);
+	rec = true;
+#ifdef WITH_MUSA
+	if (cpu_emu == CPU_EMU_MUSA) {
+		md_set_musa(1);
+		pc = m68k_get_reg(NULL, M68K_REG_PC);
+		md_set_musa(0);
+	}
+	else
+#endif
+#ifdef WITH_CYCLONE
+	if (cpu_emu == CPU_EMU_CYCLONE) {
+		md_set_cyclone(1);
+		pc = (cyclonecpu.pc - cyclonecpu.membase);
+		md_set_cyclone(0);
+	}
+	else
+#endif
+#ifdef WITH_STAR
+	if (cpu_emu == CPU_EMU_STAR) {
+		md_set_star(1);
+		pc = cpu.pc;
+		md_set_star(0);
+	}
+	else
+#endif
+		pc = 0;
+	pc = misc_readword(pc & 0xffffff);
+	rec = false;
+	return pc;
+}
+
 // Return current M68K odometer
 int md::m68k_odo()
 {
