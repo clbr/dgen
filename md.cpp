@@ -336,6 +336,8 @@ static struct z80PortWrite io_write[] = {
 
 extern "C" uint8_t cz80_memread(void *ctx, uint16_t a);
 extern "C" void cz80_memwrite(void *ctx, uint16_t a, uint8_t d);
+extern "C" uint16_t cz80_memread16(void *ctx, uint16_t a);
+extern "C" void cz80_memwrite16(void *ctx, uint16_t a, uint16_t d);
 extern "C" uint8_t cz80_ioread(void *ctx, uint16_t a);
 extern "C" void cz80_iowrite(void *ctx, uint16_t a, uint8_t d);
 
@@ -390,6 +392,8 @@ void md::z80_init()
 	Cz80_Set_Fetch(&cz80, 0x0000, 0xffff, (void *)z80ram);
 	Cz80_Set_ReadB(&cz80, cz80_memread);
 	Cz80_Set_WriteB(&cz80, cz80_memwrite);
+	Cz80_Set_ReadW(&cz80, cz80_memread16);
+	Cz80_Set_WriteW(&cz80, cz80_memwrite16);
 	Cz80_Set_INPort(&cz80, cz80_ioread);
 	Cz80_Set_OUTPort(&cz80, cz80_iowrite);
 	Cz80_Reset(&cz80);

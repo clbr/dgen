@@ -729,6 +729,22 @@ extern "C" void cz80_memwrite(void *ctx, uint16_t a, uint8_t d)
 	md->z80_write(a, d);
 }
 
+extern "C" uint16_t cz80_memread16(void *ctx, uint16_t a)
+{
+	class md* md = (class md*)ctx;
+
+	return ((uint16_t)md->z80_read(a) |
+		((uint16_t)md->z80_read(a + 1) << 8));
+}
+
+extern "C" void cz80_memwrite16(void *ctx, uint16_t a, uint16_t d)
+{
+	class md* md = (class md*)ctx;
+
+	md->z80_write(a, (uint8_t)d);
+	md->z80_write((a + 1), (uint8_t)(d >> 8));
+}
+
 extern "C" uint8_t cz80_ioread(void *ctx, uint16_t a)
 {
 	class md* md = (class md*)ctx;
