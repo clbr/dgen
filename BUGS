@@ -7,11 +7,8 @@ in DGen due to bad or incomplete emulation.
 Working, with glitches
 ----------------------
 
-- Double Dragon 2
-Sometimes slower than it should be.
-
 - Sonic 2 prototype
-No sound/music (works fine with Cyclone).
+No sound/music (works fine with DrZ80 on ARM).
 
 - Street Racer
 Mangled pictures in the intro.
@@ -25,9 +22,6 @@ Some HUD areas are wrong.
 - Ayrton Senna's Super Monaco
 Sky is black and top screen color is wrong.
 
-- Golden Axe 2
-Some sort of loop at start that freezes DGen for a while.
-
 - Gynoug
 Menu/intro backgrounds are mangled (works fine with Cyclone).
 
@@ -39,10 +33,15 @@ Main weapon sound is bad.
 
 - Thunder force 4
 Corrupt intro.
-Some versions don't work at all.
 
 - Viewpoint
 Menu background is mangled.
+
+- Contra - Hard Corps
+Mangled backgrounds.
+
+- Olympic Winter Games - Lillehammer 94
+Mangled backgrounds.
 
 Non-working (this is expected)
 ------------------------------
