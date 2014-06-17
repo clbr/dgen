@@ -210,7 +210,7 @@ uint8_t Cz80_Read_Byte(cz80_struc *cpu, uint16_t adr)
 uint16_t Cz80_Read_Word(cz80_struc *cpu, uint16_t adr)
 {
 #if CZ80_USE_WORD_HANDLER
-    return cpu->Read_Word(adr);
+    return cpu->Read_Word(cpu->ctx, adr);
 #elif CZ80_LITTLE_ENDIAN
     return (cpu->Read_Byte(cpu->ctx, adr) |
 	    (cpu->Read_Byte(cpu->ctx, (adr + 1)) << 8));
@@ -228,7 +228,7 @@ void Cz80_Write_Byte(cz80_struc *cpu, uint16_t adr, uint8_t data)
 void Cz80_Write_Word(cz80_struc *cpu, uint16_t adr, uint16_t data)
 {
 #if CZ80_USE_WORD_HANDLER
-    cpu->Write_Word(adr, data);
+    cpu->Write_Word(cpu->ctx, adr, data);
 #elif CZ80_LITTLE_ENDIAN
     cpu->Write_Byte(cpu->ctx, adr, (data & 0xFF));
     cpu->Write_Byte(cpu->ctx, (adr + 1), (data >> 8));
@@ -262,12 +262,12 @@ void Cz80_Set_WriteB(cz80_struc *cpu, CZ80_WRITE *Func)
 }
 
 #if CZ80_USE_WORD_HANDLER
-void Cz80_Set_ReadW(cz80_struc *cpu, CZ80_READ *Func)
+void Cz80_Set_ReadW(cz80_struc *cpu, CZ80_READ_WORD *Func)
 {
     cpu->Read_Word = Func;
 }
 
-void Cz80_Set_WriteW(cz80_struc *cpu, CZ80_WRITE *Func)
+void Cz80_Set_WriteW(cz80_struc *cpu, CZ80_WRITE_WORD *Func)
 {
     cpu->Write_Word = Func;
 }

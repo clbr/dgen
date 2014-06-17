@@ -67,6 +67,7 @@
 #if CZ80_USE_WORD_HANDLER
 #define READ_WORD(A, D)                 \
     D = CPU->Read_Word(CPU->ctx, (A));
+#define READ_WORD_LE(A, D) READ_WORD(A, D)
 #elif CZ80_LITTLE_ENDIAN
 #define READ_WORD(A, D)                 \
     D = CPU->Read_Byte(CPU->ctx, (A)) | (CPU->Read_Byte(CPU->ctx, ((A) + 1)) << 8);
@@ -87,6 +88,7 @@
 #if CZ80_USE_WORD_HANDLER
 #define WRITE_WORD(A, D)                \
     CPU->Write_Word(CPU->ctx, (A), (D));
+#define WRITE_WORD_LE(A, D) WRITE_WORD(A, D);
 #elif CZ80_LITTLE_ENDIAN
 #define WRITE_WORD(A, D)				\
     CPU->Write_Byte(CPU->ctx, (A), (D));		\
