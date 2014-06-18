@@ -35,6 +35,7 @@ extern "C" {
 #define DISFLAG_USELABELADDRS	0x1000
 #define DISFLAG_RELCOMMENT		0x2000	/* Relative jump comments */
 #define DISFLAG_LINECOMMANDS	0x4000	/* Process line commands (auto blank lines) */
+#define DISFLAG_CALLBACK	0x8000  /* Access memory through a callback */
 
 /* Reference listing stuff */
 #define DISFLAG_ANYREF			(DISFLAG_REFINPORT | DISFLAG_REFOUTPORT | DISFLAG_REFADDR | DISFLAG_REFINDIRECT)
@@ -136,6 +137,7 @@ typedef struct DISREF
 typedef struct DISZ80
 {
 	BYTE		*mem0Start; 				/* Pointer to Z80's zero address */
+	BYTE		(*memCB)(void *ctx, WORD addr);		/* Indirect access through callback (DISFLAG_CALLBACK) */
 	WORD		start;						/* Starting disassembler address */
 	WORD		end;						/* Ending disassembler address */
 	DWORD		flags; 						/* See DISFLAG_ defines */
@@ -171,6 +173,7 @@ typedef struct DISZ80
 	WORD		lastDisPC, lastRefAddr, disStart, disEnd;
 	int 		op, realop, lineCmd;
 	BYTE		*Z80MemBase;
+	BYTE		(*Z80MemCB)(void *ctx, WORD addr);
 	signed char	IXIYDisp;				/* The IXIY displacement (-128 to 127) */
 	int 		Z80Flags;
 	int 		currentPass, totalPasses;

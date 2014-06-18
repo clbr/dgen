@@ -17,6 +17,9 @@
 int LookOpcode(DISZ80 *d, int offset)
 {
 	assert(d != NULL);
+	if (d->flags & DISFLAG_CALLBACK)
+		return d->Z80MemCB((void *)d->Z80MemBase,
+				   ((d->PC + offset) & 0xffff));
 	return d->Z80MemBase[(d->PC + offset) & 0xffff];
 }
 
@@ -26,8 +29,11 @@ int GetNextOpCode(DISZ80 *d)
 	char		buf[8];
 	
 	assert(d != NULL);
-	
-	d->op = d->Z80MemBase[d->PC++];
+
+	if (d->flags & DISFLAG_CALLBACK)
+		d->op = d->Z80MemCB((void *)d->Z80MemBase, d->PC++);
+	else
+		d->op = d->Z80MemBase[d->PC++];
 
 	if (d->PC == 0)
 		d->haveWrapped = TRUE;
@@ -131,13 +137,16 @@ int dZ80_Disassemble(DISZ80 *d)
 	if (d == NULL)
 		return DERR_INVALIDPARAMS;
 
-	if (d->mem0Start == NULL)
+	if ((d->flags & DISFLAG_CALLBACK) && (d->memCB == NULL))
+		return DERR_INVALIDPARAMS;
+	else if (d->mem0Start == NULL)
 		return DERR_INVALIDPARAMS;
 
 	d->createdRefOK = FALSE;
 	d->numInstructions = 0;
 	d->currentPass = DPASS_INIT;
 	d->Z80MemBase = d->mem0Start;
+	d->Z80MemCB = d->memCB;
 	d->totalPasses = 1;
 	d->labelledOutput = FALSE;
 	d->outStream =	NULL;
@@ -1938,6 +1947,7 @@ void WriteReferenceFile(DISZ80 *d)
 					{
 					memset(&qd, 0, sizeof(qd));
 					qd.mem0Start = d->mem0Start;
+					qd.memCB = d->memCB;
 					qd.start = qd.end = ra->RefAddress;
 					qd.flags = d->flags | DISFLAG_SINGLE;
 					qd.cpuType = d->cpuType;
