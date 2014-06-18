@@ -16,6 +16,11 @@ extern "C" {
 }
 #endif
 
+#ifdef WITH_DZ80
+#include "dz80/types.h"
+#include "dz80/dissz80.h"
+#endif
+
 #include "pd.h"
 #include "md.h"
 #include "system.h"
@@ -170,6 +175,17 @@ int md::debug_next_free_bp_m68k()
 	return (-1); // no free slots
 }
 
+#ifdef WITH_DZ80
+
+static BYTE disz80_read(void *ctx, WORD addr)
+{
+	class md *md = (class md *)ctx;
+
+	return md->z80_read(addr);
+}
+
+#endif
+
 /**
  * Initialise the debugger.
  *
@@ -191,6 +207,15 @@ void md::debug_init()
 	debug_trap = false;
 	debug_m68k_instr_count = 0;
 	debug_m68k_instr_count_enabled = false;
+
+#ifdef WITH_DZ80
+	memset(&disz80, 0, sizeof(disz80));
+	dZ80_SetDefaultOptions(&disz80);
+	disz80.cpuType = DCPU_Z80;
+	disz80.flags = (DISFLAG_SINGLE | DISFLAG_CALLBACK);
+	disz80.mem0Start = (BYTE *)this;
+	disz80.memCB = disz80_read;
+#endif
 }
 
 /**
@@ -369,6 +394,41 @@ uint32_t md::m68k_get_pc()
 		md_set_cyclone(1);
 		pc = (cyclonecpu.pc - cyclonecpu.membase);
 		md_set_cyclone(0);
+		break;
+#endif
+	default:
+		pc = 0;
+	}
+	return pc;
+}
+
+/**
+ * Get Z80 PC.
+ *
+ * @return Current PC.
+ */
+uint16_t md::z80_get_pc()
+{
+	uint16_t pc;
+
+	switch (z80_core) {
+#ifdef WITH_CZ80
+	case Z80_CORE_CZ80:
+		pc = Cz80_Get_PC(&cz80);
+		break;
+#endif
+#ifdef WITH_MZ80
+	case Z80_CORE_MZ80:
+		md_set_mz80(1);
+		pc = z80.z80pc;
+		md_set_mz80(0);
+		break;
+#endif
+#ifdef WITH_DRZ80
+	case Z80_CORE_DRZ80:
+		md_set_drz80(1);
+		pc = (drz80.Z80PC - drz80.Z80PC_BASE);
+		md_set_drz80(0);
 		break;
 #endif
 	default:
@@ -960,10 +1020,14 @@ int md::debug_cmd_setr(int n_args, char **args)
  */
 int md::debug_cmd_dis(int n_args, char **args)
 {
-	uint32_t		addr = m68k_get_pc();
+	uint32_t		addr;
 	uint32_t		length = DEBUG_DFLT_DASM_LEN;
 
-	if (debug_context != DBG_CONTEXT_M68K) {
+	if (debug_context == DBG_CONTEXT_M68K)
+		addr = m68k_get_pc();
+	else if (debug_context == DBG_CONTEXT_Z80)
+		addr = z80_get_pc();
+	else {
 		printf("disassembly is not implemented on %s core\n",
 		    CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
@@ -987,7 +1051,10 @@ int md::debug_cmd_dis(int n_args, char **args)
 			break;
 	};
 
-	debug_print_m68k_disassemble(addr, length);
+	if (debug_context == DBG_CONTEXT_M68K)
+		debug_print_m68k_disassemble(addr, length);
+	else if (debug_context == DBG_CONTEXT_Z80)
+		debug_print_z80_disassemble(addr, length);
 out:
 	fflush(stdout);
 	return (1);
@@ -1609,6 +1676,38 @@ void md::debug_print_m68k_disassemble(uint32_t from, int len)
 }
 
 /**
+ * Pretty print a Z80 disassembly.
+ *
+ * @param from Address to start disassembling from.
+ * @param num Number of instructions to disassemble.
+ */
+void md::debug_print_z80_disassemble(uint16_t from, unsigned int num)
+{
+#ifdef WITH_DZ80
+	unsigned int i;
+
+	for (i = 0; (i < num); ++i) {
+		int err;
+
+		disz80.start = from;
+		disz80.end = from;
+		err = dZ80_Disassemble(&disz80);
+		if (err != DERR_NONE)
+			printf("   0x%04x: ??? error: %s\n",
+			       from, dZ80_GetErrorText(err));
+		else
+			printf("   0x%04x: %8s %s\n",
+			       from, disz80.hexDisBuf, disz80.disBuf);
+		from += disz80.bytesProcessed;
+	}
+#else
+	(void)num;
+	printf("   0x%04x: %02x [...]\n", from, z80_read(from));
+#endif
+	fflush(stdout);
+}
+
+/**
  * Leave debugger.
  */
 void md::debug_leave()
@@ -1629,7 +1728,8 @@ void md::debug_enter()
 	char				*p, *next;
 	char				*toks[MAX_DEBUG_TOKS];
 	int				 n_toks = 0;
-	uint32_t			 pc = m68k_get_pc();
+	uint32_t			 m68k_pc = m68k_get_pc();
+	uint16_t			 z80_pc = z80_get_pc();
 
 	if (debug_trap == false) {
 		pd_sound_pause();
@@ -1637,17 +1737,17 @@ void md::debug_enter()
 		debug_trap = true;
 
 		if (debug_context == DBG_CONTEXT_M68K)
-			debug_print_m68k_disassemble(pc, 1);
+			debug_print_m68k_disassemble(m68k_pc, 1);
+		else if (debug_context == DBG_CONTEXT_Z80)
+			debug_print_z80_disassemble(z80_pc, 1);
 	}
 
 	switch (debug_context) {
 	case DBG_CONTEXT_M68K:
-		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", pc);
+		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", m68k_pc);
 		break;
 	case DBG_CONTEXT_Z80:
-		z80_state_dump();
-		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ",
-			 le2h16(z80_state.pc));
+		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_pc);
 		break;
 	case DBG_CONTEXT_YM2612:
 		snprintf(prompt, sizeof(prompt), "ym2612> ");

@@ -40,6 +40,11 @@ extern "C"
 #include "drz80/drz80.h"
 #endif
 
+#ifdef WITH_DZ80
+#include "dz80/types.h"
+#include "dz80/dissz80.h"
+#endif
+
 //#define BUILD_YM2612
 extern "C" {
 #include "fm.h"
@@ -656,6 +661,9 @@ private:
 	int debug_context;
 	unsigned long debug_m68k_instr_count;
 	bool debug_m68k_instr_count_enabled;
+#ifdef WITH_DZ80
+	DISZ80 disz80;
+#endif
 
 	bool debug_is_m68k_bp_set();
 	bool debug_is_m68k_wp_set();
@@ -667,6 +675,7 @@ private:
 	void debug_print_m68k_wp(int);
 	int debug_should_m68k_wp_fire(struct dgen_wp *w);
 	uint32_t m68k_get_pc();
+	uint16_t z80_get_pc();
 	bool debug_m68k_check_bps();
 	bool debug_m68k_check_wps();
 	void debug_rm_bp_m68k(int);
@@ -712,6 +721,7 @@ public:
   void debug_update_fired_m68k_wps(void);
   void debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr);
   void debug_print_m68k_disassemble(uint32_t from, int len);
+  void debug_print_z80_disassemble(uint16_t, unsigned int);
   void debug_show_m68k_regs(void);
   void debug_show_z80_regs(void);
   void debug_dump_mem(uint32_t addr, uint32_t len);
