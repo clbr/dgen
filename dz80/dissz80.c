@@ -1390,7 +1390,7 @@ void DisC0toFF(DISZ80 *d)
 void AddToDis(DISZ80 *d, char *str)
 {
 	char	c, *p;
-	int 	i;
+	unsigned int i;
 
 	if (d->currentPass == DPASS_WRITE)
 		{
@@ -1398,7 +1398,7 @@ void AddToDis(DISZ80 *d, char *str)
 		i = d->disBufIndex;
 		assert(i < sizeof(d->disBuf));
 
-		while(c = *str++)
+		while ((c = *str++))
 			p[i++] = c;
 
 		p[i] = 0;
@@ -2272,16 +2272,20 @@ void MakeLJustified16BitNum(DISZ80 *d, char *dst, int num)
 
 void dZ80_StringToLower(char *s)
 {
-	while (*s)
-		*s++ = (char)tolower(*s);
+	while (*s) {
+		*s = (char)tolower(*s);
+		s++;
+	}
 
 	return;
 }
 
 void dZ80_StringToUpper(char *s)
 {
-	while (*s)
-		*s++ = (char)toupper(*s);
+	while (*s) {
+		*s = (char)toupper(*s);
+		s++;
+	}
 
 	return;
 }

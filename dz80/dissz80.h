@@ -216,7 +216,7 @@ int		dZ80_AllocateOpMap(DISZ80 *d);
 extern char *dZ80CpuTypeNames[DCPU_TOTAL];
 
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif		/* _MIDISSZ80_ */

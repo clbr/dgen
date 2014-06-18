@@ -87,6 +87,18 @@ dgen_SOURCES +=			\
 	linenoise/utf8.c
 endif
 
+# dZ80
+if WITH_DZ80
+AM_CPPFLAGS += -I$(top_srcdir)/dz80 -D_DZ80_EXCLUDE_SCRIPT
+dgen_SOURCES += 		\
+	dz80/dissz80.c		\
+	dz80/dissz80.h		\
+	dz80/dissz80p.h		\
+	dz80/types.h		\
+	dz80/tables.c		\
+	dz80/noscript.c
+endif
+
 # CZ80
 if WITH_CZ80
 AM_CPPFLAGS += -I$(top_srcdir)/cz80

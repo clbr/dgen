@@ -567,6 +567,21 @@ AC_ARG_ENABLE(
 	[USE_DEBUGGER=no]
 )
 
+dnl Check if dZ80 is to be included.
+AC_ARG_WITH(
+	[dz80],
+	[AS_HELP_STRING(
+		[--with-dz80],
+		[include dZ80 disassembler in debugger [default=auto]],
+	)],
+	[WITH_DZ80=$withval],
+	[WITH_DZ80=$USE_DEBUGGER]
+)
+AS_IF(
+	[test "x$WITH_DZ80" = xyes -a "x$USE_DEBUGGER" != xyes],
+	[AC_MSG_FAILURE([dZ80 is only meaningful if debugger is also enabled])]
+)
+
 dnl Check if VDP debugging should be enabled.
 AC_ARG_ENABLE(
 	[debug-vdp],
@@ -620,6 +635,7 @@ dnl Define everything.
 AS_IF([test "x$USE_OPENGL" = xyes], [AC_DEFINE([WITH_OPENGL])])
 AS_IF([test "x$USE_LIBARCHIVE" = xyes], [AC_DEFINE([WITH_LIBARCHIVE])])
 AS_IF([test "x$USE_DEBUGGER" = xyes], [AC_DEFINE([WITH_DEBUGGER])])
+AS_IF([test "x$WITH_DZ80" = xyes], [AC_DEFINE([WITH_DZ80])])
 AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
 AS_IF([test "x$USE_DEBUG_VDP" = xyes], [AC_DEFINE([WITH_DEBUG_VDP])])
 AS_IF([test "x$USE_JOYSTICK" = xyes], [AC_DEFINE([WITH_JOYSTICK])])
@@ -646,6 +662,7 @@ AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 
 AM_CONDITIONAL([WITH_DEBUG_VDP], [test "x$USE_DEBUG_VDP" = xyes])
 AM_CONDITIONAL([WITH_DEBUGGER], [test "x$USE_DEBUGGER" = xyes])
+AM_CONDITIONAL([WITH_DZ80], [test "x$WITH_DZ80" = xyes])
 AM_CONDITIONAL([WITH_CTV], [test "x$USE_CTV" = xyes])
 AM_CONDITIONAL([WITH_HQX], [test "x$USE_HQX" = xyes])
 AM_CONDITIONAL([WITH_SCALE2X], [test "x$USE_SCALE2X" = xyes])
@@ -707,6 +724,7 @@ Front-end
   scale2x filters: $USE_SCALE2X
   Compressed ROMs: $USE_LIBARCHIVE
   Debugger: $USE_DEBUGGER
+  dZ80 disassembler: $WITH_DZ80
   Debugging: $USE_DEBUG
   VDP debugging: $USE_DEBUG_VDP
 
