@@ -171,7 +171,7 @@ typedef struct DISZ80
 	WORD		lastDisPC, lastRefAddr, disStart, disEnd;
 	int 		op, realop, lineCmd;
 	BYTE		*Z80MemBase;
-	char		IXIYDisp;				/* The IXIY displacement (-128 to 127) */
+	signed char	IXIYDisp;				/* The IXIY displacement (-128 to 127) */
 	int 		Z80Flags;
 	int 		currentPass, totalPasses;
 	int 		numRecursions;

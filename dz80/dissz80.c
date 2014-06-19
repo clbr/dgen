@@ -1166,10 +1166,10 @@ void Dis80toBF(DISZ80 *d)
 
 void DisC0toFF(DISZ80 *d)
 {
-	int 	GenOp, op;
-	char	port[32], buf[128], num[16], num2[16];
-	char	offset;
-	WORD	addr;
+	int		GenOp, op;
+	char		port[32], buf[128], num[16], num2[16];
+	signed char	offset;
+	WORD		addr;
 
 	op = d->op;
 
@@ -1573,7 +1573,8 @@ void AddToDisReg16NoAnd(DISZ80 *d, int op)
 
 WORD AddToDisRel8(DISZ80 *d, int CommaFlag)
 {
-	char	buf[64], num[16], o;
+	char		buf[64], num[16];
+	signed char	o;
 
 	if (CommaFlag)
 		AddToDis(d, ",");
