@@ -192,9 +192,6 @@ static int debug_next_free_bp_m68k()
  */
 void debug_init()
 {
-	printf("debugger enabled\n");
-	fflush(stdout);
-
 	// start with all breakpoints and watchpoints disabled
 	memset(debug_bp_m68k, 0, sizeof(debug_bp_m68k));
 	memset(debug_wp_m68k, 0, sizeof(debug_wp_m68k));
