@@ -283,7 +283,7 @@ void md::m68k_irq(int i)
 	}
 	else
 #endif
-		(void)0;
+		(void)i;
 }
 
 // Trigger M68K IRQ or disable them according to VDP status.
