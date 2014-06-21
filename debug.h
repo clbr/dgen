@@ -26,6 +26,7 @@
 struct dgen_bp {
 	uint32_t	addr; /**< Address to break on. */
 #define BP_FLAG_USED		(1<<0) /**< Breakpoint enabled. */
+#define BP_FLAG_FIRED		(1<<1) /**< Set when breakpoint fires. */
 	uint32_t	flags; /**< Flags for breakpoint, see BP_FLAG*. */
 };
 
@@ -39,7 +40,6 @@ struct dgen_wp {
 	unsigned char	*bytes;
 };
 
-extern "C" int		debug_musa_callback(void);
 extern "C" void		debug_show_ym2612_regs(void); // fm.c
 
 #endif

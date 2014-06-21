@@ -713,10 +713,11 @@ md::md(bool pal, char region):
 #ifdef WITH_MUSA
 	md_set_musa(1);
 	m68k_pulse_reset();
+	md_set_musa(0);
+#endif
+
 #ifdef WITH_DEBUGGER
 	debug_init();
-#endif
-	md_set_musa(0);
 #endif
 
   z80_init();

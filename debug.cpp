@@ -1,10 +1,6 @@
 // DGen
-// Tooling to help debug (MUSA ONLY)
+// Tooling to help debug.
 // (C) 2012 Edd Barrett <vext01@gmail.com>
-
-#ifndef WITH_MUSA
-#error Musashi must be enabled.
-#endif
 
 #include <errno.h>
 #include <stdio.h>
@@ -14,9 +10,11 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifdef WITH_MUSA
 extern "C" {
 #include "musa/m68k.h"
 }
+#endif
 
 #include "pd.h"
 #include "md.h"
@@ -68,6 +66,7 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 }
 #endif
 
+#ifdef WITH_MUSA
 /** @{ Callbacks for Musashi. */
 uint32_t m68k_read_disassembler_8(unsigned int addr)
 {
@@ -84,6 +83,7 @@ uint32_t m68k_read_disassembler_32(unsigned int addr)
 	    return m68k_read_memory_32(addr);
 }
 /** @} */
+#endif
 
 /**
  * A simple wrapper around strtoul() with error check.
@@ -113,13 +113,10 @@ static int debug_strtou32(const char *str, uint32_t *ret)
 /**
  * Check if at least one M68K breakpoint is set.
  *
- * @return 1 if true, or if the user has "stepped", 0 otherwise.
+ * @return 1 if true, 0 otherwise.
  */
 bool md::debug_is_m68k_bp_set()
 {
-	if (debug_step_m68k)
-		return (1);
-
 	if (debug_bp_m68k[0].flags & BP_FLAG_USED)
 		return (1);
 
@@ -190,12 +187,9 @@ void md::debug_init()
 
 	debug_step_m68k = 0;
 	debug_trace_m68k = 0;
-	m68k_bp_hit = 0;
-	m68k_wp_hit = 0;
 	debug_context = DBG_CONTEXT_M68K;
 	debug_trap = false;
 	debug_m68k_instr_count = 0;
-	m68k_set_instr_hook_callback(debug_musa_callback);
 }
 
 /**
@@ -242,28 +236,6 @@ int md::debug_find_wp_m68k(uint32_t addr)
 	}
 
 	return (-1); // not found
-}
-
-/**
- * Set a global flag to enter the debugger when hitting a breakpoint.
- */
-void md::debug_m68k_bp_set_hit()
-{
-	if (debug_step_m68k > 0)
-		--debug_step_m68k;
-	if (debug_step_m68k == 0) {
-		m68k_bp_hit = 1;
-		m68k_end_timeslice();
-	}
-}
-
-/**
- * Set a global flag to enter the debugger when hitting a watchpoint.
- */
-void md::debug_m68k_wp_set_hit()
-{
-	m68k_wp_hit = 1;
-	m68k_end_timeslice();
 }
 
 /**
@@ -360,7 +332,7 @@ int md::debug_should_m68k_wp_fire(struct dgen_wp *w)
 	unsigned char		*p;
 
 	for (i = w->start_addr, p = w->bytes; i <= w->end_addr; i++, p++) {
-		if (m68k_read_memory_8(i) != *p)
+		if (misc_readbyte(i) != *p)
 			return (1); // hit
 	}
 
@@ -368,77 +340,106 @@ int md::debug_should_m68k_wp_fire(struct dgen_wp *w)
 }
 
 /**
- * Breakpoint/watchpoint handler for Musashi, fired before every M68K
- * instruction.
+ * Get M68K PC.
  *
- * @return 1 if a break/watchpoint is hit, 0 otherwise.
+ * @return Current PC.
  */
-int debug_musa_callback()
+uint32_t md::m68k_get_pc()
 {
-	return md::md_musa->debug_m68k_callback();
+	uint32_t pc;
+
+	switch (cpu_emu) {
+#ifdef WITH_MUSA
+	case CPU_EMU_MUSA:
+		md_set_musa(1);
+		pc = m68k_get_reg(NULL, M68K_REG_PC);
+		md_set_musa(0);
+		break;
+#endif
+#ifdef WITH_STAR
+	case CPU_EMU_STAR:
+		md_set_star(1);
+		pc = cpu.pc;
+		md_set_star(0);
+		break;
+#endif
+#ifdef WITH_CYCLONE
+	case CPU_EMU_CYCLONE:
+		md_set_cyclone(1);
+		pc = (cyclonecpu.pc - cyclonecpu.membase);
+		md_set_cyclone(0);
+		break;
+#endif
+	default:
+		pc = 0;
+	}
+	return pc;
 }
 
-int md::debug_m68k_callback()
+/**
+ * Breakpoint handler fired before every M68K instruction.
+ */
+bool md::debug_m68k_check_bps()
 {
-	unsigned int		pc;
-	int			i;
-	int			ret = 0;
-
-	pc = m68k_get_reg(NULL, M68K_REG_PC);
-
-	// break points
-	if ((!debug_step_m68k) && (!debug_is_m68k_bp_set()))
-		goto watches;
+	uint32_t pc = m68k_get_pc();
+	unsigned int i;
+	bool bp = false;
 
 	if (debug_step_m68k) {
-		debug_m68k_bp_set_hit();
-		goto watches;
+		if ((--debug_step_m68k) == 0) {
+			debug_enter();
+			bp = true;
+		}
+		goto trace;
 	}
-
-	for (i = 0; i < MAX_BREAKPOINTS; i++) {
+	for (i = 0; (i < MAX_BREAKPOINTS); i++) {
 		if (!(debug_bp_m68k[i].flags & BP_FLAG_USED))
 			break; // no bps after first disabled one
-
-		if (pc ==  debug_bp_m68k[i].addr) {
+		if (pc == debug_bp_m68k[i].addr) {
+			if (debug_bp_m68k[i].flags & BP_FLAG_FIRED) {
+				debug_bp_m68k[i].flags &= ~BP_FLAG_FIRED;
+				continue;
+			}
+			debug_bp_m68k[i].flags |= BP_FLAG_FIRED;
 			printf("m68k breakpoint hit @ 0x%08x\n", pc);
-			debug_m68k_bp_set_hit();
-			ret = 1;
-			goto watches;
-		}
-	}
-watches:
-	if (!debug_is_m68k_wp_set())
-		goto trace;
-
-	for (i = 0; i < MAX_WATCHPOINTS; i++) {
-		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
-			break; // no wps after first disabled one
-
-		if (debug_should_m68k_wp_fire(&(debug_wp_m68k[i]))) {
-			printf("watchpoint #%d fired\n", i+1);
-			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
-			debug_print_m68k_wp(i);
-			debug_m68k_wp_set_hit();
-			ret = 1;
-			goto ret;
+			debug_enter();
+			bp = true;
+			break;
 		}
 	}
 trace:
 	if (debug_trace_m68k) {
-		assert(md::md_musa != NULL);
-		md::md_musa->debug_print_m68k_disassemble
-			(m68k_get_reg(NULL, M68K_REG_PC), 1);
-		if (debug_trace_m68k != ~0u)
-			--debug_trace_m68k;
-	}
-ret:
-	// increment instructions count
-	if (ret == 0) {
-		assert(md::md_musa != NULL);
-		++md::md_musa->debug_m68k_instr_count;
+		if (!bp)
+			debug_print_m68k_disassemble(pc, 1);
+		--debug_trace_m68k;
 	}
 	fflush(stdout);
-	return ret;
+	return bp;
+}
+
+/**
+ * Watchpoint handler fired after every M68K instruction.
+ */
+bool md::debug_m68k_check_wps()
+{
+	unsigned int i;
+	bool wp = false;
+
+	for (i = 0; (i < MAX_WATCHPOINTS); i++) {
+		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
+			break; // no wps after first disabled one
+		if (debug_should_m68k_wp_fire(&(debug_wp_m68k[i]))) {
+			printf("watchpoint #%d fired\n", i+1);
+			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
+			debug_print_m68k_wp(i);
+			debug_enter();
+			debug_update_fired_m68k_wps();
+			wp = true;
+			break;
+		}
+	}
+	fflush(stdout);
+	return wp;
 }
 
 /**
@@ -652,12 +653,10 @@ void md::debug_update_m68k_wp_cache(struct dgen_wp *w)
 	unsigned int		 addr;
 	unsigned char		*p;
 
-	md_set_musa(1);
 	p = w->bytes;
 	for (addr = w->start_addr, p = w->bytes; addr <= w->end_addr; addr++) {
-		*(p++) = m68k_read_memory_8(addr);
+		*(p++) = misc_readbyte(addr);
 	}
-	md_set_musa(0);
 }
 
 /**
@@ -745,11 +744,9 @@ void md::debug_dump_mem(uint32_t addr, uint32_t len)
 		return;
 	}
 
-	md_set_musa(1);
 	for (i = 0; i < len; i++) {
-	    buf[i] = m68k_read_memory_8(addr + i);
+	    buf[i] = misc_readbyte(addr + i);
 	}
-	md_set_musa(0);
 
 	debug_print_hex_buf(buf, len, addr);
 	free(buf);
@@ -815,7 +812,12 @@ out:
 int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 {
 	uint32_t		addr = 0;
-	m68k_register_t		reg = (m68k_register_t)-1;
+	union {
+		uint32_t *r32;
+		uint16_t *r16;
+		void *ptr;
+	} reg_ptr = { NULL };
+	unsigned int		reg = -1;
 	uint32_t		val;
 
 	(void)n_args;
@@ -826,29 +828,37 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 		goto out;
 	}
 	if (type == ~0u) {
-		/* See definitions in m68k.h. */
-#define REGID(id) { # id, M68K_REG_ ## id }
 		static const struct {
+
+#define REG0(id, idx) { \
+	# id # idx, \
+	offsetof(m68k_state_t, id[idx]), \
+	sizeof(m68k_state.id[idx]) \
+}
+
+#define REG1(id) { # id, offsetof(m68k_state_t, id), sizeof(m68k_state.id) }
+
 			const char *name;
-			m68k_register_t value;
+			size_t offset;
+			size_t size;
 		} regid[] = {
-			REGID(D0), REGID(D1), REGID(D2), REGID(D3),
-			REGID(D4), REGID(D5), REGID(D6), REGID(D7),
-			REGID(A0), REGID(A1), REGID(A2), REGID(A3),
-			REGID(A4), REGID(A5), REGID(A6), REGID(A7),
-			REGID(PC), REGID(SR), REGID(SP), REGID(USP),
-			REGID(ISP), REGID(MSP), REGID(SFC), REGID(DFC),
-			REGID(VBR), REGID(CACR), REGID(CAAR)
+			REG0(a, 0), REG0(a, 1), REG0(a, 2), REG0(a, 3),
+			REG0(a, 4), REG0(a, 5), REG0(a, 6), REG0(a, 7),
+			REG0(d, 0), REG0(d, 1), REG0(d, 2), REG0(d, 3),
+			REG0(d, 4), REG0(d, 5), REG0(d, 6), REG0(d, 7),
+			REG1(pc), REG1(sr)
 		};
 
 		for (addr = 0;
 		     (addr != (sizeof(regid) / sizeof(regid[0])));
 		     ++addr)
 			if (!strcasecmp(regid[addr].name, args[0])) {
-				reg = regid[addr].value;
+				reg_ptr.ptr = (void *)((uint8_t *)&m68k_state +
+						       regid[addr].offset);
+				reg = regid[addr].size;
 				break;
 			}
-		if (reg == (m68k_register_t)-1) {
+		if (reg == -1u) {
 			printf("unknown register %s", args[0]);
 			goto out;
 		}
@@ -877,8 +887,14 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 		break;
 	case ~0u:
 		/* register */
-		m68k_set_reg((m68k_register_t)reg, val);
 		m68k_state_dump();
+		if (reg == 2)
+			*reg_ptr.r16 = le2h16(val);
+		else if (reg == 4)
+			*reg_ptr.r32 = le2h32(val);
+		else
+			assert(0);
+		m68k_state_restore();
 		break;
 	default:
 		printf("unknown type size %u\n", type);
@@ -943,7 +959,7 @@ int md::debug_cmd_setr(int n_args, char **args)
  */
 int md::debug_cmd_dis(int n_args, char **args)
 {
-	uint32_t		addr = m68k_state.pc;
+	uint32_t		addr = m68k_get_pc();
 	uint32_t		length = DEBUG_DFLT_DASM_LEN;
 
 	if (debug_context != DBG_CONTEXT_M68K) {
@@ -999,36 +1015,40 @@ int md::debug_cmd_cont(int n_args, char **args)
 void md::debug_show_m68k_regs()
 {
 	int			i;
+	uint16_t		sr;
+
+	m68k_state_dump();
+	sr = le2h16(m68k_state.sr);
 
 	printf("m68k (%lu instructions):\n",
 	       debug_m68k_instr_count);
 
-	printf("\tpc:\t0x%08x\n\tsr:\t0x%08x\n", m68k_state.pc, m68k_state.sr);
+	printf("\tpc:\t0x%08x\n\tsr:\t0x%08x\n", le2h32(m68k_state.pc), sr);
 
 	// print SR register - user byte
 	printf("\t  user sr  : <X=%u, N=%u, Z=%u, V=%u, C=%u>\n",
-	    (m68k_state.sr & M68K_SR_EXTEND) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_NEGATIVE) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_ZERO) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_OVERFLOW) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_CARRY) ? 1 : 0);
+	       (sr & M68K_SR_EXTEND) ? 1 : 0,
+	       (sr & M68K_SR_NEGATIVE) ? 1 : 0,
+	       (sr & M68K_SR_ZERO) ? 1 : 0,
+	       (sr & M68K_SR_OVERFLOW) ? 1 : 0,
+	       (sr & M68K_SR_CARRY) ? 1 : 0);
 
 	// print SR register - system byte
 	printf("\t  sys sr   : <TE=%u%u, SUS=%u, MIS=%u, IPM=%u%u%u>\n",
-	    (m68k_state.sr & M68K_SR_TRACE_EN1) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_TRACE_EN2) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_SUP_STATE) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_MI_STATE) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_IP_MASK1) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_IP_MASK2) ? 1 : 0,
-	    (m68k_state.sr & M68K_SR_IP_MASK3) ? 1 : 0);
+	       (sr & M68K_SR_TRACE_EN1) ? 1 : 0,
+	       (sr & M68K_SR_TRACE_EN2) ? 1 : 0,
+	       (sr & M68K_SR_SUP_STATE) ? 1 : 0,
+	       (sr & M68K_SR_MI_STATE) ? 1 : 0,
+	       (sr & M68K_SR_IP_MASK1) ? 1 : 0,
+	       (sr & M68K_SR_IP_MASK2) ? 1 : 0,
+	       (sr & M68K_SR_IP_MASK3) ? 1 : 0);
 
 	// d*
 	for (i =  0; i < 8; i++)
-			printf("\td%d:\t0x%08x\n", i, m68k_state.d[i]);
+		printf("\td%d:\t0x%08x\n", i, le2h32(m68k_state.d[i]));
 	// a*
 	for (i =  0; i < 8; i++)
-			printf("\ta%d:\t0x%08x\n", i, m68k_state.a[i]);
+		printf("\ta%d:\t0x%08x\n", i, le2h32(m68k_state.a[i]));
 	fflush(stdout);
 }
 
@@ -1192,10 +1212,6 @@ int md::debug_cmd_break(int n_args, char **args)
 		debug_list_bps_m68k();
 	};
 
-	if (cpu_emu != CPU_EMU_MUSA) {
-		printf("NOTE: m68k breakpoints will only fire using musa cpu core\n"
-		       "      you are not currently using this cpu core.\n");
-	}
 out:
 	fflush(stdout);
 	return (1);
@@ -1265,7 +1281,7 @@ int md::debug_cmd_step(int n_args, char **args)
 		goto out;
 	}
 	if (debug_context == DBG_CONTEXT_M68K)
-		debug_step_m68k = num;
+		debug_step_m68k = (num + 1); /* triggered when 0 */
 	else if (debug_context == DBG_CONTEXT_Z80) {
 		printf("z80 breakpoints not implemented\n");
 		goto out;
@@ -1505,11 +1521,9 @@ int md::debug_despatch_cmd(int n_toks, char **toks)
  */
 void md::debug_print_m68k_disassemble(uint32_t from, int len)
 {
+#ifdef WITH_MUSA
 	int			i;
 	char			disasm[MAX_DISASM];
-
-	if (cpu_emu != CPU_EMU_MUSA)
-		return;
 
 	md_set_musa(1);	// assign static in md:: so C can get at it (HACK)
 	for (i = 0; i < len; i++) {
@@ -1520,6 +1534,11 @@ void md::debug_print_m68k_disassemble(uint32_t from, int len)
 		from += sz;
 	}
 	md_set_musa(0);
+#else
+	(void)len;
+	printf("   0x%06x: %02x %02x [...]\n", from,
+	       misc_readbyte(from), misc_readbyte(from + 1));
+#endif
 	fflush(stdout);
 }
 
@@ -1544,26 +1563,23 @@ void md::debug_enter()
 	char				*p, *next;
 	char				*toks[MAX_DEBUG_TOKS];
 	int				 n_toks = 0;
+	uint32_t			 pc = m68k_get_pc();
 
-	md_set_musa(1);
 	if (debug_trap == false) {
 		pd_sound_pause();
 		pd_message("Debug trap.");
 		debug_trap = true;
 
-		// Dump registers
-		m68k_state_dump();
-		z80_state_dump();
-
 		if (debug_context == DBG_CONTEXT_M68K)
-			debug_print_m68k_disassemble(m68k_state.pc, 1);
+			debug_print_m68k_disassemble(pc, 1);
 	}
 
 	switch (debug_context) {
 	case DBG_CONTEXT_M68K:
-		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", m68k_state.pc);
+		snprintf(prompt, sizeof(prompt), "m68k:0x%08x> ", pc);
 		break;
 	case DBG_CONTEXT_Z80:
+		z80_state_dump();
 		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_state.pc);
 		break;
 	case DBG_CONTEXT_YM2612:
@@ -1574,13 +1590,11 @@ void md::debug_enter()
 		break;
 	default:
 		printf("unknown cpu. should not happen");
-		md_set_musa(0);
 		fflush(stdout);
 		return;
 	};
 
 	if ((cmd = linenoise_nb(prompt)) == NULL) {
-		md_set_musa(0);
 		if (!linenoise_nb_eol())
 			return;
 		linenoise_nb_clean();
@@ -1600,7 +1614,6 @@ void md::debug_enter()
 
 	debug_despatch_cmd(n_toks,  toks);
 	free(cmd);
-	md_set_musa(0);
 }
 
 

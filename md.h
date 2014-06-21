@@ -652,8 +652,6 @@ private:
 	struct dgen_wp debug_wp_m68k[MAX_WATCHPOINTS];
 	unsigned int debug_step_m68k;
 	unsigned int debug_trace_m68k;
-	bool m68k_bp_hit;
-	bool m68k_wp_hit;
 	int debug_context;
 	unsigned long debug_m68k_instr_count;
 
@@ -664,12 +662,11 @@ private:
 	void debug_init();
 	int debug_find_bp_m68k(uint32_t);
 	int debug_find_wp_m68k(uint32_t);
-	void debug_m68k_bp_set_hit();
-	void debug_m68k_wp_set_hit();
 	void debug_print_m68k_wp(int);
 	int debug_should_m68k_wp_fire(struct dgen_wp *w);
-	int debug_m68k_callback();
-	friend int ::debug_musa_callback();
+	uint32_t m68k_get_pc();
+	bool debug_m68k_check_bps();
+	bool debug_m68k_check_wps();
 	void debug_rm_bp_m68k(int);
 	void debug_rm_wp_m68k(int);
 	void debug_list_bps_m68k();

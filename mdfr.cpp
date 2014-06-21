@@ -194,28 +194,34 @@ int md::m68k_odo()
 void md::m68k_run()
 {
 	int cycles = (odo.m68k_max - odo.m68k);
+#ifdef WITH_DEBUGGER
+	int cycles_to_debug;
+	int prev_odo;
+	bool debug_m68k;
+#endif
 
 	if (cycles <= 0)
 		return;
 	m68k_st_running = 1;
-#ifdef WITH_MUSA
-	if (cpu_emu == CPU_EMU_MUSA) {
-#ifndef WITH_DEBUGGER
-		odo.m68k += m68k_execute(cycles);
-#else
-		if (debug_trap == false)
-			odo.m68k += m68k_execute(cycles);
-		// check for breakpoint hit
-		if (m68k_bp_hit || m68k_wp_hit) {
-			debug_enter();
-			// reset
-			m68k_bp_hit = 0;
-			if (m68k_wp_hit)
-				debug_update_fired_m68k_wps();
-			m68k_wp_hit = 0;
-		}
-#endif
+#ifdef WITH_DEBUGGER
+	if (debug_trap)
+		goto cpu_stalled;
+	debug_m68k = (debug_step_m68k ||
+		      debug_trace_m68k ||
+		      debug_is_m68k_bp_set() ||
+		      debug_is_m68k_wp_set());
+	if (debug_m68k) {
+		prev_odo = odo.m68k;
+		cycles_to_debug = cycles;
+		cycles = 1;
+	debug_next_instruction:
+		if (debug_m68k_check_bps())
+			goto cpu_stalled;
 	}
+#endif
+#ifdef WITH_MUSA
+	if (cpu_emu == CPU_EMU_MUSA)
+		odo.m68k += m68k_execute(cycles);
 	else
 #endif
 #ifdef WITH_STAR
@@ -235,6 +241,19 @@ void md::m68k_run()
 	else
 #endif
 		odo.m68k += cycles;
+#ifdef WITH_DEBUGGER
+	if (debug_m68k) {
+		++debug_m68k_instr_count;
+		if (debug_m68k_check_wps())
+			goto cpu_stalled;
+		cycles_to_debug -= (odo.m68k - prev_odo);
+		if (cycles_to_debug > 0) {
+			prev_odo = odo.m68k;
+			goto debug_next_instruction;
+		}
+	}
+cpu_stalled:
+#endif
 	m68k_st_running = 0;
 }
 
@@ -261,6 +280,12 @@ void md::m68k_busreq_cancel()
 // Trigger M68K IRQ
 void md::m68k_irq(int i)
 {
+#ifdef WITH_DEBUGGER
+	// Ignore interrupts while debugger is active or stepping by a
+	// small amount (XXX should be configurable).
+	if (debug_trap || (debug_step_m68k && debug_step_m68k < 10000))
+		return;
+#endif
 #ifdef WITH_MUSA
 	if (cpu_emu == CPU_EMU_MUSA)
 		m68k_set_irq(i);

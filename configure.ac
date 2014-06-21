@@ -566,10 +566,6 @@ AC_ARG_ENABLE(
 	[USE_DEBUGGER=$enableval],
 	[USE_DEBUGGER=no]
 )
-AS_IF(
-	[test "x$WITH_MUSA" != xyes -a "x$USE_DEBUGGER" = xyes],
-	[AC_MSG_FAILURE([debugger support requires Musashi CPU core])]
-)
 
 dnl Check if VDP debugging should be enabled.
 AC_ARG_ENABLE(
