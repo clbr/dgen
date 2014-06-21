@@ -43,9 +43,13 @@ Cz80_Exec_Check:
 
 Cz80_Exec:
     {
-        union16 *data = pzHL;
         Opcode = FETCH_BYTE;
-        #include "cz80_op.inc"
+    Cz80_Exec_IM0:
+        {
+            union16 *data = pzHL;
+
+            #include "cz80_op.inc"
+        }
     }
 
 Cz80_Exec_End:

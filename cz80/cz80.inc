@@ -149,9 +149,9 @@
             else                                            \
             {                                               \
                 uint16_t adr;                               \
-                                                                    \
+                                                            \
                 Opcode = CPU->Interrupt_Ack(CPU->ctx, CPU->IntVect) & 0xFF; \
-                if (zIM == 0) goto Cz80_Exec;                       \
+                if (zIM == 0) goto Cz80_Exec_IM0;           \
                                                             \
                 adr = Opcode | (zI << 8);                   \
                 READ_WORD(adr, newPC)                       \
