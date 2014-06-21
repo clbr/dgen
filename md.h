@@ -654,6 +654,7 @@ private:
 	unsigned int debug_trace_m68k;
 	int debug_context;
 	unsigned long debug_m68k_instr_count;
+	bool debug_m68k_instr_count_enabled;
 
 	bool debug_is_m68k_bp_set();
 	bool debug_is_m68k_wp_set();
@@ -700,6 +701,7 @@ public:
   int debug_cmd_setw(int n_args, char **args);
   int debug_cmd_setl(int n_args, char **args);
   int debug_cmd_setr(int n_args, char **args);
+  int debug_cmd_count(int n_args, char **args);
   int debug_cmd_watch(int n_args, char **args);
   int debug_cmd_minus_watch(int n_args, char **args);
   // misc

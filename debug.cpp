@@ -190,6 +190,7 @@ void md::debug_init()
 	debug_context = DBG_CONTEXT_M68K;
 	debug_trap = false;
 	debug_m68k_instr_count = 0;
+	debug_m68k_instr_count_enabled = false;
 }
 
 /**
@@ -1020,8 +1021,10 @@ void md::debug_show_m68k_regs()
 	m68k_state_dump();
 	sr = le2h16(m68k_state.sr);
 
-	printf("m68k (%lu instructions):\n",
-	       debug_m68k_instr_count);
+	if (debug_m68k_instr_count_enabled)
+		printf("m68k (%lu instructions):\n", debug_m68k_instr_count);
+	else
+		printf("m68k:\n");
 
 	printf("\tpc:\t0x%08x\n\tsr:\t0x%08x\n", le2h32(m68k_state.pc), sr);
 
@@ -1129,6 +1132,7 @@ int md::debug_cmd_help(int n_args, char **args)
 	    "\tsetr <reg> <val>\twrite 'val' to register 'reg'\n"
 	    "\th/help/?\t\tshow this message\n"
 	    "\tr/reg\t\t\tshow registers of current cpu\n"
+	    "\tcount\t\t\ttoggle instructions counters\n"
 	    "\ts/step\t\t\tstep one instruction\n"
 	    "\ts/step <num>\t\tstep 'num' instructions\n"
 	    "\tt/trace [bool|num]\ttoggle instructions tracing\n"
@@ -1177,6 +1181,67 @@ int md::debug_cmd_reg(int n_args, char **args)
 	};
 	fflush(stdout);
 	return (1);
+}
+
+/**
+ * Instructions counters toggle (count) command handler.
+ *
+ * - If n_args == 0, toggle (enable/disable) instructions counters.
+ * - If n_args == 1 and args[0] is a boolean string, toggle instructions
+ *   counters accordingly.
+ *
+ * @param n_args Number of arguments.
+ * @param args Arguments.
+ * @return Always 1.
+ */
+int md::debug_cmd_count(int n_args, char **args)
+{
+	static const struct {
+		const char *param;
+		bool value;
+	} opt[] = {
+		{ "true", true }, { "false", false },
+		{ "yes", true }, { "no", false },
+		{ "on", true }, { "off", false },
+		{ "enable", true }, { "disable", false }
+	};
+
+	if (debug_context != DBG_CONTEXT_M68K) {
+		printf("counters not implemented for this cpu.\n");
+		goto out;
+	}
+	if (n_args == 1) {
+		uint32_t i;
+
+		for (i = 0; (i != (sizeof(opt) / sizeof(opt[0]))); ++i)
+			if (!strcasecmp(args[0], opt[i].param)) {
+				debug_m68k_instr_count_enabled = opt[i].value;
+				break;
+			}
+		if (i == (sizeof(opt) / sizeof(opt[0]))) {
+			if (debug_strtou32(args[0], &i) == -1) {
+				printf("invalid argument: %s\n", args[0]);
+				goto out;
+			}
+			debug_m68k_instr_count_enabled = !!i;
+		}
+	}
+	else
+		debug_m68k_instr_count_enabled =
+			!debug_m68k_instr_count_enabled;
+	printf("instructions counters ");
+	switch (debug_m68k_instr_count_enabled) {
+	case false:
+		printf("disabled.\n");
+		break;
+	default:
+		debug_m68k_instr_count = 0;
+		printf("enabled.\n");
+		break;
+	}
+out:
+	fflush(stdout);
+	return 1;
 }
 
 /**
@@ -1663,6 +1728,8 @@ const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		// dump registers
 		{(char *) "reg",	0,	&md::debug_cmd_reg},
 		{(char *) "r",		0,	&md::debug_cmd_reg},
+		{(char *) "count",	1,	&md::debug_cmd_count},
+		{(char *) "count",	0,	&md::debug_cmd_count},
 		// step
 		{(char *) "step",	1,	&md::debug_cmd_step},
 		{(char *) "s",		1,	&md::debug_cmd_step},

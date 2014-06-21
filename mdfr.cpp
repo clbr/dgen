@@ -208,6 +208,7 @@ void md::m68k_run()
 		goto cpu_stalled;
 	debug_m68k = (debug_step_m68k ||
 		      debug_trace_m68k ||
+		      debug_m68k_instr_count_enabled ||
 		      debug_is_m68k_bp_set() ||
 		      debug_is_m68k_wp_set());
 	if (debug_m68k) {
