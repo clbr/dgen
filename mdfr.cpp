@@ -211,7 +211,7 @@ void md::m68k_run()
 			// reset
 			m68k_bp_hit = 0;
 			if (m68k_wp_hit)
-				debug_update_fired_wps();
+				debug_update_fired_m68k_wps();
 			m68k_wp_hit = 0;
 		}
 #endif

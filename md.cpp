@@ -715,9 +715,6 @@ md::md(bool pal, char region):
 	m68k_pulse_reset();
 #ifdef WITH_DEBUGGER
 	debug_init();
-	m68k_set_instr_hook_callback(debug_musa_callback);
-	debug_trap = false;
-	debug_m68k_instr_count = 0;
 #endif
 	md_set_musa(0);
 #endif

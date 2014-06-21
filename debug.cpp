@@ -2,8 +2,6 @@
 // Tooling to help debug (MUSA ONLY)
 // (C) 2012 Edd Barrett <vext01@gmail.com>
 
-#ifdef WITH_DEBUGGER
-
 #ifndef WITH_MUSA
 #error Musashi must be enabled.
 #endif
@@ -26,15 +24,9 @@ extern "C" {
 #include "debug.h"
 #include "linenoise/linenoise.h"
 
-struct dgen_bp		 debug_bp_m68k[MAX_BREAKPOINTS];
-struct dgen_wp		 debug_wp_m68k[MAX_WATCHPOINTS];
-int			 debug_step_m68k;
-unsigned int		 debug_trace_m68k;
-int			 m68k_bp_hit = 0;
-int			 m68k_wp_hit = 0;
-int			 debug_context = DBG_CONTEXT_M68K;
-const char		*debug_context_names[] =
-			     {"M68K", "Z80", "YM2612", "SN76489"};
+static const char *debug_context_names[] = {
+	"M68K", "Z80", "YM2612", "SN76489"
+};
 
 /**
  * Aliases for the various cores.
@@ -119,11 +111,11 @@ static int debug_strtou32(const char *str, uint32_t *ret)
 }
 
 /**
- * Check if at least one breakpoint is set.
+ * Check if at least one M68K breakpoint is set.
  *
  * @return 1 if true, or if the user has "stepped", 0 otherwise.
  */
-static int debug_is_bp_set()
+bool md::debug_is_m68k_bp_set()
 {
 	if (debug_step_m68k)
 		return (1);
@@ -131,22 +123,18 @@ static int debug_is_bp_set()
 	if (debug_bp_m68k[0].flags & BP_FLAG_USED)
 		return (1);
 
-	/* when z80 bps implemented, they go here also */
-
 	return (0);
 }
 
 /**
- * Check if at least one watchpoint is set.
+ * Check if at least one M68K watchpoint is set.
  *
  * @return 1 if true, 0 otherwise.
  */
-static int debug_is_wp_set()
+bool md::debug_is_m68k_wp_set()
 {
 	if (debug_wp_m68k[0].flags & BP_FLAG_USED)
 		return (1);
-
-	/* when z80 bps implemented, they go here also */
 
 	return (0);
 }
@@ -156,7 +144,7 @@ static int debug_is_wp_set()
  *
  * @return ID or -1 if none free.
  */
-static int debug_next_free_wp_m68k()
+int md::debug_next_free_wp_m68k()
 {
 	int			i;
 
@@ -173,7 +161,7 @@ static int debug_next_free_wp_m68k()
  *
  * @return ID or -1 if none free.
  */
-static int debug_next_free_bp_m68k()
+int md::debug_next_free_bp_m68k()
 {
 	int			i;
 
@@ -190,7 +178,7 @@ static int debug_next_free_bp_m68k()
  *
  * All breakpoints are disabled by default.
  */
-void debug_init()
+void md::debug_init()
 {
 	// start with all breakpoints and watchpoints disabled
 	memset(debug_bp_m68k, 0, sizeof(debug_bp_m68k));
@@ -201,6 +189,13 @@ void debug_init()
 #endif
 
 	debug_step_m68k = 0;
+	debug_trace_m68k = 0;
+	m68k_bp_hit = 0;
+	m68k_wp_hit = 0;
+	debug_context = DBG_CONTEXT_M68K;
+	debug_trap = false;
+	debug_m68k_instr_count = 0;
+	m68k_set_instr_hook_callback(debug_musa_callback);
 }
 
 /**
@@ -210,7 +205,7 @@ void debug_init()
  * @return -1 if no breakpoint is found, otherwise its index in
  * debug_bp_m68k[].
  */
-static int debug_find_bp_m68k(uint32_t addr)
+int md::debug_find_bp_m68k(uint32_t addr)
 {
 	int			i;
 
@@ -233,7 +228,7 @@ static int debug_find_bp_m68k(uint32_t addr)
  * @return -1 if no watchpoint at the given address, otherwise its index in
  * debug_wp_m68k[].
  */
-static int debug_find_wp_m68k(uint32_t addr)
+int md::debug_find_wp_m68k(uint32_t addr)
 {
 	int			i;
 
@@ -252,9 +247,8 @@ static int debug_find_wp_m68k(uint32_t addr)
 /**
  * Set a global flag to enter the debugger when hitting a breakpoint.
  */
-static void debug_m68k_bp_set_hit()
+void md::debug_m68k_bp_set_hit()
 {
-	assert(debug_step_m68k >= 0);
 	if (debug_step_m68k > 0)
 		--debug_step_m68k;
 	if (debug_step_m68k == 0) {
@@ -266,7 +260,7 @@ static void debug_m68k_bp_set_hit()
 /**
  * Set a global flag to enter the debugger when hitting a watchpoint.
  */
-static void debug_m68k_wp_set_hit()
+void md::debug_m68k_wp_set_hit()
 {
 	m68k_wp_hit = 1;
 	m68k_end_timeslice();
@@ -338,11 +332,11 @@ static void debug_print_hex_buf(
 }
 
 /**
- * Print a watchpoint in a human-readable form.
+ * Print a M68K watchpoint in a human-readable form.
  *
  * @param idx Index of watchpoint to print.
  */
-static void debug_print_wp(int idx)
+void md::debug_print_m68k_wp(int idx)
 {
 	struct dgen_wp		*w = &(debug_wp_m68k[idx]);
 
@@ -354,12 +348,13 @@ static void debug_print_wp(int idx)
 }
 
 /**
- * Check the given watchpoint against cached memory to see if it should fire.
+ * Check the given M68K watchpoint against cached memory to see if it should
+ * fire.
  *
  * @param[in] w Watch point to check.
  * @return 1 if true, else 0.
  */
-static int debug_should_wp_fire(struct dgen_wp *w)
+int md::debug_should_m68k_wp_fire(struct dgen_wp *w)
 {
 	unsigned int		i;
 	unsigned char		*p;
@@ -380,6 +375,11 @@ static int debug_should_wp_fire(struct dgen_wp *w)
  */
 int debug_musa_callback()
 {
+	return md::md_musa->debug_m68k_callback();
+}
+
+int md::debug_m68k_callback()
+{
 	unsigned int		pc;
 	int			i;
 	int			ret = 0;
@@ -387,7 +387,7 @@ int debug_musa_callback()
 	pc = m68k_get_reg(NULL, M68K_REG_PC);
 
 	// break points
-	if ((!debug_step_m68k) && (!debug_is_bp_set()))
+	if ((!debug_step_m68k) && (!debug_is_m68k_bp_set()))
 		goto watches;
 
 	if (debug_step_m68k) {
@@ -407,17 +407,17 @@ int debug_musa_callback()
 		}
 	}
 watches:
-	if (!debug_is_wp_set())
+	if (!debug_is_m68k_wp_set())
 		goto trace;
 
 	for (i = 0; i < MAX_WATCHPOINTS; i++) {
 		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
 			break; // no wps after first disabled one
 
-		if (debug_should_wp_fire(&(debug_wp_m68k[i]))) {
+		if (debug_should_m68k_wp_fire(&(debug_wp_m68k[i]))) {
 			printf("watchpoint #%d fired\n", i+1);
 			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
-			debug_print_wp(i);
+			debug_print_m68k_wp(i);
 			debug_m68k_wp_set_hit();
 			ret = 1;
 			goto ret;
@@ -426,7 +426,7 @@ watches:
 trace:
 	if (debug_trace_m68k) {
 		assert(md::md_musa != NULL);
-		md::md_musa->debug_print_disassemble
+		md::md_musa->debug_print_m68k_disassemble
 			(m68k_get_reg(NULL, M68K_REG_PC), 1);
 		if (debug_trace_m68k != ~0u)
 			--debug_trace_m68k;
@@ -446,7 +446,7 @@ ret:
  *
  * @param index Index of breakpoint to remove.
  */
-static void debug_rm_bp_m68k(int index)
+void md::debug_rm_bp_m68k(int index)
 {
 	if (!(debug_bp_m68k[index].flags & BP_FLAG_USED)) {
 		printf("breakpoint not set\n");
@@ -473,7 +473,7 @@ static void debug_rm_bp_m68k(int index)
  *
  * @param index Index of watchpoint to remove.
  */
-static void debug_rm_wp_m68k(int index)
+void md::debug_rm_wp_m68k(int index)
 {
 	if (!(debug_wp_m68k[index].flags & WP_FLAG_USED)) {
 		printf("watchpoint not set\n");
@@ -500,7 +500,7 @@ static void debug_rm_wp_m68k(int index)
 /**
  * Pretty print M68K breakpoints.
  */
-static void debug_list_bps_m68k()
+void md::debug_list_bps_m68k()
 {
 	int			i;
 
@@ -520,7 +520,7 @@ static void debug_list_bps_m68k()
 /**
  * Pretty print M68K watchpoints.
  */
-static void debug_list_wps_m68k()
+void md::debug_list_wps_m68k()
 {
 	int			i;
 
@@ -528,7 +528,7 @@ static void debug_list_wps_m68k()
 	for (i = 0; i < MAX_WATCHPOINTS; i++) {
 		if (!(debug_wp_m68k[i].flags & WP_FLAG_USED))
 			break; // can be no more after first disabled
-		debug_print_wp(i);
+		debug_print_m68k_wp(i);
 	}
 
 	if (i == 0)
@@ -542,7 +542,7 @@ static void debug_list_wps_m68k()
  * @param addr Address to break on.
  * @return Always 1.
  */
-static int debug_set_bp_m68k(uint32_t addr)
+int md::debug_set_bp_m68k(uint32_t addr)
 {
 	int		slot;
 
@@ -634,7 +634,7 @@ void md::debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr)
 		goto out;
 	}
 
-	debug_update_wp_cache(&(debug_wp_m68k[slot]));
+	debug_update_m68k_wp_cache(&(debug_wp_m68k[slot]));
 
 	printf("m68k watchpoint #%d set @ 0x%08x-0x%08x (%u bytes)\n",
 	    slot, start_addr, end_addr, end_addr - start_addr + 1);
@@ -643,11 +643,11 @@ out:
 }
 
 /**
- * Update the data pointer of a single watchpoint.
+ * Update the data pointer of a single M68K watchpoint.
  *
  * @param w Watchpoint to update.
  */
-void md::debug_update_wp_cache(struct dgen_wp *w)
+void md::debug_update_m68k_wp_cache(struct dgen_wp *w)
 {
 	unsigned int		 addr;
 	unsigned char		*p;
@@ -661,9 +661,9 @@ void md::debug_update_wp_cache(struct dgen_wp *w)
 }
 
 /**
- * Resynchronise all watchpoints based on actual data.
+ * Resynchronise all M68K watchpoints based on actual data.
  */
-void md::debug_update_fired_wps()
+void md::debug_update_fired_m68k_wps()
 {
 	int			i;
 
@@ -675,7 +675,7 @@ void md::debug_update_fired_wps()
 		if (!(debug_wp_m68k[i].flags & WP_FLAG_FIRED))
 			continue;
 
-		debug_update_wp_cache(&(debug_wp_m68k[i]));
+		debug_update_m68k_wp_cache(&(debug_wp_m68k[i]));
 		debug_wp_m68k[i].flags &= ~WP_FLAG_FIRED;
 	}
 }
@@ -970,7 +970,7 @@ int md::debug_cmd_dis(int n_args, char **args)
 			break;
 	};
 
-	debug_print_disassemble(addr, length);
+	debug_print_m68k_disassemble(addr, length);
 out:
 	fflush(stdout);
 	return (1);
@@ -1503,7 +1503,7 @@ int md::debug_despatch_cmd(int n_toks, char **toks)
  * @param from Address to start disassembling from.
  * @param len Number of instructions to disassemble.
  */
-void md::debug_print_disassemble(uint32_t from, int len)
+void md::debug_print_m68k_disassemble(uint32_t from, int len)
 {
 	int			i;
 	char			disasm[MAX_DISASM];
@@ -1556,7 +1556,7 @@ void md::debug_enter()
 		z80_state_dump();
 
 		if (debug_context == DBG_CONTEXT_M68K)
-			debug_print_disassemble(m68k_state.pc, 1);
+			debug_print_m68k_disassemble(m68k_state.pc, 1);
 	}
 
 	switch (debug_context) {
@@ -1671,5 +1671,3 @@ const struct md::dgen_debugger_cmd md::debug_cmd_list[] = {
 		// sentinal
 		{NULL,                  0,      NULL}
 	};
-
-#endif

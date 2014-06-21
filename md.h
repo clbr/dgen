@@ -100,6 +100,10 @@ static inline void (*(*debug_(const char *file, unsigned int line,
 #define ROM_ADDR(a) (a)
 #endif
 
+#ifdef WITH_DEBUGGER
+#include "debug.h"
+#endif
+
 extern "C" int test_ctv(unsigned char *dest, int len);
 extern "C" int blur_bitmap_16(unsigned char *dest, int len);
 extern "C" int blur_bitmap_15(unsigned char *dest, int len);
@@ -643,14 +647,43 @@ private:
 #define Z80_SR_HALF_CARRY	(1<<4)
 #define Z80_SR_ZERO		(1<<6)
 #define Z80_SR_SIGN		(1<<7)
+
+	struct dgen_bp debug_bp_m68k[MAX_BREAKPOINTS];
+	struct dgen_wp debug_wp_m68k[MAX_WATCHPOINTS];
+	unsigned int debug_step_m68k;
+	unsigned int debug_trace_m68k;
+	bool m68k_bp_hit;
+	bool m68k_wp_hit;
+	int debug_context;
+	unsigned long debug_m68k_instr_count;
+
+	bool debug_is_m68k_bp_set();
+	bool debug_is_m68k_wp_set();
+	int debug_next_free_wp_m68k();
+	int debug_next_free_bp_m68k();
+	void debug_init();
+	int debug_find_bp_m68k(uint32_t);
+	int debug_find_wp_m68k(uint32_t);
+	void debug_m68k_bp_set_hit();
+	void debug_m68k_wp_set_hit();
+	void debug_print_m68k_wp(int);
+	int debug_should_m68k_wp_fire(struct dgen_wp *w);
+	int debug_m68k_callback();
+	friend int ::debug_musa_callback();
+	void debug_rm_bp_m68k(int);
+	void debug_rm_wp_m68k(int);
+	void debug_list_bps_m68k();
+	void debug_list_wps_m68k();
+	int debug_set_bp_m68k(uint32_t);
+
 public:
+
   struct dgen_debugger_cmd {
 	  char		*cmd;
 	  int		n_args;
 	  int		(md::*handler)(int, char **);
   };
   const static struct md::dgen_debugger_cmd debug_cmd_list[];
-  unsigned long debug_m68k_instr_count;
   bool debug_trap;
   // commands
   int debug_despatch_cmd(int n_toks, char **args);
@@ -675,10 +708,10 @@ public:
   // misc
   void debug_enter(void);
   void debug_leave(void);
-  void debug_update_wp_cache(struct dgen_wp *w);
-  void debug_update_fired_wps(void);
+  void debug_update_m68k_wp_cache(struct dgen_wp *w);
+  void debug_update_fired_m68k_wps(void);
   void debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr);
-  void debug_print_disassemble(uint32_t from, int len);
+  void debug_print_m68k_disassemble(uint32_t from, int len);
   void debug_show_m68k_regs(void);
   void debug_show_z80_regs(void);
   void debug_dump_mem(uint32_t addr, uint32_t len);
