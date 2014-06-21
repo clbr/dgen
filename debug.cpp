@@ -1070,6 +1070,7 @@ void md::debug_show_z80_regs()
 {
 	int			i;
 
+	z80_state_dump();
 	printf("z80:\n");
 
 	for (i = 0; i < 2; i++) {
@@ -1092,10 +1093,10 @@ void md::debug_show_z80_regs()
 	    "\t  i:\t0x%02x\n"
 	    "\tiff:\t0x%02x\n"
 	    "\t im:\t0x%02x\n",
-	    z80_state.ix,
-	    z80_state.iy,
-	    z80_state.sp,
-	    z80_state.pc,
+	    le2h16(z80_state.ix),
+	    le2h16(z80_state.iy),
+	    le2h16(z80_state.sp),
+	    le2h16(z80_state.pc),
 	    z80_state.r,
 	    z80_state.i,
 	    z80_state.iff,
@@ -1645,7 +1646,8 @@ void md::debug_enter()
 		break;
 	case DBG_CONTEXT_Z80:
 		z80_state_dump();
-		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ", z80_state.pc);
+		snprintf(prompt, sizeof(prompt), "z80:0x%04x> ",
+			 le2h16(z80_state.pc));
 		break;
 	case DBG_CONTEXT_YM2612:
 		snprintf(prompt, sizeof(prompt), "ym2612> ");
