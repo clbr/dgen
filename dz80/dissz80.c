@@ -2205,6 +2205,10 @@ void Make8BitNum(DISZ80 *d, char *Dst, int Num)
 		case DRADIX_HEX:
 			sprintf(num, "%02x", Num);
 			break;
+
+		default:
+			num[0] = '\0';
+			break;
 		}
 
 /*	Added in 2.0 - "{" is a special case that adds a "0" only if the first digit
@@ -2244,6 +2248,10 @@ void Make16BitNum(DISZ80 *d, char *Dst, int Num)
 
 		case DRADIX_HEX:
 			sprintf(num, "%04x", Num);
+			break;
+
+		default:
+			num[0] = '\0';
 			break;
 		}
 
