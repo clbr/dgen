@@ -71,6 +71,11 @@ but you can also define your own CZ80 context :
 
 You'll can emulate as many Z80 CPU as you want by defining severals CZ80 contexts.
 
+An arbitrary pointer can also be stored in the CZ80 context.
+This pointer is passed to each I/O callback:
+
+  Cz80_Set_Ctx(&CZ80, &user_context);
+
 
 3) Set up your fetch region (where the Z80 will run code from) :
 ----------------------------------------------------------------
