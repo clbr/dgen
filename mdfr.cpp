@@ -248,7 +248,7 @@ void md::m68k_run()
 		goto cpu_stalled;
 	debug_m68k = (debug_step_m68k ||
 		      debug_trace_m68k ||
-		      debug_m68k_instr_count_enabled ||
+		      debug_instr_count_enabled ||
 		      debug_is_m68k_bp_set() ||
 		      debug_is_m68k_wp_set());
 	if (debug_m68k) {
@@ -407,13 +407,35 @@ int md::z80_odo()
 void md::z80_run()
 {
 	int cycles = (odo.z80_max - odo.z80);
+#ifdef WITH_DEBUGGER
+	int cycles_to_debug;
+	int prev_odo;
+	bool debug_z80;
+#endif
 
 	if (cycles <= 0)
 		return;
+	z80_st_running = 1;
+#ifdef WITH_DEBUGGER
+	if (debug_trap)
+		goto cpu_stalled;
+	debug_z80 = (debug_step_z80 ||
+		     debug_trace_z80 ||
+		     debug_instr_count_enabled ||
+		     debug_is_z80_bp_set() ||
+		     debug_is_z80_wp_set());
+	if (debug_z80) {
+		prev_odo = odo.z80;
+		cycles_to_debug = cycles;
+		cycles = 1;
+	debug_next_instruction:
+		if (debug_z80_check_bps())
+			goto cpu_stalled;
+	}
+#endif
 	if (z80_st_busreq | z80_st_reset)
 		odo.z80 += cycles;
 	else {
-		z80_st_running = 1;
 #ifdef WITH_CZ80
 		if (z80_core == Z80_CORE_CZ80)
 			odo.z80 += Cz80_Exec(&cz80, cycles);
@@ -441,24 +463,59 @@ void md::z80_run()
 		else
 #endif
 			odo.z80 += cycles;
-		z80_st_running = 0;
 	}
+#ifdef WITH_DEBUGGER
+	if (debug_z80) {
+		++debug_z80_instr_count;
+		if (debug_z80_check_wps())
+			goto cpu_stalled;
+		cycles_to_debug -= (odo.z80 - prev_odo);
+		if (cycles_to_debug > 0) {
+			prev_odo = odo.z80;
+			goto debug_next_instruction;
+		}
+	}
+cpu_stalled:
+#endif
+	z80_st_running = 0;
 }
 
 // Synchronize Z80 with M68K, don't execute code if fake is nonzero
 void md::z80_sync(int fake)
 {
 	int cycles = (m68k_odo() >> 1);
+#ifdef WITH_DEBUGGER
+	int cycles_to_debug;
+	int prev_odo;
+	bool debug_z80;
+#endif
 
 	if (cycles > odo.z80_max)
 		cycles = odo.z80_max;
 	cycles -= odo.z80;
 	if (cycles <= 0)
 		return;
+	z80_st_running = 1;
+#ifdef WITH_DEBUGGER
+	if (debug_trap)
+		goto cpu_stalled;
+	debug_z80 = (debug_step_z80 ||
+		     debug_trace_z80 ||
+		     debug_instr_count_enabled ||
+		     debug_is_z80_bp_set() ||
+		     debug_is_z80_wp_set());
+	if (debug_z80) {
+		prev_odo = odo.z80;
+		cycles_to_debug = cycles;
+		cycles = 1;
+	debug_next_instruction:
+		if (debug_z80_check_bps())
+			goto cpu_stalled;
+	}
+#endif
 	if (fake)
 		odo.z80 += cycles;
 	else {
-		z80_st_running = 1;
 #ifdef WITH_CZ80
 		if (z80_core == Z80_CORE_CZ80)
 			odo.z80 += Cz80_Exec(&cz80, cycles);
@@ -486,13 +543,32 @@ void md::z80_sync(int fake)
 		else
 #endif
 			odo.z80 += cycles;
-		z80_st_running = 0;
 	}
+#ifdef WITH_DEBUGGER
+	if (debug_z80) {
+		++debug_z80_instr_count;
+		if (debug_z80_check_wps())
+			goto cpu_stalled;
+		cycles_to_debug -= (odo.z80 - prev_odo);
+		if (cycles_to_debug > 0) {
+			prev_odo = odo.z80;
+			goto debug_next_instruction;
+		}
+	}
+cpu_stalled:
+#endif
+	z80_st_running = 0;
 }
 
 // Trigger Z80 IRQ
 void md::z80_irq(int vector)
 {
+#ifdef WITH_DEBUGGER
+	// Ignore interrupts while debugger is active or stepping by a
+	// small amount (XXX should be configurable).
+	if (debug_trap || (debug_step_z80 && debug_step_z80 < 1000))
+		return;
+#endif
 	z80_st_irq = 1;
 	z80_irq_vector = vector;
 #ifdef WITH_CZ80

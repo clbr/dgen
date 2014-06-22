@@ -277,6 +277,7 @@ int md::reset()
 #endif
 #ifdef WITH_DEBUGGER
 	debug_m68k_instr_count = 0;
+	debug_z80_instr_count = 0;
 #endif
   if (debug_log) fprintf (debug_log,"reset()\n");
 

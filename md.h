@@ -658,9 +658,14 @@ private:
 	struct dgen_wp debug_wp_m68k[MAX_WATCHPOINTS];
 	unsigned int debug_step_m68k;
 	unsigned int debug_trace_m68k;
+	struct dgen_bp debug_bp_z80[MAX_BREAKPOINTS];
+	struct dgen_wp debug_wp_z80[MAX_WATCHPOINTS];
+	unsigned int debug_step_z80;
+	unsigned int debug_trace_z80;
 	int debug_context;
 	unsigned long debug_m68k_instr_count;
-	bool debug_m68k_instr_count_enabled;
+	unsigned long debug_z80_instr_count;
+	bool debug_instr_count_enabled;
 #ifdef WITH_DZ80
 	DISZ80 disz80;
 #endif
@@ -669,20 +674,35 @@ private:
 	bool debug_is_m68k_wp_set();
 	int debug_next_free_wp_m68k();
 	int debug_next_free_bp_m68k();
+	bool debug_is_z80_bp_set();
+	bool debug_is_z80_wp_set();
+	int debug_next_free_wp_z80();
+	int debug_next_free_bp_z80();
 	void debug_init();
 	int debug_find_bp_m68k(uint32_t);
 	int debug_find_wp_m68k(uint32_t);
 	void debug_print_m68k_wp(int);
 	int debug_should_m68k_wp_fire(struct dgen_wp *w);
+	int debug_find_bp_z80(uint16_t);
+	int debug_find_wp_z80(uint16_t);
+	void debug_print_z80_wp(int);
+	int debug_should_z80_wp_fire(struct dgen_wp *w);
 	uint32_t m68k_get_pc();
 	uint16_t z80_get_pc();
 	bool debug_m68k_check_bps();
 	bool debug_m68k_check_wps();
+	bool debug_z80_check_bps();
+	bool debug_z80_check_wps();
 	void debug_rm_bp_m68k(int);
 	void debug_rm_wp_m68k(int);
+	void debug_rm_bp_z80(int);
+	void debug_rm_wp_z80(int);
 	void debug_list_bps_m68k();
 	void debug_list_wps_m68k();
+	void debug_list_bps_z80();
+	void debug_list_wps_z80();
 	int debug_set_bp_m68k(uint32_t);
+	int debug_set_bp_z80(uint16_t);
 
 public:
 
@@ -718,8 +738,11 @@ public:
   void debug_enter(void);
   void debug_leave(void);
   void debug_update_m68k_wp_cache(struct dgen_wp *w);
+  void debug_update_z80_wp_cache(struct dgen_wp *w);
   void debug_update_fired_m68k_wps(void);
+  void debug_update_fired_z80_wps(void);
   void debug_set_wp_m68k(uint32_t start_addr, uint32_t end_addr);
+  void debug_set_wp_z80(uint16_t start_addr, uint16_t end_addr);
   void debug_print_m68k_disassemble(uint32_t from, int len);
   void debug_print_z80_disassemble(uint16_t, unsigned int);
   void debug_show_m68k_regs(void);

@@ -129,6 +129,18 @@ bool md::debug_is_m68k_bp_set()
 }
 
 /**
+ * Check if at least one Z80 breakpoint is set.
+ *
+ * @return 1 if true, 0 otherwise.
+ */
+bool md::debug_is_z80_bp_set()
+{
+	if (debug_bp_z80[0].flags & BP_FLAG_USED)
+		return 1;
+	return 0;
+}
+
+/**
  * Check if at least one M68K watchpoint is set.
  *
  * @return 1 if true, 0 otherwise.
@@ -139,6 +151,18 @@ bool md::debug_is_m68k_wp_set()
 		return (1);
 
 	return (0);
+}
+
+/**
+ * Check if at least one Z80 watchpoint is set.
+ *
+ * @return 1 if true, 0 otherwise.
+ */
+bool md::debug_is_z80_wp_set()
+{
+	if (debug_wp_z80[0].flags & BP_FLAG_USED)
+		return 1;
+	return 0;
 }
 
 /**
@@ -156,6 +180,21 @@ int md::debug_next_free_wp_m68k()
 	}
 
 	return (-1); // no free slots
+}
+
+/**
+ * Get the ID of the next free Z80 watchpoint.
+ *
+ * @return ID or -1 if none free.
+ */
+int md::debug_next_free_wp_z80()
+{
+	unsigned int i;
+
+	for (i = 0; (i < MAX_WATCHPOINTS); ++i)
+		if (!(debug_wp_z80[i].flags & WP_FLAG_USED))
+			return i;
+	return -1;
 }
 
 /**
@@ -187,6 +226,21 @@ static BYTE disz80_read(void *ctx, WORD addr)
 #endif
 
 /**
+ * Get the ID of the next free Z80 breakpoint.
+ *
+ * @return ID or -1 if none free.
+ */
+int md::debug_next_free_bp_z80()
+{
+	unsigned int i;
+
+	for (i = 0; (i < MAX_BREAKPOINTS); ++i)
+		if (!(debug_bp_z80[i].flags & BP_FLAG_USED))
+			return i;
+	return -1;
+}
+
+/**
  * Initialise the debugger.
  *
  * All breakpoints are disabled by default.
@@ -196,6 +250,8 @@ void md::debug_init()
 	// start with all breakpoints and watchpoints disabled
 	memset(debug_bp_m68k, 0, sizeof(debug_bp_m68k));
 	memset(debug_wp_m68k, 0, sizeof(debug_wp_m68k));
+	memset(debug_bp_z80, 0, sizeof(debug_bp_z80));
+	memset(debug_wp_z80, 0, sizeof(debug_wp_z80));
 
 #ifndef NO_COMPLETION
 	linenoiseSetCompletionCallback(completion);
@@ -203,10 +259,13 @@ void md::debug_init()
 
 	debug_step_m68k = 0;
 	debug_trace_m68k = 0;
+	debug_step_z80 = 0;
+	debug_trace_z80 = 0;
 	debug_context = DBG_CONTEXT_M68K;
 	debug_trap = false;
 	debug_m68k_instr_count = 0;
-	debug_m68k_instr_count_enabled = false;
+	debug_z80_instr_count = 0;
+	debug_instr_count_enabled = false;
 
 #ifdef WITH_DZ80
 	memset(&disz80, 0, sizeof(disz80));
@@ -242,6 +301,26 @@ int md::debug_find_bp_m68k(uint32_t addr)
 }
 
 /**
+ * Find the index of a Z80 breakpoint.
+ *
+ * @param addr Address to look for.
+ * @return -1 if no breakpoint is found, otherwise its index in
+ * debug_bp_z80[].
+ */
+int md::debug_find_bp_z80(uint16_t addr)
+{
+	unsigned int i;
+
+	for (i = 0; (i < MAX_BREAKPOINTS); ++i) {
+		if (!(debug_bp_z80[i].flags & BP_FLAG_USED))
+			break;
+		if (debug_bp_z80[i].addr == addr)
+			return i;
+	}
+	return -1;
+}
+
+/**
  * Find the index of a M68K watchpoint by its start address.
  *
  * @param addr Address to look for.
@@ -262,6 +341,26 @@ int md::debug_find_wp_m68k(uint32_t addr)
 	}
 
 	return (-1); // not found
+}
+
+/**
+ * Find the index of a Z80 watchpoint by its start address.
+ *
+ * @param addr Address to look for.
+ * @return -1 if no watchpoint at the given address, otherwise its index in
+ * debug_wp_z80[].
+ */
+int md::debug_find_wp_z80(uint16_t addr)
+{
+	unsigned int i;
+
+	for (i = 0; (i < MAX_WATCHPOINTS); ++i) {
+		if (!(debug_wp_z80[i].flags & WP_FLAG_USED))
+			break;
+		if (debug_wp_z80[i].start_addr == addr)
+			return i;
+	}
+	return -1;
 }
 
 /**
@@ -346,6 +445,22 @@ void md::debug_print_m68k_wp(int idx)
 }
 
 /**
+ * Print a Z80 watchpoint in a human-readable form.
+ *
+ * @param idx Index of watchpoint to print.
+ */
+void md::debug_print_z80_wp(int idx)
+{
+	struct dgen_wp *w = &debug_wp_z80[idx];
+
+	printf("#%0d:\t0x%04x-%04x (%u bytes)\n", idx, w->start_addr,
+	       w->end_addr, (w->end_addr - w->start_addr + 1));
+	debug_print_hex_buf(w->bytes, (w->end_addr - w->start_addr + 1),
+			    w->start_addr);
+	fflush(stdout);
+}
+
+/**
  * Check the given M68K watchpoint against cached memory to see if it should
  * fire.
  *
@@ -363,6 +478,24 @@ int md::debug_should_m68k_wp_fire(struct dgen_wp *w)
 	}
 
 	return (0);
+}
+
+/**
+ * Check the given Z80 watchpoint against cached memory to see if it should
+ * fire.
+ *
+ * @param[in] w Watch point to check.
+ * @return 1 if true, else 0.
+ */
+int md::debug_should_z80_wp_fire(struct dgen_wp *w)
+{
+	unsigned int i = w->start_addr;
+	unsigned char *p = w->bytes;
+
+	while (i <= w->end_addr)
+		if (z80_read(i++) != *p++)
+			return 1;
+	return 0;
 }
 
 /**
@@ -504,6 +637,72 @@ bool md::debug_m68k_check_wps()
 }
 
 /**
+ * Breakpoint handler fired before every Z80 instruction.
+ */
+bool md::debug_z80_check_bps()
+{
+	uint16_t pc = z80_get_pc();
+	unsigned int i;
+	bool bp = false;
+
+	if (debug_step_z80) {
+		if ((--debug_step_z80) == 0) {
+			debug_enter();
+			bp = true;
+		}
+		goto trace;
+	}
+	for (i = 0; (i < MAX_BREAKPOINTS); i++) {
+		if (!(debug_bp_z80[i].flags & BP_FLAG_USED))
+			break; // no bps after first disabled one
+		if (pc == debug_bp_z80[i].addr) {
+			if (debug_bp_z80[i].flags & BP_FLAG_FIRED) {
+				debug_bp_z80[i].flags &= ~BP_FLAG_FIRED;
+				continue;
+			}
+			debug_bp_z80[i].flags |= BP_FLAG_FIRED;
+			printf("z80 breakpoint hit @ 0x%04x\n", pc);
+			debug_enter();
+			bp = true;
+			break;
+		}
+	}
+trace:
+	if (debug_trace_z80) {
+		if (!bp)
+			debug_print_z80_disassemble(pc, 1);
+		--debug_trace_z80;
+	}
+	fflush(stdout);
+	return bp;
+}
+
+/**
+ * Watchpoint handler fired after every Z80 instruction.
+ */
+bool md::debug_z80_check_wps()
+{
+	unsigned int i;
+	bool wp = false;
+
+	for (i = 0; (i < MAX_WATCHPOINTS); i++) {
+		if (!(debug_wp_z80[i].flags & BP_FLAG_USED))
+			break;
+		if (debug_should_z80_wp_fire(&(debug_wp_z80[i]))) {
+			printf("z80 watchpoint #%d fired\n", i);
+			debug_wp_z80[i].flags |= WP_FLAG_FIRED;
+			debug_print_z80_wp(i);
+			debug_enter();
+			debug_update_fired_z80_wps();
+			wp = true;
+			break;
+		}
+	}
+	fflush(stdout);
+	return wp;
+}
+
+/**
  * Remove a M68K breakpoint.
  *
  * @param index Index of breakpoint to remove.
@@ -527,6 +726,32 @@ void md::debug_rm_bp_m68k(int index)
 		// disable last slot
 		debug_bp_m68k[MAX_BREAKPOINTS - 1].addr = 0;
 		debug_bp_m68k[MAX_BREAKPOINTS - 1].flags = 0;
+	}
+}
+
+/**
+ * Remove a Z80 breakpoint.
+ *
+ * @param index Index of breakpoint to remove.
+ */
+void md::debug_rm_bp_z80(int index)
+{
+	if (!(debug_bp_z80[index].flags & BP_FLAG_USED)) {
+		printf("breakpoint not set\n");
+		fflush(stdout);
+		return;
+	}
+	if (index == (MAX_BREAKPOINTS - 1)) {
+		debug_bp_z80[index].addr = 0;
+		debug_bp_z80[index].flags = 0;
+	}
+	else {
+		memmove(&debug_bp_z80[index],
+			&debug_bp_z80[index + 1],
+			(sizeof(struct dgen_bp) *
+			 (MAX_BREAKPOINTS - index - 1)));
+		debug_bp_z80[MAX_BREAKPOINTS - 1].addr = 0;
+		debug_bp_z80[MAX_BREAKPOINTS - 1].flags = 0;
 	}
 }
 
@@ -560,6 +785,33 @@ void md::debug_rm_wp_m68k(int index)
 }
 
 /**
+ * Remove a Z80 watchpoint.
+ *
+ * @param index Index of watchpoint to remove.
+ */
+void md::debug_rm_wp_z80(int index)
+{
+	if (!(debug_wp_z80[index].flags & WP_FLAG_USED)) {
+		printf("watchpoint not set\n");
+		fflush(stdout);
+		return;
+	}
+	free(debug_wp_z80[index].bytes);
+	if (index == (MAX_WATCHPOINTS - 1)) {
+		debug_wp_z80[index].start_addr = 0;
+		debug_wp_z80[index].flags = 0;
+	}
+	else {
+		memmove(&debug_wp_z80[index],
+			&debug_wp_z80[index + 1],
+			(sizeof(struct dgen_bp) *
+			 (MAX_WATCHPOINTS - index - 1)));
+		debug_wp_z80[MAX_WATCHPOINTS - 1].start_addr = 0;
+		debug_wp_z80[MAX_WATCHPOINTS - 1].flags = 0;
+	}
+}
+
+/**
  * Pretty print M68K breakpoints.
  */
 void md::debug_list_bps_m68k()
@@ -580,6 +832,24 @@ void md::debug_list_bps_m68k()
 }
 
 /**
+ * Pretty print Z80 breakpoints.
+ */
+void md::debug_list_bps_z80()
+{
+	unsigned int i;
+
+	printf("z80 breakpoints:\n");
+	for (i = 0; (i < MAX_BREAKPOINTS); i++) {
+		if (!(debug_bp_z80[i].flags & BP_FLAG_USED))
+			break;
+		printf("#%0d:\t0x%04x\n", i, debug_bp_z80[i].addr);
+	}
+	if (i == 0)
+		printf("\tno z80 breakpoints set\n");
+	fflush(stdout);
+}
+
+/**
  * Pretty print M68K watchpoints.
  */
 void md::debug_list_wps_m68k()
@@ -595,6 +865,24 @@ void md::debug_list_wps_m68k()
 
 	if (i == 0)
 		printf("\tno m68k watchpoints set\n");
+	fflush(stdout);
+}
+
+/**
+ * Pretty print Z80 watchpoints.
+ */
+void md::debug_list_wps_z80()
+{
+	unsigned int i;
+
+	printf("z80 watchpoints:\n");
+	for (i = 0; (i < MAX_WATCHPOINTS); i++) {
+		if (!(debug_wp_z80[i].flags & WP_FLAG_USED))
+			break;
+		debug_print_z80_wp(i);
+	}
+	if (i == 0)
+		printf("\tno z80 watchpoints set\n");
 	fflush(stdout);
 }
 
@@ -625,6 +913,33 @@ int md::debug_set_bp_m68k(uint32_t addr)
 out:
 	fflush(stdout);
 	return (1);
+}
+
+/**
+ * Add a Z80 breakpoint.
+ *
+ * @param addr Address to break on.
+ * @return Always 1.
+ */
+int md::debug_set_bp_z80(uint16_t addr)
+{
+	int slot;
+
+	if ((debug_find_bp_z80(addr)) != -1) {
+		printf("breakpoint already set at this address\n");
+		goto out;
+	}
+	slot = debug_next_free_bp_z80();
+	if (slot == -1) {
+		printf("No space for another break point\n");
+		goto out;
+	}
+	debug_bp_z80[slot].addr = addr;
+	debug_bp_z80[slot].flags = BP_FLAG_USED;
+	printf("z80 breakpoint #%d set @ 0x%04x\n", slot, addr);
+out:
+	fflush(stdout);
+	return 1;
 }
 
 /**
@@ -737,6 +1052,68 @@ void md::debug_update_fired_m68k_wps()
 
 		debug_update_m68k_wp_cache(&(debug_wp_m68k[i]));
 		debug_wp_m68k[i].flags &= ~WP_FLAG_FIRED;
+	}
+}
+
+/**
+ * Add a Z80 watchpoint to a range of addresses.
+ *
+ * @param start_addr Start address of watchpoint range.
+ * @param end_addr End address of watchpoint range.
+ */
+void md::debug_set_wp_z80(uint16_t start_addr, uint16_t end_addr)
+{
+	int slot;
+
+	slot = debug_next_free_wp_z80();
+	if (slot == -1) {
+		printf("No space for another watch point\n");
+		goto out;
+	}
+	debug_wp_z80[slot].start_addr = start_addr;
+	debug_wp_z80[slot].end_addr = end_addr;
+	debug_wp_z80[slot].flags = WP_FLAG_USED;
+	debug_wp_z80[slot].bytes =
+		(unsigned char *)malloc(end_addr - start_addr + 1);
+	if (debug_wp_z80[slot].bytes == NULL) {
+		perror("malloc");
+		goto out;
+	}
+	debug_update_z80_wp_cache(&(debug_wp_z80[slot]));
+	printf("z80 watchpoint #%d set @ 0x%04x-0x%04x (%u bytes)\n",
+	       slot, start_addr, end_addr, (end_addr - start_addr + 1));
+out:
+	fflush(stdout);
+}
+
+/**
+ * Update the data pointer of a single Z80 watchpoint.
+ *
+ * @param w Watchpoint to update.
+ */
+void md::debug_update_z80_wp_cache(struct dgen_wp *w)
+{
+	unsigned int addr;
+	unsigned char *p = w->bytes;
+
+	for (addr = w->start_addr; (addr <= w->end_addr); addr++)
+		*(p++) = z80_read(addr);
+}
+
+/**
+ * Resynchronise all Z80 watchpoints based on actual data.
+ */
+void md::debug_update_fired_z80_wps()
+{
+	int i;
+
+	for (i = 0; (i < MAX_WATCHPOINTS); i++) {
+		if (!(debug_wp_z80[i].flags & WP_FLAG_USED))
+			return;
+		if (!(debug_wp_z80[i].flags & WP_FLAG_FIRED))
+			continue;
+		debug_update_z80_wp_cache(&(debug_wp_z80[i]));
+		debug_wp_z80[i].flags &= ~WP_FLAG_FIRED;
 	}
 }
 
@@ -876,6 +1253,7 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 	union {
 		uint32_t *r32;
 		uint16_t *r16;
+		uint8_t *r8;
 		void *ptr;
 	} reg_ptr = { NULL };
 	unsigned int		reg = -1;
@@ -883,7 +1261,8 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 
 	(void)n_args;
 	assert(n_args == 2);
-	if (debug_context != DBG_CONTEXT_M68K) {
+	if ((debug_context != DBG_CONTEXT_M68K) &&
+	    (debug_context != DBG_CONTEXT_Z80)) {
 		printf("memory setting not implemented on %s core\n",
 		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
@@ -899,26 +1278,61 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 
 #define REG1(id) { # id, offsetof(m68k_state_t, id), sizeof(m68k_state.id) }
 
+#define REG2(id, idx, name) { \
+	name, \
+	offsetof(z80_state_t, alt[idx].id), \
+	sizeof(z80_state.alt[idx].id) \
+}
+
+#define REG3(id) { # id, offsetof(z80_state_t, id), sizeof(z80_state.id) }
+
 			const char *name;
 			size_t offset;
 			size_t size;
-		} regid[] = {
-			REG0(a, 0), REG0(a, 1), REG0(a, 2), REG0(a, 3),
-			REG0(a, 4), REG0(a, 5), REG0(a, 6), REG0(a, 7),
-			REG0(d, 0), REG0(d, 1), REG0(d, 2), REG0(d, 3),
-			REG0(d, 4), REG0(d, 5), REG0(d, 6), REG0(d, 7),
-			REG1(pc), REG1(sr)
-		};
-
-		for (addr = 0;
-		     (addr != (sizeof(regid) / sizeof(regid[0])));
-		     ++addr)
-			if (!strcasecmp(regid[addr].name, args[0])) {
-				reg_ptr.ptr = (void *)((uint8_t *)&m68k_state +
-						       regid[addr].offset);
-				reg = regid[addr].size;
-				break;
+		} regid[2][32] = {
+			{
+				// M68K
+				REG0(a, 0), REG0(a, 1), REG0(a, 2), REG0(a, 3),
+				REG0(a, 4), REG0(a, 5), REG0(a, 6), REG0(a, 7),
+				REG0(d, 0), REG0(d, 1), REG0(d, 2), REG0(d, 3),
+				REG0(d, 4), REG0(d, 5), REG0(d, 6), REG0(d, 7),
+				REG1(pc), REG1(sr)
+			},
+			{
+				// Z80
+				REG2(fa, 0, "af"), REG2(fa, 1, "af'"),
+				REG2(cb, 0, "bc"), REG2(cb, 1, "bc'"),
+				REG2(ed, 0, "de"), REG2(ed, 1, "de'"),
+				REG2(lh, 0, "hl"), REG2(lh, 1, "hl'"),
+				REG3(ix), REG3(iy), REG3(sp), REG3(pc),
+				REG3(r), REG3(i), REG3(iff), REG3(im)
 			}
+		};
+		unsigned int idx;
+		uint8_t *state;
+
+		if (debug_context == DBG_CONTEXT_M68K) {
+			idx = 0;
+			state = (uint8_t *)&m68k_state;
+		}
+		else if (debug_context == DBG_CONTEXT_Z80) {
+			idx = 1;
+			state = (uint8_t *)&z80_state;
+		}
+		else
+			goto out;
+		for (addr = 0;
+		     (addr != (sizeof(regid[idx]) / sizeof(regid[idx][0])));
+		     ++addr) {
+			if (regid[idx][addr].name == NULL)
+				break;
+			if (strcasecmp(regid[idx][addr].name, args[0]))
+				continue;
+			reg_ptr.ptr =
+				(void *)(state + regid[idx][addr].offset);
+			reg = regid[idx][addr].size;
+			break;
+		}
 		if (reg == -1u) {
 			printf("unknown register %s", args[0]);
 			goto out;
@@ -949,13 +1363,15 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 	case ~0u:
 		/* register */
 		m68k_state_dump();
+		z80_state_dump();
 		if (reg == 2)
 			*reg_ptr.r16 = le2h16(val);
 		else if (reg == 4)
 			*reg_ptr.r32 = le2h32(val);
-		else
-			assert(0);
+		else if (reg == 1)
+			*reg_ptr.r8 = val;
 		m68k_state_restore();
+		z80_state_restore();
 		break;
 	default:
 		printf("unknown type size %u\n", type);
@@ -1088,7 +1504,7 @@ void md::debug_show_m68k_regs()
 	m68k_state_dump();
 	sr = le2h16(m68k_state.sr);
 
-	if (debug_m68k_instr_count_enabled)
+	if (debug_instr_count_enabled)
 		printf("m68k (%lu instructions):\n", debug_m68k_instr_count);
 	else
 		printf("m68k:\n");
@@ -1141,15 +1557,17 @@ void md::debug_show_z80_regs()
 	printf("z80:\n");
 
 	for (i = 0; i < 2; i++) {
-		printf("\t af(%d):\t0x%04x\n",
-		    i, le2h16(z80_state.alt[i].fa));
+		const char *alt = (i ? "'" : "");
+
+		printf("\t af%s:\t0x%04x\n",
+		       alt, le2h16(z80_state.alt[i].fa));
 		PRINT_Z80_FLAGS(z80_state.alt[i].fa >> 1);
-		printf("\t bc(%d):\t0x%04x\n"
-		    "\t de(%d):\t0x%04x\n"
-		    "\t hl(%d):\t0x%04x\n",
-		    i, le2h16(z80_state.alt[i].cb),
-		    i, le2h16(z80_state.alt[i].ed),
-		    i, le2h16(z80_state.alt[i].lh));
+		printf("\t bc%s:\t0x%04x\n"
+		       "\t de%s:\t0x%04x\n"
+		       "\t hl%s:\t0x%04x\n",
+		       alt, le2h16(z80_state.alt[i].cb),
+		       alt, le2h16(z80_state.alt[i].ed),
+		       alt, le2h16(z80_state.alt[i].lh));
 	}
 
 	printf("\t ix:\t0x%04x\n"
@@ -1274,16 +1692,12 @@ int md::debug_cmd_count(int n_args, char **args)
 		{ "enable", true }, { "disable", false }
 	};
 
-	if (debug_context != DBG_CONTEXT_M68K) {
-		printf("counters not implemented for this cpu.\n");
-		goto out;
-	}
 	if (n_args == 1) {
 		uint32_t i;
 
 		for (i = 0; (i != (sizeof(opt) / sizeof(opt[0]))); ++i)
 			if (!strcasecmp(args[0], opt[i].param)) {
-				debug_m68k_instr_count_enabled = opt[i].value;
+				debug_instr_count_enabled = opt[i].value;
 				break;
 			}
 		if (i == (sizeof(opt) / sizeof(opt[0]))) {
@@ -1291,19 +1705,19 @@ int md::debug_cmd_count(int n_args, char **args)
 				printf("invalid argument: %s\n", args[0]);
 				goto out;
 			}
-			debug_m68k_instr_count_enabled = !!i;
+			debug_instr_count_enabled = !!i;
 		}
 	}
 	else
-		debug_m68k_instr_count_enabled =
-			!debug_m68k_instr_count_enabled;
+		debug_instr_count_enabled = !debug_instr_count_enabled;
 	printf("instructions counters ");
-	switch (debug_m68k_instr_count_enabled) {
+	switch (debug_instr_count_enabled) {
 	case false:
 		printf("disabled.\n");
 		break;
 	default:
 		debug_m68k_instr_count = 0;
+		debug_z80_instr_count = 0;
 		printf("enabled.\n");
 		break;
 	}
@@ -1326,8 +1740,10 @@ int md::debug_cmd_break(int n_args, char **args)
 {
 	uint32_t		num;
 
-	if (debug_context != DBG_CONTEXT_M68K) {
-		printf("z80 breakpoints are not implemented\n");
+	if ((debug_context != DBG_CONTEXT_M68K) &&
+	    (debug_context != DBG_CONTEXT_Z80)) {
+		printf("breakpoints are not supported on %s\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
 	}
 
@@ -1338,11 +1754,17 @@ int md::debug_cmd_break(int n_args, char **args)
 			printf("address malformed: %s\n", args[0]);
 			goto out;
 		}
-		debug_set_bp_m68k(num);
+		if (debug_context == DBG_CONTEXT_M68K)
+			debug_set_bp_m68k(num);
+		else if (debug_context == DBG_CONTEXT_Z80)
+			debug_set_bp_z80(num);
 		break;
 	case 0:
 		// listing bps
-		debug_list_bps_m68k();
+		if (debug_context == DBG_CONTEXT_M68K)
+			debug_list_bps_m68k();
+		else if (debug_context == DBG_CONTEXT_Z80)
+			debug_list_bps_z80();
 	};
 
 out:
@@ -1415,11 +1837,11 @@ int md::debug_cmd_step(int n_args, char **args)
 	}
 	if (debug_context == DBG_CONTEXT_M68K)
 		debug_step_m68k = (num + 1); /* triggered when 0 */
-	else if (debug_context == DBG_CONTEXT_Z80) {
-		printf("z80 breakpoints not implemented\n");
-		goto out;
-	} else {
-		printf("unknown cpu\n");
+	else if (debug_context == DBG_CONTEXT_Z80)
+		debug_step_z80 = (num + 1);
+	else {
+		printf("stepping not supported on %s\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
 	}
 	fflush(stdout);
@@ -1455,9 +1877,12 @@ int md::debug_cmd_trace(int n_args, char **args)
 		{ "on", ~0u }, { "off", 0 },
 		{ "enable", ~0u }, { "disable", 0 }
 	};
+	unsigned int *which;
 
-	if (debug_context != DBG_CONTEXT_M68K) {
-		printf("instructions tracing not implemented for this cpu.\n");
+	if ((which = &debug_trace_m68k, debug_context != DBG_CONTEXT_M68K) &&
+	    (which = &debug_trace_z80, debug_context != DBG_CONTEXT_Z80)) {
+		printf("instructions tracing not supported on %s\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
 	}
 	if (n_args == 1) {
@@ -1465,7 +1890,7 @@ int md::debug_cmd_trace(int n_args, char **args)
 
 		for (i = 0; (i != (sizeof(opt) / sizeof(opt[0]))); ++i)
 			if (!strcasecmp(args[0], opt[i].param)) {
-				debug_trace_m68k = opt[i].value;
+				*which = opt[i].value;
 				break;
 			}
 		if (i == (sizeof(opt) / sizeof(opt[0]))) {
@@ -1473,13 +1898,13 @@ int md::debug_cmd_trace(int n_args, char **args)
 				printf("invalid argument: %s\n", args[0]);
 				goto out;
 			}
-			debug_trace_m68k = i;
+			*which = i;
 		}
 	}
 	else
-		debug_trace_m68k = (!debug_trace_m68k * ~0u);
+		*which = (!*which * ~0u);
 	printf("instructions tracing ");
-	switch (debug_trace_m68k) {
+	switch (*which) {
 	case 0:
 		printf("disabled.\n");
 		break;
@@ -1487,8 +1912,7 @@ int md::debug_cmd_trace(int n_args, char **args)
 		printf("enabled permanently.\n");
 		break;
 	default:
-		printf("enabled for the next %u instruction(s).\n",
-		       debug_trace_m68k);
+		printf("enabled for the next %u instruction(s).\n", *which);
 		break;
 	}
 out:
@@ -1513,8 +1937,10 @@ int md::debug_cmd_minus_watch(int n_args, char **args)
 
 	(void) n_args;
 
-	if (debug_context != DBG_CONTEXT_M68K) {
-		printf("z80 watchpoints are not implemented\n");
+	if ((debug_context != DBG_CONTEXT_M68K) &&
+	    (debug_context != DBG_CONTEXT_Z80)) {
+		printf("watchpoints not supported on %s\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
 	}
 
@@ -1540,11 +1966,15 @@ int md::debug_cmd_minus_watch(int n_args, char **args)
 			printf("address malformed: %s\n", args[0]);
 			goto out;
 		}
-
-		index = debug_find_wp_m68k(num);
+		if (debug_context == DBG_CONTEXT_M68K)
+			index = debug_find_wp_m68k(num);
+		else if (debug_context == DBG_CONTEXT_Z80)
+			index = debug_find_wp_z80(num);
 	}
-
-	debug_rm_wp_m68k(index);
+	if (debug_context == DBG_CONTEXT_M68K)
+		debug_rm_wp_m68k(index);
+	else if (debug_context == DBG_CONTEXT_Z80)
+		debug_rm_wp_z80(index);
 out:
 	fflush(stdout);
 	return (1);
@@ -1568,8 +1998,10 @@ int md::debug_cmd_minus_break(int n_args, char **args)
 
 	(void) n_args;
 
-	if (debug_context != DBG_CONTEXT_M68K) {
-		printf("z80 breakpoints not implemented\n");
+	if ((debug_context != DBG_CONTEXT_M68K) &&
+	    (debug_context != DBG_CONTEXT_Z80)) {
+		printf("breakpoints not supported on %s\n",
+		       CURRENT_DEBUG_CONTEXT_NAME);
 		goto out;
 	}
 
@@ -1596,17 +2028,20 @@ int md::debug_cmd_minus_break(int n_args, char **args)
 			printf("address malformed: %s\n", args[0]);
 			goto out;
 		}
-
-		index = debug_find_bp_m68k(num);
-
+		if (debug_context == DBG_CONTEXT_M68K)
+			index = debug_find_bp_m68k(num);
+		else if (debug_context == DBG_CONTEXT_Z80)
+			index = debug_find_bp_z80(num);
 		if (index < 0) {
 			printf("no breakpoint here: %s\n", args[0]);
 			goto out;
 		}
 	}
-
 	// we now have an index into our bp array
-	debug_rm_bp_m68k(index);
+	if (debug_context == DBG_CONTEXT_M68K)
+		debug_rm_bp_m68k(index);
+	else if (debug_context == DBG_CONTEXT_Z80)
+		debug_rm_bp_z80(index);
 out:
 	fflush(stdout);
 	return (1);
