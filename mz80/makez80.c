@@ -57,6 +57,8 @@
              - Add default case to switch statement in IRHandler().
              - Append -dgen to version number.
   2011-10-08 - Fix segfault on reset in the C version.
+  2014-06-22 - Remove malloc() calls from mz80init() as they cannot be
+               checked nor freed.
 */
 
 #include <stdio.h>
@@ -8682,20 +8684,13 @@ void InitCode(void)
 		fprintf(fp, "\n");
 		fprintf(fp, "	if (NULL == pbAddAdcTable)\n");
 		fprintf(fp, "	{\n");
-		fprintf(fp, "		pbAddAdcTable = malloc(256*256*2);\n");
+		fprintf(fp, "           static UINT8 paat[256 * 256 * 2];");
+		fprintf(fp, "           static UINT8 psst[256 * 256 * 2];");
 		fprintf(fp, "\n");
-		fprintf(fp, "		if (NULL == pbAddAdcTable)\n");
-		fprintf(fp, "		{\n");
-		fprintf(fp, "			return;\n");
-		fprintf(fp, "		}\n");
+		fprintf(fp, "		pbAddAdcTable = paat;\n");
 		fprintf(fp, "\n");
 		fprintf(fp, "		pbTempPtr = pbAddAdcTable;\n\n");
-		fprintf(fp, "		pbSubSbcTable = malloc(256*256*2);\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "		if (NULL == pbSubSbcTable)\n");
-		fprintf(fp, "		{\n");
-		fprintf(fp, "			return;\n");
-		fprintf(fp, "		}\n");
+		fprintf(fp, "		pbSubSbcTable = psst;\n");
 		fprintf(fp, "\n");
 		fprintf(fp, "		pbTempPtr2 = pbSubSbcTable;\n");
 		fprintf(fp, "\n");
