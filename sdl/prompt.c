@@ -450,7 +450,8 @@ end:
 		if (((argv = malloc(sizeof(*argv) * (argc + 1))) == NULL) ||
 		    ((args = malloc(sizeof(*args) * (argc + 1))) == NULL) ||
 		    ((argo = malloc(sizeof(*argo) * (argc + 1))) == NULL) ||
-		    ((temp = malloc(sizeof(*temp) * size_max)) == NULL)) {
+		    ((size_max != 0) &&
+		     ((temp = malloc(sizeof(*temp) * size_max)) == NULL))) {
 			argc = 0;
 			goto fail;
 		}

@@ -329,7 +329,7 @@ FILE *dgen_freopen(const char *relative, const char *file, unsigned int mode,
 			goto error;
 		size = strlen(path);
 	}
-	if (mode & (DGEN_WRITE | DGEN_APPEND))
+	if ((mode & (DGEN_WRITE | DGEN_APPEND)) && (path != NULL))
 		mkdir(path, 0777); /* XXX make that recursive */
 	file_size = strlen(file);
 	if ((tmp = realloc(path, (size + !!size + file_size + 1))) == NULL)
