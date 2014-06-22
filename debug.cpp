@@ -1334,16 +1334,16 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 			break;
 		}
 		if (reg == -1u) {
-			printf("unknown register %s", args[0]);
+			printf("unknown register %s\n", args[0]);
 			goto out;
 		}
 	}
 	else if (debug_strtou32(args[0], &addr) < 0) {
-		printf("addr malformed: %s", args[0]);
+		printf("addr malformed: %s\n", args[0]);
 		goto out;
 	}
 	if (debug_strtou32(args[1], &val) < 0) {
-		printf("value malformed: %s", args[1]);
+		printf("value malformed: %s\n", args[1]);
 		goto out;
 	}
 	switch (type) {
@@ -2191,7 +2191,7 @@ void md::debug_enter()
 		snprintf(prompt, sizeof(prompt), "sn76489> ");
 		break;
 	default:
-		printf("unknown cpu. should not happen");
+		printf("unknown cpu. should not happen\n");
 		fflush(stdout);
 		return;
 	};
