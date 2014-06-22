@@ -979,9 +979,11 @@ INLINE void m68ki_stack_frame_buserr(uint sr);
 INLINE void m68ki_stack_frame_0000(uint pc, uint sr, uint vector);
 INLINE void m68ki_stack_frame_0001(uint pc, uint sr, uint vector);
 INLINE void m68ki_stack_frame_0010(uint sr, uint vector);
+#if 0 /* unused */
 INLINE void m68ki_stack_frame_1000(uint pc, uint sr, uint vector);
 INLINE void m68ki_stack_frame_1010(uint sr, uint vector, uint pc);
 INLINE void m68ki_stack_frame_1011(uint sr, uint vector, uint pc);
+#endif
 
 INLINE void m68ki_exception_trap(uint vector);
 INLINE void m68ki_exception_trapN(uint vector);
@@ -1678,6 +1680,7 @@ INLINE void m68ki_stack_frame_buserr(uint sr)
 	m68ki_push_16(m68ki_aerr_write_mode | CPU_INSTR_MODE | m68ki_aerr_fc);
 }
 
+#if 0 /* unused */
 /* Format 8 stack frame (68010).
  * 68010 only.  This is the 29 word bus/address error frame.
  */
@@ -1848,6 +1851,7 @@ void m68ki_stack_frame_1011(uint sr, uint vector, uint pc)
 	/* STATUS REGISTER */
 	m68ki_push_16(sr);
 }
+#endif /* unused */
 
 
 /* Used for Group 2 exceptions.
