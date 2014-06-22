@@ -505,34 +505,8 @@ int md::debug_should_z80_wp_fire(struct dgen_wp *w)
  */
 uint32_t md::m68k_get_pc()
 {
-	uint32_t pc;
-
-	switch (cpu_emu) {
-#ifdef WITH_MUSA
-	case CPU_EMU_MUSA:
-		md_set_musa(1);
-		pc = m68k_get_reg(NULL, M68K_REG_PC);
-		md_set_musa(0);
-		break;
-#endif
-#ifdef WITH_STAR
-	case CPU_EMU_STAR:
-		md_set_star(1);
-		pc = cpu.pc;
-		md_set_star(0);
-		break;
-#endif
-#ifdef WITH_CYCLONE
-	case CPU_EMU_CYCLONE:
-		md_set_cyclone(1);
-		pc = (cyclonecpu.pc - cyclonecpu.membase);
-		md_set_cyclone(0);
-		break;
-#endif
-	default:
-		pc = 0;
-	}
-	return pc;
+	m68k_state_dump();
+	return le2h32(m68k_state.pc);
 }
 
 /**
@@ -542,32 +516,8 @@ uint32_t md::m68k_get_pc()
  */
 uint16_t md::z80_get_pc()
 {
-	uint16_t pc;
-
-	switch (z80_core) {
-#ifdef WITH_CZ80
-	case Z80_CORE_CZ80:
-		pc = Cz80_Get_PC(&cz80);
-		break;
-#endif
-#ifdef WITH_MZ80
-	case Z80_CORE_MZ80:
-		md_set_mz80(1);
-		pc = z80.z80pc;
-		md_set_mz80(0);
-		break;
-#endif
-#ifdef WITH_DRZ80
-	case Z80_CORE_DRZ80:
-		md_set_drz80(1);
-		pc = (drz80.Z80PC - drz80.Z80PC_BASE);
-		md_set_drz80(0);
-		break;
-#endif
-	default:
-		pc = 0;
-	}
-	return pc;
+	z80_state_dump();
+	return le2h16(z80_state.pc);
 }
 
 /**
