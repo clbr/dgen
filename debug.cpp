@@ -490,7 +490,7 @@ bool md::debug_m68k_check_wps()
 		if (!(debug_wp_m68k[i].flags & BP_FLAG_USED))
 			break; // no wps after first disabled one
 		if (debug_should_m68k_wp_fire(&(debug_wp_m68k[i]))) {
-			printf("watchpoint #%d fired\n", i+1);
+			printf("m68k watchpoint #%d fired\n", i);
 			debug_wp_m68k[i].flags |= WP_FLAG_FIRED;
 			debug_print_m68k_wp(i);
 			debug_enter();
