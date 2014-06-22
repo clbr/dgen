@@ -735,7 +735,7 @@ public:
   int debug_cmd_watch(int n_args, char **args);
   int debug_cmd_minus_watch(int n_args, char **args);
   // misc
-  void debug_enter(void);
+  int debug_enter(void);
   void debug_leave(void);
   void debug_update_m68k_wp_cache(struct dgen_wp *w);
   void debug_update_z80_wp_cache(struct dgen_wp *w);

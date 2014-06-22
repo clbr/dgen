@@ -5154,8 +5154,8 @@ int pd_handle_events(md &megad)
 	intptr_t ksym;
 
 #ifdef WITH_DEBUGGER
-	if (megad.debug_trap)
-		megad.debug_enter();
+	if ((megad.debug_trap) && (megad.debug_enter() < 0))
+		return 0;
 #endif
   // Check key events
   while(SDL_PollEvent(&event))

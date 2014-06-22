@@ -1778,17 +1778,14 @@ out:
  *
  * @param n_args Number of arguments (ignored).
  * @param args List of arguments (ignored).
- * @return Always 1.
+ * @return Always -1.
  */
 int md::debug_cmd_quit(int n_args, char **args)
 {
 	(void) n_args;
 	(void) args;
-
-	printf("quit dgen - bye\n");
-	fflush(stdout);
-	exit (0);
-	return (1); // noreach
+	debug_leave();
+	return -1;
 }
 
 /**
@@ -2157,7 +2154,7 @@ void md::debug_leave()
 /**
  * Enter debugger and show command prompt.
  */
-void md::debug_enter()
+int md::debug_enter()
 {
 	char				*cmd, prompt[32];
 	char				*p, *next;
@@ -2165,6 +2162,7 @@ void md::debug_enter()
 	int				 n_toks = 0;
 	uint32_t			 m68k_pc = m68k_get_pc();
 	uint16_t			 z80_pc = z80_get_pc();
+	int				 ret;
 
 	if (debug_trap == false) {
 		pd_sound_pause();
@@ -2193,14 +2191,14 @@ void md::debug_enter()
 	default:
 		printf("unknown cpu. should not happen\n");
 		fflush(stdout);
-		return;
+		return 0;
 	};
 
 	if ((cmd = linenoise_nb(prompt)) == NULL) {
 		if (!linenoise_nb_eol())
-			return;
+			return 0;
 		linenoise_nb_clean();
-		return;
+		return 0;
 	}
 
 	linenoiseHistoryAdd((const char *)cmd);
@@ -2214,8 +2212,9 @@ void md::debug_enter()
 		next = NULL;
 	}
 
-	debug_despatch_cmd(n_toks,  toks);
+	ret = debug_despatch_cmd(n_toks,  toks);
 	free(cmd);
+	return ret;
 }
 
 
