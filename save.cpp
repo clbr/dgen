@@ -15,52 +15,28 @@ void md::m68k_state_dump()
 	  big-endian for compatibility with other emulators.
 	*/
 	switch (cpu_emu) {
-		unsigned int i, j;
-
 #ifdef WITH_MUSA
 	case CPU_EMU_MUSA:
-		md_set_musa(1);
-		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
-			m68k_state.d[j] =
-				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
-		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
-			m68k_state.a[j] =
-				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
-		m68k_state.pc = h2le32(m68k_get_reg(NULL, M68K_REG_PC));
-		m68k_state.sr = h2le16(m68k_get_reg(NULL, M68K_REG_SR));
-		md_set_musa(0);
+		if (md_set_musa(true))
+			md_set_musa_sync(false);
+		md_set_musa(false);
 		break;
 #endif
 #ifdef WITH_STAR
 	case CPU_EMU_STAR:
-		(void)j;
-		md_set_star(1);
-		for (i = 0; (i < 8); ++i) {
-			m68k_state.d[i] = h2le32(cpu.dreg[i]);
-			m68k_state.a[i] = h2le32(cpu.areg[i]);
-		}
-		m68k_state.pc = h2le32(cpu.pc);
-		m68k_state.sr = h2le16(cpu.sr);
-		md_set_star(0);
+		if (md_set_star(true))
+			md_set_star_sync(false);
+		md_set_star(false);
 		break;
 #endif
 #ifdef WITH_CYCLONE
 	case CPU_EMU_CYCLONE:
-		md_set_cyclone(1);
-		(void)j;
-		for (i = 0; (i < 8); ++i) {
-			m68k_state.d[i] = h2le32(cyclonecpu.d[i]);
-			m68k_state.a[i] = h2le32(cyclonecpu.a[i]);
-		}
-		m68k_state.pc = h2le32(cyclonecpu.pc-cyclonecpu.membase);
-		m68k_state.sr = h2le16(CycloneGetSr(&cyclonecpu));
-		md_set_cyclone(0);
+		if (md_set_cyclone(true))
+			md_set_cyclone_sync(false);
+		md_set_cyclone(false);
 		break;
 #endif
-
 	default:
-		(void)i;
-		(void)j;
 		break;
 	}
 }
@@ -69,53 +45,28 @@ void md::m68k_state_restore()
 {
 	/* 32 and 16-bit values are stored LSB first. */
 	switch (cpu_emu) {
-		unsigned int i, j;
-
 #ifdef WITH_MUSA
 	case CPU_EMU_MUSA:
-		md_set_musa(1);
-		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
-			m68k_set_reg((m68k_register_t)i,
-				     le2h32(m68k_state.d[j]));
-		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
-			m68k_set_reg((m68k_register_t)i,
-				     le2h32(m68k_state.a[j]));
-		m68k_set_reg(M68K_REG_PC, le2h32(m68k_state.pc));
-		m68k_set_reg(M68K_REG_SR, le2h16(m68k_state.sr));
-		md_set_musa(0);
+		if (md_set_musa(true))
+			md_set_musa_sync(true);
+		md_set_musa(false);
 		break;
 #endif
 #ifdef WITH_STAR
 	case CPU_EMU_STAR:
-		(void)j;
-		md_set_star(1);
-		for (i = 0; (i < 8); ++i) {
-			cpu.dreg[i] = le2h32(m68k_state.d[i]);
-			cpu.areg[i] = le2h32(m68k_state.a[i]);
-		}
-		cpu.pc = le2h32(m68k_state.pc);
-		cpu.sr = le2h16(m68k_state.sr);
-		md_set_star(0);
+		if (md_set_star(true))
+			md_set_star_sync(true);
+		md_set_star(false);
 		break;
 #endif
 #ifdef WITH_CYCLONE
 	case CPU_EMU_CYCLONE:
-		(void)j;
-		md_set_cyclone(1);
-		for (i = 0; (i < 8); ++i) {
-			cyclonecpu.d[i] = le2h32(m68k_state.d[i]);
-			cyclonecpu.a[i] = le2h32(m68k_state.a[i]);
-		}
-		cyclonecpu.membase = 0;
-		cyclonecpu.pc = cyclonecpu.checkpc(le2h32(m68k_state.pc));
-		CycloneSetSr(&cyclonecpu, le2h16(m68k_state.sr));
-		md_set_cyclone(0);
+		if (md_set_cyclone(true))
+			md_set_cyclone_sync(true);
+		md_set_cyclone(false);
 		break;
 #endif
-
 	default:
-		(void)i;
-		(void)j;
 		break;
 	}
 }
@@ -128,64 +79,23 @@ void md::z80_state_dump()
 	switch (z80_core) {
 #ifdef WITH_CZ80
 	case Z80_CORE_CZ80:
-		z80_state.alt[0].fa = h2le16(Cz80_Get_AF(&cz80));
-		z80_state.alt[0].cb = h2le16(Cz80_Get_BC(&cz80));
-		z80_state.alt[0].ed = h2le16(Cz80_Get_DE(&cz80));
-		z80_state.alt[0].lh = h2le16(Cz80_Get_HL(&cz80));
-		z80_state.alt[1].fa = h2le16(Cz80_Get_AF2(&cz80));
-		z80_state.alt[1].cb = h2le16(Cz80_Get_BC2(&cz80));
-		z80_state.alt[1].ed = h2le16(Cz80_Get_DE2(&cz80));
-		z80_state.alt[1].lh = h2le16(Cz80_Get_HL2(&cz80));
-		z80_state.ix = h2le16(Cz80_Get_IX(&cz80));
-		z80_state.iy = h2le16(Cz80_Get_IY(&cz80));
-		z80_state.sp = h2le16(Cz80_Get_SP(&cz80));
-		z80_state.pc = h2le16(Cz80_Get_PC(&cz80));
-		z80_state.r = Cz80_Get_R(&cz80);
-		z80_state.i = Cz80_Get_I(&cz80);
-		z80_state.iff = Cz80_Get_IFF(&cz80);
-		z80_state.im = Cz80_Get_IM(&cz80);
+		if (md_set_cz80(true))
+			md_set_cz80_sync(false);
+		md_set_cz80(false);
 		break;
 #endif
 #ifdef WITH_MZ80
 	case Z80_CORE_MZ80:
-		z80_state.alt[0].fa = h2le16(z80.z80AF);
-		z80_state.alt[0].cb = h2le16(z80.z80BC);
-		z80_state.alt[0].ed = h2le16(z80.z80DE);
-		z80_state.alt[0].lh = h2le16(z80.z80HL);
-		z80_state.alt[1].fa = h2le16(z80.z80afprime);
-		z80_state.alt[1].cb = h2le16(z80.z80bcprime);
-		z80_state.alt[1].ed = h2le16(z80.z80deprime);
-		z80_state.alt[1].lh = h2le16(z80.z80hlprime);
-		z80_state.ix = h2le16(z80.z80IX);
-		z80_state.iy = h2le16(z80.z80IY);
-		z80_state.sp = h2le16(z80.z80sp);
-		z80_state.pc = h2le16(z80.z80pc);
-		z80_state.r = z80.z80r;
-		z80_state.i = z80.z80i;
-		z80_state.iff = z80.z80iff;
-		z80_state.im = z80.z80interruptMode;
+		if (md_set_mz80(true))
+			md_set_mz80_sync(false);
+		md_set_mz80(false);
 		break;
 #endif
 #ifdef WITH_DRZ80
 	case Z80_CORE_DRZ80:
-		z80_state.alt[0].fa = h2le16(((drz80.Z80A >> 16) & 0xff00) |
-					     (drz80.Z80F >> 24));
-		z80_state.alt[0].cb = h2le16(drz80.Z80BC >> 16);
-		z80_state.alt[0].ed = h2le16(drz80.Z80DE >> 16);
-		z80_state.alt[0].lh = h2le16(drz80.Z80HL >> 16);
-		z80_state.alt[1].fa = h2le16(((drz80.Z80A2 >> 16) & 0xff00) |
-					     (drz80.Z80F2 >> 24));
-		z80_state.alt[1].cb = h2le16(drz80.Z80BC2 >> 16);
-		z80_state.alt[1].ed = h2le16(drz80.Z80DE2 >> 16);
-		z80_state.alt[1].lh = h2le16(drz80.Z80HL2 >> 16);
-		z80_state.ix = h2le16(drz80.Z80IX >> 16);
-		z80_state.iy = h2le16(drz80.Z80IY >> 16);
-		z80_state.sp = h2le16(drz80.Z80SP - drz80.Z80SP_BASE);
-		z80_state.pc = h2le16(drz80.Z80PC - drz80.Z80PC_BASE);
-		z80_state.r = drz80.Z80R;
-		z80_state.i = drz80.Z80I;
-		z80_state.iff = drz80.Z80IF;
-		z80_state.im = drz80.Z80IM;
+		if (md_set_drz80(true))
+			md_set_drz80_sync(false);
+		md_set_drz80(false);
 		break;
 #endif
 	default:
@@ -199,66 +109,23 @@ void md::z80_state_restore()
 	switch (z80_core) {
 #ifdef WITH_CZ80
 	case Z80_CORE_CZ80:
-		Cz80_Set_AF(&cz80, le2h16(z80_state.alt[0].fa));
-		Cz80_Set_BC(&cz80, le2h16(z80_state.alt[0].cb));
-		Cz80_Set_DE(&cz80, le2h16(z80_state.alt[0].ed));
-		Cz80_Set_HL(&cz80, le2h16(z80_state.alt[0].lh));
-		Cz80_Set_AF2(&cz80, le2h16(z80_state.alt[1].fa));
-		Cz80_Set_BC2(&cz80, le2h16(z80_state.alt[1].cb));
-		Cz80_Set_DE2(&cz80, le2h16(z80_state.alt[1].ed));
-		Cz80_Set_HL2(&cz80, le2h16(z80_state.alt[1].lh));
-		Cz80_Set_IX(&cz80, le2h16(z80_state.ix));
-		Cz80_Set_IY(&cz80, le2h16(z80_state.iy));
-		Cz80_Set_SP(&cz80, le2h16(z80_state.sp));
-		Cz80_Set_PC(&cz80, le2h16(z80_state.pc));
-		Cz80_Set_R(&cz80, z80_state.r);
-		Cz80_Set_I(&cz80, z80_state.i);
-		Cz80_Set_IFF(&cz80, z80_state.iff);
-		Cz80_Set_IM(&cz80, z80_state.im);
+		if (md_set_cz80(true))
+			md_set_cz80_sync(true);
+		md_set_cz80(false);
 		break;
 #endif
 #ifdef WITH_MZ80
 	case Z80_CORE_MZ80:
-		z80.z80AF = le2h16(z80_state.alt[0].fa);
-		z80.z80BC = le2h16(z80_state.alt[0].cb);
-		z80.z80DE = le2h16(z80_state.alt[0].ed);
-		z80.z80HL = le2h16(z80_state.alt[0].lh);
-		z80.z80afprime = le2h16(z80_state.alt[1].fa);
-		z80.z80bcprime = le2h16(z80_state.alt[1].cb);
-		z80.z80deprime = le2h16(z80_state.alt[1].ed);
-		z80.z80hlprime = le2h16(z80_state.alt[1].lh);
-		z80.z80IX = le2h16(z80_state.ix);
-		z80.z80IY = le2h16(z80_state.iy);
-		z80.z80sp = le2h16(z80_state.sp);
-		z80.z80pc = le2h16(z80_state.pc);
-		z80.z80r = z80_state.r;
-		z80.z80i = z80_state.i;
-		z80.z80iff = z80_state.iff;
-		z80.z80interruptMode = z80_state.im;
+		if (md_set_mz80(true))
+			md_set_mz80_sync(true);
+		md_set_mz80(false);
 		break;
 #endif
 #ifdef WITH_DRZ80
 	case Z80_CORE_DRZ80:
-		drz80.Z80A = ((le2h16(z80_state.alt[0].fa) & 0xff00) << 16);
-		drz80.Z80F = ((le2h16(z80_state.alt[0].fa) & 0x00ff) << 24);
-		drz80.Z80BC = (le2h16(z80_state.alt[0].cb) << 16);
-		drz80.Z80DE = (le2h16(z80_state.alt[0].ed) << 16);
-		drz80.Z80HL = (le2h16(z80_state.alt[0].lh) << 16);
-		drz80.Z80A2 = ((le2h16(z80_state.alt[1].fa) & 0xff00) << 16);
-		drz80.Z80F2 = ((le2h16(z80_state.alt[1].fa) & 0x00ff) << 24);
-		drz80.Z80BC2 = (le2h16(z80_state.alt[1].cb) << 16);
-		drz80.Z80DE2 = (le2h16(z80_state.alt[1].ed) << 16);
-		drz80.Z80HL2 = (le2h16(z80_state.alt[1].lh) << 16);
-		drz80.Z80IX = (le2h16(z80_state.ix) << 16);
-		drz80.Z80IY = (le2h16(z80_state.iy) << 16);
-		drz80.Z80SP_BASE = (uintptr_t)z80ram;
-		drz80.Z80PC_BASE = (uintptr_t)z80ram;
-		drz80.Z80SP = drz80.Z80SP_BASE + le2h16(z80_state.sp);
-		drz80.Z80PC = drz80.Z80PC_BASE + le2h16(z80_state.pc);
-		drz80.Z80R = z80_state.r;
-		drz80.Z80I = z80_state.i;
-		drz80.Z80IF = z80_state.iff;
-		drz80.Z80IM = z80_state.im;
+		if (md_set_drz80(true))
+			md_set_drz80_sync(true);
+		md_set_drz80(false);
 		break;
 #endif
 	default:

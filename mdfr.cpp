@@ -21,24 +21,54 @@
 #ifdef WITH_MUSA
 class md* md::md_musa(0);
 
-void md::md_set_musa(bool set)
+bool md::md_set_musa(bool set)
 {
 	if (set) {
 		++md_musa_ref;
 		if (md_musa == this)
-			return;
-		m68k_set_context(ctx_musa);
+			return true;
 		md_musa_prev = md_musa;
 		md_musa = this;
+		md_set_musa_sync(true);
+		return false;
 	}
 	else {
 		if (md_musa != this)
 			abort();
 		if (--md_musa_ref != 0)
-			return;
-		m68k_get_context(ctx_musa);
+			return true;
+		md_set_musa_sync(false);
 		md_musa = md_musa_prev;
 		md_musa_prev = 0;
+		return true;
+	}
+}
+
+void md::md_set_musa_sync(bool push)
+{
+	unsigned int i, j;
+
+	if (push) {
+		m68k_set_context(ctx_musa);
+		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
+			m68k_set_reg((m68k_register_t)i,
+				     le2h32(m68k_state.d[j]));
+		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
+			m68k_set_reg((m68k_register_t)i,
+				     le2h32(m68k_state.a[j]));
+		m68k_set_reg(M68K_REG_PC, le2h32(m68k_state.pc));
+		m68k_set_reg(M68K_REG_SR, le2h16(m68k_state.sr));
+	}
+	else {
+		for (i = M68K_REG_D0, j = 0; (i <= M68K_REG_D7); ++i, ++j)
+			m68k_state.d[j] =
+				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
+		for (i = M68K_REG_A0, j = 0; (i <= M68K_REG_A7); ++i, ++j)
+			m68k_state.a[j] =
+				h2le32(m68k_get_reg(NULL, (m68k_register_t)i));
+		m68k_state.pc = h2le32(m68k_get_reg(NULL, M68K_REG_PC));
+		m68k_state.sr = h2le16(m68k_get_reg(NULL, M68K_REG_SR));
+		m68k_get_context(ctx_musa);
 	}
 }
 #endif // WITH_MUSA
@@ -46,24 +76,50 @@ void md::md_set_musa(bool set)
 #ifdef WITH_STAR
 class md* md::md_star(0);
 
-void md::md_set_star(bool set)
+bool md::md_set_star(bool set)
 {
 	if (set) {
 		++md_star_ref;
 		if (md_star == this)
-			return;
-		s68000SetContext(&cpu);
+			return true;
 		md_star_prev = md_star;
 		md_star = this;
+		md_set_star_sync(true);
+		return false;
 	}
 	else {
 		if (md_star != this)
 			abort();
 		if (--md_star_ref != 0)
-			return;
-		s68000GetContext(&cpu);
+			return true;
+		md_set_star_sync(false);
 		md_star = md_star_prev;
 		md_star_prev = 0;
+		return true;
+	}
+}
+
+void md::md_set_star_sync(bool push)
+{
+	unsigned int i;
+
+	if (push) {
+		for (i = 0; (i < 8); ++i) {
+			cpu.dreg[i] = le2h32(m68k_state.d[i]);
+			cpu.areg[i] = le2h32(m68k_state.a[i]);
+		}
+		cpu.pc = le2h32(m68k_state.pc);
+		cpu.sr = le2h16(m68k_state.sr);
+		s68000SetContext(&cpu);
+	}
+	else {
+		s68000GetContext(&cpu);
+		for (i = 0; (i < 8); ++i) {
+			m68k_state.d[i] = h2le32(cpu.dreg[i]);
+			m68k_state.a[i] = h2le32(cpu.areg[i]);
+		}
+		m68k_state.pc = h2le32(cpu.pc);
+		m68k_state.sr = h2le16(cpu.sr);
 	}
 }
 #endif // WITH_STAR
@@ -71,47 +127,178 @@ void md::md_set_star(bool set)
 #ifdef WITH_CYCLONE
 class md* md::md_cyclone(0);
 
-void md::md_set_cyclone(bool set)
+bool md::md_set_cyclone(bool set)
 {
 	if (set) {
 		++md_cyclone_ref;
 		if (md_cyclone == this)
-			return;
+			return true;
 		md_cyclone_prev = md_cyclone;
 		md_cyclone = this;
+		md_set_cyclone_sync(true);
+		return false;
 	}
 	else {
 		if (md_cyclone != this)
 			abort();
 		if (--md_cyclone_ref != 0)
-			return;
+			return true;
+		md_set_cyclone_sync(false);
 		md_cyclone = md_cyclone_prev;
 		md_cyclone_prev = 0;
+		return true;
+	}
+}
+
+void md::md_set_cyclone_sync(bool push)
+{
+	unsigned int i;
+
+	if (push) {
+		for (i = 0; (i < 8); ++i) {
+			cyclonecpu.d[i] = le2h32(m68k_state.d[i]);
+			cyclonecpu.a[i] = le2h32(m68k_state.a[i]);
+		}
+		cyclonecpu.membase = 0;
+		cyclonecpu.pc = cyclonecpu.checkpc(le2h32(m68k_state.pc));
+		CycloneSetSr(&cyclonecpu, le2h16(m68k_state.sr));
+	}
+	else {
+		for (i = 0; (i < 8); ++i) {
+			m68k_state.d[i] = h2le32(cyclonecpu.d[i]);
+			m68k_state.a[i] = h2le32(cyclonecpu.a[i]);
+		}
+		m68k_state.pc = h2le32(cyclonecpu.pc-cyclonecpu.membase);
+		m68k_state.sr = h2le16(CycloneGetSr(&cyclonecpu));
 	}
 }
 #endif // WITH_CYCLONE
 
+#ifdef WITH_CZ80
+bool md::md_set_cz80(bool set)
+{
+	if (set) {
+		if (md_cz80_ref++)
+			return true;
+		md_set_cz80_sync(true);
+		return false;
+	}
+	else {
+		if (md_cz80_ref == 0)
+			abort();
+		if (--md_cz80_ref)
+			return true;
+		md_set_cz80_sync(false);
+		return true;
+	}
+}
+
+void md::md_set_cz80_sync(bool push)
+{
+	if (push) {
+		Cz80_Set_AF(&cz80, le2h16(z80_state.alt[0].fa));
+		Cz80_Set_BC(&cz80, le2h16(z80_state.alt[0].cb));
+		Cz80_Set_DE(&cz80, le2h16(z80_state.alt[0].ed));
+		Cz80_Set_HL(&cz80, le2h16(z80_state.alt[0].lh));
+		Cz80_Set_AF2(&cz80, le2h16(z80_state.alt[1].fa));
+		Cz80_Set_BC2(&cz80, le2h16(z80_state.alt[1].cb));
+		Cz80_Set_DE2(&cz80, le2h16(z80_state.alt[1].ed));
+		Cz80_Set_HL2(&cz80, le2h16(z80_state.alt[1].lh));
+		Cz80_Set_IX(&cz80, le2h16(z80_state.ix));
+		Cz80_Set_IY(&cz80, le2h16(z80_state.iy));
+		Cz80_Set_SP(&cz80, le2h16(z80_state.sp));
+		Cz80_Set_PC(&cz80, le2h16(z80_state.pc));
+		Cz80_Set_R(&cz80, z80_state.r);
+		Cz80_Set_I(&cz80, z80_state.i);
+		Cz80_Set_IFF(&cz80, z80_state.iff);
+		Cz80_Set_IM(&cz80, z80_state.im);
+	}
+	else {
+		z80_state.alt[0].fa = h2le16(Cz80_Get_AF(&cz80));
+		z80_state.alt[0].cb = h2le16(Cz80_Get_BC(&cz80));
+		z80_state.alt[0].ed = h2le16(Cz80_Get_DE(&cz80));
+		z80_state.alt[0].lh = h2le16(Cz80_Get_HL(&cz80));
+		z80_state.alt[1].fa = h2le16(Cz80_Get_AF2(&cz80));
+		z80_state.alt[1].cb = h2le16(Cz80_Get_BC2(&cz80));
+		z80_state.alt[1].ed = h2le16(Cz80_Get_DE2(&cz80));
+		z80_state.alt[1].lh = h2le16(Cz80_Get_HL2(&cz80));
+		z80_state.ix = h2le16(Cz80_Get_IX(&cz80));
+		z80_state.iy = h2le16(Cz80_Get_IY(&cz80));
+		z80_state.sp = h2le16(Cz80_Get_SP(&cz80));
+		z80_state.pc = h2le16(Cz80_Get_PC(&cz80));
+		z80_state.r = Cz80_Get_R(&cz80);
+		z80_state.i = Cz80_Get_I(&cz80);
+		z80_state.iff = Cz80_Get_IFF(&cz80);
+		z80_state.im = Cz80_Get_IM(&cz80);
+	}
+}
+#endif // WITH_CZ80
+
 #ifdef WITH_MZ80
 class md* md::md_mz80(0);
 
-void md::md_set_mz80(bool set)
+bool md::md_set_mz80(bool set)
 {
 	if (set) {
 		++md_mz80_ref;
 		if (md_mz80 == this)
-			return;
-		mz80SetContext(&z80);
+			return true;
 		md_mz80_prev = md_mz80;
 		md_mz80 = this;
+		md_set_mz80_sync(true);
+		return false;
 	}
 	else {
 		if (md_mz80 != this)
 			abort();
 		if (--md_mz80_ref != 0)
-			return;
-		mz80GetContext(&z80);
+			return true;
+		md_set_mz80_sync(false);
 		md_mz80 = md_mz80_prev;
 		md_mz80_prev = 0;
+		return true;
+	}
+}
+
+void md::md_set_mz80_sync(bool push)
+{
+	if (push) {
+		z80.z80AF = le2h16(z80_state.alt[0].fa);
+		z80.z80BC = le2h16(z80_state.alt[0].cb);
+		z80.z80DE = le2h16(z80_state.alt[0].ed);
+		z80.z80HL = le2h16(z80_state.alt[0].lh);
+		z80.z80afprime = le2h16(z80_state.alt[1].fa);
+		z80.z80bcprime = le2h16(z80_state.alt[1].cb);
+		z80.z80deprime = le2h16(z80_state.alt[1].ed);
+		z80.z80hlprime = le2h16(z80_state.alt[1].lh);
+		z80.z80IX = le2h16(z80_state.ix);
+		z80.z80IY = le2h16(z80_state.iy);
+		z80.z80sp = le2h16(z80_state.sp);
+		z80.z80pc = le2h16(z80_state.pc);
+		z80.z80r = z80_state.r;
+		z80.z80i = z80_state.i;
+		z80.z80iff = z80_state.iff;
+		z80.z80interruptMode = z80_state.im;
+		mz80SetContext(&z80);
+	}
+	else {
+		mz80GetContext(&z80);
+		z80_state.alt[0].fa = h2le16(z80.z80AF);
+		z80_state.alt[0].cb = h2le16(z80.z80BC);
+		z80_state.alt[0].ed = h2le16(z80.z80DE);
+		z80_state.alt[0].lh = h2le16(z80.z80HL);
+		z80_state.alt[1].fa = h2le16(z80.z80afprime);
+		z80_state.alt[1].cb = h2le16(z80.z80bcprime);
+		z80_state.alt[1].ed = h2le16(z80.z80deprime);
+		z80_state.alt[1].lh = h2le16(z80.z80hlprime);
+		z80_state.ix = h2le16(z80.z80IX);
+		z80_state.iy = h2le16(z80.z80IY);
+		z80_state.sp = h2le16(z80.z80sp);
+		z80_state.pc = h2le16(z80.z80pc);
+		z80_state.r = z80.z80r;
+		z80_state.i = z80.z80i;
+		z80_state.iff = z80.z80iff;
+		z80_state.im = z80.z80interruptMode;
 	}
 }
 #endif // WITH_MZ80
@@ -119,22 +306,72 @@ void md::md_set_mz80(bool set)
 #ifdef WITH_DRZ80
 class md* md::md_drz80(0);
 
-void md::md_set_drz80(bool set)
+bool md::md_set_drz80(bool set)
 {
 	if (set) {
 		++md_drz80_ref;
 		if (md_drz80 == this)
-			return;
+			return true;
 		md_drz80_prev = md_drz80;
 		md_drz80 = this;
+		md_set_drz80_sync(true);
+		return false;
 	}
 	else {
 		if (md_drz80 != this)
 			abort();
 		if (--md_drz80_ref != 0)
-			return;
+			return true;
+		md_set_drz80_sync(false);
 		md_drz80 = md_drz80_prev;
 		md_drz80_prev = 0;
+		return true;
+	}
+}
+
+void md::md_set_drz80_sync(bool push)
+{
+	if (push) {
+		drz80.Z80A = ((le2h16(z80_state.alt[0].fa) & 0xff00) << 16);
+		drz80.Z80F = ((le2h16(z80_state.alt[0].fa) & 0x00ff) << 24);
+		drz80.Z80BC = (le2h16(z80_state.alt[0].cb) << 16);
+		drz80.Z80DE = (le2h16(z80_state.alt[0].ed) << 16);
+		drz80.Z80HL = (le2h16(z80_state.alt[0].lh) << 16);
+		drz80.Z80A2 = ((le2h16(z80_state.alt[1].fa) & 0xff00) << 16);
+		drz80.Z80F2 = ((le2h16(z80_state.alt[1].fa) & 0x00ff) << 24);
+		drz80.Z80BC2 = (le2h16(z80_state.alt[1].cb) << 16);
+		drz80.Z80DE2 = (le2h16(z80_state.alt[1].ed) << 16);
+		drz80.Z80HL2 = (le2h16(z80_state.alt[1].lh) << 16);
+		drz80.Z80IX = (le2h16(z80_state.ix) << 16);
+		drz80.Z80IY = (le2h16(z80_state.iy) << 16);
+		drz80.Z80SP_BASE = (uintptr_t)z80ram;
+		drz80.Z80PC_BASE = (uintptr_t)z80ram;
+		drz80.Z80SP = (drz80.Z80SP_BASE + le2h16(z80_state.sp));
+		drz80.Z80PC = (drz80.Z80PC_BASE + le2h16(z80_state.pc));
+		drz80.Z80R = z80_state.r;
+		drz80.Z80I = z80_state.i;
+		drz80.Z80IF = z80_state.iff;
+		drz80.Z80IM = z80_state.im;
+	}
+	else {
+		z80_state.alt[0].fa = h2le16(((drz80.Z80A >> 16) & 0xff00) |
+					     (drz80.Z80F >> 24));
+		z80_state.alt[0].cb = h2le16(drz80.Z80BC >> 16);
+		z80_state.alt[0].ed = h2le16(drz80.Z80DE >> 16);
+		z80_state.alt[0].lh = h2le16(drz80.Z80HL >> 16);
+		z80_state.alt[1].fa = h2le16(((drz80.Z80A2 >> 16) & 0xff00) |
+					     (drz80.Z80F2 >> 24));
+		z80_state.alt[1].cb = h2le16(drz80.Z80BC2 >> 16);
+		z80_state.alt[1].ed = h2le16(drz80.Z80DE2 >> 16);
+		z80_state.alt[1].lh = h2le16(drz80.Z80HL2 >> 16);
+		z80_state.ix = h2le16(drz80.Z80IX >> 16);
+		z80_state.iy = h2le16(drz80.Z80IY >> 16);
+		z80_state.sp = h2le16(drz80.Z80SP - drz80.Z80SP_BASE);
+		z80_state.pc = h2le16(drz80.Z80PC - drz80.Z80PC_BASE);
+		z80_state.r = drz80.Z80R;
+		z80_state.i = drz80.Z80I;
+		z80_state.iff = drz80.Z80IF;
+		z80_state.im = drz80.Z80IM;
 	}
 }
 #endif // WITH_DRZ80
@@ -158,14 +395,22 @@ void md::md_set(bool set)
 	else
 #endif
 		(void)0;
+#ifdef WITH_CZ80
+	if (z80_core == Z80_CORE_CZ80)
+		md_set_cz80(set);
+	else
+#endif
 #ifdef WITH_MZ80
 	if (z80_core == Z80_CORE_MZ80)
 		md_set_mz80(set);
+	else
 #endif
 #ifdef WITH_DRZ80
 	if (z80_core == Z80_CORE_DRZ80)
 		md_set_drz80(set);
+	else
 #endif
+		(void)0;
 }
 
 // Return PC data.

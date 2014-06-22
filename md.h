@@ -331,14 +331,16 @@ public:
 	unsigned int md_musa_ref;
 	class md* md_musa_prev;
 
-	void md_set_musa(bool set);
+	bool md_set_musa(bool set);
+	void md_set_musa_sync(bool push);
 #endif
 #ifdef WITH_CYCLONE
 	static class md* md_cyclone;
 	unsigned int md_cyclone_ref;
 	class md* md_cyclone_prev;
 
-	void md_set_cyclone(bool set);
+	bool md_set_cyclone(bool set);
+	void md_set_cyclone_sync(bool push);
 	uintptr_t checkpc(uintptr_t pc);
 #endif
 #ifdef WITH_STAR
@@ -346,21 +348,30 @@ public:
 	unsigned int md_star_ref;
 	class md* md_star_prev;
 
-	void md_set_star(bool set);
+	bool md_set_star(bool set);
+	void md_set_star_sync(bool push);
+#endif
+#ifdef WITH_CZ80
+	unsigned int md_cz80_ref;
+
+	bool md_set_cz80(bool set);
+	void md_set_cz80_sync(bool push);
 #endif
 #ifdef WITH_MZ80
 	static class md* md_mz80;
 	unsigned int md_mz80_ref;
 	class md* md_mz80_prev;
 
-	void md_set_mz80(bool set);
+	bool md_set_mz80(bool set);
+	void md_set_mz80_sync(bool push);
 #endif
 #ifdef WITH_DRZ80
 	static class md* md_drz80;
 	unsigned int md_drz80_ref;
 	class md* md_drz80_prev;
 
-	void md_set_drz80(bool set);
+	bool md_set_drz80(bool set);
+	void md_set_drz80_sync(bool push);
 #endif
 	void md_set(bool set);
 

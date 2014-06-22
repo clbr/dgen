@@ -534,6 +534,9 @@ md::md(bool pal, char region):
 #ifdef WITH_STAR
 	md_star_ref(0), md_star_prev(0),
 #endif
+#ifdef WITH_CZ80
+	md_cz80_ref(0),
+#endif
 #ifdef WITH_MZ80
 	md_mz80_ref(0), md_mz80_prev(0),
 #endif
