@@ -726,7 +726,7 @@ void rc_binding_del(rc_field *rcf)
 		containerof(rcf->variable, struct rc_binding, to);
 
 	assert(rcf >= &rc_fields[0]);
-	assert(rcf < &rc_fields[(sizeof(rc_fields) - 1)]);
+	assert(rcf < &rc_fields[elemof(rc_fields)]);
 	assert(rcf->fieldname != NULL);
 	assert(rcf->parser != NULL);
 	assert(rcf->variable != NULL);
@@ -749,7 +749,7 @@ void rc_binding_del(rc_field *rcf)
 		++rcf;
 	}
 	while (rcf->fieldname != NULL);
-	assert(rcf < &rc_fields[(sizeof(rc_fields) - 1)]);
+	assert(rcf < &rc_fields[elemof(rc_fields)]);
 }
 
 intptr_t rc_bind(const char *value, intptr_t *variable)
