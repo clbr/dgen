@@ -333,7 +333,7 @@ void md::md_set_drz80_sync(bool push)
 {
 	if (push) {
 		drz80.Z80A = ((le2h16(z80_state.alt[0].fa) & 0xff00) << 16);
-		drz80.Z80F = ((le2h16(z80_state.alt[0].fa) & 0x00ff) << 24);
+		drz80.Z80F = (le2h16(z80_state.alt[0].fa) & 0x00ff);
 		drz80.Z80BC = (le2h16(z80_state.alt[0].cb) << 16);
 		drz80.Z80DE = (le2h16(z80_state.alt[0].ed) << 16);
 		drz80.Z80HL = (le2h16(z80_state.alt[0].lh) << 16);
@@ -355,12 +355,12 @@ void md::md_set_drz80_sync(bool push)
 	}
 	else {
 		z80_state.alt[0].fa = h2le16(((drz80.Z80A >> 16) & 0xff00) |
-					     (drz80.Z80F >> 24));
+					     (drz80.Z80F & 0x00ff));
 		z80_state.alt[0].cb = h2le16(drz80.Z80BC >> 16);
 		z80_state.alt[0].ed = h2le16(drz80.Z80DE >> 16);
 		z80_state.alt[0].lh = h2le16(drz80.Z80HL >> 16);
 		z80_state.alt[1].fa = h2le16(((drz80.Z80A2 >> 16) & 0xff00) |
-					     (drz80.Z80F2 >> 24));
+					     ((drz80.Z80F2 >> 24) & 0x00ff));
 		z80_state.alt[1].cb = h2le16(drz80.Z80BC2 >> 16);
 		z80_state.alt[1].ed = h2le16(drz80.Z80DE2 >> 16);
 		z80_state.alt[1].lh = h2le16(drz80.Z80HL2 >> 16);
