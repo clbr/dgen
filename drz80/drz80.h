@@ -34,15 +34,15 @@ struct DrZ80
 { 
   unsigned int Z80PC;           /*0x00 - PC Program Counter (Memory Base + PC) */
   unsigned int Z80A;            /*0x04 - A Register:   0xAA------ */
-  unsigned int Z80F;            /*0x08 - F Register:   0xFF------ */
+  unsigned int Z80F;            /*0x08 - F Register:   0x------FF */
   unsigned int Z80BC;           /*0x0C - BC Registers: 0xBBCC---- */
   unsigned int Z80DE;           /*0x10 - DE Registers: 0xDDEE---- */
   unsigned int Z80HL;           /*0x14 - HL Registers: 0xHHLL---- */
   unsigned int Z80SP;           /*0x18 - SP Stack Pointer (Memory Base + PC) */
   unsigned int Z80PC_BASE;      /*0x1C - PC Program Counter (Memory Base) */
   unsigned int Z80SP_BASE;      /*0x20 - SP Stack Pointer (Memory Base) */
-  unsigned int Z80IX;           /*0x24 - IX Index Register */
-  unsigned int Z80IY;           /*0x28 - IY Index Register */
+  unsigned int Z80IX;           /*0x24 - IX Index Register 0xIXIX---- */
+  unsigned int Z80IY;           /*0x28 - IY Index Register 0xIYIY---- */
   unsigned int Z80I;            /*0x2C - I Interrupt Register */
   unsigned int Z80A2;           /*0x30 - A' Register:    0xAA------ */
   unsigned int Z80F2;           /*0x34 - F' Register:    0xFF------ */
