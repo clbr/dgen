@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
 	unsigned char (*pbm_contents)[width][h];
 
-	if ((pbm_contents = malloc(sizeof(*pbm_contents))) == NULL)
+	if ((pbm_contents = calloc(1, sizeof(*pbm_contents))) == NULL)
 		goto invalid;
 	for (y = 0; (y < h); ++y)
 		for (x = 0; (x < width); ++x) {

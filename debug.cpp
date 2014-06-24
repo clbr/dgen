@@ -980,7 +980,7 @@ void md::debug_update_m68k_wp_cache(struct dgen_wp *w)
 	unsigned char		*p;
 
 	p = w->bytes;
-	for (addr = w->start_addr, p = w->bytes; addr <= w->end_addr; addr++) {
+	for (addr = w->start_addr; addr <= w->end_addr; addr++) {
 		*(p++) = misc_readbyte(addr);
 	}
 }
@@ -1222,7 +1222,7 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 
 #define REG0(id, idx) { \
 	# id # idx, \
-	offsetof(m68k_state_t, id[idx]), \
+	((uintptr_t)&m68k_state.id[idx] - (uintptr_t)&m68k_state), \
 	sizeof(m68k_state.id[idx]) \
 }
 
@@ -1230,7 +1230,7 @@ int md::debug_cmd_setbwlr(int n_args, char **args, unsigned int type)
 
 #define REG2(id, idx, name) { \
 	name, \
-	offsetof(z80_state_t, alt[idx].id), \
+	((uintptr_t)&z80_state.alt[idx].id - (uintptr_t)&z80_state), \
 	sizeof(z80_state.alt[idx].id) \
 }
 
@@ -1661,15 +1661,12 @@ int md::debug_cmd_count(int n_args, char **args)
 	else
 		debug_instr_count_enabled = !debug_instr_count_enabled;
 	printf("instructions counters ");
-	switch (debug_instr_count_enabled) {
-	case false:
+	if (!debug_instr_count_enabled)
 		printf("disabled.\n");
-		break;
-	default:
+	else {
 		debug_m68k_instr_count = 0;
 		debug_z80_instr_count = 0;
 		printf("enabled.\n");
-		break;
 	}
 out:
 	fflush(stdout);

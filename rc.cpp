@@ -442,11 +442,9 @@ intptr_t rc_string(const char *value, intptr_t *)
 
 	if ((val = strdup(value)) == NULL)
 		return -1;
-	/* Just in case... */
-	if ((intptr_t)val == -1) {
-		free(val);
-		return -1;
-	}
+	// -1 is reserved, thus invalid. Should not happen anyway.
+	if ((intptr_t)val == -1)
+		abort();
 	return (intptr_t)val;
 }
 
@@ -696,13 +694,14 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 	// Allocate binding.
 	if ((rcb = (struct rc_binding *)malloc(sizeof(*rcb) + rc_sz)) == NULL)
 		return NULL;
-	if (((new_to = strdup(to)) == NULL) || ((intptr_t)new_to == -1)) {
-		// Either strdup() failed, or this pointer equals -1 and
-		// it's invalid ((intptr_t)-1 is special).
+	if ((new_to = strdup(to)) == NULL) {
 		free(new_to);
 		free(rcb);
 		return NULL;
 	}
+	// -1 is reserved, thus invalid. Should not happen anyway.
+	if ((intptr_t)new_to == -1)
+		abort();
 	// Configure binding.
 	rcb->prev = rc_binding_head.prev;
 	rcb->next = &rc_binding_head;
@@ -764,13 +763,14 @@ intptr_t rc_bind(const char *value, intptr_t *variable)
 	assert(rcb->rc != NULL);
 	assert(rcb->to != NULL);
 	assert((intptr_t)rcb->to != -1);
-	if (((to = strdup(value)) == NULL) || ((intptr_t)to == -1)) {
-		// Either strdup() failed, or this pointer equals -1 and
-		// it's invalid ((intptr_t)-1 is special).
+	if ((to = strdup(value)) == NULL) {
 		free(to);
 		// Get the previous value.
 		to = rcb->to;
 	}
+	// -1 is reserved, thus invalid. Should not happen anyway.
+	else if ((intptr_t)to == -1)
+		abort();
 	else
 		free(rcb->to);
 	rcb->to = NULL; // Will be updated by the return value.

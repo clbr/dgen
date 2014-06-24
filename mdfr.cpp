@@ -974,7 +974,6 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 	coo5 |= 0x08;
 	if (--hints < 0) {
 		// Trigger hint
-		hints = vdp.reg[10];
 		vdp.hint_pending = true;
 		m68k_vdp_irq_trigger();
 	}

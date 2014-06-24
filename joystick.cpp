@@ -28,7 +28,7 @@ void md::init_joysticks()
 		return;
 	}
 	fprintf(stderr, "joystick: %d joystick(s) found\n", n);
-	tmp = (SDL_Joystick *(*)[])malloc(sizeof((*tmp)[0]) * n);
+	*(void **)&tmp = malloc(sizeof((*tmp)[0]) * n);
 	if (tmp == NULL) {
 		fprintf(stderr, "joystick: unable to allocate memory\n");
 		return;
