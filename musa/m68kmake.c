@@ -710,8 +710,6 @@ int extract_opcode_info(char* src, char* name, int* size, char* spec_proc, char*
 
 	ptr += check_strcncpy(spec_ea, ptr, ')', MAX_SPEC_EA_LENGTH);
 	if(*ptr != ')') return 0;
-	ptr++;
-	ptr += skip_spaces(ptr);
 
 	return 1;
 }
@@ -994,7 +992,7 @@ void process_opcode_handlers(FILE* filep)
 	FILE* input_file = g_input_file;
 	char func_name[MAX_LINE_LENGTH+1];
 	char oper_name[MAX_LINE_LENGTH+1];
-	int  oper_size;
+	int  oper_size = 0;
 	char oper_spec_proc[MAX_LINE_LENGTH+1];
 	char oper_spec_ea[MAX_LINE_LENGTH+1];
 	opcode_struct* opinfo;
