@@ -748,6 +748,7 @@ struct filter {
 
 static filter_func_t filter_scale;
 static filter_func_t filter_off;
+static filter_func_t filter_stretch;
 #ifdef WITH_SCALE2X
 static filter_func_t filter_scale2x;
 #endif
@@ -765,6 +766,7 @@ static void set_swab();
 
 static const struct filter filters_available[] = {
 	{ "default", filter_scale, false, false, true },
+	{ "stretch", filter_stretch, false, false, true },
 #ifdef WITH_SCALE2X
 	{ "scale2x", filter_scale2x, false, false, true },
 #endif
@@ -1960,6 +1962,229 @@ static void filter_scale(const struct filter_data *in,
 	out->buf.u8 += (out->pitch * y_off);
 	out->width = width;
 	out->height = height;
+	out->updated = true;
+	goto process;
+}
+
+struct filter_stretch_data {
+	uint8_t *h_table;
+	uint8_t *v_table;
+	filter_func_t *filter;
+};
+
+template <typename uintX_t>
+static void filter_stretch_X(const struct filter_data *in,
+			     struct filter_data *out)
+{
+	struct filter_stretch_data *data =
+		(struct filter_stretch_data *)out->data;
+	uint8_t *h_table = data->h_table;
+	uint8_t *v_table = data->v_table;
+	uintX_t *dst = (uintX_t *)out->buf.u8;
+	unsigned int dst_pitch = out->pitch;
+	unsigned int dst_w = out->width;
+	uintX_t *src = (uintX_t *)in->buf.u8;
+	unsigned int src_pitch = in->pitch;
+	unsigned int src_w = in->width;
+	unsigned int src_h = in->height;
+	unsigned int src_y;
+
+	dst_pitch /= sizeof(*dst);
+	src_pitch /= sizeof(*src);
+	for (src_y = 0; (src_y != src_h); ++src_y) {
+		uint8_t v_repeat = v_table[src_y];
+		unsigned int src_x;
+		unsigned int dst_x;
+
+		if (!v_repeat) {
+			src += src_pitch;
+			continue;
+		}
+		for (src_x = 0, dst_x = 0; (src_x != src_w); ++src_x) {
+			uint8_t h_repeat = h_table[src_x];
+
+			if (!h_repeat)
+				continue;
+			while (h_repeat--)
+				dst[dst_x++] = src[src_x];
+		}
+		dst += dst_pitch;
+		while (--v_repeat) {
+			memcpy(dst, (dst - dst_pitch), (dst_w * sizeof(*dst)));
+			dst += dst_pitch;
+		}
+		src += src_pitch;
+	}
+}
+
+static void filter_stretch_3(const struct filter_data *in,
+			     struct filter_data *out)
+{
+	struct filter_stretch_data *data =
+		(struct filter_stretch_data *)out->data;
+	uint8_t *h_table = data->h_table;
+	uint8_t *v_table = data->v_table;
+	uint24_t *dst = out->buf.u24;
+	unsigned int dst_pitch = out->pitch;
+	unsigned int dst_w = out->width;
+	uint24_t *src = in->buf.u24;
+	unsigned int src_pitch = in->pitch;
+	unsigned int src_w = in->width;
+	unsigned int src_h = in->height;
+	unsigned int src_y;
+
+	dst_pitch /= sizeof(*dst);
+	src_pitch /= sizeof(*src);
+	for (src_y = 0; (src_y != src_h); ++src_y) {
+		uint8_t v_repeat = v_table[src_y];
+		unsigned int src_x;
+		unsigned int dst_x;
+
+		if (!v_repeat) {
+			src += src_pitch;
+			continue;
+		}
+		for (src_x = 0, dst_x = 0; (src_x != src_w); ++src_x) {
+			uint8_t h_repeat = h_table[src_x];
+
+			if (!h_repeat)
+				continue;
+			while (h_repeat--)
+				u24cpy(&dst[dst_x++], &src[src_x]);
+		}
+		dst += dst_pitch;
+		while (--v_repeat) {
+			memcpy(dst, (dst - dst_pitch), (dst_w * sizeof(*dst)));
+			dst += dst_pitch;
+		}
+		src += src_pitch;
+	}
+}
+
+/**
+ * This filter stretches the input buffer to fill the entire output.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
+ */
+static void filter_stretch(const struct filter_data *in,
+			   struct filter_data *out)
+{
+	static const struct {
+		unsigned int Bpp;
+		filter_func_t *func;
+	} stretch_mode[] = {
+		{ 1, filter_stretch_X<uint8_t> },
+		{ 2, filter_stretch_X<uint16_t> },
+		{ 3, filter_stretch_3 },
+		{ 4, filter_stretch_X<uint32_t> },
+	};
+	struct filter_stretch_data *data;
+	unsigned int dst_w;
+	unsigned int dst_h;
+	unsigned int src_w;
+	unsigned int src_h;
+	unsigned int h_ratio;
+	unsigned int v_ratio;
+	unsigned int dst_x;
+	unsigned int dst_y;
+	unsigned int src_x;
+	unsigned int src_y;
+	filter_func_t *filter;
+	unsigned int i;
+
+	if (out->failed == true) {
+	failed:
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == true) {
+		data = (struct filter_stretch_data *)out->data;
+		filter = data->filter;
+	process:
+		(*filter)(in, out);
+		return;
+	}
+	// Initialize filter.
+	assert(out->data == NULL);
+	dst_w = out->width;
+	dst_h = out->height;
+	src_w = in->width;
+	src_h = in->height;
+	if ((src_h == 0) || (src_w == 0)) {
+		DEBUG(("invalid input size: %ux%u", src_h, src_w));
+		out->failed = true;
+		goto failed;
+	}
+	// Make sure input and output pitches are multiples of pixel size
+	// at the current depth.
+	if ((in->pitch % screen.Bpp) || (out->pitch % screen.Bpp)) {
+		DEBUG(("Bpp: %u, in->pitch: %u, out->pitch: %u",
+		       screen.Bpp, in->pitch, out->pitch));
+		out->failed = true;
+		goto failed;
+	}
+	// Find a suitable filter.
+	for (i = 0; (i != elemof(stretch_mode)); ++i)
+		if (stretch_mode[i].Bpp == screen.Bpp)
+			break;
+	if (i == elemof(stretch_mode)) {
+		DEBUG(("%u Bpp depth is not supported", screen.Bpp));
+		out->failed = true;
+		goto failed;
+	}
+	filter = stretch_mode[i].func;
+	// Fix output if original aspect ratio must be kept.
+	if (dgen_aspect) {
+		unsigned int w = ((dst_h * src_w) / src_h);
+		unsigned int h = ((dst_w * src_h) / src_w);
+
+		if (w >= dst_w) {
+			w = dst_w;
+			if (h == 0)
+				++h;
+		}
+		else {
+			h = dst_h;
+			if (w == 0)
+				++w;
+		}
+		dst_w = w;
+		dst_h = h;
+	}
+	// Precompute H and V pixel ratios.
+	h_ratio = ((dst_w << 10) / src_w);
+	v_ratio = ((dst_h << 10) / src_h);
+	data = (struct filter_stretch_data *)
+		calloc(1, sizeof(*data) + src_w + src_h);
+	if (data == NULL) {
+		DEBUG(("allocation failure"));
+		out->failed = true;
+		goto failed;
+	}
+	DEBUG(("stretching %ux%u to %ux%u/%ux%u (aspect ratio %s)",
+	       src_w, src_h, dst_w, dst_h, out->width, out->height,
+	       (dgen_aspect ? "must be kept" : "is free")));
+	data->h_table = (uint8_t *)(data + 1);
+	data->v_table = (data->h_table + src_w);
+	data->filter = filter;
+	for (dst_x = 0; (dst_x != dst_w); ++dst_x) {
+		src_x = ((dst_x << 10) / h_ratio);
+		if (src_x < src_w)
+			++data->h_table[src_x];
+	}
+	for (dst_y = 0; (dst_y != dst_h); ++dst_y) {
+		src_y = ((dst_y << 10) / v_ratio);
+		if (src_y < src_h)
+			++data->v_table[src_y];
+	}
+	// Center output.
+	dst_x = ((out->width - dst_w) / 2);
+	dst_y = ((out->height - dst_h) / 2);
+	out->buf.u8 += (dst_x * screen.Bpp);
+	out->buf.u8 += (out->pitch * dst_y);
+	out->width = dst_w;
+	out->height = dst_h;
+	out->data = (void *)data;
 	out->updated = true;
 	goto process;
 }
