@@ -284,6 +284,17 @@ static void screen_update()
 		screen_update_once();
 }
 
+/**
+ * Clear screen.
+ */
+static void screen_clear()
+{
+	if ((screen.buf.u8 == NULL) || (screen_lock()))
+		return;
+	memset(screen.buf.u8, 0, (screen.pitch * screen.height));
+	screen_unlock();
+}
+
 // Bad hack- extern slot etc. from main.cpp so we can save/load states
 extern int slot;
 void md_save(md &megad);
@@ -1507,7 +1518,6 @@ static void rescale_any(bpp_t dst, unsigned int dst_pitch,
 			unsigned int bpp)
 {
 	if ((xscale == 1) && (yscale == 1)) {
-		scaling = rescale_1x1;
 		rescale_1x1(dst, dst_pitch, src, src_pitch,
 			    xsize, xscale,
 			    ysize, yscale,
@@ -2300,9 +2310,11 @@ static int set_scaling(const char *name)
 	for (i = 0; (scaling_list[i].name != NULL); ++i) {
 		if (strcasecmp(name, scaling_list[i].name))
 			continue;
+		clear_screen();
 		scaling = scaling_list[i].func;
 		return 0;
 	}
+	clear_screen();
 	scaling = rescale_any;
 	return -1;
 }
@@ -2752,10 +2764,7 @@ opengl_failed:
 	if (mdscr.data == NULL)
 		return -2;
 	// Initialize scaling.
-	if ((video.x_scale == 1) && (video.y_scale == video.x_scale))
-		scaling = rescale_1x1;
-	else
-		set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
+	set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
 	DEBUG(("using scaling algorithm \"%s\"",
 	       scaling_names[(dgen_scaling % NUM_SCALING)]));
 	// Update screen.
