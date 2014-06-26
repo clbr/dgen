@@ -307,8 +307,8 @@ bool_joystick = yes
 # Use OpenGL mode?
 bool_opengl = yes
 
-# Retain original aspect ratio when resizing OpenGL window.
-bool_opengl_aspect = true
+# Retain original aspect ratio when resizing window.
+bool_aspect = true
 
 # Use GL_LINEAR for textures filtering instead of GL_NEAREST.
 bool_opengl_linear = true

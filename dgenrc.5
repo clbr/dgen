@@ -146,8 +146,6 @@ and 32. Ignored in OpenGL mode.
 Desired window width and height.
 .It bool_opengl [true]
 Use the OpenGL renderer, if it is available.
-.It bool_opengl_aspect [true]
-Retain original aspect ratio when resizing OpenGL window.
 .It bool_opengl_linear [true]
 Use GL_LINEAR for textures filtering instead of GL_NEAREST.
 .It bool_opengl_32bit [true]
@@ -163,6 +161,8 @@ Try to run fullscreen, if possible.
 .It int_scale_y [-1]
 Amount by which to scale the rendered screen from the default resolution. See
 scaling filters.
+.It bool_aspect [true]
+Retain original aspect ratio when resizing window.
 .It key_fullscreen_toggle [alt-enter]
 .It joy_fullscreen_toggle []
 Button to toggle fullscreen mode (this may do nothing if SDL doesn't support

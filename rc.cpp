@@ -613,9 +613,11 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "int_scale_x", rc_number, &dgen_x_scale }, // SH
 	{ "int_scale_y", rc_number, &dgen_y_scale }, // SH
 	{ "int_depth", rc_number, &dgen_depth }, // SH
+	{ "bool_aspect", rc_boolean, &dgen_aspect }, // SH
 	{ "bool_swab", rc_boolean, &dgen_swab }, // SH
 	{ "bool_opengl", rc_boolean, &dgen_opengl }, // SH
-	{ "bool_opengl_aspect", rc_boolean, &dgen_opengl_aspect }, // SH
+	// deprecated, use bool_aspect
+	{ "bool_opengl_aspect", rc_boolean, &dgen_aspect },
 	// deprecated, use int_width
 	{ "int_opengl_width", rc_number, &dgen_width },
 	// deprecated, use int_height

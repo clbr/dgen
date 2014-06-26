@@ -2519,6 +2519,13 @@ opengl_failed:
 			y_scale = video.y_scale;
 		else
 			y_scale = dgen_y_scale;
+		// Fix aspect ratio if necessary.
+		if (dgen_aspect) {
+			if (x_scale < y_scale)
+				y_scale = x_scale;
+			else if (y_scale < x_scale)
+				x_scale = y_scale;
+		}
 		// In OpenGL modes, info_height can be anything as it's not
 		// part of the screen resolution.
 		if (dgen_info_height >= 0)
@@ -2549,6 +2556,13 @@ opengl_failed:
 		}
 		else
 			y_scale = dgen_y_scale;
+		// Fix aspect ratio if necessary.
+		if (dgen_aspect) {
+			if (x_scale < y_scale)
+				y_scale = x_scale;
+			else if (y_scale < x_scale)
+				x_scale = y_scale;
+		}
 		DEBUG(("x_scale=%u (%ld) y_scale=%u (%ld)",
 		       x_scale, dgen_x_scale, y_scale, dgen_y_scale));
 		// Rescale if necessary.
@@ -2596,7 +2610,7 @@ opengl_failed:
 		// refer to that texture instead of the screen.
 		width = (video.width * x_scale);
 		height = ((video.height * y_scale) + info_height);
-		if (dgen_opengl_aspect) {
+		if (dgen_aspect) {
 			// We're asked to keep the original aspect ratio, so
 			// calculate the maximum usable size considering this.
 			w = ((orig_height * width) / height);
@@ -3444,13 +3458,13 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		fail = true;
 #endif
 	}
-	else if (rc->variable == &dgen_scale) {
+	else if ((rc->variable == &dgen_scale) ||
+		 (rc->variable == &dgen_aspect)) {
 		dgen_x_scale = dgen_scale;
 		dgen_y_scale = dgen_scale;
 		init_video = true;
 	}
 	else if ((rc->variable == &dgen_opengl) ||
-		 (rc->variable == &dgen_opengl_aspect) ||
 		 (rc->variable == &dgen_opengl_linear) ||
 		 (rc->variable == &dgen_opengl_32bit) ||
 		 (rc->variable == &dgen_opengl_square)) {
