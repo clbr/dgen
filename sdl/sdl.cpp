@@ -96,8 +96,10 @@ static struct {
 	unsigned int height; ///< window height
 	unsigned int bpp; ///< bits per pixel
 	unsigned int Bpp; ///< bytes per pixel
-	unsigned int x_offset; ///< horizontal offset
-	unsigned int y_offset; ///< vertical offset
+	unsigned int x_scale; ///< horizontal scale factor
+	unsigned int x_scale_offset; ///< horizontal offset for x_scale
+	unsigned int y_scale; ///< vertical scale factor
+	unsigned int y_scale_offset; ///< vertical offset for y_scale
 	unsigned int info_height; ///< message bar height
 	bpp_t buf; ///< generic pointer to pixel data
 	unsigned int pitch; ///< number of bytes per line in buf
@@ -123,16 +125,12 @@ static struct {
 static struct {
 	const unsigned int width; ///< 320
 	unsigned int height; ///< 224 or 240 (NTSC_VBLANK or PAL_VBLANK)
-	unsigned int x_scale; ///< scale horizontally
-	unsigned int y_scale; ///< scale vertically
 	unsigned int hz; ///< refresh rate
 	unsigned int is_pal: 1; ///< PAL enabled
 	uint8_t palette[256]; ///< palette for 8bpp modes (mdpal)
 } video = {
 	320, ///< width is always 320
 	NTSC_VBLANK, ///< NTSC height by default
-	2, ///< default scale for width
-	2, ///< default scale for height
 	NTSC_HZ, ///< 60Hz
 	0, ///< NTSC is enabled
 	{ 0 }
@@ -1222,8 +1220,8 @@ static void release_texture()
 
 static int init_texture()
 {
-	const unsigned int vis_width = (video.width * video.x_scale);
-	const unsigned int vis_height = ((video.height * video.y_scale) +
+	const unsigned int vis_width = (video.width * screen.x_scale);
+	const unsigned int vis_height = ((video.height * screen.y_scale) +
 					 screen.info_height);
 	void *tmp;
 	size_t i;
@@ -1339,7 +1337,7 @@ static void rescale_32_any(uint32_t *dst, unsigned int dst_pitch,
 		}
 		out = dst;
 		dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i != yscale); ++i) {
+		for (i = 1; (i < yscale); ++i) {
 			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
 			out = dst;
 			dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
@@ -1385,7 +1383,7 @@ static void rescale_24_any(uint24_t *dst, unsigned int dst_pitch,
 		}
 		out = dst;
 		dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i != yscale); ++i) {
+		for (i = 1; (i < yscale); ++i) {
 			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
 			out = dst;
 			dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
@@ -1430,7 +1428,7 @@ static void rescale_16_any(uint16_t *dst, unsigned int dst_pitch,
 		}
 		out = dst;
 		dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i != yscale); ++i) {
+		for (i = 1; (i < yscale); ++i) {
 			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
 			out = dst;
 			dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
@@ -1475,7 +1473,7 @@ static void rescale_8_any(uint8_t *dst, unsigned int dst_pitch,
 		}
 		out = dst;
 		dst += dst_pitch;
-		for (i = 1; (i != yscale); ++i) {
+		for (i = 1; (i < yscale); ++i) {
 			memcpy(dst, out, (xsize * xscale));
 			out = dst;
 			dst += dst_pitch;
@@ -2446,7 +2444,7 @@ static int screen_init(unsigned int width, unsigned int height)
 			if (dgen_x_scale > 0)
 				width *= dgen_x_scale;
 			else
-				width *= video.x_scale;
+				width *= screen.x_scale;
 		}
 		DEBUG(("width was 0, now %u", width));
 	}
@@ -2465,7 +2463,7 @@ static int screen_init(unsigned int width, unsigned int height)
 			if (dgen_y_scale > 0)
 				height *= dgen_y_scale;
 			else
-				height *= video.y_scale;
+				height *= screen.y_scale;
 		}
 		DEBUG(("height was 0, now %u", height));
 	}
@@ -2524,11 +2522,11 @@ opengl_failed:
 	if (screen.want_opengl) {
 		// Use whatever scale is thrown at us.
 		if (dgen_x_scale <= 0)
-			x_scale = video.x_scale;
+			x_scale = screen.x_scale;
 		else
 			x_scale = dgen_x_scale;
 		if (dgen_y_scale <= 0)
-			y_scale = video.y_scale;
+			y_scale = screen.y_scale;
 		else
 			y_scale = dgen_y_scale;
 		// Fix aspect ratio if necessary.
@@ -2651,13 +2649,13 @@ opengl_failed:
 		screen.height = height;
 		// Check whether we want to reinitialize the texture.
 		if ((screen.info_height != info_height) ||
-		    (video.x_scale != x_scale) ||
-		    (video.y_scale != y_scale) ||
+		    (screen.x_scale != x_scale) ||
+		    (screen.y_scale != y_scale) ||
 		    (video.height != screen.last_video_height) ||
 		    (screen.want_fullscreen != screen.is_fullscreen))
 			screen.opengl_ok = 0;
-		screen.x_offset = 0;
-		screen.y_offset = 0;
+		screen.x_scale_offset = 0;
+		screen.y_scale_offset = 0;
 	}
 	else
 #endif
@@ -2682,26 +2680,28 @@ opengl_failed:
 		xs = (video.width * x_scale);
 		ys = ((video.height * y_scale) + info_height);
 		if (xs < width)
-			screen.x_offset = ((width - xs) / 2);
+			screen.x_scale_offset = ((width - xs) / 2);
 		else
-			screen.x_offset = 0;
+			screen.x_scale_offset = 0;
 		if (ys < height)
-			screen.y_offset = ((height - ys) / 2);
+			screen.y_scale_offset = ((height - ys) / 2);
 		else
-			screen.y_offset = 0;
+			screen.y_scale_offset = 0;
 	}
 	screen.info_height = info_height;
 	screen.surface = tmp;
 	screen.is_fullscreen = screen.want_fullscreen;
-	video.x_scale = x_scale;
-	video.y_scale = y_scale;
+	screen.x_scale = x_scale;
+	screen.y_scale = y_scale;
 	DEBUG(("video configuration: x_scale=%u y_scale=%u",
-	       video.x_scale, video.y_scale));
+	       screen.x_scale, screen.y_scale));
 	DEBUG(("screen configuration: width=%u height=%u bpp=%u Bpp=%u"
-	       " x_offset=%u y_offset=%u info_height=%u buf.u8=%p pitch=%u"
-	       " surface=%p want_fullscreen=%u is_fullscreen=%u",
+	       " x_scale_offset=%u y_scale_offset=%u info_height=%u"
+	       " buf.u8=%p pitch=%u surface=%p want_fullscreen=%u"
+	       " is_fullscreen=%u",
 	       screen.width, screen.height, screen.bpp, screen.Bpp,
-	       screen.x_offset, screen.y_offset, screen.info_height,
+	       screen.x_scale_offset, screen.y_scale_offset,
+	       screen.info_height,
 	       (void *)screen.buf.u8, screen.pitch, (void *)screen.surface,
 	       screen.want_fullscreen, screen.is_fullscreen));
 #ifdef WITH_OPENGL
@@ -2810,8 +2810,8 @@ static int set_fullscreen(int toggle)
 	}
 	else {
 		// Try to make a guess.
-		w = (video.width * video.x_scale);
-		h = (video.height * video.y_scale);
+		w = (video.width * screen.x_scale);
+		h = (video.height * screen.y_scale);
 	}
 	DEBUG(("reinitializing screen with want_fullscreen=%u,"
 	       " screen_init(%u, %u)",
@@ -2830,6 +2830,8 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
 	SDL_Event event;
 
+	screen.x_scale = 2;
+	screen.y_scale = 2;
 	prompt_init(&prompt.status);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
@@ -3007,8 +3009,8 @@ void pd_graphics_update(bool update)
 	}
 	// Set destination buffer.
 	dst_pitch = screen.pitch;
-	dst.u8 = &screen.buf.u8[(screen.x_offset * screen.Bpp)];
-	dst.u8 += (screen.pitch * screen.y_offset);
+	dst.u8 = &screen.buf.u8[(screen.x_scale_offset * screen.Bpp)];
+	dst.u8 += (screen.pitch * screen.y_scale_offset);
 	// Use the same formula as draw_scanline() in ras.cpp to avoid the
 	// messy border once and for all. This one works with any supported
 	// depth.
@@ -3018,8 +3020,8 @@ void pd_graphics_update(bool update)
 		mdscr_splash();
 #ifdef WITH_CTV
 	// Apply prescale filters.
-	xsize2 = (video.width * video.x_scale);
-	ysize2 = (video.height * video.y_scale);
+	xsize2 = (video.width * screen.x_scale);
+	ysize2 = (video.height * screen.y_scale);
 	for (filter = filters_prescale; (*filter != NULL); ++filter)
 		(*filter)->func(src, src_pitch, video.width, video.height,
 				mdscr.bpp);
@@ -3029,7 +3031,7 @@ void pd_graphics_update(bool update)
 		return;
 	// Copy/rescale output.
 	scaling(dst, dst_pitch, src, src_pitch,
-		video.width, video.x_scale, video.height, video.y_scale,
+		video.width, screen.x_scale, video.height, screen.y_scale,
 		screen.bpp);
 #ifdef WITH_CTV
 	// Apply postscale filters.
