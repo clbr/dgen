@@ -1659,245 +1659,85 @@ static void filter_off(const struct filter_data *in, struct filter_data *out)
 
 // Copy/rescale functions.
 
-static void rescale_32_1x1(uint32_t *dst, unsigned int dst_pitch,
-			   uint32_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
+struct filter_default_data {
+	unsigned int x_scale;
+	unsigned int y_scale;
+	filter_func_t *filter;
+};
+
+template <typename uintX_t>
+static void filter_default_X(const struct filter_data *in,
+			     struct filter_data *out)
 {
+	struct filter_default_data *data =
+		(struct filter_default_data *)out->data;
+	uintX_t *dst = (uintX_t *)out->buf.u32;
+	unsigned int dst_pitch = out->pitch;
+	uintX_t *src = (uintX_t *)in->buf.u32;
+	unsigned int src_pitch = in->pitch;
+	unsigned int width = in->width;
+	unsigned int x_scale = data->x_scale;
+	unsigned int y_scale = data->y_scale;
+	unsigned int height = in->height;
 	unsigned int y;
 
-	(void)xscale;
-	(void)yscale;
-	for (y = 0; (y != ysize); ++y) {
-		memcpy(dst, src, (xsize * sizeof(*dst)));
-		src = (uint32_t *)((uint8_t *)src + src_pitch);
-		dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
-	}
-}
-
-static void rescale_32_any(uint32_t *dst, unsigned int dst_pitch,
-			   uint32_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	for (y = 0; (y != ysize); ++y) {
-		uint32_t *out = dst;
+	for (y = 0; (y != height); ++y) {
+		uintX_t *out = dst;
 		unsigned int i;
 		unsigned int x;
 
-		for (x = 0; (x != xsize); ++x) {
-			uint32_t tmp = src[x];
+		for (x = 0; (x != width); ++x) {
+			uintX_t tmp = src[x];
 
-			for (i = 0; (i != xscale); ++i)
+			for (i = 0; (i != x_scale); ++i)
 				*(out++) = tmp;
 		}
 		out = dst;
-		dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i < yscale); ++i) {
-			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
+		dst = (uintX_t *)((uint8_t *)dst + dst_pitch);
+		for (i = 1; (i < y_scale); ++i) {
+			memcpy(dst, out, (width * sizeof(*dst) * x_scale));
 			out = dst;
-			dst = (uint32_t *)((uint8_t *)dst + dst_pitch);
+			dst = (uintX_t *)((uint8_t *)dst + dst_pitch);
 		}
-		src = (uint32_t *)((uint8_t *)src + src_pitch);
+		src = (uintX_t *)((uint8_t *)src + src_pitch);
 	}
 }
 
-static void rescale_24_1x1(uint24_t *dst, unsigned int dst_pitch,
-			   uint24_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
+static void filter_default_3(const struct filter_data *in,
+			     struct filter_data *out)
 {
+	struct filter_default_data *data =
+		(struct filter_default_data *)out->data;
+	uint24_t *dst = out->buf.u24;
+	unsigned int dst_pitch = out->pitch;
+	uint24_t *src = in->buf.u24;
+	unsigned int src_pitch = in->pitch;
+	unsigned int width = in->width;
+	unsigned int x_scale = data->x_scale;
+	unsigned int y_scale = data->y_scale;
+	unsigned int height = in->height;
 	unsigned int y;
 
-	(void)xscale;
-	(void)yscale;
-	for (y = 0; (y != ysize); ++y) {
-		memcpy(dst, src, (xsize * sizeof(*dst)));
-		src = (uint24_t *)((uint8_t *)src + src_pitch);
-		dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
-	}
-}
-
-static void rescale_24_any(uint24_t *dst, unsigned int dst_pitch,
-			   uint24_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	for (y = 0; (y != ysize); ++y) {
+	for (y = 0; (y != height); ++y) {
 		uint24_t *out = dst;
 		unsigned int i;
 		unsigned int x;
 
-		for (x = 0; (x != xsize); ++x) {
+		for (x = 0; (x != width); ++x) {
 			uint24_t tmp;
 
 			u24cpy(&tmp, &src[x]);
-			for (i = 0; (i != xscale); ++i)
+			for (i = 0; (i != x_scale); ++i)
 				u24cpy((out++), &tmp);
 		}
 		out = dst;
 		dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i < yscale); ++i) {
-			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
+		for (i = 1; (i < y_scale); ++i) {
+			memcpy(dst, out, (width * sizeof(*dst) * x_scale));
 			out = dst;
 			dst = (uint24_t *)((uint8_t *)dst + dst_pitch);
 		}
 		src = (uint24_t *)((uint8_t *)src + src_pitch);
-	}
-}
-
-static void rescale_16_1x1(uint16_t *dst, unsigned int dst_pitch,
-			   uint16_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	(void)xscale;
-	(void)yscale;
-	for (y = 0; (y != ysize); ++y) {
-		memcpy(dst, src, (xsize * sizeof(*dst)));
-		src = (uint16_t *)((uint8_t *)src + src_pitch);
-		dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
-	}
-}
-
-static void rescale_16_any(uint16_t *dst, unsigned int dst_pitch,
-			   uint16_t *src, unsigned int src_pitch,
-			   unsigned int xsize, unsigned int xscale,
-			   unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	for (y = 0; (y != ysize); ++y) {
-		uint16_t *out = dst;
-		unsigned int i;
-		unsigned int x;
-
-		for (x = 0; (x != xsize); ++x) {
-			uint16_t tmp = src[x];
-
-			for (i = 0; (i != xscale); ++i)
-				*(out++) = tmp;
-		}
-		out = dst;
-		dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
-		for (i = 1; (i < yscale); ++i) {
-			memcpy(dst, out, (xsize * sizeof(*dst) * xscale));
-			out = dst;
-			dst = (uint16_t *)((uint8_t *)dst + dst_pitch);
-		}
-		src = (uint16_t *)((uint8_t *)src + src_pitch);
-	}
-}
-
-static void rescale_8_1x1(uint8_t *dst, unsigned int dst_pitch,
-			  uint8_t *src, unsigned int src_pitch,
-			  unsigned int xsize, unsigned int xscale,
-			  unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	(void)xscale;
-	(void)yscale;
-	for (y = 0; (y != ysize); ++y) {
-		memcpy(dst, src, xsize);
-		src += src_pitch;
-		dst += dst_pitch;
-	}
-}
-
-static void rescale_8_any(uint8_t *dst, unsigned int dst_pitch,
-			  uint8_t *src, unsigned int src_pitch,
-			  unsigned int xsize, unsigned int xscale,
-			  unsigned int ysize, unsigned int yscale)
-{
-	unsigned int y;
-
-	for (y = 0; (y != ysize); ++y) {
-		uint8_t *out = dst;
-		unsigned int i;
-		unsigned int x;
-
-		for (x = 0; (x != xsize); ++x) {
-			uint8_t tmp = src[x];
-
-			for (i = 0; (i != xscale); ++i)
-				*(out++) = tmp;
-		}
-		out = dst;
-		dst += dst_pitch;
-		for (i = 1; (i < yscale); ++i) {
-			memcpy(dst, out, (xsize * xscale));
-			out = dst;
-			dst += dst_pitch;
-		}
-		src += src_pitch;
-	}
-}
-
-static void rescale_1x1(bpp_t dst, unsigned int dst_pitch,
-			bpp_t src, unsigned int src_pitch,
-			unsigned int xsize, unsigned int xscale,
-			unsigned int ysize, unsigned int yscale,
-			unsigned int bpp)
-{
-	switch (bpp) {
-	case 32:
-		rescale_32_1x1(dst.u32, dst_pitch, src.u32, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 24:
-		rescale_24_1x1(dst.u24, dst_pitch, src.u24, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 16:
-	case 15:
-		rescale_16_1x1(dst.u16, dst_pitch, src.u16, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 8:
-		rescale_8_1x1(dst.u8, dst_pitch, src.u8, src_pitch,
-			      xsize, xscale, ysize, yscale);
-		break;
-	}
-}
-
-static void rescale_any(bpp_t dst, unsigned int dst_pitch,
-			bpp_t src, unsigned int src_pitch,
-			unsigned int xsize, unsigned int xscale,
-			unsigned int ysize, unsigned int yscale,
-			unsigned int bpp)
-{
-	if ((xscale == 1) && (yscale == 1)) {
-		rescale_1x1(dst, dst_pitch, src, src_pitch,
-			    xsize, xscale,
-			    ysize, yscale,
-			    bpp);
-		return;
-	}
-	switch (bpp) {
-	case 32:
-		rescale_32_any(dst.u32, dst_pitch, src.u32, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 24:
-		rescale_24_any(dst.u24, dst_pitch, src.u24, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 16:
-	case 15:
-		rescale_16_any(dst.u16, dst_pitch, src.u16, src_pitch,
-			       xsize, xscale, ysize, yscale);
-		break;
-	case 8:
-		rescale_8_any(dst.u8, dst_pitch, src.u8, src_pitch,
-			      xsize, xscale, ysize, yscale);
-		break;
 	}
 }
 
@@ -1909,12 +1749,24 @@ static void rescale_any(bpp_t dst, unsigned int dst_pitch,
 static void filter_scale(const struct filter_data *in,
 			 struct filter_data *out)
 {
+	static const struct {
+		unsigned int Bpp;
+		filter_func_t *func;
+	} default_mode[] = {
+		{ 1, filter_default_X<uint8_t> },
+		{ 2, filter_default_X<uint16_t> },
+		{ 3, filter_default_3 },
+		{ 4, filter_default_X<uint32_t> },
+	};
+	struct filter_default_data *data;
 	unsigned int width;
 	unsigned int height;
 	unsigned int x_off;
 	unsigned int y_off;
 	unsigned int x_scale;
 	unsigned int y_scale;
+	filter_func_t *filter;
+	unsigned int i;
 
 	if (out->failed == true) {
 	failed:
@@ -1922,15 +1774,11 @@ static void filter_scale(const struct filter_data *in,
 		return;
 	}
 	if (out->updated == true) {
-		x_scale = ((unsigned int *)out->data)[0];
-		y_scale = ((unsigned int *)out->data)[1];
+		data = (struct filter_default_data *)out->data;
+		filter = data->filter;
 	process:
 		// Feed this to the default scaler.
-		rescale_any(out->buf, out->pitch,
-			    in->buf, in->pitch,
-			    in->width, x_scale,
-			    in->height, y_scale,
-			    screen.bpp);
+		(*filter)(in, out);
 		return;
 	}
 	// Initialize filter.
@@ -1947,14 +1795,33 @@ static void filter_scale(const struct filter_data *in,
 		out->failed = true;
 		goto failed;
 	}
-	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
-	if (out->data == NULL) {
+	// Not rescaling is faster through filter_off().
+	if ((x_scale == 1) && (y_scale == 1)) {
+		DEBUG(("using faster fallback for %ux%u", x_scale, y_scale));
+		out->failed = true;
+		goto failed;
+	}
+	// Find a suitable filter.
+	for (i = 0; (i != elemof(default_mode)); ++i)
+		if (default_mode[i].Bpp == screen.Bpp)
+			break;
+	if (i == elemof(default_mode)) {
+		DEBUG(("%u Bpp depth is not supported", screen.Bpp));
+		out->failed = true;
+		goto failed;
+	}
+	DEBUG(("using %u Bpp function to scale by %ux%u",
+	       screen.Bpp, x_scale, y_scale));
+	data = (struct filter_default_data *)malloc(sizeof(*data));
+	if (data == NULL) {
 		DEBUG(("allocation failure"));
 		out->failed = true;
 		goto failed;
 	}
-	((unsigned int *)out->data)[0] = x_scale;
-	((unsigned int *)out->data)[1] = y_scale;
+	filter = default_mode[i].func;
+	data->filter = filter;
+	data->x_scale = x_scale;
+	data->y_scale = y_scale;
 	// Center output.
 	x_off = ((out->width - width) / 2);
 	y_off = ((out->height - height) / 2);
@@ -1962,6 +1829,7 @@ static void filter_scale(const struct filter_data *in,
 	out->buf.u8 += (out->pitch * y_off);
 	out->width = width;
 	out->height = height;
+	out->data = (void *)data;
 	out->updated = true;
 	goto process;
 }
@@ -2191,80 +2059,6 @@ static void filter_stretch(const struct filter_data *in,
 
 #ifdef WITH_HQX
 
-static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
-			bpp_t src, unsigned int src_pitch,
-			unsigned int xsize, unsigned int xscale,
-			unsigned int ysize, unsigned int yscale,
-			unsigned int bpp)
-{
-	static int hqx_initialized = 0;
-
-	if (hqx_initialized == 0) {
-		stop_events_msg(~0u, "Initializing hqx...");
-		stopped = 1;
-		hqxInit();
-		stop_events_msg(~0u, "");
-		hqx_initialized = 1;
-	}
-	if (xscale != yscale)
-		goto skip;
-	switch (bpp) {
-	case 32:
-		switch (xscale) {
-		case 2:
-			hq2x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 3:
-			hq3x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 4:
-			hq4x_32_rb(src.u32, src_pitch, dst.u32, dst_pitch,
-				   xsize, ysize);
-			return;
-		}
-		break;
-	case 24:
-		switch (xscale) {
-		case 2:
-			hq2x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 3:
-			hq3x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 4:
-			hq4x_24_rb(src.u24, src_pitch, dst.u24, dst_pitch,
-				   xsize, ysize);
-			return;
-		}
-		break;
-	case 16:
-	case 15:
-		switch (xscale) {
-		case 2:
-			hq2x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 3:
-			hq3x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
-				   xsize, ysize);
-			return;
-		case 4:
-			hq4x_16_rb(src.u16, src_pitch, dst.u16, dst_pitch,
-				   xsize, ysize);
-			return;
-		}
-		break;
-	}
-skip:
-	rescale_any(dst, dst_pitch, src, src_pitch,
-		    xsize, xscale, ysize, yscale,
-		    bpp);
-}
-
 /**
  * This filter attempts to rescale with HQX.
  * @param in Input buffer data.
@@ -2272,12 +2066,34 @@ skip:
  */
 static void filter_hqx(const struct filter_data *in, struct filter_data *out)
 {
+	typedef void hqx_func_t(void *src, uint32_t src_pitch,
+				void *dst, uint32_t dst_pitch,
+				int width, int height);
+
+	static const struct {
+		unsigned int Bpp;
+		unsigned int scale;
+		hqx_func_t *func;
+	} hqx_mode[] = {
+		{ 2, 2, (hqx_func_t *)hq2x_16_rb },
+		{ 2, 3, (hqx_func_t *)hq3x_16_rb },
+		{ 2, 4, (hqx_func_t *)hq4x_16_rb },
+		{ 3, 2, (hqx_func_t *)hq2x_24_rb },
+		{ 3, 3, (hqx_func_t *)hq3x_24_rb },
+		{ 3, 4, (hqx_func_t *)hq4x_24_rb },
+		{ 4, 2, (hqx_func_t *)hq2x_32_rb },
+		{ 4, 3, (hqx_func_t *)hq3x_32_rb },
+		{ 4, 4, (hqx_func_t *)hq4x_32_rb },
+	};
+	static bool hqx_initialized = false;
 	unsigned int width;
 	unsigned int height;
 	unsigned int x_off;
 	unsigned int y_off;
 	unsigned int x_scale;
 	unsigned int y_scale;
+	hqx_func_t *hqx;
+	unsigned int i;
 
 	if (out->failed == true) {
 	failed:
@@ -2285,21 +2101,19 @@ static void filter_hqx(const struct filter_data *in, struct filter_data *out)
 		return;
 	}
 	if (out->updated == true) {
-		x_scale = ((unsigned int *)out->data)[0];
-		y_scale = ((unsigned int *)out->data)[1];
+		hqx = *(hqx_func_t **)out->data;
 	process:
 		// Feed this to HQX.
-		rescale_hqx(out->buf, out->pitch,
-			    in->buf, in->pitch,
-			    in->width, x_scale,
-			    in->height, y_scale,
-			    screen.bpp);
+		(*hqx)((void *)in->buf.u32, in->pitch,
+		       (void *)out->buf.u32, out->pitch,
+		       in->width, in->height);
 		return;
 	}
 	// Initialize filter.
 	assert(out->data == NULL);
 	x_scale = screen.x_scale;
 	y_scale = screen.y_scale;
+retry:
 	while ((width = (in->width * x_scale)) > out->width)
 		--x_scale;
 	while ((height = (in->height * y_scale)) > out->height)
@@ -2310,14 +2124,49 @@ static void filter_hqx(const struct filter_data *in, struct filter_data *out)
 		out->failed = true;
 		goto failed;
 	}
-	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
+	// Find a suitable combination.
+	for (i = 0; (i != elemof(hqx_mode)); ++i)
+		if ((hqx_mode[i].Bpp == screen.Bpp) &&
+		    (hqx_mode[i].scale == x_scale) &&
+		    (hqx_mode[i].scale == y_scale))
+			break;
+	if (i == elemof(hqx_mode)) {
+		// Nothing matches, find something that fits.
+		DEBUG(("%ux%u @%u Bpp scale factor not supported, trying"
+		       " another",
+		       x_scale, y_scale, screen.Bpp));
+		// Must be square.
+		if (x_scale > y_scale)
+			x_scale = y_scale;
+		else if (y_scale > x_scale)
+			y_scale = x_scale;
+		assert(x_scale == y_scale);
+		(void)y_scale;
+		do {
+			--i;
+			if ((hqx_mode[i].Bpp == screen.Bpp) &&
+			    (hqx_mode[i].scale <= x_scale)) {
+				x_scale = hqx_mode[i].scale;
+				y_scale = hqx_mode[i].scale;
+				goto retry;
+			}
+		}
+		while (i != 0);
+		DEBUG(("failed to use %ux%u @%u Bpp scale factor",
+		       x_scale, y_scale, screen.Bpp));
+		out->failed = true;
+		goto failed;
+	}
+	DEBUG(("using %ux%u @%u Bpp scale factor",
+	       x_scale, y_scale, screen.Bpp));
+	hqx = hqx_mode[i].func;
+	out->data = malloc(sizeof(hqx));
 	if (out->data == NULL) {
 		DEBUG(("allocation failure"));
 		out->failed = true;
 		goto failed;
 	}
-	((unsigned int *)out->data)[0] = x_scale;
-	((unsigned int *)out->data)[1] = y_scale;
+	*(hqx_func_t **)out->data = hqx;
 	// Center output.
 	x_off = ((out->width - width) / 2);
 	y_off = ((out->height - height) / 2);
@@ -2326,58 +2175,20 @@ static void filter_hqx(const struct filter_data *in, struct filter_data *out)
 	out->width = width;
 	out->height = height;
 	out->updated = true;
+	// Initialize HQX if necessary.
+	if (hqx_initialized == false) {
+		stop_events_msg(~0u, "Initializing hqx...");
+		stopped = 1;
+		hqxInit();
+		stop_events_msg(~0u, "");
+		hqx_initialized = true;
+	}
 	goto process;
 }
 
 #endif // WITH_HQX
 
 #ifdef WITH_SCALE2X
-
-static void rescale_scale2x(bpp_t dst, unsigned int dst_pitch,
-			    bpp_t src, unsigned int src_pitch,
-			    unsigned int xsize, unsigned int xscale,
-			    unsigned int ysize, unsigned int yscale,
-			    unsigned int bpp)
-{
-	switch (bpp) {
-	case 32:
-	case 16:
-	case 15:
-		break;
-	default:
-		goto skip;
-	}
-	switch (xscale) {
-	case 2:
-		switch (yscale) {
-		case 2:
-			break;
-		case 3:
-			xscale = 203;
-			break;
-		case 4:
-			xscale = 204;
-			break;
-		default:
-			goto skip;
-		}
-		break;
-	case 3:
-	case 4:
-		if (xscale != yscale)
-			goto skip;
-		break;
-	default:
-		goto skip;
-	}
-	scale(xscale, dst.u32, dst_pitch, src.u32, src_pitch,
-	      BITS_TO_BYTES(bpp), xsize, ysize);
-	return;
-skip:
-	rescale_any(dst, dst_pitch, src, src_pitch,
-		    xsize, xscale, ysize, yscale,
-		    bpp);
-}
 
 /**
  * This filter attempts to rescale with Scale2x.
@@ -2387,12 +2198,25 @@ skip:
 static void filter_scale2x(const struct filter_data *in,
 			   struct filter_data *out)
 {
+	static const struct {
+		unsigned int x_scale;
+		unsigned int y_scale;
+		unsigned int mode;
+	} scale2x_mode[] = {
+		{ 2, 2, 2 },
+		{ 2, 3, 203 },
+		{ 2, 4, 204 },
+		{ 3, 3, 3 },
+		{ 4, 4, 4 }
+	};
 	unsigned int width;
 	unsigned int height;
 	unsigned int x_off;
 	unsigned int y_off;
 	unsigned int x_scale;
 	unsigned int y_scale;
+	unsigned int mode;
+	unsigned int i;
 
 	if (out->failed == true) {
 	failed:
@@ -2400,21 +2224,18 @@ static void filter_scale2x(const struct filter_data *in,
 		return;
 	}
 	if (out->updated == true) {
-		x_scale = ((unsigned int *)out->data)[0];
-		y_scale = ((unsigned int *)out->data)[1];
+		mode = *(unsigned int *)out->data;
 	process:
 		// Feed this to scale2x.
-		rescale_scale2x(out->buf, out->pitch,
-				in->buf, in->pitch,
-				in->width, x_scale,
-				in->height, y_scale,
-				screen.bpp);
+		scale(mode, out->buf.u32, out->pitch, in->buf.u32, in->pitch,
+		      screen.Bpp, in->width, in->height);
 		return;
 	}
 	// Initialize filter.
 	assert(out->data == NULL);
 	x_scale = screen.x_scale;
 	y_scale = screen.y_scale;
+retry:
 	while ((width = (in->width * x_scale)) > out->width)
 		--x_scale;
 	while ((height = (in->height * y_scale)) > out->height)
@@ -2425,14 +2246,44 @@ static void filter_scale2x(const struct filter_data *in,
 		out->failed = true;
 		goto failed;
 	}
-	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
+	// Check whether depth is supported by filter.
+	if ((screen.Bpp != 4) && (screen.Bpp != 2)) {
+		DEBUG(("unsupported depth %u", screen.bpp));
+		out->failed = true;
+		goto failed;
+	}
+	// Find a suitable combination.
+	for (i = 0; (i != elemof(scale2x_mode)); ++i)
+		if ((scale2x_mode[i].x_scale == x_scale) &&
+		    (scale2x_mode[i].y_scale == y_scale))
+			break;
+	if (i == elemof(scale2x_mode)) {
+		// Nothing matches, find something that fits.
+		DEBUG(("%ux%u scale factor not supported, trying another",
+		       x_scale, y_scale));
+		do {
+			--i;
+			if ((scale2x_mode[i].x_scale <= x_scale) &&
+			    (scale2x_mode[i].y_scale <= y_scale)) {
+				x_scale = scale2x_mode[i].x_scale;
+				y_scale = scale2x_mode[i].y_scale;
+				goto retry;
+			}
+		}
+		while (i != 0);
+		DEBUG(("failed to use %ux%u scale factor", x_scale, y_scale));
+		out->failed = true;
+		goto failed;
+	}
+	DEBUG(("using %ux%u scale factor", x_scale, y_scale));
+	mode = scale2x_mode[i].mode;
+	out->data = malloc(sizeof(mode));
 	if (out->data == NULL) {
 		DEBUG(("allocation failure"));
 		out->failed = true;
 		goto failed;
 	}
-	((unsigned int *)out->data)[0] = x_scale;
-	((unsigned int *)out->data)[1] = y_scale;
+	*(unsigned int *)out->data = mode;
 	// Center output.
 	x_off = ((out->width - width) / 2);
 	y_off = ((out->height - height) / 2);
