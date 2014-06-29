@@ -3555,10 +3555,6 @@ opengl_failed:
 		return -2;
 	// Rehash filters.
 	filters_stack_update();
-	// Initialize scaling.
-	set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
-	DEBUG(("using scaling algorithm \"%s\"",
-	       scaling_names[(dgen_scaling % NUM_SCALING)]));
 	// Update screen.
 	pd_graphics_update(true);
 	DEBUG(("ret=%d", ret));
@@ -3662,6 +3658,10 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	// Initialize screen.
 	if (screen_init(0, 0))
 		goto fail;
+	// Initialize scaling.
+	set_scaling(scaling_names[dgen_scaling % NUM_SCALING]);
+	DEBUG(("using scaling filter \"%s\"",
+	       scaling_names[dgen_scaling % NUM_SCALING]));
 	DEBUG(("screen initialized"));
 #ifndef __MINGW32__
 	// We don't need setuid privileges anymore
