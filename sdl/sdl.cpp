@@ -60,11 +60,11 @@ static void pd_message_postpone(const char *msg);
 
 /// Generic type for supported colour depths.
 typedef union {
+	uint8_t *u8;
 	uint32_t *u32;
 	uint24_t *u24;
 	uint16_t *u16;
 	uint16_t *u15;
-	uint8_t *u8;
 } bpp_t;
 
 #ifdef WITH_OPENGL
@@ -725,137 +725,451 @@ retry:
 	return strdup(rcb->rc);
 }
 
-#ifdef WITH_CTV
-
-/**
- * Filter that works on an output frame.
- */
-struct filter {
-	const char *name; ///< name of filter
-	void (*func)(bpp_t buf, unsigned int buf_pitch,
-		     unsigned int xsize, unsigned int ysize,
-		     unsigned int bpp); ///< function that implements filter
+struct filter_data {
+	bpp_t buf; ///< Input or output buffer.
+	unsigned int width; ///< Buffer width.
+	unsigned int height; ///< Buffer height.
+	unsigned int pitch; ///< Number of bytes per line in buffer.
+	void *data; ///< Filter-specific data.
+	bool updated:1; ///< Filter updated data to match its output.
+	bool failed:1; ///< Filter failed.
 };
 
-static const struct filter *filters_prescale[64];
-static const struct filter *filters_postscale[64];
+typedef void filter_func_t(const struct filter_data *in,
+			   struct filter_data *out);
+
+struct filter {
+	const char *name; ///< Filter name.
+	filter_func_t *func; ///< Filtering function.
+	bool safe:1; ///< Output buffer can be the same as input.
+	bool ctv:1; ///< Part of the CTV filters set.
+	bool resize:1; ///< Filter resizes input.
+};
+
+static filter_func_t filter_scale;
+static filter_func_t filter_off;
+#ifdef WITH_SCALE2X
+static filter_func_t filter_scale2x;
+#endif
+#ifdef WITH_HQX
+static filter_func_t filter_hqx;
+#endif
+#ifdef WITH_CTV
+static filter_func_t filter_blur;
+static filter_func_t filter_scanline;
+static filter_func_t filter_interlace;
+static filter_func_t filter_swab;
+
+static void set_swab();
+#endif
+
+static const struct filter filters_available[] = {
+	{ "default", filter_scale, false, false, true },
+#ifdef WITH_SCALE2X
+	{ "scale2x", filter_scale2x, false, false, true },
+#endif
+#ifdef WITH_HQX
+	{ "hqx", filter_hqx, false, false, true },
+#endif
+#ifdef WITH_CTV
+	// These filters must match ctv_names in rc.cpp.
+	{ "off", filter_off, true, true, true },
+	{ "blur", filter_blur, true, true, false },
+	{ "scanline", filter_scanline, true, true, false },
+	{ "interlace", filter_interlace, true, true, false },
+	{ "swab", filter_swab, true, true, false },
+#endif
+};
+
+static unsigned int filters_stack_size;
+static bool filters_stack_default;
+static const struct filter *filters_stack[64];
+static bpp_t filters_stack_data_buf[2];
+static struct filter_data filters_stack_data[1 + elemof(filters_stack)];
+
+/**
+ * Return filter structure associated with name.
+ * @param name Name of filter.
+ * @return Pointer to filter or NULL if not found.
+ */
+static const struct filter *filters_find(const char *name)
+{
+	size_t i;
+
+	for (i = 0; (i != elemof(filters_available)); ++i)
+		if (!strcasecmp(name, filters_available[i].name))
+			return &filters_available[i];
+	return NULL;
+}
+
+/**
+ * Update filters data, reallocate extra buffers if necessary.
+ */
+static void filters_stack_update()
+{
+	size_t i;
+	const struct filter *f;
+	struct filter_data *fd;
+	unsigned int buffers;
+	bpp_t buf[2];
+	struct filter_data in_fd = {
+		// Use the same formula as draw_scanline() in ras.cpp to avoid
+		// the messy border for any supported depth.
+		{ ((uint8_t *)mdscr.data + (mdscr.pitch * 8) + 16) },
+		video.width,
+		video.height,
+		(unsigned int)mdscr.pitch,
+		NULL,
+		false,
+		false,
+	};
+	struct filter_data out_fd = {
+		{ screen.buf.u8 },
+		screen.width,
+		(screen.height - screen.info_height),
+		screen.pitch,
+		NULL,
+		false,
+		false,
+	};
+	struct filter_data *prev_fd;
+
+	DEBUG(("updating filters data"));
+retry:
+	assert(filters_stack_size <= elemof(filters_stack));
+	buffers = 0;
+	buf[0].u8 = filters_stack_data_buf[0].u8;
+	buf[1].u8 = filters_stack_data_buf[1].u8;
+	// Get the number of defined filters and count how many of them cannot
+	// use the same buffer for both input and output.
+	// Unless they are on top, "unsafe" filters require extra buffers.
+	assert(filters_stack_data[0].data == NULL);
+	for (i = 0; (i != elemof(filters_stack)); ++i) {
+		if (i == filters_stack_size)
+			break;
+		f = filters_stack[i];
+		assert(f != NULL);
+		if ((f->safe == false) && (i != (filters_stack_size - 1)))
+			++buffers;
+		// Clear filters stack output data.
+		free(filters_stack_data[i + 1].data);
+	}
+	memset(filters_stack_data, 0, sizeof(filters_stack_data));
+	// Add a valid default filter if stack is empty.
+	if (i == 0) {
+		assert(filters_stack_size == 0);
+		filters_stack[0] = &filters_available[0];
+		++filters_stack_size;
+		filters_stack_default = true;
+		goto retry;
+	}
+	// Remove default filter if there is one and stack is not empty.
+	else if ((i > 1) && (filters_stack_default == true)) {
+		assert(filters_stack_size > 1);
+		--filters_stack_size;
+		memmove(&filters_stack[0], &filters_stack[1],
+			(sizeof(filters_stack[0]) * filters_stack_size));
+		filters_stack_default = false;
+		goto retry;
+	}
+	// Check if extra buffers are required.
+	if (buffers) {
+		if (buffers > 2)
+			buffers = 2;
+		else {
+			// Remove unnecessary buffer.
+			free(buf[1].u8);
+			buf[1].u8 = NULL;
+			filters_stack_data_buf[1].u8 = NULL;
+		}
+		DEBUG(("requiring %u extra buffer(s)", buffers));
+		// Reallocate them.
+		for (i = 0; (i != buffers); ++i) {
+			size_t size = (screen.pitch * screen.height);
+
+			DEBUG(("temporary buffer %u size: %zu", i, size));
+			buf[i].u8 =
+				(uint8_t *)realloc((void *)buf[i].u8, size);
+			if (size == 0) {
+				assert(buf[i].u8 == NULL);
+				DEBUG(("freed zero-sized buffer"));
+				filters_stack_data_buf[i].u8 = NULL;
+				continue;
+			}
+			if (buf[i].u8 == NULL) {
+				// Not good, remove one of the filters that
+				// require an extra buffer and try again.
+				free(filters_stack_data_buf[i].u8);
+				filters_stack_data_buf[i].u8 = NULL;
+				for (i = 0;
+				     (i < filters_stack_size);
+				     ++i) {
+					if (filters_stack[i]->safe == true)
+						continue;
+					--filters_stack_size;
+					memmove(&filters_stack[i],
+						&filters_stack[i + 1],
+						(sizeof(filters_stack[i]) *
+						 (filters_stack_size - i)));
+					break;
+				}
+				goto retry;
+			}
+			filters_stack_data_buf[i].u8 = buf[i].u8;
+		}
+	}
+	else {
+		// No extra buffer required, deallocate them.
+		DEBUG(("removing temporary buffers"));
+		for (i = 0; (i != elemof(buf)); ++i) {
+			free(buf[i].u8);
+			buf[i].u8 = NULL;
+			filters_stack_data_buf[i].u8 = NULL;
+		}
+	}
+	// Update I/O buffers.
+	buffers = 0;
+	prev_fd = &filters_stack_data[0];
+	memcpy(prev_fd, &in_fd, sizeof(*prev_fd));
+	for (i = 0; (i != elemof(filters_stack)); ++i) {
+		if (i == filters_stack_size)
+			break;
+		f = filters_stack[i];
+		fd = &filters_stack_data[i + 1];
+		// The last filter uses screen output.
+		if (i == (filters_stack_size - 1))
+			memcpy(fd, &out_fd, sizeof(*fd));
+		// Safe filters have the same input as their output.
+		else if (f->safe == true)
+			memcpy(fd, prev_fd, sizeof(*fd));
+		// Other filters output to a temporary buffer.
+		else {
+			fd->buf.u8 = buf[buffers].u8;
+			fd->width = screen.width;
+			fd->height = (screen.height - screen.info_height);
+			fd->pitch = screen.pitch;
+			fd->data = NULL;
+			fd->updated = false;
+			fd->failed = false;
+			buffers ^= 1;
+		}
+		prev_fd = fd;
+	}
+#ifndef NDEBUG
+	DEBUG(("filters stack:"));
+	for (i = 0; (i != filters_stack_size); ++i)
+		DEBUG(("- %s (input: %p output: %p)",
+		       filters_stack[i]->name,
+		       (void *)filters_stack_data[i].buf.u8,
+		       (void *)filters_stack_data[i + 1].buf.u8));
+#endif
+	screen_clear();
+}
 
 /**
  * Add filter to stack.
- * @param stack Stack of filters.
  * @param f Filter to add.
  */
-static void filters_push(const struct filter **stack, const struct filter *f)
+static void filters_push(const struct filter *f)
 {
-	size_t i;
-
-	if ((stack != filters_prescale) && (stack != filters_postscale))
+	assert(filters_stack_size <= elemof(filters_stack));
+	if ((f == NULL) || (filters_stack_size == elemof(filters_stack)))
 		return;
-	for (i = 0; (i != 64); ++i) {
-		if (stack[i] != NULL)
-			continue;
-		stack[i] = f;
-		break;
-	}
+	DEBUG(("%s", f->name));
+	filters_stack[filters_stack_size] = f;
+	filters_stack_data[filters_stack_size + 1].data = NULL;
+	++filters_stack_size;
+	filters_stack_update();
 }
+
+#ifdef WITH_CTV
+
+/**
+ * Insert filter at the bottom of the stack.
+ * @param f Filter to insert.
+ */
+static void filters_insert(const struct filter *f)
+{
+	assert(filters_stack_size <= elemof(filters_stack));
+	if ((f == NULL) ||
+	    (filters_stack_size == elemof(filters_stack)))
+		return;
+	DEBUG(("%s", f->name));
+	memmove(&filters_stack[1], &filters_stack[0],
+		(filters_stack_size * sizeof(filters_stack[0])));
+	filters_stack[0] = f;
+	filters_stack_data[0 + 1].data = NULL;
+	++filters_stack_size;
+	filters_stack_update();
+}
+
+#endif
+
+// Currently unused.
+#if 0
 
 /**
  * Add filter to stack if not already in it.
- * @param stack Stack of filters.
  * @param f Filter to add.
  */
-static void filters_push_once(const struct filter **stack,
-			      const struct filter *f)
+static void filters_push_once(const struct filter *f)
 {
 	size_t i;
 
-	if ((stack != filters_prescale) && (stack != filters_postscale))
+	assert(filters_stack_size <= elemof(filters_stack));
+	if (f == NULL)
 		return;
-	for (i = 0; (i != 64); ++i) {
-		if (stack[i] == f)
+	DEBUG(("%s", f->name));
+	for (i = 0; (i != filters_stack_size); ++i)
+		if (filters_stack[i] == f)
 			return;
-		if (stack[i] != NULL)
-			continue;
-		stack[i] = f;
-		return;
-	}
+	filters_push(f);
 }
+
+#endif
+
+#ifdef WITH_CTV
 
 /**
  * Remove last filter from stack.
- * @param stack Stack of filters.
  */
-static void filters_pop(const struct filter **stack)
+static void filters_pop()
 {
-	size_t i;
-
-	if ((stack != filters_prescale) && (stack != filters_postscale))
-		return;
-	for (i = 0; (i != 64); ++i) {
-		if (stack[i] != NULL)
-			continue;
-		break;
+	assert(filters_stack_size <= elemof(filters_stack));
+	if (filters_stack_size) {
+		--filters_stack_size;
+		DEBUG(("%s", filters_stack[filters_stack_size]->name));
+		free(filters_stack_data[filters_stack_size + 1].data);
+#ifndef NDEBUG
+		memset(&filters_stack[filters_stack_size], 0xf0,
+		       sizeof(filters_stack[filters_stack_size]));
+		memset(&filters_stack_data[filters_stack_size + 1], 0xf1,
+		       sizeof(filters_stack_data[filters_stack_size + 1]));
+#endif
 	}
-	if (i == 0)
-		return;
-	stack[(i - 1)] = NULL;
+	filters_stack_update();
 }
+
+#endif
+
+/**
+ * Remove a filter from anywhere in the stack.
+ * @param index Filters stack index.
+ */
+static void filters_remove(unsigned int index)
+{
+	assert(filters_stack_size <= elemof(filters_stack));
+	if (index >= filters_stack_size)
+		return;
+	--filters_stack_size;
+	DEBUG(("%s", filters_stack[index]->name));
+	free(filters_stack_data[index + 1].data);
+#ifndef NDEBUG
+	memset(&filters_stack[index], 0xf2, sizeof(filters_stack[index]));
+	memset(&filters_stack_data[index + 1], 0xf3,
+	       sizeof(filters_stack_data[index + 1]));
+#endif
+	memmove(&filters_stack[index], &filters_stack[index + 1],
+		(sizeof(filters_stack[index]) * (filters_stack_size - index)));
+	memmove(&filters_stack_data[index + 1], &filters_stack_data[index + 2],
+		(sizeof(filters_stack_data[index + 1]) *
+		 (filters_stack_size - index)));
+	filters_stack_update();
+}
+
+#ifdef WITH_CTV
 
 /**
  * Remove all occurences of filter from the stack.
- * @param stack Stack of current filters.
  * @param f Filter to remove.
  */
-static void filters_pluck(const struct filter **stack, const struct filter *f)
-{
-	size_t i, j;
-
-	if ((stack != filters_prescale) && (stack != filters_postscale))
-		return;
-	for (i = 0, j = 0; (i != 64); ++i) {
-		if (stack[i] == NULL)
-			break;
-		if (stack[i] == f)
-			continue;
-		stack[j] = stack[i];
-		++j;
-	}
-	if (j != i)
-		stack[j] = NULL;
-}
-
-/**
- * Empty filters stack.
- * @param stack Stack of filters.
- */
-static void filters_empty(const struct filter **stack)
+static void filters_pluck(const struct filter *f)
 {
 	size_t i;
 
-	if ((stack != filters_prescale) && (stack != filters_postscale))
+	assert(filters_stack_size <= elemof(filters_stack));
+	if (f == NULL)
 		return;
-	for (i = 0; (i != 64); ++i)
-		stack[i] = NULL;
+	DEBUG(("%s", f->name));
+	for (i = 0; (i < filters_stack_size); ++i) {
+		if (filters_stack[i] != f)
+			continue;
+		--filters_stack_size;
+		DEBUG(("%s", filters_stack[i]->name));
+		free(filters_stack_data[i + 1].data);
+#ifndef NDEBUG
+		memset(&filters_stack[i], 0xf4, sizeof(filters_stack[i]));
+		memset(&filters_stack_data[i + 1], 0xf5,
+		       sizeof(filters_stack_data[i + 1]));
+#endif
+		memmove(&filters_stack[i], &filters_stack[i + 1],
+			(sizeof(filters_stack[i]) * (filters_stack_size - i)));
+		memmove(&filters_stack_data[i + 1], &filters_stack_data[i + 2],
+			(sizeof(filters_stack_data[i + 1]) *
+			 (filters_stack_size - i)));
+		--i;
+	}
+	filters_stack_update();
 }
 
-static void set_swab();
+#endif
 
-#endif // WITH_CTV
+#ifdef WITH_CTV
 
-struct scaling {
-	const char *name; ///< name of scaler
-	void (*func)(bpp_t dst, unsigned int dst_pitch,
-		     bpp_t src, unsigned int src_pitch,
-		     unsigned int xsize, unsigned int xscale,
-		     unsigned int ysize, unsigned int yscale,
-		     unsigned int bpp);
-};
+/**
+ * Remove all occurences of CTV filters from the stack.
+ */
+static void filters_pluck_ctv()
+{
+	size_t i;
 
-static void (*scaling)(bpp_t dst, unsigned int dst_pitch,
-		       bpp_t src, unsigned int src_pitch,
-		       unsigned int xsize, unsigned int xscale,
-		       unsigned int ysize, unsigned int yscale,
-		       unsigned int bpp);
+	assert(filters_stack_size <= elemof(filters_stack));
+	for (i = 0; (i < filters_stack_size); ++i) {
+		if (filters_stack[i]->ctv == false)
+			continue;
+		--filters_stack_size;
+		DEBUG(("%s", filters_stack[i]->name));
+		free(filters_stack_data[i + 1].data);
+#ifndef NDEBUG
+		memset(&filters_stack[i], 0xf6, sizeof(filters_stack[i]));
+		memset(&filters_stack_data[i + 1], 0xf6,
+		       sizeof(filters_stack_data[i + 1]));
+#endif
+		memmove(&filters_stack[i], &filters_stack[i + 1],
+			(sizeof(filters_stack[i]) * (filters_stack_size - i)));
+		memmove(&filters_stack_data[i + 1], &filters_stack_data[i + 2],
+			(sizeof(filters_stack_data[i + 1]) *
+			 (filters_stack_size - i)));
+		--i;
+	}
+	filters_stack_update();
+}
+
+#endif
+
+#ifdef WITH_CTV
+
+/**
+ * Empty filters stack.
+ */
+static void filters_empty()
+{
+	size_t i;
+
+	assert(filters_stack_size <= elemof(filters_stack));
+	DEBUG(("stack size was %u", filters_stack_size));
+	for (i = 0; (i < filters_stack_size); ++i)
+		free(filters_stack_data[i + 1].data);
+	filters_stack_size = 0;
+#ifndef NDEBUG
+	memset(filters_stack, 0xb0, sizeof(filters_stack));
+	memset(filters_stack_data, 0xb0, sizeof(filters_stack_data));
+	filters_stack_data[0].data = NULL;
+#endif
+	filters_stack_update();
+}
+
+#endif
 
 /**
  * Take a screenshot.
@@ -1299,6 +1613,48 @@ static void update_texture()
 
 #endif // WITH_OPENGL
 
+/**
+ * This filter passes input to output unchanged, only centered or truncated
+ * if necessary. Doesn't have any fallback, thus cannot fail.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
+ */
+static void filter_off(const struct filter_data *in, struct filter_data *out)
+{
+	unsigned int line;
+	unsigned int height;
+	uint8_t *in_buf;
+	uint8_t *out_buf;
+
+	// Check if copying is necessary.
+	if (in->buf.u8 == out->buf.u8)
+		return;
+	// Copy line by line and center.
+	if (in->height > out->height)
+		height = out->height;
+	else
+		height = in->height;
+	if (out->updated == false) {
+		if (in->width <= out->width) {
+			unsigned int x_off = ((out->width - in->width) / 2);
+			unsigned int y_off = ((out->height - height) / 2);
+
+			out->buf.u8 += (x_off * screen.Bpp);
+			out->buf.u8 += (out->pitch * y_off);
+			out->width = in->width;
+		}
+		out->height = height;
+		out->updated = true;
+	}
+	in_buf = in->buf.u8;
+	out_buf = out->buf.u8;
+	for (line = 0; (line != height); ++line) {
+		memcpy(out_buf, in_buf, (out->width * screen.Bpp));
+		in_buf += in->pitch;
+		out_buf += out->pitch;
+	}
+}
+
 // Copy/rescale functions.
 
 static void rescale_32_1x1(uint32_t *dst, unsigned int dst_pitch,
@@ -1543,6 +1899,71 @@ static void rescale_any(bpp_t dst, unsigned int dst_pitch,
 	}
 }
 
+/**
+ * This filter attempts to rescale according to screen X/Y factors.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
+ */
+static void filter_scale(const struct filter_data *in,
+			 struct filter_data *out)
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned int x_off;
+	unsigned int y_off;
+	unsigned int x_scale;
+	unsigned int y_scale;
+
+	if (out->failed == true) {
+	failed:
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == true) {
+		x_scale = ((unsigned int *)out->data)[0];
+		y_scale = ((unsigned int *)out->data)[1];
+	process:
+		// Feed this to the default scaler.
+		rescale_any(out->buf, out->pitch,
+			    in->buf, in->pitch,
+			    in->width, x_scale,
+			    in->height, y_scale,
+			    screen.bpp);
+		return;
+	}
+	// Initialize filter.
+	assert(out->data == NULL);
+	x_scale = screen.x_scale;
+	y_scale = screen.y_scale;
+	while ((width = (in->width * x_scale)) > out->width)
+		--x_scale;
+	while ((height = (in->height * y_scale)) > out->height)
+		--y_scale;
+	// Check whether output is large enough.
+	if ((x_scale == 0) || (y_scale == 0)) {
+		DEBUG(("cannot rescale by %ux%u", x_scale, y_scale));
+		out->failed = true;
+		goto failed;
+	}
+	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
+	if (out->data == NULL) {
+		DEBUG(("allocation failure"));
+		out->failed = true;
+		goto failed;
+	}
+	((unsigned int *)out->data)[0] = x_scale;
+	((unsigned int *)out->data)[1] = y_scale;
+	// Center output.
+	x_off = ((out->width - width) / 2);
+	y_off = ((out->height - height) / 2);
+	out->buf.u8 += (x_off * screen.Bpp);
+	out->buf.u8 += (out->pitch * y_off);
+	out->width = width;
+	out->height = height;
+	out->updated = true;
+	goto process;
+}
+
 #ifdef WITH_HQX
 
 static void rescale_hqx(bpp_t dst, unsigned int dst_pitch,
@@ -1619,6 +2040,70 @@ skip:
 		    bpp);
 }
 
+/**
+ * This filter attempts to rescale with HQX.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
+ */
+static void filter_hqx(const struct filter_data *in, struct filter_data *out)
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned int x_off;
+	unsigned int y_off;
+	unsigned int x_scale;
+	unsigned int y_scale;
+
+	if (out->failed == true) {
+	failed:
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == true) {
+		x_scale = ((unsigned int *)out->data)[0];
+		y_scale = ((unsigned int *)out->data)[1];
+	process:
+		// Feed this to HQX.
+		rescale_hqx(out->buf, out->pitch,
+			    in->buf, in->pitch,
+			    in->width, x_scale,
+			    in->height, y_scale,
+			    screen.bpp);
+		return;
+	}
+	// Initialize filter.
+	assert(out->data == NULL);
+	x_scale = screen.x_scale;
+	y_scale = screen.y_scale;
+	while ((width = (in->width * x_scale)) > out->width)
+		--x_scale;
+	while ((height = (in->height * y_scale)) > out->height)
+		--y_scale;
+	// Check whether output is large enough.
+	if ((x_scale == 0) || (y_scale == 0)) {
+		DEBUG(("cannot rescale by %ux%u", x_scale, y_scale));
+		out->failed = true;
+		goto failed;
+	}
+	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
+	if (out->data == NULL) {
+		DEBUG(("allocation failure"));
+		out->failed = true;
+		goto failed;
+	}
+	((unsigned int *)out->data)[0] = x_scale;
+	((unsigned int *)out->data)[1] = y_scale;
+	// Center output.
+	x_off = ((out->width - width) / 2);
+	y_off = ((out->height - height) / 2);
+	out->buf.u8 += (x_off * screen.Bpp);
+	out->buf.u8 += (out->pitch * y_off);
+	out->width = width;
+	out->height = height;
+	out->updated = true;
+	goto process;
+}
+
 #endif // WITH_HQX
 
 #ifdef WITH_SCALE2X
@@ -1667,6 +2152,71 @@ skip:
 	rescale_any(dst, dst_pitch, src, src_pitch,
 		    xsize, xscale, ysize, yscale,
 		    bpp);
+}
+
+/**
+ * This filter attempts to rescale with Scale2x.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
+ */
+static void filter_scale2x(const struct filter_data *in,
+			   struct filter_data *out)
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned int x_off;
+	unsigned int y_off;
+	unsigned int x_scale;
+	unsigned int y_scale;
+
+	if (out->failed == true) {
+	failed:
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == true) {
+		x_scale = ((unsigned int *)out->data)[0];
+		y_scale = ((unsigned int *)out->data)[1];
+	process:
+		// Feed this to scale2x.
+		rescale_scale2x(out->buf, out->pitch,
+				in->buf, in->pitch,
+				in->width, x_scale,
+				in->height, y_scale,
+				screen.bpp);
+		return;
+	}
+	// Initialize filter.
+	assert(out->data == NULL);
+	x_scale = screen.x_scale;
+	y_scale = screen.y_scale;
+	while ((width = (in->width * x_scale)) > out->width)
+		--x_scale;
+	while ((height = (in->height * y_scale)) > out->height)
+		--y_scale;
+	// Check whether output is large enough.
+	if ((x_scale == 0) || (y_scale == 0)) {
+		DEBUG(("cannot rescale by %ux%u", x_scale, y_scale));
+		out->failed = true;
+		goto failed;
+	}
+	out->data = malloc(sizeof(x_scale) + sizeof(y_scale));
+	if (out->data == NULL) {
+		DEBUG(("allocation failure"));
+		out->failed = true;
+		goto failed;
+	}
+	((unsigned int *)out->data)[0] = x_scale;
+	((unsigned int *)out->data)[1] = y_scale;
+	// Center output.
+	x_off = ((out->width - width) / 2);
+	y_off = ((out->height - height) / 2);
+	out->buf.u8 += (x_off * screen.Bpp);
+	out->buf.u8 += (out->pitch * y_off);
+	out->width = width;
+	out->height = height;
+	out->updated = true;
+	goto process;
 }
 
 #endif // WITH_SCALE2X
@@ -1777,10 +2327,25 @@ static void filter_blur_u15(uint16_t *buf, unsigned int buf_pitch,
 	}
 }
 
-static void filter_blur(bpp_t buf, unsigned int buf_pitch,
-			unsigned int xsize, unsigned int ysize,
-			unsigned int bpp)
+static void filter_blur(const struct filter_data *in,
+			struct filter_data *out)
 {
+	bpp_t buf = out->buf;
+	unsigned int buf_pitch = out->pitch;
+	unsigned int xsize = in->width;
+	unsigned int ysize = in->height;
+	unsigned int bpp = screen.bpp;
+
+	// Does not support in != out.
+	if (in->buf.u8 != out->buf.u8) {
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == false) {
+		out->width = in->width;
+		out->height = in->height;
+		out->updated = true;
+	}
 	switch (bpp) {
 	case 32:
 		filter_blur_u32(buf.u32, buf_pitch, xsize, ysize);
@@ -1842,30 +2407,73 @@ static void filter_scanline_frame(bpp_t buf, unsigned int buf_pitch,
 	}
 }
 
-static void filter_scanline(bpp_t buf, unsigned int buf_pitch,
-			    unsigned int xsize, unsigned int ysize,
-			    unsigned int bpp)
+static void filter_scanline(const struct filter_data *in,
+			    struct filter_data *out)
 {
+	bpp_t buf = out->buf;
+	unsigned int buf_pitch = out->pitch;
+	unsigned int xsize = in->width;
+	unsigned int ysize = in->height;
+	unsigned int bpp = screen.bpp;
+
+	// Does not support in != out.
+	if (in->buf.u8 != out->buf.u8) {
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == false) {
+		out->width = in->width;
+		out->height = in->height;
+		out->updated = true;
+	}
 	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, 0);
 }
 
-static void filter_interlace(bpp_t buf, unsigned int buf_pitch,
-			     unsigned int xsize, unsigned int ysize,
-			     unsigned int bpp)
+static void filter_interlace(const struct filter_data *in,
+			     struct filter_data *out)
 {
 	static unsigned int frame = 0;
+	bpp_t buf = out->buf;
+	unsigned int buf_pitch = out->pitch;
+	unsigned int xsize = in->width;
+	unsigned int ysize = in->height;
+	unsigned int bpp = screen.bpp;
 
+	// Does not support in != out.
+	if (in->buf.u8 != out->buf.u8) {
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == false) {
+		out->width = in->width;
+		out->height = in->height;
+		out->updated = true;
+	}
 	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, frame);
 	frame ^= 0x1;
 }
 
 // Byte swap filter.
-static void filter_swab(bpp_t buf, unsigned int buf_pitch,
-			unsigned int xsize, unsigned int ysize,
-			unsigned int bpp)
+static void filter_swab(const struct filter_data *in,
+			struct filter_data *out)
 {
+	bpp_t buf = out->buf;
+	unsigned int buf_pitch = out->pitch;
+	unsigned int xsize = in->width;
+	unsigned int ysize = in->height;
+	unsigned int bpp = screen.bpp;
 	unsigned int y;
 
+	// Does not support in != out.
+	if (in->buf.u8 != out->buf.u8) {
+		filter_off(in, out);
+		return;
+	}
+	if (out->updated == false) {
+		out->width = in->width;
+		out->height = in->height;
+		out->updated = true;
+	}
 	for (y = 0; (y < ysize); ++y) {
 		switch (bpp) {
 			unsigned int x;
@@ -1989,11 +2597,17 @@ static void filter_text_msg(const char *fmt, ...)
 
 /**
  * Text overlay filter.
+ * @param in Input buffer data.
+ * @param out Output buffer data.
  */
-static void filter_text(bpp_t buf, unsigned int buf_pitch,
-			unsigned int xsize, unsigned int ysize,
-			unsigned int bpp)
+static void filter_text(const struct filter_data *in,
+			struct filter_data *out)
 {
+	bpp_t buf = out->buf;
+	unsigned int buf_pitch = out->pitch;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
+	unsigned int bpp = screen.bpp;
 	unsigned int Bpp = ((bpp + 1) / 8);
 	const char *str = filter_text_str;
 	const char *next = str;
@@ -2014,6 +2628,8 @@ static void filter_text(bpp_t buf, unsigned int buf_pitch,
 	unsigned int line_width = 0;
 	unsigned int line_height = font->height;
 
+	// Input is unused.
+	(void)in;
 	assert(filter_text_str[(sizeof(filter_text_str) - 1)] == '\0');
 	while (1) {
 		unsigned int len;
@@ -2125,62 +2741,19 @@ static void filter_text(bpp_t buf, unsigned int buf_pitch,
 	}
 }
 
-static const struct filter filter_text_def = { "text", filter_text };
-
-/**
- * No-op filter.
- */
-static void filter_off(bpp_t buf, unsigned int buf_pitch,
-		       unsigned int xsize, unsigned int ysize,
-		       unsigned int bpp)
-{
-	(void)buf;
-	(void)buf_pitch;
-	(void)xsize;
-	(void)ysize;
-	(void)bpp;
-}
-
-/**
- * List of available filters.
- */
-static const struct filter filters_list[] = {
-	// The filters must match ctv_names in rc.cpp.
-	{ "off", filter_off },
-	{ "blur", filter_blur },
-	{ "scanline", filter_scanline },
-	{ "interlace", filter_interlace },
-	{ "swab", filter_swab },
-	{ NULL, NULL }
+static const struct filter filter_text_def = {
+	"text", filter_text, true, false, false
 };
 
 static void set_swab()
 {
-	const struct filter *f = filters_list;
-	const struct filter *fswab = NULL;
-	const struct filter *foff = NULL;
+	const struct filter *f = filters_find("swab");
 
-	while (f->func != NULL) {
-		if (f->func == filter_swab) {
-			fswab = f;
-			if (foff != NULL)
-				break;
-		}
-		else if (f->func == filter_off) {
-			foff = f;
-			if (fswab != NULL)
-				break;
-		}
-		++f;
-	}
-	if ((fswab == NULL) || (foff == NULL))
+	if (f == NULL)
 		return;
-	filters_pluck(filters_prescale, fswab);
-	if (dgen_swab) {
-		if (filters_prescale[0] == NULL)
-			filters_push(filters_prescale, foff);
-		filters_push_once(filters_prescale, fswab);
-	}
+	filters_pluck(f);
+	if (dgen_swab)
+		filters_insert(f);
 }
 
 static int prompt_cmd_filter_push(class md&, unsigned int ac, const char** av)
@@ -2190,14 +2763,11 @@ static int prompt_cmd_filter_push(class md&, unsigned int ac, const char** av)
 	if (ac < 2)
 		return CMD_EINVAL;
 	for (i = 1; (i != ac); ++i) {
-		const struct filter *f;
+		const struct filter *f = filters_find(av[i]);
 
-		for (f = filters_list; (f->name != NULL); ++f)
-			if (!strcasecmp(f->name, av[i]))
-				break;
-		if (f->name == NULL)
+		if (f == NULL)
 			return CMD_EINVAL;
-		filters_push(filters_prescale, f);
+		filters_push(f);
 	}
 	return CMD_OK;
 }
@@ -2208,6 +2778,7 @@ static char* prompt_cmpl_filter_push(class md&, unsigned int ac,
 	const struct filter *f;
 	const char *prefix;
 	unsigned int skip;
+	unsigned int i;
 
 	assert(ac != 0);
 	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
@@ -2218,14 +2789,15 @@ static char* prompt_cmpl_filter_push(class md&, unsigned int ac,
 		prefix = av[(ac - 1)];
 	skip = prompt.skip;
 retry:
-	for (f = filters_list; (f->func != NULL); ++f) {
+	for (i = 0; (i != elemof(filters_available)); ++i) {
+		f = &filters_available[i];
 		if (strncasecmp(prefix, f->name, len))
 			continue;
 		if (skip == 0)
 			break;
 		--skip;
 	}
-	if (f->name == NULL) {
+	if (i == elemof(filters_available)) {
 		if (prompt.skip != 0) {
 			prompt.skip = 0;
 			goto retry;
@@ -2240,7 +2812,7 @@ static int prompt_cmd_filter_pop(class md&, unsigned int ac, const char**)
 {
 	if (ac != 1)
 		return CMD_EINVAL;
-	filters_pop(filters_prescale);
+	filters_pop();
 	return CMD_OK;
 }
 
@@ -2248,7 +2820,7 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 {
 	if (ac != 1)
 		return CMD_EINVAL;
-	filters_empty(filters_prescale);
+	filters_empty();
 	return CMD_OK;
 }
 
@@ -2288,33 +2860,26 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 #endif
 }
 
-// Available scaling functions.
-static const struct scaling scaling_list[] = {
-	// These items must match scaling_names in rc.cpp.
-	{ "default", rescale_any },
-#ifdef WITH_HQX
-	{ "hqx", rescale_hqx },
-#endif
-#ifdef WITH_SCALE2X
-	{ "scale2x", rescale_scale2x },
-#endif
-	{ NULL, NULL }
-};
-
 static int set_scaling(const char *name)
 {
 	unsigned int i;
+	const struct filter *f = filters_find(name);
 
-	for (i = 0; (scaling_list[i].name != NULL); ++i) {
-		if (strcasecmp(name, scaling_list[i].name))
-			continue;
-		clear_screen();
-		scaling = scaling_list[i].func;
-		return 0;
+	if ((f == NULL) || (f->resize == false))
+		return -1;
+	assert(filters_stack_size <= elemof(filters_stack));
+	// Replace all current scalers with this one.
+	for (i = 0; (i < filters_stack_size); ++i) {
+		if (filters_stack[i]->resize == true) {
+			filters_remove(i);
+			--i;
+		}
+		// Do not fight with filters_stack_update().
+		if (filters_stack_default == true)
+			break;
 	}
-	clear_screen();
-	scaling = rescale_any;
-	return -1;
+	filters_push(f);
+	return 0;
 }
 
 /**
@@ -2763,6 +3328,8 @@ opengl_failed:
 	       mdscr.w, mdscr.h, mdscr.bpp, mdscr.pitch, (void *)mdscr.data));
 	if (mdscr.data == NULL)
 		return -2;
+	// Rehash filters.
+	filters_stack_update();
 	// Initialize scaling.
 	set_scaling(scaling_names[(dgen_scaling % NUM_SCALING)]);
 	DEBUG(("using scaling algorithm \"%s\"",
@@ -2878,7 +3445,8 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	DEBUG(("setuid privileges dropped"));
 #endif
 #ifdef WITH_CTV
-	filters_prescale[0] = &filters_list[(dgen_craptv % NUM_CTV)];
+	filters_pluck_ctv();
+	filters_insert(filters_find(ctv_names[dgen_craptv % NUM_CTV]));
 #endif // WITH_CTV
 	DEBUG(("ret=1"));
 	fprintf(stderr, "video: %dx%d, %u bpp (%u Bpp), %uHz\n",
@@ -2971,16 +3539,10 @@ void pd_graphics_update(bool update)
 	static unsigned long fps_since = 0;
 	static unsigned long frames_old = 0;
 	static unsigned long frames = 0;
-	bpp_t src;
-	bpp_t dst;
-	unsigned int src_pitch;
-	unsigned int dst_pitch;
-#ifdef WITH_CTV
-	unsigned int xsize2;
-	unsigned int ysize2;
-	const struct filter **filter;
-#endif
 	unsigned long usecs = pd_usecs();
+	const struct filter *f;
+	struct filter_data *fd;
+	size_t i;
 
 	// Check whether the message must be processed.
 	if (((info.displayed) || (info.length))  &&
@@ -3007,37 +3569,22 @@ void pd_graphics_update(bool update)
 			}
 		}
 	}
-	// Set destination buffer.
-	dst_pitch = screen.pitch;
-	dst.u8 = &screen.buf.u8[(screen.x_scale_offset * screen.Bpp)];
-	dst.u8 += (screen.pitch * screen.y_scale_offset);
-	// Use the same formula as draw_scanline() in ras.cpp to avoid the
-	// messy border once and for all. This one works with any supported
-	// depth.
-	src_pitch = mdscr.pitch;
-	src.u8 = ((uint8_t *)mdscr.data + (src_pitch * 8) + 16);
 	if (update == false)
 		mdscr_splash();
-#ifdef WITH_CTV
-	// Apply prescale filters.
-	xsize2 = (video.width * screen.x_scale);
-	ysize2 = (video.height * screen.y_scale);
-	for (filter = filters_prescale; (*filter != NULL); ++filter)
-		(*filter)->func(src, src_pitch, video.width, video.height,
-				mdscr.bpp);
-#endif
+	// Process output through filters.
+	for (i = 0; (i != elemof(filters_stack)); ++i) {
+		f = filters_stack[i];
+		fd = &filters_stack_data[i];
+		if ((filters_stack_size == 0) ||
+		    (i == (filters_stack_size - 1)))
+			break;
+		f->func(fd, (fd + 1));
+	}
 	// Lock screen.
 	if (screen_lock())
 		return;
-	// Copy/rescale output.
-	scaling(dst, dst_pitch, src, src_pitch,
-		video.width, screen.x_scale, video.height, screen.y_scale,
-		screen.bpp);
-#ifdef WITH_CTV
-	// Apply postscale filters.
-	for (filter = filters_postscale; (*filter != NULL); ++filter)
-		(*filter)->func(dst, dst_pitch, xsize2, ysize2, screen.bpp);
-#endif
+	// Generate screen output with the last filter.
+	f->func(fd, (fd + 1));
 	// Unlock screen.
 	screen_unlock();
 	// Update the screen.
@@ -3382,7 +3929,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 
 	if (rc->variable == &dgen_craptv) {
 #ifdef WITH_CTV
-		filters_prescale[0] = &filters_list[dgen_craptv];
+		filters_pluck_ctv();
+		filters_insert(filters_find(ctv_names[dgen_craptv % NUM_CTV]));
 #else
 		fail = true;
 #endif
@@ -4647,7 +5195,8 @@ static int ctl_dgen_craptv_toggle(struct ctl&, md&)
 {
 #ifdef WITH_CTV
 	dgen_craptv = ((dgen_craptv + 1) % NUM_CTV);
-	filters_prescale[0] = &filters_list[dgen_craptv];
+	filters_pluck_ctv();
+	filters_insert(filters_find(ctv_names[dgen_craptv]));
 	pd_message("Crap TV mode \"%s\".", ctv_names[dgen_craptv]);
 #endif // WITH_CTV
 	return 1;
@@ -4984,7 +5533,8 @@ static void manage_calibration(bool type, intptr_t code)
 				"\n",
 				(calibrating_controller + 1));
 #ifdef WITH_CTV
-		filters_push_once(filters_prescale, &filter_text_def);
+		filters_pluck(&filter_text_def);
+		filters_insert(&filter_text_def);
 #endif
 		goto ask;
 	}
@@ -5006,7 +5556,7 @@ static void manage_calibration(bool type, intptr_t code)
 		pd_freeze = false;
 		calibrating = false;
 #ifdef WITH_CTV
-		filters_pluck(filters_prescale, &filter_text_def);
+		filters_pluck(&filter_text_def);
 #endif
 		return;
 	}
@@ -5524,6 +6074,8 @@ void pd_show_carthead(md& megad)
 /* Clean up this awful mess :) */
 void pd_quit()
 {
+	size_t i;
+
 #ifdef WITH_THREADS
 	screen_update_thread_stop();
 #endif
@@ -5538,5 +6090,15 @@ void pd_quit()
 #ifdef WITH_OPENGL
 	release_texture();
 #endif
+	free(filters_stack_data_buf[0].u8);
+	free(filters_stack_data_buf[1].u8);
+	assert(filters_stack_size <= elemof(filters_stack));
+	assert(filters_stack_data[0].data == NULL);
+	filters_stack_default = false;
+	for (i = 0; (i != filters_stack_size); ++i) {
+		free(filters_stack_data[i + 1].data);
+		filters_stack_data[i + 1].data = NULL;
+	}
+	filters_stack_size = 0;
 	SDL_Quit();
 }
