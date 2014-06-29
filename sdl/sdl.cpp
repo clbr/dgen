@@ -2301,290 +2301,431 @@ retry:
 
 // "Blur" CTV filters.
 
-static void filter_blur_u32(uint32_t *buf, unsigned int buf_pitch,
-			    unsigned int xsize, unsigned int ysize)
+static void filter_blur_32(const struct filter_data *in,
+			   struct filter_data *out)
 {
+	bpp_t in_buf = in->buf;
+	bpp_t out_buf = out->buf;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
 	unsigned int y;
 
 	for (y = 0; (y < ysize); ++y) {
-		uint32_t old = *buf;
+		uint32_t old = *in_buf.u32;
 		unsigned int x;
 
 		for (x = 0; (x < xsize); ++x) {
-			uint32_t tmp = buf[x];
+			uint32_t tmp = in_buf.u32[x];
 
 			tmp = (((((tmp & 0x00ff00ff) +
 				  (old & 0x00ff00ff)) >> 1) & 0x00ff00ff) |
 			       ((((tmp & 0xff00ff00) +
 				  (old & 0xff00ff00)) >> 1) & 0xff00ff00));
-			old = buf[x];
-			buf[x] = tmp;
+			old = in_buf.u32[x];
+			out_buf.u32[x] = tmp;
 		}
-		buf = (uint32_t *)((uint8_t *)buf + buf_pitch);
+		in_buf.u8 += in->pitch;
+		out_buf.u8 += out->pitch;
 	}
 }
 
-static void filter_blur_u24(uint24_t *buf, unsigned int buf_pitch,
-			    unsigned int xsize, unsigned int ysize)
+static void filter_blur_24(const struct filter_data *in,
+			   struct filter_data *out)
 {
+	bpp_t in_buf = in->buf;
+	bpp_t out_buf = out->buf;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
 	unsigned int y;
 
 	for (y = 0; (y < ysize); ++y) {
 		uint24_t old;
 		unsigned int x;
 
-		u24cpy(&old, buf);
+		u24cpy(&old, in_buf.u24);
 		for (x = 0; (x < xsize); ++x) {
 			uint24_t tmp;
 
-			u24cpy(&tmp, &buf[x]);
-			buf[x][0] = ((tmp[0] + old[0]) >> 1);
-			buf[x][1] = ((tmp[1] + old[1]) >> 1);
-			buf[x][2] = ((tmp[2] + old[2]) >> 1);
+			u24cpy(&tmp, &in_buf.u24[x]);
+			out_buf.u24[x][0] = ((tmp[0] + old[0]) >> 1);
+			out_buf.u24[x][1] = ((tmp[1] + old[1]) >> 1);
+			out_buf.u24[x][2] = ((tmp[2] + old[2]) >> 1);
 			u24cpy(&old, &tmp);
 		}
-		buf = (uint24_t *)((uint8_t *)buf + buf_pitch);
+		in_buf.u8 += in->pitch;
+		out_buf.u8 += out->pitch;
 	}
 }
 
-static void filter_blur_u16(uint16_t *buf, unsigned int buf_pitch,
-			    unsigned int xsize, unsigned int ysize)
+static void filter_blur_16(const struct filter_data *in,
+			   struct filter_data *out)
 {
+	bpp_t in_buf = in->buf;
+	bpp_t out_buf = out->buf;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
 	unsigned int y;
 
-	for (y = 0; (y < ysize); ++y) {
 #ifdef WITH_X86_CTV
-		// Blur, by Dave
-		blur_bitmap_16((uint8_t *)buf, (xsize - 1));
-#else
-		uint16_t old = *buf;
+	if (in_buf.u16 == out_buf.u16) {
+		for (y = 0; (y < ysize); ++y) {
+			// Blur, by Dave
+			blur_bitmap_16((uint8_t *)out_buf.u16, (xsize - 1));
+			out_buf.u8 += out->pitch;
+		}
+		return;
+	}
+#endif
+	for (y = 0; (y < ysize); ++y) {
+		uint16_t old = *in_buf.u16;
 		unsigned int x;
 
 		for (x = 0; (x < xsize); ++x) {
-			uint16_t tmp = buf[x];
+			uint16_t tmp = in_buf.u16[x];
 
 			tmp = (((((tmp & 0xf81f) +
 				  (old & 0xf81f)) >> 1) & 0xf81f) |
 			       ((((tmp & 0x07e0) +
 				  (old & 0x07e0)) >> 1) & 0x07e0));
-			old = buf[x];
-			buf[x] = tmp;
+			old = in_buf.u16[x];
+			out_buf.u16[x] = tmp;
 		}
-#endif
-		buf = (uint16_t *)((uint8_t *)buf + buf_pitch);
+		in_buf.u8 += in->pitch;
+		out_buf.u8 += out->pitch;
 	}
 }
 
-static void filter_blur_u15(uint16_t *buf, unsigned int buf_pitch,
-			    unsigned int xsize, unsigned int ysize)
+static void filter_blur_15(const struct filter_data *in,
+			   struct filter_data *out)
 {
+	bpp_t in_buf = in->buf;
+	bpp_t out_buf = out->buf;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
 	unsigned int y;
 
-	for (y = 0; (y < ysize); ++y) {
 #ifdef WITH_X86_CTV
-		// Blur, by Dave
-		blur_bitmap_15((uint8_t *)buf, (xsize - 1));
-#else
-		uint16_t old = *buf;
+	if (in_buf.u15 == out_buf.u15) {
+		for (y = 0; (y < ysize); ++y) {
+			// Blur, by Dave
+			blur_bitmap_15((uint8_t *)out_buf.u15, (xsize - 1));
+			out_buf.u8 += out->pitch;
+		}
+		return;
+	}
+#endif
+	for (y = 0; (y < ysize); ++y) {
+		uint16_t old = *in_buf.u15;
 		unsigned int x;
 
 		for (x = 0; (x < xsize); ++x) {
-			uint16_t tmp = buf[x];
+			uint16_t tmp = in_buf.u15[x];
 
 			tmp = (((((tmp & 0x7c1f) +
 				  (old & 0x7c1f)) >> 1) & 0x7c1f) |
 			       ((((tmp & 0x03e0) +
 				  (old & 0x03e0)) >> 1) & 0x03e0));
-			old = buf[x];
-			buf[x] = tmp;
+			old = in_buf.u15[x];
+			out_buf.u15[x] = tmp;
 		}
-#endif
-		buf = (uint16_t *)((uint8_t *)buf + buf_pitch);
+		in_buf.u8 += in->pitch;
+		out_buf.u8 += out->pitch;
 	}
 }
 
 static void filter_blur(const struct filter_data *in,
 			struct filter_data *out)
 {
-	bpp_t buf = out->buf;
-	unsigned int buf_pitch = out->pitch;
-	unsigned int xsize = in->width;
-	unsigned int ysize = in->height;
-	unsigned int bpp = screen.bpp;
+	static const struct {
+		unsigned int bpp;
+		filter_func_t *filter;
+	} blur_mode[] = {
+		{ 32, filter_blur_32 },
+		{ 24, filter_blur_24 },
+		{ 16, filter_blur_16 },
+		{ 15, filter_blur_15 },
+	};
+	filter_func_t *blur;
 
-	// Does not support in != out.
-	if (in->buf.u8 != out->buf.u8) {
+	if (out->failed == true) {
+	failed:
 		filter_off(in, out);
 		return;
 	}
 	if (out->updated == false) {
-		out->width = in->width;
-		out->height = in->height;
+		unsigned int i;
+
+		for (i = 0; (i != elemof(blur_mode)); ++i)
+			if (blur_mode[i].bpp == screen.bpp)
+				break;
+		if (i == elemof(blur_mode)) {
+			DEBUG(("%u bpp depth is not supported", screen.bpp));
+			out->failed = true;
+			goto failed;
+		}
+		blur = blur_mode[i].filter;
+		out->data = malloc(sizeof(filter));
+		if (out->data == NULL) {
+			DEBUG(("allocation failure"));
+			out->failed = true;
+			goto failed;
+		}
+		if (in->width <= out->width) {
+			unsigned int x_off = ((out->width - in->width) / 2);
+			unsigned int y_off = ((out->height - in->height) / 2);
+
+			out->buf.u8 += (x_off * screen.Bpp);
+			out->buf.u8 += (out->pitch * y_off);
+			out->width = in->width;
+		}
+		if (in->height <= out->height)
+			out->height = in->height;
+		*((filter_func_t **)out->data) = blur;
 		out->updated = true;
 	}
-	switch (bpp) {
-	case 32:
-		filter_blur_u32(buf.u32, buf_pitch, xsize, ysize);
-		break;
-	case 24:
-		filter_blur_u24(buf.u24, buf_pitch, xsize, ysize);
-		break;
-	case 16:
-		filter_blur_u16(buf.u16, buf_pitch, xsize, ysize);
-		break;
-	case 15:
-		filter_blur_u15(buf.u16, buf_pitch, xsize, ysize);
-		break;
-	}
+	else
+		blur = *(filter_func_t **)out->data;
+	(*blur)(in, out);
 }
 
 // Scanline/Interlace CTV filters.
 
-static void filter_scanline_frame(bpp_t buf, unsigned int buf_pitch,
-				  unsigned int xsize, unsigned int ysize,
-				  unsigned int bpp, unsigned int frame)
+static void filter_scanline_frame(const struct filter_data *in,
+				  struct filter_data *out)
 {
-	unsigned int y;
+	unsigned int frame = ((unsigned int *)out->data)[0];
+	unsigned int bpp = ((unsigned int *)out->data)[1];
+	bpp_t in_buf = in->buf;
+	bpp_t out_buf = out->buf;
+	unsigned int xsize = out->width;
+	unsigned int ysize = out->height;
 
-	buf.u8 += (buf_pitch * !!frame);
-	for (y = frame; (y < ysize); y += 2) {
-		switch (bpp) {
-			unsigned int x;
+	out_buf.u8 += (out->pitch * !!frame);
+	switch (bpp) {
+		unsigned int x;
+		unsigned int y;
 
-		case 32:
+	case 32:
+		for (y = frame; (y < ysize); y += 2) {
 			for (x = 0; (x < xsize); ++x)
-				buf.u32[x] = ((buf.u32[x] >> 1) & 0x7f7f7f7f);
-			break;
-		case 24:
-			for (x = 0; (x < xsize); ++x) {
-				buf.u24[x][0] >>= 1;
-				buf.u24[x][1] >>= 1;
-				buf.u24[x][2] >>= 1;
-			}
-			break;
-#ifdef WITH_X86_CTV
-		case 16:
-		case 15:
-			// Scanline, by Phil
-			test_ctv((uint8_t *)buf.u16, xsize);
-			break;
-#else
-		case 16:
-			for (x = 0; (x < xsize); ++x)
-				buf.u16[x] = ((buf.u16[x] >> 1) & 0x7bef);
-			break;
-		case 15:
-			for (x = 0; (x < xsize); ++x)
-				buf.u15[x] = ((buf.u15[x] >> 1) & 0x3def);
-			break;
-#endif
+				out_buf.u32[x] =
+					((in_buf.u32[x] >> 1) & 0x7f7f7f7f);
+			in_buf.u8 += (in->pitch * 2);
+			out_buf.u8 += (out->pitch * 2);
 		}
-		buf.u8 += (buf_pitch * 2);
+		break;
+	case 24:
+		for (y = frame; (y < ysize); y += 2) {
+			for (x = 0; (x < xsize); ++x) {
+				out_buf.u24[x][0] = (in_buf.u24[x][0] >> 1);
+				out_buf.u24[x][1] = (in_buf.u24[x][1] >> 1);
+				out_buf.u24[x][2] = (in_buf.u24[x][2] >> 1);
+			}
+			in_buf.u8 += (in->pitch * 2);
+			out_buf.u8 += (out->pitch * 2);
+		}
+		break;
+	case 16:
+		for (y = frame; (y < ysize); y += 2) {
+#ifdef WITH_X86_CTV
+			if (in_buf.u16 == out_buf.u16) {
+				// Scanline, by Phil
+				test_ctv((uint8_t *)out_buf.u16, xsize);
+			}
+			else
+#endif
+			for (x = 0; (x < xsize); ++x)
+				out_buf.u16[x] =
+					((in_buf.u16[x] >> 1) & 0x7bef);
+			in_buf.u8 += (in->pitch * 2);
+			out_buf.u8 += (out->pitch * 2);
+		}
+		break;
+	case 15:
+		for (y = frame; (y < ysize); y += 2) {
+#ifdef WITH_X86_CTV
+			if (in_buf.u15 == out_buf.u15) {
+				// Scanline, by Phil
+				test_ctv((uint8_t *)out_buf.u16, xsize);
+			}
+			else
+#endif
+			for (x = 0; (x < xsize); ++x)
+				out_buf.u15[x] =
+					((in_buf.u15[x] >> 1) & 0x3def);
+			in_buf.u8 += (in->pitch * 2);
+			out_buf.u8 += (out->pitch * 2);
+		}
+		break;
 	}
 }
 
 static void filter_scanline(const struct filter_data *in,
 			    struct filter_data *out)
 {
-	bpp_t buf = out->buf;
-	unsigned int buf_pitch = out->pitch;
-	unsigned int xsize = in->width;
-	unsigned int ysize = in->height;
-	unsigned int bpp = screen.bpp;
-
-	// Does not support in != out.
-	if (in->buf.u8 != out->buf.u8) {
+	if (out->failed == true) {
+	failed:
 		filter_off(in, out);
 		return;
 	}
 	if (out->updated == false) {
-		out->width = in->width;
-		out->height = in->height;
+		if ((screen.bpp != 32) &&
+		    (screen.bpp != 24) &&
+		    (screen.bpp != 16) &&
+		    (screen.bpp != 15)) {
+			DEBUG(("%u bpp depth is not supported", screen.bpp));
+			out->failed = true;
+			goto failed;
+		}
+		out->data = malloc(sizeof(unsigned int [2]));
+		if (out->data == NULL) {
+			DEBUG(("allocation failure"));
+			out->failed = true;
+			goto failed;
+		}
+		if (in->width <= out->width) {
+			unsigned int x_off = ((out->width - in->width) / 2);
+			unsigned int y_off = ((out->height - in->height) / 2);
+
+			out->buf.u8 += (x_off * screen.Bpp);
+			out->buf.u8 += (out->pitch * y_off);
+			out->width = in->width;
+		}
+		if (in->height <= out->height)
+			out->height = in->height;
+		((unsigned int *)out->data)[0] = 0;
+		((unsigned int *)out->data)[1] = screen.bpp;
 		out->updated = true;
 	}
-	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, 0);
+	filter_scanline_frame(in, out);
 }
 
 static void filter_interlace(const struct filter_data *in,
 			     struct filter_data *out)
 {
-	static unsigned int frame = 0;
-	bpp_t buf = out->buf;
-	unsigned int buf_pitch = out->pitch;
-	unsigned int xsize = in->width;
-	unsigned int ysize = in->height;
-	unsigned int bpp = screen.bpp;
-
-	// Does not support in != out.
-	if (in->buf.u8 != out->buf.u8) {
+	if (out->failed == true) {
+	failed:
 		filter_off(in, out);
 		return;
 	}
 	if (out->updated == false) {
-		out->width = in->width;
-		out->height = in->height;
+		if ((screen.bpp != 32) &&
+		    (screen.bpp != 24) &&
+		    (screen.bpp != 16) &&
+		    (screen.bpp != 15)) {
+			DEBUG(("%u bpp depth is not supported", screen.bpp));
+			out->failed = true;
+			goto failed;
+		}
+		out->data = malloc(sizeof(unsigned int [2]));
+		if (out->data == NULL) {
+			DEBUG(("allocation failure"));
+			out->failed = true;
+			goto failed;
+		}
+		if (in->width <= out->width) {
+			unsigned int x_off = ((out->width - in->width) / 2);
+			unsigned int y_off = ((out->height - in->height) / 2);
+
+			out->buf.u8 += (x_off * screen.Bpp);
+			out->buf.u8 += (out->pitch * y_off);
+			out->width = in->width;
+		}
+		if (in->height <= out->height)
+			out->height = in->height;
+		((unsigned int *)out->data)[0] = 0;
+		((unsigned int *)out->data)[1] = screen.bpp;
 		out->updated = true;
 	}
-	filter_scanline_frame(buf, buf_pitch, xsize, ysize, bpp, frame);
-	frame ^= 0x1;
+	filter_scanline_frame(in, out);
+	((unsigned int *)out->data)[0] ^= 1;
 }
 
 // Byte swap filter.
 static void filter_swab(const struct filter_data *in,
 			struct filter_data *out)
 {
-	bpp_t buf = out->buf;
-	unsigned int buf_pitch = out->pitch;
-	unsigned int xsize = in->width;
-	unsigned int ysize = in->height;
-	unsigned int bpp = screen.bpp;
-	unsigned int y;
+	bpp_t in_buf;
+	bpp_t out_buf;
+	unsigned int xsize;
+	unsigned int ysize;
 
-	// Does not support in != out.
-	if (in->buf.u8 != out->buf.u8) {
+	if (out->failed == true) {
+	failed:
 		filter_off(in, out);
 		return;
 	}
 	if (out->updated == false) {
-		out->width = in->width;
-		out->height = in->height;
+		if ((screen.Bpp != 4) &&
+		    (screen.Bpp != 3) &&
+		    (screen.Bpp != 2)) {
+			DEBUG(("%u Bpp depth is not supported", screen.Bpp));
+			out->failed = true;
+			goto failed;
+		}
+		if (in->width <= out->width) {
+			unsigned int x_off = ((out->width - in->width) / 2);
+			unsigned int y_off = ((out->height - in->height) / 2);
+
+			out->buf.u8 += (x_off * screen.Bpp);
+			out->buf.u8 += (out->pitch * y_off);
+			out->width = in->width;
+		}
+		if (in->height <= out->height)
+			out->height = in->height;
 		out->updated = true;
 	}
-	for (y = 0; (y < ysize); ++y) {
-		switch (bpp) {
-			unsigned int x;
+	in_buf = in->buf;
+	out_buf = out->buf;
+	ysize = out->height;
+	xsize = out->width;
+	switch (screen.Bpp) {
+		unsigned int x;
+		unsigned int y;
 
-		case 32:
+	case 4:
+		for (y = 0; (y < ysize); ++y) {
 			for (x = 0; (x < xsize); ++x) {
 				union {
 					uint32_t u32;
 					uint8_t u8[4];
 				} tmp[2];
 
-				tmp[0].u32 = buf.u32[x];
+				tmp[0].u32 = in_buf.u32[x];
 				tmp[1].u8[0] = tmp[0].u8[3];
 				tmp[1].u8[1] = tmp[0].u8[2];
 				tmp[1].u8[2] = tmp[0].u8[1];
 				tmp[1].u8[3] = tmp[0].u8[0];
-				buf.u32[x] = tmp[1].u32;
+				out_buf.u32[x] = tmp[1].u32;
 			}
-			break;
-		case 24:
-			for (x = 0; (x < xsize); ++x) {
-				uint8_t tmp = buf.u24[x][0];
-
-				buf.u24[x][0] = buf.u24[x][2];
-				buf.u24[x][2] = tmp;
-			}
-			break;
-		case 16:
-		case 15:
-			for (x = 0; (x < xsize); ++x)
-				buf.u16[x] = ((buf.u16[x] << 8) |
-					      (buf.u16[x] >> 8));
-			break;
+			in_buf.u8 += in->pitch;
+			out_buf.u8 += out->pitch;
 		}
-		buf.u8 += buf_pitch;
+		break;
+	case 3:
+		for (y = 0; (y < ysize); ++y) {
+			for (x = 0; (x < xsize); ++x) {
+				uint24_t tmp = {
+					in_buf.u24[x][2],
+					in_buf.u24[x][1],
+					in_buf.u24[x][0]
+				};
+
+				u24cpy(&out_buf.u24[x], &tmp);
+			}
+			in_buf.u8 += in->pitch;
+			out_buf.u8 += out->pitch;
+		}
+		break;
+	case 2:
+		for (y = 0; (y < ysize); ++y) {
+			for (x = 0; (x < xsize); ++x)
+				out_buf.u16[x] = ((in_buf.u16[x] << 8) |
+						  (in_buf.u16[x] >> 8));
+			in_buf.u8 += in->pitch;
+			out_buf.u8 += out->pitch;
+		}
+		break;
 	}
 }
 
