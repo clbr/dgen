@@ -30,7 +30,13 @@ const char *ctv_names[] = {
 };
 
 // Scaling algorithms names
-const char *scaling_names[] = { "default", "hqx", "scale2x", "stretch", NULL };
+const char *scaling_names[] = {
+	"stretch",
+	"scale",
+	"hqx",
+	"scale2x",
+	NULL
+};
 
 // CPU names, keep index in sync with rc-vars.h and enums in md.h
 const char *emu_z80_names[] = { "none", "mz80", "cz80", "drz80", NULL };

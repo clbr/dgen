@@ -765,8 +765,8 @@ static void set_swab();
 #endif
 
 static const struct filter filters_available[] = {
-	{ "default", filter_scale, false, false, true },
 	{ "stretch", filter_stretch, false, false, true },
+	{ "scale", filter_scale, false, false, true },
 #ifdef WITH_SCALE2X
 	{ "scale2x", filter_scale2x, false, false, true },
 #endif
@@ -1659,18 +1659,18 @@ static void filter_off(const struct filter_data *in, struct filter_data *out)
 
 // Copy/rescale functions.
 
-struct filter_default_data {
+struct filter_scale_data {
 	unsigned int x_scale;
 	unsigned int y_scale;
 	filter_func_t *filter;
 };
 
 template <typename uintX_t>
-static void filter_default_X(const struct filter_data *in,
-			     struct filter_data *out)
+static void filter_scale_X(const struct filter_data *in,
+			   struct filter_data *out)
 {
-	struct filter_default_data *data =
-		(struct filter_default_data *)out->data;
+	struct filter_scale_data *data =
+		(struct filter_scale_data *)out->data;
 	uintX_t *dst = (uintX_t *)out->buf.u32;
 	unsigned int dst_pitch = out->pitch;
 	uintX_t *src = (uintX_t *)in->buf.u32;
@@ -1703,11 +1703,11 @@ static void filter_default_X(const struct filter_data *in,
 	}
 }
 
-static void filter_default_3(const struct filter_data *in,
-			     struct filter_data *out)
+static void filter_scale_3(const struct filter_data *in,
+			   struct filter_data *out)
 {
-	struct filter_default_data *data =
-		(struct filter_default_data *)out->data;
+	struct filter_scale_data *data =
+		(struct filter_scale_data *)out->data;
 	uint24_t *dst = out->buf.u24;
 	unsigned int dst_pitch = out->pitch;
 	uint24_t *src = in->buf.u24;
@@ -1752,13 +1752,13 @@ static void filter_scale(const struct filter_data *in,
 	static const struct {
 		unsigned int Bpp;
 		filter_func_t *func;
-	} default_mode[] = {
-		{ 1, filter_default_X<uint8_t> },
-		{ 2, filter_default_X<uint16_t> },
-		{ 3, filter_default_3 },
-		{ 4, filter_default_X<uint32_t> },
+	} scale_mode[] = {
+		{ 1, filter_scale_X<uint8_t> },
+		{ 2, filter_scale_X<uint16_t> },
+		{ 3, filter_scale_3 },
+		{ 4, filter_scale_X<uint32_t> },
 	};
-	struct filter_default_data *data;
+	struct filter_scale_data *data;
 	unsigned int width;
 	unsigned int height;
 	unsigned int x_off;
@@ -1774,10 +1774,10 @@ static void filter_scale(const struct filter_data *in,
 		return;
 	}
 	if (out->updated == true) {
-		data = (struct filter_default_data *)out->data;
+		data = (struct filter_scale_data *)out->data;
 		filter = data->filter;
 	process:
-		// Feed this to the default scaler.
+		// Feed this to the basic scaler.
 		(*filter)(in, out);
 		return;
 	}
@@ -1802,23 +1802,23 @@ static void filter_scale(const struct filter_data *in,
 		goto failed;
 	}
 	// Find a suitable filter.
-	for (i = 0; (i != elemof(default_mode)); ++i)
-		if (default_mode[i].Bpp == screen.Bpp)
+	for (i = 0; (i != elemof(scale_mode)); ++i)
+		if (scale_mode[i].Bpp == screen.Bpp)
 			break;
-	if (i == elemof(default_mode)) {
+	if (i == elemof(scale_mode)) {
 		DEBUG(("%u Bpp depth is not supported", screen.Bpp));
 		out->failed = true;
 		goto failed;
 	}
 	DEBUG(("using %u Bpp function to scale by %ux%u",
 	       screen.Bpp, x_scale, y_scale));
-	data = (struct filter_default_data *)malloc(sizeof(*data));
+	data = (struct filter_scale_data *)malloc(sizeof(*data));
 	if (data == NULL) {
 		DEBUG(("allocation failure"));
 		out->failed = true;
 		goto failed;
 	}
-	filter = default_mode[i].func;
+	filter = scale_mode[i].func;
 	data->filter = filter;
 	data->x_scale = x_scale;
 	data->y_scale = y_scale;

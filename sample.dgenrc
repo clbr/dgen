@@ -297,9 +297,9 @@ bool_buttons = false
 # Swap bytes in the video output.
 bool_swab = false
 
-# Algorithm to use when int_scale > 1.
-# Choose between "default", "hqx" and "scale2x".
-scaling_startup = default
+# Scaler to use when display resolution is larger than original screen.
+# Choose between "stretch", "scale", "hqx" and "scale2x".
+scaling_startup = stretch
 
 # Use a joystick?
 bool_joystick = yes

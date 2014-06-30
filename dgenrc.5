@@ -300,12 +300,9 @@ CPU time.
 .It ctv_craptv_startup [off]
 CTV filter to use by default. Available filters are "blur", "scanline",
 "interlace" and "swab".
-.It scaling_startup [default]
-Scaling algorithm to use when (int_scale > 1). Available algorithms are
-"default", "hqx" and "scale2x".
-Algorithms other than "default" may not work for all possible depths
-and int_scale values. They are also more CPU-intensive but it's
-usually worthwhile.
+.It scaling_startup [stretch]
+Scaler to use when display resolution is larger than original screen.
+Available filters are "stretch", "scale", "hqx" and "scale2x".
 .It bool_show_carthead [false]
 Show cartridge header info at startup.
 .It bool_raw_screenshots [false]
