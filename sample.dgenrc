@@ -298,7 +298,7 @@ bool_buttons = false
 bool_swab = false
 
 # Scaler to use when display resolution is larger than original screen.
-# Choose between "stretch", "scale", "hqx" and "scale2x".
+# Choose between "stretch", "scale", "hqx", "scale2x" and "none".
 scaling_startup = stretch
 
 # Use a joystick?

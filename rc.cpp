@@ -35,6 +35,7 @@ const char *scaling_names[] = {
 	"scale",
 	"hqx",
 	"scale2x",
+	"none",
 	NULL
 };
 

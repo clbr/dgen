@@ -773,9 +773,10 @@ static const struct filter filters_available[] = {
 #ifdef WITH_HQX
 	{ "hqx", filter_hqx, false, false, true },
 #endif
+	{ "none", filter_off, true, false, true },
 #ifdef WITH_CTV
 	// These filters must match ctv_names in rc.cpp.
-	{ "off", filter_off, true, true, true },
+	{ "off", filter_off, true, true, false },
 	{ "blur", filter_blur, true, true, false },
 	{ "scanline", filter_scanline, true, true, false },
 	{ "interlace", filter_interlace, true, true, false },
@@ -3663,7 +3664,13 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 #endif
 #ifdef WITH_CTV
 	filters_pluck_ctv();
-	filters_insert(filters_find(ctv_names[dgen_craptv % NUM_CTV]));
+	{
+		const struct filter *f;
+
+		f = filters_find(ctv_names[dgen_craptv % NUM_CTV]);
+		if ((f != NULL) && (f->func != filter_off))
+			filters_insert(f);
+	}
 #endif // WITH_CTV
 	DEBUG(("ret=1"));
 	fprintf(stderr, "video: %dx%d, %u bpp (%u Bpp), %uHz\n",
