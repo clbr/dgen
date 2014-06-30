@@ -97,9 +97,7 @@ static struct {
 	unsigned int bpp; ///< bits per pixel
 	unsigned int Bpp; ///< bytes per pixel
 	unsigned int x_scale; ///< horizontal scale factor
-	unsigned int x_scale_offset; ///< horizontal offset for x_scale
 	unsigned int y_scale; ///< vertical scale factor
-	unsigned int y_scale_offset; ///< vertical offset for y_scale
 	unsigned int info_height; ///< message bar height
 	bpp_t buf; ///< generic pointer to pixel data
 	unsigned int pitch; ///< number of bytes per line in buf
@@ -3441,14 +3439,10 @@ opengl_failed:
 		    (video.height != screen.last_video_height) ||
 		    (screen.want_fullscreen != screen.is_fullscreen))
 			screen.opengl_ok = 0;
-		screen.x_scale_offset = 0;
-		screen.y_scale_offset = 0;
 	}
 	else
 #endif
 	{
-		unsigned int xs, ys;
-
 #ifdef WITH_OPENGL
 		// Free OpenGL resources.
 		DEBUG(("releasing OpenGL resources"));
@@ -3464,16 +3458,6 @@ opengl_failed:
 		screen.Bpp = tmp->format->BytesPerPixel;
 		screen.buf.u8 = (uint8_t *)tmp->pixels;
 		screen.pitch = tmp->pitch;
-		xs = (video.width * x_scale);
-		ys = ((video.height * y_scale) + info_height);
-		if (xs < width)
-			screen.x_scale_offset = ((width - xs) / 2);
-		else
-			screen.x_scale_offset = 0;
-		if (ys < height)
-			screen.y_scale_offset = ((height - ys) / 2);
-		else
-			screen.y_scale_offset = 0;
 	}
 	screen.info_height = info_height;
 	screen.surface = tmp;
@@ -3483,11 +3467,10 @@ opengl_failed:
 	DEBUG(("video configuration: x_scale=%u y_scale=%u",
 	       screen.x_scale, screen.y_scale));
 	DEBUG(("screen configuration: width=%u height=%u bpp=%u Bpp=%u"
-	       " x_scale_offset=%u y_scale_offset=%u info_height=%u"
+	       " info_height=%u"
 	       " buf.u8=%p pitch=%u surface=%p want_fullscreen=%u"
 	       " is_fullscreen=%u",
 	       screen.width, screen.height, screen.bpp, screen.Bpp,
-	       screen.x_scale_offset, screen.y_scale_offset,
 	       screen.info_height,
 	       (void *)screen.buf.u8, screen.pitch, (void *)screen.surface,
 	       screen.want_fullscreen, screen.is_fullscreen));
