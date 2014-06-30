@@ -3080,23 +3080,27 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 
 static int set_scaling(const char *name)
 {
-	unsigned int i;
-	const struct filter *f = filters_find(name);
+	unsigned int i = filters_stack_size;
 
-	if ((f == NULL) || (f->resize == false))
-		return -1;
-	assert(filters_stack_size <= elemof(filters_stack));
-	// Replace all current scalers with this one.
-	for (i = 0; (i < filters_stack_size); ++i) {
-		if (filters_stack[i]->resize == true) {
+	assert(i <= elemof(filters_stack));
+	// Replace all current scalers with these.
+	while (i != 0) {
+		--i;
+		if (filters_stack[i]->resize == true)
 			filters_remove(i);
-			--i;
-		}
-		// Do not fight with filters_stack_update().
-		if (filters_stack_default == true)
-			break;
 	}
-	filters_push(f);
+	while (name += strspn(name, " \t\n"), name[0] != '\0') {
+		const struct filter *f;
+		int len = strcspn(name, " \t\n");
+		char token[64];
+
+		snprintf(token, sizeof(token), "%.*s", len, name);
+		name += len;
+		if (((f = filters_find(token)) == NULL) ||
+		    (filters_stack_size == elemof(filters_stack)))
+			return -1;
+		filters_push(f);
+	}
 	return 0;
 }
 

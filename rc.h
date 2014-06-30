@@ -8,7 +8,7 @@
 
 // Define the different craptv types
 #define NUM_CTV 5 // Include CTV_OFF
-#define NUM_SCALING 5
+#define NUM_SCALING 7
 #define CTV_OFF       0
 #define CTV_BLUR      1
 #define CTV_SCANLINE  2

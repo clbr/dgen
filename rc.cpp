@@ -34,7 +34,9 @@ const char *scaling_names[] = {
 	"stretch",
 	"scale",
 	"hqx",
+	"hqx stretch",
 	"scale2x",
+	"scale2x stretch",
 	"none",
 	NULL
 };
@@ -987,7 +989,7 @@ void dump_rc(FILE *file)
 		else if (rc->parser == rc_ctv)
 			fprintf(file, "%s", ctv_names[val]);
 		else if (rc->parser == rc_scaling)
-			fprintf(file, "%s", scaling_names[val]);
+			fprintf(file, "\"%s\"", scaling_names[val]);
 		else if (rc->parser == rc_emu_z80)
 			fprintf(file, "%s", emu_z80_names[val]);
 		else if (rc->parser == rc_emu_m68k)
