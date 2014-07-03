@@ -308,6 +308,9 @@ bool_joystick = yes
 # Use OpenGL mode?
 bool_opengl = yes
 
+# Let OpenGL stretch the screen.
+bool_opengl_stretch = yes
+
 # Retain original aspect ratio when resizing window.
 bool_aspect = true
 

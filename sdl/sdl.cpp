@@ -70,7 +70,7 @@ typedef union {
 #ifdef WITH_OPENGL
 
 /// Framebuffer texture.
-static struct {
+struct texture {
 	unsigned int width; ///< texture width
 	unsigned int height; ///< texture height
 	unsigned int vis_width; ///< visible width
@@ -83,32 +83,33 @@ static struct {
 		uint16_t *u16;
 		uint32_t *u32;
 	} buf; ///< 16 or 32-bit buffer
-} texture;
+};
 
-static void release_texture();
-static int init_texture();
-static void update_texture();
+static void release_texture(struct texture&);
+static int init_texture(struct screen *);
+static void update_texture(struct texture&);
 
 #endif // WITH_OPENGL
 
-static struct {
-	unsigned int width; ///< window width
-	unsigned int height; ///< window height
+struct screen {
+	unsigned int window_width; ///< window width
+	unsigned int window_height; ///< window height
+	unsigned int width; ///< buffer width
+	unsigned int height; ///< buffer height
 	unsigned int bpp; ///< bits per pixel
 	unsigned int Bpp; ///< bytes per pixel
 	unsigned int x_scale; ///< horizontal scale factor
 	unsigned int y_scale; ///< vertical scale factor
-	unsigned int info_height; ///< message bar height
+	unsigned int info_height; ///< message bar height (included in height)
 	bpp_t buf; ///< generic pointer to pixel data
 	unsigned int pitch; ///< number of bytes per line in buf
 	SDL_Surface *surface; ///< SDL surface
 	unsigned int want_fullscreen:1; ///< want fullscreen
 	unsigned int is_fullscreen:1; ///< fullscreen enabled
 #ifdef WITH_OPENGL
-	unsigned int last_video_height; ///< last video.height value
+	struct texture texture; ///< OpenGL texture data
 	unsigned int want_opengl:1; ///< want OpenGL
 	unsigned int is_opengl:1; ///< OpenGL enabled
-	unsigned int opengl_ok:1; ///< if textures are initialized
 #endif
 #ifdef WITH_THREADS
 	unsigned int want_thread:1; ///< want updates from a separate thread
@@ -118,7 +119,9 @@ static struct {
 	SDL_cond *cond; ///< condition variable to signal updates
 #endif
 	SDL_Color color[64]; ///< SDL colors for 8bpp modes
-} screen;
+};
+
+static struct screen screen;
 
 static struct {
 	const unsigned int width; ///< 320
@@ -182,7 +185,7 @@ static void screen_update_once()
 {
 #ifdef WITH_OPENGL
 	if (screen.is_opengl) {
-		update_texture();
+		update_texture(screen.texture);
 		return;
 	}
 #endif
@@ -1413,8 +1416,6 @@ void pd_option(char c, const char *)
 #endif
 	case 'f':
 		dgen_fullscreen = 1;
-		// XXX screen.want_fullscreen must match dgen_fullscreen.
-		screen.want_fullscreen = dgen_fullscreen;
 		break;
 	case 'X':
 		if ((xs = atoi(optarg)) <= 0)
@@ -1452,7 +1453,7 @@ void pd_option(char c, const char *)
 #define TEXTURE_32_TYPE GL_UNSIGNED_BYTE
 #endif
 
-static void texture_init_id()
+static void texture_init_id(struct texture& texture)
 {
 	GLint param;
 
@@ -1477,7 +1478,7 @@ static void texture_init_id()
 			     texture.buf.u32);
 }
 
-static void texture_init_dlist()
+static void texture_init_dlist(struct texture& texture)
 {
 	glNewList(texture.dlist, GL_COMPILE);
 	glMatrixMode(GL_MODELVIEW);
@@ -1522,7 +1523,7 @@ static uint32_t roundup2(uint32_t v)
 	return v;
 }
 
-static void release_texture()
+static void release_texture(struct texture& texture)
 {
 	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
 		glDeleteTextures(1, &texture.id);
@@ -1533,16 +1534,64 @@ static void release_texture()
 	texture.buf.u32 = NULL;
 }
 
-static int init_texture()
+static int init_texture(struct screen *screen)
 {
-	const unsigned int vis_width = (video.width * screen.x_scale);
-	const unsigned int vis_height = ((video.height * screen.y_scale) +
-					 screen.info_height);
+	struct texture& texture = screen->texture;
+	unsigned int vis_width;
+	unsigned int vis_height;
+	unsigned int x;
+	unsigned int y;
+	unsigned int w;
+	unsigned int h;
 	void *tmp;
 	size_t i;
 	GLenum error;
 
+	// When bool_opengl_stretch is enabled, width and height are redefined
+	// using X and Y scale factors with additional room for the info bar.
+	if (dgen_opengl_stretch) {
+		vis_width = (video.width *
+			     (screen->x_scale ? screen->x_scale : 1));
+		vis_height = (video.height *
+			      (screen->y_scale ? screen->y_scale : 1));
+		vis_height += screen->info_height;
+		if (dgen_aspect) {
+			// Keep scaled aspect ratio.
+			w = ((screen->height * vis_width) / vis_height);
+			h = ((screen->width * vis_height) / vis_width);
+			if (w >= screen->width) {
+				w = screen->width;
+				if (h == 0)
+					++h;
+			}
+			else {
+				h = screen->height;
+				if (w == 0)
+					++w;
+			}
+		}
+		else {
+			// Aspect ratio won't be kept.
+			w = screen->width;
+			h = screen->height;
+		}
+	}
+	else {
+		w = vis_width = screen->width;
+		h = vis_height = screen->height;
+	}
+	if (screen->width > w)
+		x = ((screen->width - w) / 2);
+	else
+		x = 0;
+	if (screen->height > h)
+		y = ((screen->height - h) / 2);
+	else
+		y = 0;
 	DEBUG(("initializing for width=%u height=%u", vis_width, vis_height));
+	// Set viewport.
+	DEBUG(("glViewport(%u, %u, %u, %u)", x, y, w, h));
+	glViewport(x, y, w, h);
 	// Disable dithering
 	glDisable(GL_DITHER);
 	// Disable anti-aliasing
@@ -1570,12 +1619,12 @@ static int init_texture()
 	texture.vis_height = vis_height;
 	DEBUG(("texture width=%u height=%u", texture.width, texture.height));
 	if ((texture.width == 0) || (texture.height == 0))
-		return -1;
+		goto fail;
 	i = ((texture.width * texture.height) * (2 << texture.u32));
 	DEBUG(("texture size=%lu (%u Bpp)",
 	       (unsigned long)i, (2 << texture.u32)));
 	if ((tmp = realloc(texture.buf.u32, i)) == NULL)
-		return -1;
+		goto fail;
 	memset(tmp, 0, i);
 	texture.buf.u32 = (uint32_t *)tmp;
 	if ((texture.dlist != 0) && (glIsList(texture.dlist))) {
@@ -1584,18 +1633,22 @@ static int init_texture()
 	}
 	DEBUG(("texture buf=%p", (void *)texture.buf.u32));
 	if ((texture.dlist = glGenLists(1)) == 0)
-		return -1;
+		goto fail;
 	if ((glGenTextures(1, &texture.id), error = glGetError()) ||
-	    (texture_init_id(), error = glGetError()) ||
-	    (texture_init_dlist(), error = glGetError())) {
+	    (texture_init_id(texture), error = glGetError()) ||
+	    (texture_init_dlist(texture), error = glGetError())) {
 		// Do something with "error".
-		return -1;
+		goto fail;
 	}
 	DEBUG(("texture initialization OK"));
 	return 0;
+fail:
+	release_texture(texture);
+	DEBUG(("texture initialization failed"));
+	return -1;
 }
 
-static void update_texture()
+static void update_texture(struct texture& texture)
 {
 	glBindTexture(GL_TEXTURE_2D, texture.id);
 	if (texture.u32 == 0)
@@ -3184,31 +3237,87 @@ static void mdscr_splash()
 
 /**
  * Initialize screen.
+ *
  * @param width Width of display.
  * @param height Height of display.
- * @return 0 on success, nonzero on error.
+ * @return 0 on success, -1 if screen could not be initialized with current
+ * options but remains in its previous state, -2 if screen is unusable.
  */
 static int screen_init(unsigned int width, unsigned int height)
 {
-	SDL_Surface *tmp;
-	unsigned int info_height;
+	static bool once = true;
 	uint32_t flags = (SDL_RESIZABLE | SDL_ANYFORMAT | SDL_HWPALETTE |
 			  SDL_HWSURFACE);
-	unsigned int y_scale;
-	unsigned int x_scale;
-	int ret = 0;
+	struct screen scrtmp;
+	const struct dgen_font *font;
 
-	DEBUG(("want width=%u height=%u", width, height));
-	stopped = 1;
 #ifdef WITH_THREADS
 	screen_update_thread_stop();
-	screen.want_thread = dgen_screen_thread;
 #endif
-	if (screen.want_fullscreen)
+	DEBUG(("want width=%u height=%u", width, height));
+	stopped = 1;
+	// Copy current screen data.
+	memcpy(&scrtmp, &screen, sizeof(scrtmp));
+	if (once) {
+		unsigned int info_height = dgen_font[FONT_TYPE_8X13].h;
+
+		// Force defaults once.
+		scrtmp.window_width = 0;
+		scrtmp.window_height = 0;
+		scrtmp.width = (video.width * 2);
+		scrtmp.height = ((video.height * 2) + info_height);
+		scrtmp.x_scale = (scrtmp.width / video.width);
+		scrtmp.y_scale = (scrtmp.height / video.height);
+		scrtmp.bpp = 0;
+		scrtmp.Bpp = 0;
+		scrtmp.info_height = info_height;
+		scrtmp.buf.u8 = 0;
+		scrtmp.pitch = 0;
+		scrtmp.surface = 0;
+		scrtmp.want_fullscreen = 0;
+		scrtmp.is_fullscreen = 0;
+#ifdef WITH_OPENGL
+		scrtmp.want_opengl = 0;
+		scrtmp.is_opengl = 0;
+#endif
+#ifdef WITH_THREADS
+		scrtmp.want_thread = 0;
+		scrtmp.is_thread = 0;
+		scrtmp.thread = 0;
+		scrtmp.lock = 0;
+		scrtmp.cond = 0;
+#endif
+		memset(scrtmp.color, 0, sizeof(scrtmp.color));
+		once = false;
+	}
+	// Use configuration data.
+	if (width != 0)
+		scrtmp.width = width;
+	if (dgen_width >= 1)
+		scrtmp.width = dgen_width;
+	if (height != 0)
+		scrtmp.height = height;
+	if (dgen_height >= 1)
+		scrtmp.height = dgen_height;
+	if (dgen_depth >= 0) {
+		scrtmp.bpp = dgen_depth;
+		scrtmp.Bpp = 0;
+	}
+	// scrtmp.x_scale, scrtmp.y_scale and scrtmp.info_height cannot be
+	// determined yet.
+	scrtmp.want_fullscreen = !!dgen_fullscreen;
+#ifdef WITH_OPENGL
+opengl_failed:
+	scrtmp.want_opengl = !!dgen_opengl;
+#endif
+#ifdef WITH_THREADS
+	scrtmp.want_thread = !!dgen_screen_thread;
+#endif
+	// Configure SDL_SetVideoMode().
+	if (scrtmp.want_fullscreen)
 		flags |= SDL_FULLSCREEN;
 #ifdef WITH_OPENGL
-	screen.want_opengl = dgen_opengl;
-	if (screen.want_opengl) {
+	if (scrtmp.want_opengl) {
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
@@ -3220,46 +3329,7 @@ static int screen_init(unsigned int width, unsigned int height)
 #endif
 		flags |= ((dgen_doublebuffer ? SDL_DOUBLEBUF : 0) |
 			  SDL_ASYNCBLIT);
-	// Disallow screens smaller than original.
-	if (width == 0) {
-		if (dgen_width > 0)
-			width = dgen_width;
-		else {
-			width = video.width;
-			if (dgen_x_scale > 0)
-				width *= dgen_x_scale;
-			else
-				width *= screen.x_scale;
-		}
-		DEBUG(("width was 0, now %u", width));
-	}
-	else if (width < video.width) {
-		DEBUG(("fixing width %u => %u", width, video.width));
-		width = video.width;
-		// Return a warning only if it's not the first initialization.
-		if (screen.surface != NULL)
-			ret = -1;
-	}
-	if (height == 0) {
-		if (dgen_height > 0)
-			height = dgen_height;
-		else {
-			height = video.height;
-			if (dgen_y_scale > 0)
-				height *= dgen_y_scale;
-			else
-				height *= screen.y_scale;
-		}
-		DEBUG(("height was 0, now %u", height));
-	}
-	else if (height < video.height) {
-		DEBUG(("fixing height %u => %u", height, video.height));
-		height = video.height;
-		// Return a warning only if it's not the first initialization.
-		if (screen.surface != NULL)
-			ret = -1;
-	}
-	if (screen.want_fullscreen) {
+	if (scrtmp.want_fullscreen) {
 		SDL_Rect **modes;
 
 		// Check if we're going to be bound to a particular resolution.
@@ -3278,11 +3348,11 @@ static int screen_init(unsigned int width, unsigned int height)
 
 				DEBUG(("checking mode %dx%d",
 				       modes[i]->w, modes[i]->h));
-				if ((modes[i]->w < width) ||
-				    (modes[i]->h < height))
+				if ((modes[i]->w < scrtmp.width) ||
+				    (modes[i]->h < scrtmp.height))
 					continue;
-				w = (modes[i]->w - width);
-				h = (modes[i]->h - height);
+				w = (modes[i]->w - scrtmp.width);
+				h = (modes[i]->h - scrtmp.height);
 				if ((w <= best.w) && (h <= best.h)) {
 					best.i = i;
 					best.w = w;
@@ -3293,219 +3363,137 @@ static int screen_init(unsigned int width, unsigned int height)
 			    (best.h == (unsigned int)-1))
 				DEBUG(("no mode looks good"));
 			else {
-				width = modes[(best.i)]->w;
-				height = modes[(best.i)]->h;
+				scrtmp.width = modes[best.i]->w;
+				scrtmp.height = modes[best.i]->h;
 				DEBUG(("mode %ux%u looks okay",
-				       width, height));
+				       scrtmp.width, scrtmp.height));
 			}
 		}
 		DEBUG(("adjusted fullscreen resolution to %ux%u",
-		       width, height));
-	}
-#ifdef WITH_OPENGL
-opengl_failed:
-	if (screen.want_opengl) {
-		// Use whatever scale is thrown at us.
-		if (dgen_x_scale <= 0)
-			x_scale = screen.x_scale;
-		else
-			x_scale = dgen_x_scale;
-		if (dgen_y_scale <= 0)
-			y_scale = screen.y_scale;
-		else
-			y_scale = dgen_y_scale;
-		// Fix aspect ratio if necessary.
-		if (dgen_aspect) {
-			if (x_scale < y_scale)
-				y_scale = x_scale;
-			else if (y_scale < x_scale)
-				x_scale = y_scale;
-		}
-		// In OpenGL modes, info_height can be anything as it's not
-		// part of the screen resolution.
-		if (dgen_info_height >= 0)
-			info_height = dgen_info_height;
-		else if ((y_scale == 1) || (x_scale == 1))
-			info_height = 5;
-		else if (y_scale == 2)
-			info_height = 16;
-		else
-			info_height = 26;
-		DEBUG(("OpenGL info_height: %u", info_height));
-	}
-	else
-#endif
-	{
-		// Set up scaling values.
-		if (dgen_x_scale <= 0) {
-			x_scale = (width / video.width);
-			if (x_scale == 0)
-				x_scale = 1;
-		}
-		else
-			x_scale = dgen_x_scale;
-		if (dgen_y_scale <= 0) {
-			y_scale = (height / video.height);
-			if (y_scale == 0)
-				y_scale = 1;
-		}
-		else
-			y_scale = dgen_y_scale;
-		// Fix aspect ratio if necessary.
-		if (dgen_aspect) {
-			if (x_scale < y_scale)
-				y_scale = x_scale;
-			else if (y_scale < x_scale)
-				x_scale = y_scale;
-		}
-		DEBUG(("x_scale=%u (%ld) y_scale=%u (%ld)",
-		       x_scale, dgen_x_scale, y_scale, dgen_y_scale));
-		// Rescale if necessary.
-		if ((video.width * x_scale) > width)
-			x_scale = (width / video.width);
-		if ((video.height * y_scale) > height)
-			y_scale = (height / video.height);
-		DEBUG(("had to rescale to x_scale=%u y_scale=%u",
-		       x_scale, y_scale));
-		// Calculate info_height.
-		if (dgen_info_height >= 0)
-			info_height = dgen_info_height;
-		else {
-			// Calculate how much room we have at the bottom.
-			info_height = (height - (video.height * y_scale));
-			if (info_height > 26)
-				info_height = 26;
-			else if ((info_height == 0) &&
-			    (screen.want_fullscreen == false)) {
-				height += 16;
-				info_height = 16;
-			}
-		}
-		DEBUG(("info_height: %u (configured value: %ld)",
-		       info_height, dgen_info_height));
+		       scrtmp.width, scrtmp.height));
 	}
 	// Set video mode.
-	DEBUG(("SDL_SetVideoMode(%u, %u, %ld, 0x%08x)",
-	       width, height, dgen_depth, flags));
-	if ((tmp = SDL_SetVideoMode(width, height, dgen_depth, flags)) == NULL)
+	DEBUG(("SDL_SetVideoMode(%u, %u, %d, 0x%08x)",
+	       scrtmp.width, scrtmp.height, scrtmp.bpp, flags));
+	scrtmp.surface = SDL_SetVideoMode(scrtmp.width, scrtmp.height,
+					  scrtmp.bpp, flags);
+	if (scrtmp.surface == NULL)
 		return -1;
 	DEBUG(("SDL_SetVideoMode succeeded"));
-	// From now on, screen and mdscr must be considered unusable
-	// if partially initialized and -2 is returned.
-#ifdef WITH_OPENGL
-	if (screen.want_opengl) {
-		unsigned int x, y, w, h;
-		unsigned int orig_width, orig_height;
-
-		// Save old values.
-		orig_width = width;
-		orig_height = height;
-		// The OpenGL "screen" is actually a texture which may be
-		// bigger than the actual display. "width" and "height" now
-		// refer to that texture instead of the screen.
-		width = (video.width * x_scale);
-		height = ((video.height * y_scale) + info_height);
-		if (dgen_aspect) {
-			// We're asked to keep the original aspect ratio, so
-			// calculate the maximum usable size considering this.
-			w = ((orig_height * width) / height);
-			h = ((orig_width * height) / width);
-			if (w >= orig_width) {
-				w = orig_width;
-				if (h == 0)
-					++h;
-			}
-			else {
-				h = orig_height;
-				if (w == 0)
-					++w;
-			}
-		}
-		else {
-			// Free aspect ratio.
-			w = orig_width;
-			h = orig_height;
-		}
-		x = ((orig_width - w) / 2);
-		y = ((orig_height - h) / 2);
-		DEBUG(("glViewport(%u, %u, %u, %u)", x, y, w, h));
-		glViewport(x, y, w, h);
-		screen.width = width;
-		screen.height = height;
-		// Check whether we want to reinitialize the texture.
-		if ((screen.info_height != info_height) ||
-		    (screen.x_scale != x_scale) ||
-		    (screen.y_scale != y_scale) ||
-		    (video.height != screen.last_video_height) ||
-		    (screen.want_fullscreen != screen.is_fullscreen))
-			screen.opengl_ok = 0;
-	}
+	// Update with current values.
+	scrtmp.window_width = scrtmp.surface->w;
+	scrtmp.window_height = scrtmp.surface->h;
+	scrtmp.width = scrtmp.window_width;
+	scrtmp.height = scrtmp.window_height;
+	// By default, using 5% of the vertical resolution for info bar ought
+	// to be good enough for anybody. Pick something close.
+	if (dgen_info_height < 0)
+		scrtmp.info_height = ((scrtmp.height * 5) / 100);
 	else
-#endif
-	{
-#ifdef WITH_OPENGL
-		// Free OpenGL resources.
-		DEBUG(("releasing OpenGL resources"));
-		release_texture();
-		screen.opengl_ok = 0;
-#endif
-		screen.width = tmp->w;
-		screen.height = tmp->h;
-		screen.bpp = tmp->format->BitsPerPixel;
-		// Force 15 bpp?
-		if ((screen.bpp == 16) && (dgen_depth == 15))
-			screen.bpp = 15;
-		screen.Bpp = tmp->format->BytesPerPixel;
-		screen.buf.u8 = (uint8_t *)tmp->pixels;
-		screen.pitch = tmp->pitch;
+		scrtmp.info_height = dgen_info_height;
+	if (scrtmp.info_height > scrtmp.height)
+		scrtmp.info_height = scrtmp.height;
+	font = font_select(scrtmp.width, scrtmp.info_height, FONT_TYPE_AUTO);
+	if (font == NULL)
+		scrtmp.info_height = 0;
+	else
+		scrtmp.info_height = font->h;
+	assert(scrtmp.info_height <= scrtmp.height); // Do not forget.
+	// Determine default X and Y scale values from what remains.
+	if (dgen_x_scale >= 0)
+		scrtmp.x_scale = dgen_x_scale;
+	else
+		scrtmp.x_scale = (scrtmp.width / video.width);
+	if (dgen_y_scale >= 0)
+		scrtmp.y_scale = dgen_y_scale;
+	else
+		scrtmp.y_scale = ((scrtmp.height - scrtmp.info_height) /
+				  video.height);
+	if (dgen_aspect) {
+		if (scrtmp.x_scale >= scrtmp.y_scale)
+			scrtmp.x_scale = scrtmp.y_scale;
+		else
+			scrtmp.y_scale = scrtmp.x_scale;
 	}
-	screen.info_height = info_height;
-	screen.surface = tmp;
-	screen.is_fullscreen = screen.want_fullscreen;
-	screen.x_scale = x_scale;
-	screen.y_scale = y_scale;
+	// Fix bpp.
+	assert(scrtmp.surface->format != NULL);
+	scrtmp.bpp = scrtmp.surface->format->BitsPerPixel;
+	// 15 bpp has be forced if it was required. SDL does not return the
+	// right value.
+	if ((dgen_depth == 15) && (scrtmp.bpp == 16))
+		scrtmp.bpp = 15;
+	scrtmp.Bpp = scrtmp.surface->format->BytesPerPixel;
+	scrtmp.buf.u8 = (uint8_t *)scrtmp.surface->pixels;
+	scrtmp.pitch = scrtmp.surface->pitch;
+	scrtmp.is_fullscreen = scrtmp.want_fullscreen;
 	DEBUG(("video configuration: x_scale=%u y_scale=%u",
-	       screen.x_scale, screen.y_scale));
+	       scrtmp.x_scale, scrtmp.y_scale));
 	DEBUG(("screen configuration: width=%u height=%u bpp=%u Bpp=%u"
 	       " info_height=%u"
 	       " buf.u8=%p pitch=%u surface=%p want_fullscreen=%u"
 	       " is_fullscreen=%u",
-	       screen.width, screen.height, screen.bpp, screen.Bpp,
-	       screen.info_height,
-	       (void *)screen.buf.u8, screen.pitch, (void *)screen.surface,
-	       screen.want_fullscreen, screen.is_fullscreen));
+	       scrtmp.width, scrtmp.height, scrtmp.bpp, scrtmp.Bpp,
+	       scrtmp.info_height,
+	       (void *)scrtmp.buf.u8, scrtmp.pitch, (void *)scrtmp.surface,
+	       scrtmp.want_fullscreen, scrtmp.is_fullscreen));
 #ifdef WITH_OPENGL
-	if (screen.want_opengl) {
-		if ((screen.opengl_ok == 0) &&
-		    (init_texture())) {
-			// This is fatal.
-			screen.is_opengl = 0;
+	if (scrtmp.want_opengl) {
+		if (init_texture(&scrtmp)) {
 			DEBUG(("OpenGL initialization failed, retrying"
 			       " without it."));
-			screen.want_opengl = 0;
 			dgen_opengl = 0;
 			flags &= ~SDL_OPENGL;
 			goto opengl_failed;
 		}
-		screen.Bpp = (2 << texture.u32);
-		screen.bpp = (screen.Bpp * 8);
-		screen.buf.u32 = texture.buf.u32;
-		screen.pitch = (texture.vis_width << (1 << texture.u32));
-		screen.opengl_ok = 1;
-		screen.last_video_height = video.height;
+		// Update using texture info.
+		scrtmp.Bpp = (2 << scrtmp.texture.u32);
+		scrtmp.bpp = (scrtmp.Bpp * 8);
+		scrtmp.buf.u32 = scrtmp.texture.buf.u32;
+		scrtmp.width = scrtmp.texture.vis_width;
+		scrtmp.height = scrtmp.texture.vis_height;
+		scrtmp.pitch = (scrtmp.texture.vis_width <<
+				(1 << scrtmp.texture.u32));
 	}
-	screen.is_opengl = screen.want_opengl;
-	DEBUG(("OpenGL screen configuration: opengl_ok=%u is_opengl=%u"
-	       " buf.u32=%p pitch=%u",
-	       screen.opengl_ok, screen.is_opengl, (void *)screen.buf.u32,
-	       screen.pitch));
+	scrtmp.is_opengl = scrtmp.want_opengl;
+	DEBUG(("OpenGL screen configuration: is_opengl=%u buf.u32=%p pitch=%u",
+	       scrtmp.is_opengl, (void *)scrtmp.buf.u32, scrtmp.pitch));
 #endif
+	// Screen is now initialized, update data.
+	screen = scrtmp;
+#ifdef WITH_OPENGL
+	if (!screen.is_opengl) {
+		// Free OpenGL resources.
+		DEBUG(("releasing OpenGL resources"));
+		release_texture(screen.texture);
+	}
+#endif
+	// Set up the Mega Drive screen.
+	// Could not be done earlier because bpp was unknown.
+	if ((mdscr.data == NULL) ||
+	    ((unsigned int)mdscr.bpp != screen.bpp) ||
+	    ((unsigned int)mdscr.w != (video.width + 16)) ||
+	    ((unsigned int)mdscr.h != (video.height + 16))) {
+		mdscr.w = (video.width + 16);
+		mdscr.h = (video.height + 16);
+		mdscr.pitch = (mdscr.w * screen.Bpp);
+		mdscr.bpp = screen.bpp;
+		free(mdscr.data);
+		mdscr.data = (uint8_t *)calloc(mdscr.h, mdscr.pitch);
+		if (mdscr.data == NULL) {
+			// Cannot recover. Clean up and bail out.
+			memset(&mdscr, 0, sizeof(mdscr));
+			return -2;
+		}
+		mdscr_splash();
+	}
+	DEBUG(("md screen configuration: w=%d h=%d bpp=%d pitch=%d data=%p",
+	       mdscr.w, mdscr.h, mdscr.bpp, mdscr.pitch, (void *)mdscr.data));
 	// If we're in 8 bit mode, set color 0xff to white for the text,
 	// and make a palette buffer.
 	if (screen.bpp == 8) {
 		SDL_Color color = { 0xff, 0xff, 0xff, 0x00 };
 
-		SDL_SetColors(tmp, &color, 0xff, 1);
+		SDL_SetColors(screen.surface, &color, 0xff, 1);
 		memset(video.palette, 0x00, sizeof(video.palette));
 		mdpal = video.palette;
 	}
@@ -3515,30 +3503,11 @@ opengl_failed:
 	if (screen.want_thread)
 		screen_update_thread_start();
 #endif
-	// Set up the Mega Drive screen.
-	if ((mdscr.data == NULL) ||
-	    ((unsigned int)mdscr.bpp != screen.bpp) ||
-	    ((unsigned int)mdscr.w != (video.width + 16)) ||
-	    ((unsigned int)mdscr.h != (video.height + 16))) {
-		mdscr.bpp = screen.bpp;
-		mdscr.w = (video.width + 16);
-		mdscr.h = (video.height + 16);
-		mdscr.pitch = (mdscr.w * screen.Bpp);
-		free(mdscr.data);
-		mdscr.data = (uint8_t *)calloc(1, (mdscr.pitch * mdscr.h));
-		if (mdscr.data != NULL)
-			mdscr_splash();
-	}
-	DEBUG(("md screen configuration: w=%d h=%d bpp=%d pitch=%d data=%p",
-	       mdscr.w, mdscr.h, mdscr.bpp, mdscr.pitch, (void *)mdscr.data));
-	if (mdscr.data == NULL)
-		return -2;
 	// Rehash filters.
 	filters_stack_update();
 	// Update screen.
 	pd_graphics_update(true);
-	DEBUG(("ret=%d", ret));
-	return ret;
+	return 0;
 }
 
 /**
@@ -3565,7 +3534,7 @@ static int set_fullscreen(int toggle)
 		return 0;
 	DEBUG(("falling back to screen_init()"));
 #endif
-	screen.want_fullscreen = toggle;
+	dgen_fullscreen = toggle;
 	if (screen.surface != NULL) {
 		// Try to keep the current mode.
 		w = screen.surface->w;
@@ -3598,8 +3567,6 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 {
 	SDL_Event event;
 
-	screen.x_scale = 2;
-	screen.y_scale = 2;
 	prompt_init(&prompt.status);
 	if ((hz <= 0) || (hz > 1000)) {
 		// You may as well disable bool_frameskip.
@@ -3671,8 +3638,11 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		       glGetString(GL_VERSION)));
 		fprintf(stderr,
 			"video: OpenGL texture %ux%ux%u (%ux%u)\n",
-			texture.width, texture.height, (2 << texture.u32),
-			texture.vis_width, texture.vis_height);
+			screen.texture.width,
+			screen.texture.height,
+			(2 << screen.texture.u32),
+			screen.texture.vis_width,
+			screen.texture.vis_height);
 	}
 #endif
 	while (SDL_PollEvent(&event)) {
@@ -3714,7 +3684,7 @@ int pd_graphics_reinit(int, int want_pal, int hz)
 		video.height = 224;
 	}
 	// Reinitialize screen.
-	if (screen_init(0, 0))
+	if (screen_init(screen.window_width, screen.window_height))
 		goto fail;
 	DEBUG(("screen reinitialized"));
 	return 1;
@@ -4208,7 +4178,6 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		init_sound = true;
 	else if (rc->variable == &dgen_fullscreen) {
 		if (screen.want_fullscreen != (!!dgen_fullscreen)) {
-			screen.want_fullscreen = dgen_fullscreen;
 			init_video = true;
 		}
 	}
@@ -4235,11 +4204,11 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 		init_video = true;
 	}
 	else if ((rc->variable == &dgen_opengl) ||
+		 (rc->variable == &dgen_opengl_stretch) ||
 		 (rc->variable == &dgen_opengl_linear) ||
 		 (rc->variable == &dgen_opengl_32bit) ||
 		 (rc->variable == &dgen_opengl_square)) {
 #ifdef WITH_OPENGL
-		screen.opengl_ok = false;
 		init_video = true;
 #else
 		(void)0;
@@ -4318,7 +4287,8 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 	if (init_video) {
 		// This is essentially what pd_graphics_init() does.
 		memset(megad.vdp.dirt, 0xff, 0x35);
-		switch (screen_init(0, 0)) {
+		switch (screen_init(screen.window_width,
+				    screen.window_height)) {
 		case 0:
 			break;
 		case -1:
@@ -6299,7 +6269,7 @@ void pd_quit()
 	if (mdpal)
 		mdpal = NULL;
 #ifdef WITH_OPENGL
-	release_texture();
+	release_texture(screen.texture);
 #endif
 	free(filters_stack_data_buf[0].u8);
 	free(filters_stack_data_buf[1].u8);

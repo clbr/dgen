@@ -625,6 +625,7 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "bool_aspect", rc_boolean, &dgen_aspect }, // SH
 	{ "bool_swab", rc_boolean, &dgen_swab }, // SH
 	{ "bool_opengl", rc_boolean, &dgen_opengl }, // SH
+	{ "bool_opengl_stretch", rc_boolean, &dgen_opengl_stretch }, // SH
 	// deprecated, use bool_aspect
 	{ "bool_opengl_aspect", rc_boolean, &dgen_aspect },
 	// deprecated, use int_width

@@ -126,6 +126,7 @@ RCVAR(dgen_aspect, 1);
 RCVAR(dgen_depth, 0);
 RCVAR(dgen_swab, 0);
 RCVAR(dgen_opengl, 1);
+RCVAR(dgen_opengl_stretch, 1);
 RCVAR(dgen_opengl_linear, 1);
 RCVAR(dgen_opengl_32bit, 1);
 RCVAR(dgen_opengl_square, 0);

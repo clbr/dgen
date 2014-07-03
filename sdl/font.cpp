@@ -16,20 +16,16 @@ extern const short *dgen_font_8x13[0x80];
 extern const short *dgen_font_16x26[0x80];
 extern const short *dgen_font_7x5[0x80];
 
-const struct dgen_font {
-	unsigned int w;
-	unsigned int h;
-	const short *(*data)[0x80];
-} dgen_font[] = {
+const struct dgen_font dgen_font[] = {
 	{ 16, 26, &dgen_font_16x26 },
 	{ 8, 13, &dgen_font_8x13 },
 	{ 7, 5, &dgen_font_7x5 },
 	{ 0, 0, NULL }
 };
 
-static const struct dgen_font *font_select(unsigned int max_width,
-					   unsigned int max_height,
-					   enum font_type type)
+const struct dgen_font *font_select(unsigned int max_width,
+				    unsigned int max_height,
+				    enum font_type type)
 {
 	const struct dgen_font *font = dgen_font;
 
