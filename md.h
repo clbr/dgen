@@ -241,7 +241,7 @@ typedef struct {
 	uint8_t irq_vector; /* IRQ vector */
 } z80_state_t;
 
-#define MCLK_CYCLES_PER_LINE 3416 /* 3420 */
+#define MCLK_CYCLES_PER_LINE 3416 /* XXX ideally 3415.597 */
 #define M68K_CYCLES_PER_LINE (MCLK_CYCLES_PER_LINE / 7)
 #define M68K_CYCLES_HBLANK ((M68K_CYCLES_PER_LINE * 36) / 209)
 #define M68K_CYCLES_VDELAY ((M68K_CYCLES_PER_LINE * 36) / 156)
@@ -493,8 +493,6 @@ private:
   int myfm_read(int a);
   int mysn_write(int v);
   void fm_reset();
-  void vgm_dump(int a, int v);
-  void vgm_dump_wait_time();
   uint8_t fm_sel[2];
   uint8_t fm_tover;
   int fm_ticker[4];
@@ -526,6 +524,20 @@ private:
 
 public:
   int myfm_write(int a,int v,int md);
+
+#ifdef WITH_VGMDUMP
+	FILE *vgm_dump_file;
+	uint32_t vgm_dump_samples_total;
+	uint32_t vgm_dump_dac_wait;
+	unsigned int vgm_dump_dac_samples;
+	bool vgm_dump;
+	void vgm_dump_ym2612(uint8_t a1, uint8_t reg, uint8_t data);
+	void vgm_dump_sn76496(uint8_t data);
+	int vgm_dump_start(const char *name);
+	void vgm_dump_stop();
+	void vgm_dump_frame();
+#endif
+
   // public struct, full with data from the cartridge header
   struct _carthead_ {
     char system_name[0x10];           // "SEGA GENESIS    ", "SEGA MEGA DRIVE  "
@@ -556,13 +568,6 @@ public:
   bool pico_enabled;
   uint16_t pico_pen_coords[2];
 #endif
-  uint8_t vgm_port_addr;
-  FILE *vgmFile;
-  int vgm_dumping;
-  int vgm_wait_samples;
-  int vgm_total_samples;
-  void vgm_dump_start();
-  void vgm_dump_stop();
 // c000004 bit 1 write fifo empty, bit 0 write fifo full (???)
 // c000005 vint happened, (sprover, coll, oddinint)
 // invblank, inhblank, dma busy, pal

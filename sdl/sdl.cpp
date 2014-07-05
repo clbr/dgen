@@ -442,7 +442,11 @@ static int prompt_cmd_config_load(class md&, unsigned int, const char**);
 static int prompt_cmd_config_save(class md&, unsigned int, const char**);
 static char* prompt_cmpl_config_file(class md&, unsigned int, const char**,
 				     unsigned int);
+#ifdef WITH_VGMDUMP
+static char* prompt_cmpl_vgmdump(class md&, unsigned int, const char**,
+				 unsigned int);
 static int prompt_cmd_vgmdump(class md&, unsigned int, const char**);
+#endif
 
 /**
  * List of commands to auto complete.
@@ -469,7 +473,9 @@ static const struct prompt_command prompt_command[] = {
 	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
 	{ "config_load", prompt_cmd_config_load, prompt_cmpl_config_file },
 	{ "config_save", prompt_cmd_config_save, prompt_cmpl_config_file },
-	{ "vgmdump", prompt_cmd_vgmdump, NULL },
+#ifdef WITH_VGMDUMP
+	{ "vgmdump", prompt_cmd_vgmdump, prompt_cmpl_vgmdump },
+#endif
 	{ NULL, NULL, NULL }
 };
 
@@ -846,35 +852,85 @@ retry:
 	return strdup(rcb->rc);
 }
 
+#ifdef WITH_VGMDUMP
+
+static char* prompt_cmpl_vgmdump(class md& md, unsigned int ac,
+				 const char** av, unsigned int len)
+{
+	const char *prefix;
+	size_t i;
+	unsigned int skip;
+
+	(void)md;
+	assert(ac != 0);
+	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
+		prefix = "";
+		len = 0;
+	}
+	else
+		prefix = av[(ac - 1)];
+	if (prompt.complete == NULL) {
+		// Rebuild cache.
+		prompt.skip = 0;
+		prompt.complete = complete_path(prefix, len, "vgm");
+		if (prompt.complete == NULL)
+			return NULL;
+		rehash_prompt_complete_common();
+	}
+retry:
+	skip = prompt.skip;
+	for (i = 0; (prompt.complete[i] != NULL); ++i) {
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	if (prompt.complete[i] == NULL) {
+		if (prompt.skip != 0) {
+			prompt.skip = 0;
+			goto retry;
+		}
+		return NULL;
+	}
+	++prompt.skip;
+	return strdup(prompt.complete[i]);
+}
+
 static int prompt_cmd_vgmdump(class md& md, unsigned int ac, const char** av)
 {
+	char *s;
+
 	if (ac < 2)
 		return CMD_EINVAL;
-	if (strcmp(av[1], "start") == 0) {
-		if (ac < 3) {
-			stop_events_msg(~0u, "Not enough arguments.");
-			return CMD_EINVAL | CMD_MSG;
+	if (!strcasecmp(av[1], "stop")) {
+		if (md.vgm_dump == false)
+			stop_events_msg(~0u, "VGM dumping already stopped.");
+		else {
+			md.vgm_dump_stop();
+			stop_events_msg(~0u, "Stopped VGM dumping.");
 		}
-		if (md.vgm_dumping) {
-			stop_events_msg(~0u, "Dumping already active.");
-			return CMD_FAIL | CMD_MSG;
-		}
-		md.vgmFile = fopen(av[2], "wb");
-		if(md.vgmFile == NULL)
-			return CMD_FAIL;
-		md.vgm_dump_start();
-		stop_events_msg(~0u, "Started VGM dumping to \"%s\"", av[2]);
-		return CMD_OK | CMD_MSG;
+		return (CMD_OK | CMD_MSG);
 	}
-	else if (strcmp(av[1], "stop") == 0) {
-		if ((md.vgmFile == NULL) || (!md.vgm_dumping))
-			return CMD_FAIL;
-		md.vgm_dump_stop();
-		stop_events_msg(~0u, "Stopped VGM dumping");
-		return CMD_OK | CMD_MSG;
+	if (strcasecmp(av[1], "start"))
+		return CMD_EINVAL;
+	if (ac < 3) {
+		stop_events_msg(~0u, "VGM file name required.");
+		return (CMD_EINVAL | CMD_MSG);
 	}
-	return CMD_EINVAL | CMD_MSG;
+	s = backslashify((const uint8_t *)av[2], strlen(av[2]), 0, NULL);
+	if (s == NULL)
+		return CMD_FAIL;
+	if (md.vgm_dump_start(av[2])) {
+		stop_events_msg(~0u, "Cannot dump VGM to \"%s\": %s",
+				s, strerror(errno));
+		free(s);
+		return (CMD_FAIL | CMD_MSG);
+	}
+	stop_events_msg(~0u, "Started VGM dumping to \"%s\"", s);
+	free(s);
+	return (CMD_OK | CMD_MSG);
 }
+
+#endif
 
 struct filter_data {
 	bpp_t buf; ///< Input or output buffer.

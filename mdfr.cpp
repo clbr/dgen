@@ -1054,6 +1054,9 @@ int md::one_frame(struct bmap *bm, unsigned char retpal[256],
 		may_want_to_get_sound(sndi);
 	fm_timer_callback();
 	md_set(0);
+#ifdef WITH_VGMDUMP
+	vgm_dump_frame();
+#endif
 	return 0;
 }
 

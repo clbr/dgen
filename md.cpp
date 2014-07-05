@@ -565,9 +565,16 @@ md::md(bool pal, char region):
 	rom = (uint8_t*)no_rom;
   mem=ram=z80ram=saveram=NULL;
   save_start=save_len=save_prot=save_active=0;
-  vgm_dumping = false;
 
   fm_reset();
+
+#ifdef WITH_VGMDUMP
+	vgm_dump_file = NULL;
+	vgm_dump_samples_total = 0;
+	vgm_dump_dac_wait = 0;
+	vgm_dump_dac_samples = 0;
+	vgm_dump = false;
+#endif
 
   memset(&m68k_state, 0, sizeof(m68k_state));
   memset(&z80_state, 0, sizeof(z80_state));
@@ -766,8 +773,9 @@ cleanup:
 
 md::~md()
 {
-	if(vgm_dumping)
-		vgm_dump_stop();
+#ifdef WITH_VGMDUMP
+	vgm_dump_stop();
+#endif
 
 	assert(rom != NULL);
 	if (rom != no_rom)
