@@ -14,6 +14,7 @@
 #include <strings.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <errno.h>
 #include <ctype.h>
 #include <assert.h>
 #include <SDL.h>
@@ -437,6 +438,10 @@ static int prompt_cmd_filter_pop(class md&, unsigned int, const char**);
 static int prompt_cmd_filter_none(class md&, unsigned int, const char**);
 #endif
 static int prompt_cmd_calibrate(class md&, unsigned int, const char**);
+static int prompt_cmd_config_load(class md&, unsigned int, const char**);
+static int prompt_cmd_config_save(class md&, unsigned int, const char**);
+static char* prompt_cmpl_config_file(class md&, unsigned int, const char**,
+				     unsigned int);
 
 /**
  * List of commands to auto complete.
@@ -461,6 +466,8 @@ static const struct prompt_command prompt_command[] = {
 #endif
 	{ "calibrate", prompt_cmd_calibrate, NULL },
 	{ "calibrate_js", prompt_cmd_calibrate, NULL }, // deprecated name
+	{ "config_load", prompt_cmd_config_load, prompt_cmpl_config_file },
+	{ "config_save", prompt_cmd_config_save, prompt_cmpl_config_file },
 	{ NULL, NULL, NULL }
 };
 
@@ -657,6 +664,117 @@ static int prompt_cmd_unload(class md& md, unsigned int, const char**)
 	if (md.unplug())
 		return (CMD_FAIL | CMD_MSG);
 	mdscr_splash();
+	return (CMD_OK | CMD_MSG);
+}
+
+static char* prompt_cmpl_config_file(class md& md, unsigned int ac,
+				     const char** av, unsigned int len)
+{
+	const char *prefix;
+	size_t i;
+	unsigned int skip;
+
+	(void)md;
+	assert(ac != 0);
+	if ((ac == 1) || (len == ~0u) || (av[(ac - 1)] == NULL)) {
+		prefix = "";
+		len = 0;
+	}
+	else
+		prefix = av[(ac - 1)];
+	if (prompt.complete == NULL) {
+		// Rebuild cache.
+		prompt.skip = 0;
+		prompt.complete = complete_path(prefix, len, "config");
+		if (prompt.complete == NULL)
+			return NULL;
+		rehash_prompt_complete_common();
+	}
+retry:
+	skip = prompt.skip;
+	for (i = 0; (prompt.complete[i] != NULL); ++i) {
+		if (skip == 0)
+			break;
+		--skip;
+	}
+	if (prompt.complete[i] == NULL) {
+		if (prompt.skip != 0) {
+			prompt.skip = 0;
+			goto retry;
+		}
+		return NULL;
+	}
+	++prompt.skip;
+	return strdup(prompt.complete[i]);
+}
+
+static int prompt_rehash_rc_field(const struct rc_field*, md&);
+
+/**
+ * Prompt "config_load" command handler.
+ * @param md Context.
+ * @param ac Number of arguments in av.
+ * @param av Arguments.
+ * @return Status code.
+ */
+static int prompt_cmd_config_load(class md& md, unsigned int ac,
+				  const char** av)
+{
+	FILE *f;
+	char *s;
+	unsigned int i;
+
+	if (ac != 2)
+		return CMD_EINVAL;
+	s = backslashify((const uint8_t *)av[1], strlen(av[1]), 0, NULL);
+	if (s == NULL)
+		return CMD_FAIL;
+	f = dgen_fopen("config", av[1], (DGEN_READ | DGEN_CURRENT));
+	if (f == NULL) {
+		stop_events_msg(~0u, "Cannot load configuration \"%s\": %s.",
+				s, strerror(errno));
+		free(s);
+		return (CMD_FAIL | CMD_MSG);
+	}
+	parse_rc(f, av[1]);
+	fclose(f);
+	for (i = 0; (rc_fields[i].fieldname != NULL); ++i)
+		prompt_rehash_rc_field(&rc_fields[i], md);
+	stop_events_msg(~0u, "Loaded configuration \"%s\".", s);
+	free(s);
+	return (CMD_OK | CMD_MSG);
+}
+
+/**
+ * Prompt "config_save" command handler.
+ * @param md Context.
+ * @param ac Number of arguments in av.
+ * @param av Arguments.
+ * @return Status code.
+ */
+static int prompt_cmd_config_save(class md& md, unsigned int ac,
+				  const char** av)
+{
+	FILE *f;
+	char *s;
+
+	(void)md;
+	if (ac != 2)
+		return CMD_EINVAL;
+	s = backslashify((const uint8_t *)av[1], strlen(av[1]), 0, NULL);
+	if (s == NULL)
+		return CMD_FAIL;
+	f = dgen_fopen("config", av[1], (DGEN_WRITE | DGEN_TEXT));
+	if (f == NULL) {
+		stop_events_msg(~0u, "Cannot save configuration \"%s\": %s",
+				s, strerror(errno));
+		free(s);
+		return (CMD_FAIL | CMD_MSG);
+	}
+	dump_rc(f);
+	fclose(f);
+	stop_events_msg(~0u, "Saved configuration \"%s\"", s);
+	free(s);
 	return (CMD_OK | CMD_MSG);
 }
 
