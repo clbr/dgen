@@ -120,6 +120,10 @@ void md_save(md& megad)
 	FILE *save;
 	char file[64];
 
+	if (!megad.plugged) {
+		pd_message("Cannot save state when no ROM is loaded.");
+		return;
+	}
 	if (((size_t)snprintf(file,
 			      sizeof(file),
 			      "%s.gs%d",
@@ -142,6 +146,10 @@ void md_load(md& megad)
 	FILE *load;
 	char file[64];
 
+	if (!megad.plugged) {
+		pd_message("Cannot restore state when no ROM is loaded.");
+		return;
+	}
 	if (((size_t)snprintf(file,
 			      sizeof(file),
 			      "%s.gs%d",
