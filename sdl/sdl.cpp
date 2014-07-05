@@ -1104,8 +1104,6 @@ static void filters_push(const struct filter *f)
 	filters_stack_update();
 }
 
-#ifdef WITH_CTV
-
 /**
  * Insert filter at the bottom of the stack.
  * @param f Filter to insert.
@@ -1124,8 +1122,6 @@ static void filters_insert(const struct filter *f)
 	++filters_stack_size;
 	filters_stack_update();
 }
-
-#endif
 
 // Currently unused.
 #if 0
@@ -1199,8 +1195,6 @@ static void filters_remove(unsigned int index)
 	filters_stack_update();
 }
 
-#ifdef WITH_CTV
-
 /**
  * Remove all occurences of filter from the stack.
  * @param f Filter to remove.
@@ -1233,8 +1227,6 @@ static void filters_pluck(const struct filter *f)
 	}
 	filters_stack_update();
 }
-
-#endif
 
 #ifdef WITH_CTV
 
@@ -2941,46 +2933,7 @@ static void filter_text_msg(const char *fmt, ...)
 	va_start(vl, fmt);
 	vsnprintf(&filter_text_str[off], len, fmt, vl);
 	va_end(vl);
-#ifndef WITH_CTV
-	// Strip special characters from filter_text_str.
-	off = 0;
-	while (off != len) {
-		size_t tmp;
-
-		if (strncmp(&filter_text_str[off], FILTER_TEXT_ESCAPE,
-			    strlen(FILTER_TEXT_ESCAPE))) {
-			++off;
-			continue;
-		}
-		// XXX assume all of them are (strlen(FILTER_TEXT_ESCAPE) + 2).
-		tmp = (strlen(FILTER_TEXT_ESCAPE) + 2);
-		if ((off + tmp) > len)
-			tmp = (len - off);
-		memmove(&filter_text_str[off], &filter_text_str[(off + tmp)],
-			(len - (off + tmp)));
-		len -= tmp;
-	}
-	// Pass each line to stop_events_msg().
-	off = 0;
-	len = 0;
-	while (filter_text_str[(off + len)] != '\0') {
-		if (filter_text_str[(off + len)] != '\n') {
-			++len;
-			continue;
-		}
-		filter_text_str[(off + len)] = '\0';
-		if (len != 0)
-			stop_events_msg(~0u, "%s", &filter_text_str[off]);
-		filter_text_str[(off + len)] = '\n';
-		off = (off + len + 1);
-		len = 0;
-	}
-	if (filter_text_str[off] != '\0')
-		stop_events_msg(~0u, "%s", &filter_text_str[off]);
-#endif
 }
-
-#ifdef WITH_CTV
 
 /**
  * Text overlay filter.
@@ -3132,6 +3085,8 @@ static const struct filter filter_text_def = {
 	"text", filter_text, true, false, false
 };
 
+#ifdef WITH_CTV
+
 static void set_swab()
 {
 	const struct filter *f = filters_find("swab");
@@ -3240,11 +3195,7 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 	else
 		return CMD_EINVAL;
 	manage_calibration(false, -1);
-#ifdef WITH_CTV
-	return CMD_OK;
-#else
 	return (CMD_OK | CMD_MSG);
-#endif
 }
 
 static int set_scaling(const char *name)
@@ -5831,10 +5782,8 @@ static void manage_calibration(bool type, intptr_t code)
 				"or two different buttons to skip them.\n"
 				"\n",
 				(calibrating_controller + 1));
-#ifdef WITH_CTV
 		filters_pluck(&filter_text_def);
 		filters_insert(&filter_text_def);
-#endif
 		goto ask;
 	}
 	while (step != elemof(calibration_steps))
@@ -5854,9 +5803,7 @@ static void manage_calibration(bool type, intptr_t code)
 		// Restart emulation.
 		pd_freeze = false;
 		calibrating = false;
-#ifdef WITH_CTV
 		filters_pluck(&filter_text_def);
-#endif
 		return;
 	}
 	if (calibration_steps[step].once == false) {
