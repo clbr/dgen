@@ -131,7 +131,14 @@ void md::fm_reset()
 	}
 }
 
-#ifdef WITH_VGMDUMP
+void md::dac_init()
+{
+	dac_enabled = true;
+	dac_len = 0;
+#ifndef NDEBUG
+	memset(dac_data, 0xff, sizeof(dac_data));
+#endif
+}
 
 static const struct {
 	unsigned int samples;
@@ -140,6 +147,37 @@ static const struct {
 	{ (44100 / 60), (1000000 / 60) },
 	{ (44100 / 50), (1000000 / 50) },
 };
+
+void md::dac_submit(uint8_t d)
+{
+	unsigned int usecs;
+	unsigned int index;
+	unsigned int i;
+
+	if (!dac_enabled)
+		return;
+	if (dac_len == elemof(dac_data))
+		return;
+	usecs = frame_usecs();
+	index = ((usecs << 10) /
+		 ((per_frame[pal].usecs << 10) /
+		  elemof(dac_data)));
+	if (index >= elemof(dac_data))
+		return;
+	dac_data[index] = d;
+	if (dac_len)
+		d = dac_data[dac_len - 1];
+	for (i = dac_len; (i < index); ++i)
+		dac_data[i] = d;
+	dac_len = (index + 1);
+}
+
+void md::dac_enable(uint8_t d)
+{
+	dac_enabled = ((d & 0x80) >> 7);
+}
+
+#ifdef WITH_VGMDUMP
 
 void md::vgm_dump_ym2612(uint8_t a1, uint8_t reg, uint8_t data)
 {
@@ -257,7 +295,7 @@ int md::vgm_dump_start(const char *name)
 	}
 	// DAC.
 	{
-		uint8_t buf[] = { 0x52, 0x2b, (uint8_t)dac_enabled };
+		uint8_t buf[] = { 0x52, 0x2b, (uint8_t)(dac_enabled << 7) };
 
 		if (fwrite(buf, sizeof(buf), 1, vgm_dump_file) != 1)
 			goto error;

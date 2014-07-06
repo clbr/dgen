@@ -1132,26 +1132,32 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
 {
   extern intptr_t dgen_volume;
   unsigned int i, len = sndi->len;
-  unsigned int in_dac, cur_dac = 0;
-  unsigned int acc_dac = len;
-  unsigned int *dac = dac_data - 1;
 
   // Get the PSG
   SN76496Update_16_2(0, sndi->lr, len);
 
-  // We bring in the dac, but stretch it out to fit the real length.
-  for (i = 0; (i != len); ++i)
-    {
-      acc_dac += lines;
-      if(acc_dac >= len)
-	{
-	  acc_dac -= len;
-	  in_dac = *(++dac);
-	  if(in_dac != 1) cur_dac = in_dac;
+	if (dac_len) {
+		unsigned int ratio = ((sndi->len << 10) / elemof(dac_data));
+
+		// Stretch the DAC to fit the real length.
+		for (i = 0; (i != sndi->len); ++i) {
+			unsigned int index = ((i << 10) / ratio);
+			uint16_t data;
+
+			if (index >= dac_len)
+				data = dac_data[dac_len - 1];
+			else
+				data = dac_data[index];
+			data = ((data - 0x80) << 6);
+			sndi->lr[i << 1] += data;
+			sndi->lr[(i << 1) ^ 1] += data;
+		}
+		// Clear the DAC for next frame.
+		dac_len = 0;
+#ifndef NDEBUG
+		memset(dac_data, 0xff, sizeof(dac_data));
+#endif
 	}
-      sndi->lr[(i << 1)] += cur_dac;
-      sndi->lr[((i << 1) ^ 1)] += cur_dac;
-    }
 
   // Add in the stereo FM buffer
   YM2612UpdateOne(0, sndi->lr, len, dgen_volume, 1);
@@ -1159,9 +1165,6 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
     YM2612UpdateOne(1, sndi->lr, len, dgen_volume, 0);
     YM2612UpdateOne(2, sndi->lr, len, dgen_volume, 0);
   }
-
-  // Clear the dac for next frame
-  dac_clear();
   return 0;
 }
 

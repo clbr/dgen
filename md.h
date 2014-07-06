@@ -498,22 +498,12 @@ private:
   int fm_ticker[4];
   signed short fm_reg[2][0x100]; // All of them (-1 = not def'd yet)
 
-  unsigned int dac_data[0x138], dac_enabled, dac_last;
-  // Since dac values are normally shifted << 6, 1 is used to mark unchanged
-  // values.
-  void dac_init() { dac_last = 1; dac_enabled = 1; dac_clear(); }
-  void dac_clear() {
-    dac_data[0] = dac_last;
-    for(int i = 1; i < 0x138; ++i)
-      dac_data[i] = 1;
-  }
-  void dac_submit(uint8_t d) {
-    dac_last = (d - 0x80) << 6; if(dac_enabled) dac_data[ras] = dac_last;
-  }
-  void dac_enable(uint8_t d) {
-    dac_enabled = d & 0x80;
-    dac_data[ras] = (dac_enabled? dac_last : 1);
-  }
+	uint8_t dac_data[0x400];
+	unsigned int dac_len;
+	bool dac_enabled;
+	void dac_init();
+	void dac_submit(uint8_t d);
+	void dac_enable(uint8_t d);
 
   uint8_t m68k_ROM_read(uint32_t a);
   uint8_t m68k_IO_read(uint32_t a);

@@ -92,7 +92,7 @@ RCVAR(dgen_show_carthead, 0);
 RCSTR(dgen_rom_path, "roms"); /* synchronize with romload.c */
 
 RCVAR(dgen_sound, 1);
-RCVAR(dgen_soundrate, 22050);
+RCVAR(dgen_soundrate, 44100);
 RCVAR(dgen_soundsegs, 8);
 RCVAR(dgen_soundsamples, 0);
 RCVAR(dgen_volume, 100);

@@ -216,7 +216,7 @@ str_rom_path = "roms"
 # Sound?
 bool_sound = yes
 # The sound rate to use.
-int_soundrate = 22050
+int_soundrate = 44100
 # Number of sound segments to use for sound buffering. Lower values guarantee
 # low latency. Increment this only if the sound becomes choppy.
 int_soundsegs = 8
