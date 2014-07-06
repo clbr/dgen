@@ -25,11 +25,11 @@ int md::myfm_write(int a, int v, int md)
 	vgm_dump_ym2612(sid, fm_sel[sid], v);
 #endif
 	if (fm_sel[sid] == 0x2a) {
-		dac_submit(v);
+		dac_submit((uint8_t)v);
 		pass = 0;
 	}
 	if (fm_sel[sid] == 0x2b) {
-		dac_enable(v);
+		dac_enable((uint8_t)v);
 		pass = 0;
 	}
 	if (fm_sel[sid] == 0x27) {

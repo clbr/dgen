@@ -1132,9 +1132,9 @@ int md::may_want_to_get_sound(struct sndinfo *sndi)
 {
   extern intptr_t dgen_volume;
   unsigned int i, len = sndi->len;
-  int in_dac, cur_dac = 0;
+  unsigned int in_dac, cur_dac = 0;
   unsigned int acc_dac = len;
-  int *dac = dac_data - 1;
+  unsigned int *dac = dac_data - 1;
 
   // Get the PSG
   SN76496Update_16_2(0, sndi->lr, len);
