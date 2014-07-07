@@ -177,6 +177,8 @@ end of VRAM
   000FA-00111  24     VDP registers
   00112-00191  128    Color RAM
   00192-001E1  80     Vertical scroll RAM
+  001E2-001E2  1      YM2612 part I address register (DGen)
+  001E3-001E3  1      YM2612 part II address register (DGen)
   001E4-003E3  512    YM2612 registers
   00404-00437  52     Z80 registers
   00438-0043F  8      Z80 state
@@ -312,12 +314,17 @@ int md::import_gst(FILE *hand)
 	/* VSRAM (40x16-bit words, 80 bytes), swapped */
 	swap16cpy(vdp.vsram, &(*buf)[0x192], 0x50);
 	/* YM2612 registers */
+	p = &(*buf)[0x1e2];
+	fm_sel[0] = p[0];
+	fm_sel[1] = p[1];
 	p = &(*buf)[0x1e4];
 	YM2612_restore(0, p);
 	fm_reg[0][0x24] = p[0x24];
 	fm_reg[0][0x25] = p[0x25];
 	fm_reg[0][0x26] = p[0x26];
 	fm_reg[0][0x27] = p[0x27];
+	dac_data[0] = p[0x2a];
+	dac_enabled = (p[0x2b] >> 7);
 	memset(fm_ticker, 0, sizeof(fm_ticker));
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	p = &(*buf)[0x404];
@@ -356,8 +363,6 @@ int md::import_gst(FILE *hand)
 	memcpy(vdp.vram, &(*buf)[0x12478], 0x10000);
 	/* Mark everything as changed */
 	memset(vdp.dirt, 0xff, 0x35);
-	/* Initialize DAC */
-	dac_init();
 	free(buf);
 	return 0;
 }
@@ -406,12 +411,17 @@ int md::export_gst(FILE *hand)
 	/* VSRAM (40x16-bit words, 80 bytes), swapped */
 	swap16cpy(&(*buf)[0x192], vdp.vsram, 0x50);
 	/* YM2612 registers */
+	p = &(*buf)[0x1e2];
+	p[0] = fm_sel[0];
+	p[1] = fm_sel[1];
 	p = &(*buf)[0x1e4];
 	YM2612_dump(0, p);
 	p[0x24] = fm_reg[0][0x24];
 	p[0x25] = fm_reg[0][0x25];
 	p[0x26] = fm_reg[0][0x26];
 	p[0x27] = fm_reg[0][0x27];
+	p[0x2a] = 0xff;
+	p[0x2b] = (dac_enabled << 7);
 	/* Z80 registers (12x16-bit and 4x8-bit, 52 bytes (padding: 24)) */
 	z80_state_dump();
 	p = &(*buf)[0x404];
