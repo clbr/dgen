@@ -22,6 +22,13 @@
 #endif
 #ifdef WITH_LIBARCHIVE
 #include <archive.h>
+/* For backward compatibility. */
+#if ARCHIVE_VERSION_NUMBER < 3001000
+#define archive_read_free(...) \
+	archive_read_finish(__VA_ARGS__)
+#define archive_read_support_filter_all(...) \
+	archive_read_support_compression_all(__VA_ARGS__)
+#endif
 #endif
 #include "system.h"
 
