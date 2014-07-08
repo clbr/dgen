@@ -480,8 +480,8 @@ void md::m68k_run()
 {
 	int cycles = (odo.m68k_max - odo.m68k);
 #ifdef WITH_DEBUGGER
-	int cycles_to_debug;
-	int prev_odo;
+	int cycles_to_debug = 0;
+	int prev_odo = 0;
 	bool debug_m68k;
 #endif
 
@@ -653,8 +653,8 @@ void md::z80_run()
 {
 	int cycles = (odo.z80_max - odo.z80);
 #ifdef WITH_DEBUGGER
-	int cycles_to_debug;
-	int prev_odo;
+	int cycles_to_debug = 0;
+	int prev_odo = 0;
 	bool debug_z80;
 #endif
 
@@ -730,8 +730,8 @@ void md::z80_sync(int fake)
 {
 	int cycles = (m68k_odo() >> 1);
 #ifdef WITH_DEBUGGER
-	int cycles_to_debug;
-	int prev_odo;
+	int cycles_to_debug = 0;
+	int prev_odo = 0;
 	bool debug_z80;
 #endif
 
