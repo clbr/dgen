@@ -1093,6 +1093,7 @@ int md::patch(const char *list, unsigned int *errors,
       uint8_t *dest = rom;
       size_t mask = ~(size_t)0;
       int rev = 0;
+      bool swap = true;
 
       // If it's empty, toss it
       if(*tok == '\0') continue;
@@ -1111,6 +1112,14 @@ int md::patch(const char *list, unsigned int *errors,
 		dest = ram;
 		mask = 0xffff;
       }
+      if (dest == no_rom) {
+	      printf("Cannot patch this ROM\n");
+	      continue;
+      }
+#ifndef ROM_BYTESWAP
+      if (dest == rom)
+	      swap = false;
+#endif
       // Put it into dest (remember byteswapping)
       while (elem != NULL) {
 	if (elem->addr == p.addr) {
@@ -1139,13 +1148,13 @@ int md::patch(const char *list, unsigned int *errors,
 	if ((elem = (struct patch_elem *)malloc(sizeof(*elem))) != NULL) {
 	  elem->next = patch_elem;
 	  elem->addr = p.addr;
-	  elem->data = ((dest[((p.addr + 1) & mask)] << 8) |
-			(dest[(p.addr & mask)]));
+	  elem->data = ((dest[((p.addr + 0) ^ swap) & mask] << 8) |
+			(dest[((p.addr + 1) ^ swap) & mask]));
 	  patch_elem = elem;
 	}
       }
-      dest[(p.addr & mask)] = (uint8_t)(p.data & 0xff);
-      dest[((p.addr + 1) & mask)] = (uint8_t)(p.data >> 8);
+      dest[((p.addr + 0) ^ swap) & mask] = (uint8_t)(p.data >> 8);
+      dest[((p.addr + 1) ^ swap) & mask] = (uint8_t)(p.data & 0xff);
     }
   // Done!
   free(worklist);
