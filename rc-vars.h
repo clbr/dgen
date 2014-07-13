@@ -53,6 +53,14 @@ RCCTL(pad2_z, PDK_PAGEUP, JS_BUTTON(1, 5));
 RCCTL(pad2_mode, PDK_KP_PLUS, JS_BUTTON(1, 9));
 RCCTL(pad2_start, PDK_KP_ENTER, JS_BUTTON(1, 8));
 
+RCCTL(pico_pen_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE));
+RCCTL(pico_pen_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE));
+RCCTL(pico_pen_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE));
+RCCTL(pico_pen_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE));
+RCCTL(pico_pen_button, PDK_RETURN, JS_BUTTON(0, 0));
+RCVAR(pico_pen_stride, 2);
+RCVAR(pico_pen_delay, 2);
+
 RCCTL(dgen_fix_checksum, PDK_F1, 0);
 RCCTL(dgen_quit, PDK_ESCAPE, 0);
 RCCTL(dgen_craptv_toggle, PDK_F5, 0);

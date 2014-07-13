@@ -5121,6 +5121,13 @@ enum ctl_e {
 	CTL_PAD2_Z,
 	CTL_PAD2_MODE,
 	CTL_PAD2_START,
+#ifdef WITH_PICO
+	CTL_PICO_PEN_UP,
+	CTL_PICO_PEN_DOWN,
+	CTL_PICO_PEN_LEFT,
+	CTL_PICO_PEN_RIGHT,
+	CTL_PICO_PEN_BUTTON,
+#endif
 	CTL_DGEN_QUIT,
 	CTL_DGEN_CRAPTV_TOGGLE,
 	CTL_DGEN_SCALING_TOGGLE,
@@ -5345,6 +5352,57 @@ static int ctl_pad2_release(struct ctl& ctl, md& megad)
 	}
 	return 1;
 }
+
+#ifdef WITH_PICO
+
+static int ctl_pico_pen(struct ctl& ctl, md& megad)
+{
+	static const struct {
+		enum ctl_e type;
+		unsigned int coords:1;
+		unsigned int dir:1;
+		unsigned int lim[2];
+	} motion[] = {
+		{ CTL_PICO_PEN_UP, 1, 0, { 0x1fc, 0x2f7 } },
+		{ CTL_PICO_PEN_DOWN, 1, 1, { 0x1fc, 0x2f7 } },
+		{ CTL_PICO_PEN_LEFT, 0, 0, { 0x3c, 0x17c } },
+		{ CTL_PICO_PEN_RIGHT, 0, 1, { 0x3c, 0x17c } }
+	};
+	unsigned int i;
+
+	ctl.pressed = true;
+	if (ctl.type == CTL_PICO_PEN_BUTTON) {
+		megad.pad[0] &= ~MD_PICO_PENBTN_MASK;
+		return 1;
+	}
+	for (i = 0; (i != elemof(motion)); ++i) {
+		unsigned int coords;
+
+		if (motion[i].type != ctl.type)
+			continue;
+		coords = motion[i].coords;
+		if (motion[i].dir)
+			megad.pico_pen_coords[coords] += pico_pen_stride;
+		else
+			megad.pico_pen_coords[coords] -= pico_pen_stride;
+		if ((megad.pico_pen_coords[coords] < motion[i].lim[0]) ||
+		    (megad.pico_pen_coords[coords] > motion[i].lim[1]))
+			megad.pico_pen_coords[coords] =
+				motion[i].lim[motion[i].dir];
+		break;
+	}
+	return 1;
+}
+
+static int ctl_pico_pen_release(struct ctl& ctl, md& megad)
+{
+	ctl.pressed = false;
+	if (ctl.type == CTL_PICO_PEN_BUTTON)
+		megad.pad[0] |= MD_PICO_PENBTN_MASK;
+	return 1;
+}
+
+#endif
 
 static int ctl_dgen_quit(struct ctl&, md&)
 {
@@ -5590,6 +5648,18 @@ static struct ctl control[] = {
 	{ CTL_PAD2_Z, &pad2_z, false, ctl_pad2, ctl_pad2_release },
 	{ CTL_PAD2_MODE, &pad2_mode, false, ctl_pad2, ctl_pad2_release },
 	{ CTL_PAD2_START, &pad2_start, false, ctl_pad2, ctl_pad2_release },
+#ifdef WITH_PICO
+	{ CTL_PICO_PEN_UP,
+	  &pico_pen_up, false, ctl_pico_pen, ctl_pico_pen_release },
+	{ CTL_PICO_PEN_DOWN,
+	  &pico_pen_down, false, ctl_pico_pen, ctl_pico_pen_release },
+	{ CTL_PICO_PEN_LEFT,
+	  &pico_pen_left, false, ctl_pico_pen, ctl_pico_pen_release },
+	{ CTL_PICO_PEN_RIGHT,
+	  &pico_pen_right, false, ctl_pico_pen, ctl_pico_pen_release },
+	{ CTL_PICO_PEN_BUTTON,
+	  &pico_pen_button, false, ctl_pico_pen, ctl_pico_pen_release },
+#endif
 	{ CTL_DGEN_QUIT, &dgen_quit, false, ctl_dgen_quit, NULL },
 	{ CTL_DGEN_CRAPTV_TOGGLE,
 	  &dgen_craptv_toggle, false, ctl_dgen_craptv_toggle, NULL },
@@ -5951,6 +6021,41 @@ over:
 	return 1;
 }
 
+#ifdef WITH_PICO
+
+static void manage_pico_pen(md& megad)
+{
+	static unsigned long pico_pen_last_update;
+	unsigned long pico_pen_now;
+
+	if (!megad.pico_enabled)
+		return;
+	// Repeat pen motion as long as buttons are not released.
+	if (((control[CTL_PICO_PEN_UP].pressed) ||
+	     (control[CTL_PICO_PEN_DOWN].pressed) ||
+	     (control[CTL_PICO_PEN_LEFT].pressed) ||
+	     (control[CTL_PICO_PEN_RIGHT].pressed)) &&
+	    (pico_pen_now = pd_usecs(),
+	     ((pico_pen_now - pico_pen_last_update) >=
+	      ((unsigned long)pico_pen_delay * 1000)))) {
+		if (control[CTL_PICO_PEN_UP].pressed)
+			ctl_pico_pen
+				(control[CTL_PICO_PEN_UP], megad);
+		if (control[CTL_PICO_PEN_DOWN].pressed)
+			ctl_pico_pen
+				(control[CTL_PICO_PEN_DOWN], megad);
+		if (control[CTL_PICO_PEN_LEFT].pressed)
+			ctl_pico_pen
+				(control[CTL_PICO_PEN_LEFT], megad);
+		if (control[CTL_PICO_PEN_RIGHT].pressed)
+			ctl_pico_pen
+				(control[CTL_PICO_PEN_RIGHT], megad);
+		pico_pen_last_update = pico_pen_now;
+	}
+}
+
+#endif
+
 static int stop_events(md& megad, enum events status)
 {
 	struct ctl* ctl;
@@ -6029,8 +6134,12 @@ int pd_handle_events(md &megad)
 		return 0;
 #endif
 next_event:
-	if (!SDL_PollEvent(&event))
+	if (!SDL_PollEvent(&event)) {
+#ifdef WITH_PICO
+		manage_pico_pen(megad);
+#endif
 		return 1;
+	}
 	switch (event.type) {
 #ifdef WITH_JOYSTICK
 	case SDL_JOYAXISMOTION:
@@ -6309,32 +6418,6 @@ next_event:
 			return 0;
 		}
 		break;
-#ifdef WITH_PICO
-	case SDL_MOUSEMOTION:
-		if (!megad.pico_enabled)
-			break;
-		megad.pico_pen_coords[0] =
-			(((event.motion.x * 320) / video.width) + 0x3c);
-		megad.pico_pen_coords[1] =
-			(((event.motion.y * 240) / video.height) + 0x1fc);
-		if (megad.pico_pen_coords[0] > 0x17c)
-			megad.pico_pen_coords[0] = 0x17c;
-		if (megad.pico_pen_coords[1] > 0x2f7)
-			megad.pico_pen_coords[1] = 0x2f7;
-		break;
-	case SDL_MOUSEBUTTONDOWN:
-		if (!megad.pico_enabled)
-			break;
-		if (event.button.button == SDL_BUTTON_LEFT)
-			megad.pad[0] &= ~MD_PICO_PENBTN_MASK;
-		break;
-	case SDL_MOUSEBUTTONUP:
-		if (!megad.pico_enabled)
-			break;
-		if (event.button.button == SDL_BUTTON_LEFT)
-			megad.pad[0] |= MD_PICO_PENBTN_MASK;
-		break;
-#endif
 	case SDL_QUIT:
 		// We've been politely asked to exit, so let's leave
 		return 0;
