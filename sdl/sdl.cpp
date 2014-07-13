@@ -489,6 +489,24 @@ static const struct prompt_command prompt_command[] = {
 /// Stopped flag used by pd_stopped()
 static int stopped = 0;
 
+/// Events handling status.
+static enum events {
+	STARTED,
+	STOPPED,
+	STOPPED_PROMPT,
+	STOPPED_GAME_GENIE,
+	PROMPT,
+	GAME_GENIE
+} events = STARTED;
+
+static int stop_events(md& megad, enum events status);
+static void restart_events(md &megad);
+
+/// Messages shown whenever events are stopped.
+static const char stopped_str[] = "STOPPED.";
+static const char prompt_str[] = ":";
+static const char game_genie_str[] = "Enter Game Genie/Hex code: ";
+
 /// Enable emulation by default.
 bool pd_freeze = false;
 
@@ -555,8 +573,6 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	if (dgen_show_carthead)
 		pd_show_carthead(md);
 	// Initialize like main() does.
-	md.pad[0] = MD_PAD_UNTOUCHED;
-	md.pad[1] = MD_PAD_UNTOUCHED;
 	md.reset();
 
 	if (!dgen_region) {
@@ -3875,7 +3891,8 @@ void pd_graphics_update(bool update)
 	size_t i;
 
 	// Check whether the message must be processed.
-	if (((info.displayed) || (info.length))  &&
+	if ((events == STARTED) &&
+	    ((info.displayed) || (info.length))  &&
 	    ((usecs - info.since) >= MESSAGE_LIFE))
 		pd_message_process();
 	else if (dgen_fps) {
@@ -5073,200 +5090,9 @@ end:
 	if ((ret & ~(PROMPT_RET_CONT | PROMPT_RET_ENTER)) == 0) {
 		ph = &p->history[(p->current)];
 		stop_events_msg((p->cursor + 1),
-				":%.*s", ph->length, ph->line);
+				"%s%.*s", prompt_str, ph->length, ph->line);
 	}
 	return ret;
-}
-
-static struct rc_binding_item combos[64];
-static uint16_t kpress[0x100];
-
-// This is a small event loop to handle stuff when we're stopped.
-static int stop_events(md &megad, int gg)
-{
-	SDL_Event event;
-	char buf[128] = "";
-	kb_input_t input = { 0, 0, 0 };
-	size_t gg_len = 0;
-
-	// Clear combos.
-	memset(combos, 0, sizeof(combos));
-	// Switch out of fullscreen mode (assuming this is supported)
-	if (screen.is_fullscreen) {
-		if (set_fullscreen(0) < -1)
-			return 0;
-		pd_graphics_update(true);
-	}
-	stopped = 1;
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
-			    SDL_DEFAULT_REPEAT_INTERVAL);
-	SDL_PauseAudio(1);
-gg:
-	if (gg >= 3)
-		handle_prompt(0, 0, megad);
-	else if (gg) {
-		size_t len;
-
-		strncpy(buf, "Enter Game Genie/Hex code: ", sizeof(buf));
-		len = strlen(buf);
-		gg_len = len;
-		input.buf = &(buf[len]);
-		input.pos = 0;
-		input.size = (sizeof(buf) - len);
-		if (input.size > 12)
-			input.size = 12;
-		stop_events_msg(gg_len, buf);
-	}
-	else {
-		strncpy(buf, "STOPPED.", sizeof(buf));
-		stop_events_msg(~0u, buf);
-	}
-	// We still check key events, but we can wait for them
-	while (SDL_WaitEvent(&event)) {
-		switch (event.type) {
-			uint16_t ksym_uni;
-			intptr_t ksym;
-
-		case SDL_KEYDOWN:
-			ksym = event.key.keysym.sym;
-			ksym_uni = event.key.keysym.unicode;
-			if (ksym_uni < 0x20)
-				ksym_uni = 0;
-			kpress[(ksym & 0xff)] = ksym_uni;
-			if (ksym_uni)
-				ksym = ksym_uni;
-			else if (event.key.keysym.mod & KMOD_SHIFT)
-				ksym |= KEYSYM_MOD_SHIFT;
-			if (event.key.keysym.mod & KMOD_CTRL)
-				ksym |= KEYSYM_MOD_CTRL;
-			if (event.key.keysym.mod & KMOD_ALT)
-				ksym |= KEYSYM_MOD_ALT;
-			if (event.key.keysym.mod & KMOD_META)
-				ksym |= KEYSYM_MOD_META;
-			if (gg == 0) {
-				if (ksym == dgen_game_genie[0]) {
-					gg = 2;
-					goto gg;
-				}
-				if (ksym == dgen_prompt[0]) {
-					gg = 4;
-					goto gg;
-				}
-			}
-			if (gg >= 3) {
-				int ret;
-
-				ret = handle_prompt(ksym, ksym_uni, megad);
-				if (ret & PROMPT_RET_ERROR) {
-					// XXX
-					handle_prompt_complete_clear();
-					SDL_EnableKeyRepeat(0, 0);
-					return 0;
-				}
-				if (ret & PROMPT_RET_EXIT) {
-					if (gg == 4) {
-						// Return to stopped mode.
-						gg = 0;
-						goto gg;
-					}
-					if ((ret & PROMPT_RET_MSG) == 0)
-						stop_events_msg(~0u,
-								"RUNNING.");
-					goto gg_resume;
-				}
-				if (ret & PROMPT_RET_ENTER) {
-					// Back to the prompt only when
-					// stopped.
-					if (gg == 4)
-						continue;
-					if ((ret & PROMPT_RET_MSG) == 0)
-						stop_events_msg(~0u, "");
-					goto gg_resume;
-				}
-				// PROMPT_RET_CONT
-				continue;
-			}
-			else if (gg)
-				switch (kb_input(&input, ksym, ksym_uni)) {
-					unsigned int errors;
-					unsigned int applied;
-					unsigned int reverted;
-
-				case KB_INPUT_ENTERED:
-					megad.patch(input.buf,
-						    &errors,
-						    &applied,
-						    &reverted);
-					if (errors)
-						strncpy(buf, "Invalid code.",
-							sizeof(buf));
-					else if (reverted)
-						strncpy(buf, "Reverted.",
-							sizeof(buf));
-					else if (applied)
-						strncpy(buf, "Applied.",
-							sizeof(buf));
-					else {
-					case KB_INPUT_ABORTED:
-						strncpy(buf, "Aborted.",
-							sizeof(buf));
-					}
-					if (gg == 2) {
-						// Return to stopped mode.
-						gg = 0;
-						stop_events_msg(~0u, buf);
-						continue;
-					}
-					pd_message("%s", buf);
-					goto gg_resume;
-				case KB_INPUT_CONSUMED:
-					stop_events_msg((gg_len + input.pos),
-							"%s", buf);
-					continue;
-				case KB_INPUT_IGNORED:
-					break;
-				}
-			// We can still quit :)
-			if (event.key.keysym.sym == dgen_quit[0]) {
-				handle_prompt_complete_clear();
-				SDL_EnableKeyRepeat(0, 0);
-				return 0;
-			}
-			if (event.key.keysym.sym == dgen_stop[0])
-				goto resume;
-			break;
-		case SDL_QUIT: {
-			handle_prompt_complete_clear();
-			SDL_EnableKeyRepeat(0, 0);
-			return 0;
-		}
-		case SDL_VIDEORESIZE:
-			if (screen_init(event.resize.w, event.resize.h) < -1) {
-				handle_prompt_complete_clear();
-				fprintf(stderr,
-					"sdl: fatal error while trying to"
-					" change screen resolution.\n");
-				SDL_EnableKeyRepeat(0, 0);
-				return 0;
-			}
-			pd_graphics_update(true);
-		case SDL_VIDEOEXPOSE:
-			if (gg >= 3)
-				handle_prompt(0, 0, megad);
-			else
-				stop_events_msg(~0u, buf);
-			break;
-		}
-	}
-	// SDL_WaitEvent only returns zero on error :(
-	fprintf(stderr, "sdl: SDL_WaitEvent broke: %s!", SDL_GetError());
-resume:
-	pd_message("RUNNING.");
-gg_resume:
-	handle_prompt_complete_clear();
-	SDL_EnableKeyRepeat(0, 0);
-	SDL_PauseAudio(0);
-	return 1;
 }
 
 // Controls enum. You must add new entries at the end. Do not change the order.
@@ -5657,23 +5483,26 @@ static int ctl_dgen_cpu_toggle(struct ctl&, md& megad)
 
 static int ctl_dgen_stop(struct ctl&, md& megad)
 {
-	megad.pad[0] = MD_PAD_UNTOUCHED;
-	megad.pad[1] = MD_PAD_UNTOUCHED;
-	return stop_events(megad, 0);
+	stop_events_msg(~0u, stopped_str);
+	if (stop_events(megad, STOPPED) != 0)
+		return 0;
+	return 1;
 }
 
 static int ctl_dgen_prompt(struct ctl&, md& megad)
 {
-	megad.pad[0] = MD_PAD_UNTOUCHED;
-	megad.pad[1] = MD_PAD_UNTOUCHED;
-	return stop_events(megad, 3);
+	stop_events_msg(strlen(prompt_str), prompt_str);
+	if (stop_events(megad, PROMPT) != 0)
+		return 0;
+	return 1;
 }
 
 static int ctl_dgen_game_genie(struct ctl&, md& megad)
 {
-	megad.pad[0] = MD_PAD_UNTOUCHED;
-	megad.pad[1] = MD_PAD_UNTOUCHED;
-	return stop_events(megad, 1);
+	stop_events_msg(strlen(game_genie_str), game_genie_str);
+	if (stop_events(megad, GAME_GENIE) != 0)
+		return 0;
+	return 1;
 }
 
 static int ctl_dgen_volume(struct ctl& ctl, md&)
@@ -5948,6 +5777,8 @@ ask:
 				"");
 }
 
+static struct rc_binding_item combos[64];
+
 static void manage_combos(md& md, bool pressed, bool type, intptr_t code)
 {
 	unsigned int i;
@@ -6080,6 +5911,86 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 	return 1;
 }
 
+static int manage_game_genie(md& megad, intptr_t ksym, intptr_t ksym_uni)
+{
+	static char buf[12];
+	static kb_input_t input = { buf, 0, sizeof(buf) };
+	unsigned int len = strlen(game_genie_str);
+
+	switch (kb_input(&input, ksym, ksym_uni)) {
+		unsigned int errors;
+		unsigned int applied;
+		unsigned int reverted;
+
+	case KB_INPUT_ENTERED:
+		megad.patch(input.buf, &errors, &applied, &reverted);
+		if (errors)
+			stop_events_msg(~0u, "Invalid code.");
+		else if (reverted)
+			stop_events_msg(~0u, "Reverted.");
+		else if (applied)
+			stop_events_msg(~0u, "Applied.");
+		else {
+		case KB_INPUT_ABORTED:
+			stop_events_msg(~0u, "Aborted.");
+		}
+		goto over;
+	case KB_INPUT_CONSUMED:
+		stop_events_msg((len + input.pos), "%s%.*s", game_genie_str,
+				(int)input.pos, buf);
+		break;
+	case KB_INPUT_IGNORED:
+		break;
+	}
+	return 0;
+over:
+	input.buf = buf;
+	input.pos = 0;
+	input.size = sizeof(buf);
+	memset(buf, 0, sizeof(buf));
+	return 1;
+}
+
+static int stop_events(md& megad, enum events status)
+{
+	struct ctl* ctl;
+
+	stopped = 1;
+	pd_freeze = true;
+	if (dgen_sound)
+		pd_sound_pause();
+	events = status;
+	// Release controls.
+	for (ctl = control; (ctl->rc != NULL); ++ctl) {
+		if (ctl->pressed == false)
+			continue;
+		if ((ctl->release != NULL) &&
+		    (ctl->release(*ctl, megad) == 0))
+			return -1; // XXX do something about this.
+	}
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
+			    SDL_DEFAULT_REPEAT_INTERVAL);
+	// Switch out of fullscreen mode (assuming this is supported)
+	if (screen.is_fullscreen) {
+		if (set_fullscreen(0) < -1)
+			return -1;
+		pd_graphics_update(true);
+	}
+	return 0;
+}
+
+static void restart_events(md& megad)
+{
+	(void)megad;
+	stopped = 1;
+	pd_freeze = false;
+	if (dgen_sound)
+		pd_sound_start();
+	handle_prompt_complete_clear();
+	SDL_EnableKeyRepeat(0, 0);
+	events = STARTED;
+}
+
 // The massive event handler!
 // I know this is an ugly beast, but please don't be discouraged. If you need
 // help, don't be afraid to ask me how something works. Basically, just handle
@@ -6087,6 +5998,7 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 // interface.
 int pd_handle_events(md &megad)
 {
+	static uint16_t kpress[0x100];
 #ifdef WITH_JOYSTICK
 	static uint32_t const axis_value[][3] = {
 		// { pressed, [implicitly released ...] }
@@ -6165,6 +6077,8 @@ next_event:
 			manage_combos(megad, false, true, rlist[i]);
 		for (i = 0; (i != pi); ++i)
 			manage_combos(megad, true, true, plist[i]);
+		if (events != STARTED)
+			break;
 		if (calibrating) {
 			for (i = 0; ((calibrating) && (i != pi)); ++i)
 				manage_calibration(true, plist[i]);
@@ -6204,6 +6118,8 @@ next_event:
 	joypad_button:
 		joypad = JS_BUTTON(event.jbutton.which, event.jbutton.button);
 		manage_combos(megad, pressed, true, joypad);
+		if (events != STARTED)
+			break;
 		if (calibrating) {
 			if (pressed)
 				manage_calibration(true, joypad);
@@ -6249,6 +6165,77 @@ next_event:
 
 		manage_combos(megad, true, false, ksym);
 
+		switch (events) {
+			int ret;
+
+		case STARTED:
+			break;
+		case PROMPT:
+		case STOPPED_PROMPT:
+			ret = handle_prompt(ksym, ksym_uni, megad);
+			if (ret & PROMPT_RET_ERROR) {
+				restart_events(megad);
+				return 0;
+			}
+			if (ret & PROMPT_RET_EXIT) {
+				if (events == STOPPED_PROMPT) {
+					// Return to stopped mode.
+					stop_events_msg(~0u, stopped_str);
+					events = STOPPED;
+					goto next_event;
+				}
+				if ((ret & PROMPT_RET_MSG) == 0)
+					stop_events_msg(~0u, "RUNNING.");
+				restart_events(megad);
+				goto next_event;
+			}
+			if (ret & PROMPT_RET_ENTER) {
+				// Back to the prompt only in stopped mode.
+				if (events == STOPPED_PROMPT)
+					goto next_event;
+				if ((ret & PROMPT_RET_MSG) == 0)
+					stop_events_msg(~0u, "");
+				restart_events(megad);
+				goto next_event;
+			}
+			// PROMPT_RET_CONT
+			goto next_event;
+		case GAME_GENIE:
+		case STOPPED_GAME_GENIE:
+			if (manage_game_genie(megad, ksym, ksym_uni) == 0)
+				goto next_event;
+			if (events == STOPPED_GAME_GENIE) {
+				// Return to stopped mode.
+				stop_events_msg(~0u, stopped_str);
+				events = STOPPED;
+			}
+			else
+				restart_events(megad);
+			goto next_event;
+		case STOPPED:
+			// In basic stopped mode, handle a few keysyms.
+			if (ksym == dgen_game_genie[0]) {
+				stop_events_msg(strlen(game_genie_str),
+						game_genie_str);
+				events = STOPPED_GAME_GENIE;
+			}
+			else if (ksym == dgen_prompt[0]) {
+				stop_events_msg(strlen(prompt_str),
+						prompt_str);
+				events = STOPPED_PROMPT;
+			}
+			else if (ksym == dgen_quit[0]) {
+				restart_events(megad);
+				return 0;
+			}
+			else if (ksym == dgen_stop[0]) {
+				stop_events_msg(~0u, "RUNNING.");
+				restart_events(megad);
+			}
+		default:
+			goto next_event;
+		}
+
 		if (calibrating) {
 			manage_calibration(false, ksym);
 			break;
@@ -6280,6 +6267,8 @@ next_event:
 		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_CTRL));
 		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_META));
 
+		if (events != STARTED)
+			break;
 		if (calibrating)
 			break;
 
