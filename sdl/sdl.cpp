@@ -6016,7 +6016,7 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 			}
 		}
 		// Otherwise, pass it to the prompt.
-		else {
+		else if (pressed) {
 			handle_prompt_complete_clear();
 			prompt_replace(&prompt.status, 0, 0,
 				       (uint8_t *)rcb->to, strlen(rcb->to));
