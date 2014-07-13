@@ -6126,11 +6126,10 @@ int pd_handle_events(md &megad)
 	if ((megad.debug_trap) && (megad.debug_enter() < 0))
 		return 0;
 #endif
-  // Check key events
-  while(SDL_PollEvent(&event))
-    {
-      switch(event.type)
-	{
+next_event:
+	if (!SDL_PollEvent(&event))
+		return 1;
+	switch (event.type) {
 #ifdef WITH_JOYSTICK
 	case SDL_JOYAXISMOTION:
 		if (event.jaxis.value <= -16384)
@@ -6307,7 +6306,6 @@ int pd_handle_events(md &megad)
 			return 0;
 		break;
 	case SDL_VIDEORESIZE:
-	{
 		switch (screen_init(event.resize.w, event.resize.h)) {
 		case 0:
 			stop_events_msg(~0u,
@@ -6328,7 +6326,6 @@ int pd_handle_events(md &megad)
 			return 0;
 		}
 		break;
-	}
 #ifdef WITH_PICO
 	case SDL_MOUSEMOTION:
 		if (!megad.pico_enabled)
@@ -6356,13 +6353,12 @@ int pd_handle_events(md &megad)
 		break;
 #endif
 	case SDL_QUIT:
-	  // We've been politely asked to exit, so let's leave
-	  return 0;
+		// We've been politely asked to exit, so let's leave
+		return 0;
 	default:
-	  break;
+		break;
 	}
-    }
-  return 1;
+	goto next_event;
 }
 
 static size_t pd_message_write(const char *msg, size_t len, unsigned int mark)
