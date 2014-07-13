@@ -241,6 +241,28 @@ key_volume_dec = '-'
 joy_volume_inc = ''
 joy_volume_dec = ''
 
+# Binding arbitrary actions is also supported. In the following example,
+# pressing button 2 of the first joystick loads a ROM:
+#
+#bind_j0-b2 = 'load test_rom.bin'
+#
+# Unbinding dangerous keys defined by default (quit and reset) and rebinding
+# them using combinations.
+#
+# Buttons 3, 4 and 6 of the first joystick must be pressed simultaneously to
+# quit:
+#
+#key_quit = ''
+#joy_quit = ''
+#bind_'j0-b3 j0-b6 j0-b4' = joy_quit
+#
+# Button 3 of the first joystick and keys "q" "w" and "e" must be pressed
+# simultaneously to reset the console:
+#
+#key_reset = ''
+#joy_reset = ''
+#bind_'j0-b3 q w e' = joy_reset
+
 # This is how many microseconds DGen should sleep every frame. Even little
 # amounts can decrease CPU overhead significantly, and the default of 20
 # doesn't hurt performance terribly. Of course, set it to 0 if you don't

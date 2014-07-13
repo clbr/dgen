@@ -109,6 +109,11 @@ modify variables or execute commands (see
 .Xr dgenrc 5
 for more information).
 No bindings are defined by default.
+.It bind_"{keysym|joypad} [{keysym|joypad} [...]]" Ar action
+Alternate syntax that supports combining several identifiers to perform
+.Ar action .
+Controller types can be mixed. Identifiers are separated by spaces. To avoid
+syntax errors, spaces must be properly escaped or quoted.
 .El
 .Sh AUDIO
 .Bl -tag -width xxxx

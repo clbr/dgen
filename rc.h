@@ -118,12 +118,18 @@ struct rc_field {
 };
 
 #define RC_BIND_PREFIX "bind_"
+#define RC_BIND_ITEMS 8
+
+struct rc_binding_item {
+	unsigned int assigned:1; // Whether item contains valid data.
+	unsigned int type:1; // 0 for keysym, 1 for joypad.
+	intptr_t code; // keysym or joypad code.
+};
 
 struct rc_binding {
 	struct rc_binding *prev;
 	struct rc_binding *next;
-	unsigned int type:1; // 0 for keysym, 1 for joypad.
-	intptr_t code; // keysym or joypad code.
+	struct rc_binding_item item[RC_BIND_ITEMS];
 	char *rc; // RC name for this binding.
 	// struct rc_field.variable points to the following member.
 	char *to; // Related action.

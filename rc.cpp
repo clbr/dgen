@@ -646,8 +646,7 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 struct rc_binding rc_binding_head = {
 	&rc_binding_head,
 	&rc_binding_head,
-	false,
-	0,
+	{ { false, false, 0, } },
 	NULL,
 	NULL
 };
@@ -676,8 +675,9 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 	size_t rc_sz = (strlen(rc) + 1);
 	struct rc_field *rcf = rc_fields;
 	struct rc_binding *rcb;
-	intptr_t code;
-	bool type;
+	struct rc_binding_item item[elemof(rcb->item)];
+	unsigned int i;
+	const char *s;
 	size_t off;
 	char *new_to;
 
@@ -692,10 +692,27 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 	}
 	if (rc[off] == '\0')
 		return NULL;
-	// Extract keysym or joypad code from RC name.
-	if ((type = true, ((code = rc_joypad(&rc[off], NULL)) == -1)) &&
-	    (type = false, ((code = rc_keysym(&rc[off], NULL)) == -1)))
-		return NULL;
+	// Extract multiple keysyms or joypad codes from RC name.
+	memset(item, 0, sizeof(item));
+	s = &rc[off];
+	i = 0;
+	while (s += strspn(s, " \t\n"), off = strcspn(s, " \t\n")) {
+		char tmp[64];
+		intptr_t code;
+		bool type;
+
+		if (i == elemof(item))
+			return NULL;
+		snprintf(tmp, sizeof(tmp), "%.*s", (int)off, s);
+		if ((type = true, ((code = rc_joypad(tmp, NULL)) == -1)) &&
+		    (type = false, ((code = rc_keysym(tmp, NULL)) == -1)))
+			return NULL;
+		item[i].assigned = true;
+		item[i].type = type;
+		item[i].code = code;
+		++i;
+		s += off;
+	}
 	// Find a free entry in rc_fields[].
 	while (rcf->fieldname != NULL)
 		++rcf;
@@ -719,8 +736,7 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 	rcb->next = &rc_binding_head;
 	rcb->prev->next = rcb;
 	rcb->next->prev = rcb;
-	rcb->type = type;
-	rcb->code = code;
+	memcpy(rcb->item, item, sizeof(rcb->item));
 	rcb->rc = ((char *)rcb + sizeof(*rcb));
 	rcb->to = new_to;
 	memcpy(rcb->rc, rc, rc_sz);

@@ -4602,19 +4602,20 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 					rc->fieldname);
 	}
 	else if (rc->parser == rc_bind) {
+		char *f = backslashify((uint8_t *)rc->fieldname,
+				       strlen(rc->fieldname), 0, NULL);
 		char *s = *(char **)rc->variable;
 
 		assert(s != NULL);
 		assert((intptr_t)s != -1);
 		s = backslashify((uint8_t *)s, strlen(s), 0, NULL);
-		if (s == NULL)
+		if ((f == NULL) || (s == NULL))
 			stop_events_msg(~0u, "%s can't be displayed",
 					rc->fieldname);
-		else {
-			stop_events_msg(~0u, "%s is bound to \"%s\"",
-					rc->fieldname, s);
-			free(s);
-		}
+		else
+			stop_events_msg(~0u, "%s is bound to \"%s\"", f, s);
+		free(f);
+		free(s);
 	}
 	else
 		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
@@ -5087,6 +5088,7 @@ end:
 	return ret;
 }
 
+static struct rc_binding_item combos[64];
 static uint16_t kpress[0x100];
 
 // This is a small event loop to handle stuff when we're stopped.
@@ -5097,6 +5099,8 @@ static int stop_events(md &megad, int gg)
 	kb_input_t input = { 0, 0, 0 };
 	size_t gg_len = 0;
 
+	// Clear combos.
+	memset(combos, 0, sizeof(combos));
 	// Switch out of fullscreen mode (assuming this is supported)
 	if (screen.is_fullscreen) {
 		if (set_fullscreen(0) < -1)
@@ -5954,6 +5958,61 @@ ask:
 				"");
 }
 
+static void manage_combos(md& md, bool pressed, bool type, intptr_t code)
+{
+	unsigned int i;
+
+	(void)md;
+	for (i = 0; (i != elemof(combos)); ++i) {
+		if (!combos[i].assigned) {
+			if (!pressed)
+				return; // Not in the list, nothing to do.
+			// Not found, add it to the list.
+			combos[i].assigned = true;
+			combos[i].type = type;
+			combos[i].code = code;
+			return;
+		}
+		if ((combos[i].type != type) || (combos[i].code != code))
+			continue; // Does not match.
+		if (pressed)
+			return; // Already pressed.
+		// Release entry.
+		memmove(&combos[i], &combos[i + 1],
+			((elemof(combos) - (i + 1)) * sizeof(combos[i])));
+		break;
+	}
+}
+
+static bool check_combos(md& md, struct rc_binding_item item[],
+			 unsigned int num)
+{
+	unsigned int i;
+	unsigned int found = 0;
+
+	(void)md;
+	for (i = 0; (i != num); ++i) {
+		unsigned int j;
+
+		if (!item[i].assigned) {
+			num = i;
+			break;
+		}
+		for (j = 0; (j != elemof(combos)); ++j) {
+			if (!combos[j].assigned)
+				break;
+			if ((combos[j].type != item[i].type) ||
+			    (combos[j].code != item[i].code))
+				continue;
+			++found;
+			break;
+		}
+	}
+	if (num == 0)
+		return false;
+	return (found == num);
+}
+
 static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 {
 	struct rc_binding *rcb = rc_binding_head.next;
@@ -5974,8 +6033,7 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 	}
 	while (rcb != &rc_binding_head) {
 		if ((pos < seek) ||
-		    (rcb->type != type) ||
-		    (rcb->code != code)) {
+		    (!check_combos(md, rcb->item, elemof(rcb->item)))) {
 			++pos;
 			rcb = rcb->next;
 			continue;
@@ -6114,6 +6172,10 @@ int pd_handle_events(md &megad)
 						     event.jhat.hat,
 						     hat_value[i][1]);
 	joypad_axis:
+		for (i = 0; (i != ri); ++i)
+			manage_combos(megad, false, true, rlist[i]);
+		for (i = 0; (i != pi); ++i)
+			manage_combos(megad, true, true, plist[i]);
 		if (calibrating) {
 			for (i = 0; ((calibrating) && (i != pi)); ++i)
 				manage_calibration(true, plist[i]);
@@ -6152,6 +6214,7 @@ int pd_handle_events(md &megad)
 		pressed = false;
 	joypad_button:
 		joypad = JS_BUTTON(event.jbutton.which, event.jbutton.button);
+		manage_combos(megad, pressed, true, joypad);
 		if (calibrating) {
 			if (pressed)
 				manage_calibration(true, joypad);
@@ -6195,6 +6258,8 @@ int pd_handle_events(md &megad)
 		if (event.key.keysym.mod & KMOD_META)
 			ksym |= KEYSYM_MOD_META;
 
+		manage_combos(megad, true, false, ksym);
+
 		if (calibrating) {
 			manage_calibration(false, ksym);
 			break;
@@ -6219,6 +6284,12 @@ int pd_handle_events(md &megad)
 		kpress[(ksym & 0xff)] = 0;
 		if (ksym_uni)
 			ksym = ksym_uni;
+
+		manage_combos(megad, false, false, ksym);
+		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_ALT));
+		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_SHIFT));
+		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_CTRL));
+		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_META));
 
 		if (calibrating)
 			break;
