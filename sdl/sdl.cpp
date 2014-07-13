@@ -3747,16 +3747,6 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	}
 	// Required for text input.
 	SDL_EnableUNICODE(1);
-	// Ignore events besides quit and keyboard, this must be done before
-	// calling SDL_SetVideoMode(), otherwise we may lose the first resize
-	// event.
-	SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE);
-#ifndef WITH_PICO
-	SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
-	SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_IGNORE);
-	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_IGNORE);
-#endif
-	SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
 	// Set the titlebar.
 	SDL_WM_SetCaption("DGen/SDL " VER, "DGen/SDL " VER);
 	// Hide the cursor.
