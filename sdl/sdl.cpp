@@ -6232,6 +6232,10 @@ next_event:
 				stop_events_msg(~0u, "RUNNING.");
 				restart_events(megad);
 			}
+#ifdef WITH_DEBUGGER
+			else if (ksym == dgen_debug_enter[0])
+				ctl_dgen_debug_enter(*(struct ctl *)0, megad);
+#endif
 		default:
 			goto next_event;
 		}
