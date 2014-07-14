@@ -386,6 +386,100 @@ intptr_t rc_joypad(const char *value, intptr_t *)
 	return -1;
 }
 
+static const char *mouse_motion_type[] = {
+	"up", "u",
+	"down", "d",
+	"left", "l",
+	"right", "r",
+	NULL
+};
+
+/* Convert a mouse entry to text. */
+char *dump_mouse(intptr_t mo)
+{
+	char *str = NULL;
+	unsigned int id = MO_GET_IDENTIFIER(mo);
+	const char *arg0 = NULL;
+	unsigned int val0 = 0;
+	unsigned int i;
+
+	if (MO_IS_BUTTON(mo)) {
+		arg0 = "button";
+		val0 = MO_GET_BUTTON(mo);
+	}
+	else if (MO_IS_MOTION(mo)) {
+		val0 = MO_GET_MOTION(mo);
+		for (i = 0; (i != elemof(mouse_motion_type)); ++i)
+			if (mouse_motion_type[i][0] == (char)val0) {
+				arg0 = mouse_motion_type[i];
+				break;
+			}
+		if (arg0 == NULL)
+			return NULL;
+	}
+	else
+		return NULL;
+	i = 0;
+	while (1) {
+		if (MO_IS_BUTTON(mo))
+			i = snprintf(str, i, "mouse%u-%s%u", id, arg0, val0);
+		else
+			i = snprintf(str, i, "mouse%u-%s", id, arg0);
+		if ((str != NULL) ||
+		    ((str = (char *)malloc(++i)) == NULL))
+			break;
+	}
+	return str;
+}
+
+/*
+ * Parse a mouse command (mou_*). The following syntaxes are
+ * supported:
+ *
+ * Buttons:
+ *   (m|mo|mouse)X-(b|button)Y
+ * Motions:
+ *   (m|mo|mouse)X-(u|up|d|down|l|left|r|right)
+ */
+intptr_t rc_mouse(const char *value, intptr_t *)
+{
+	static const char *r_mo[] = { "m", "mo", "mouse", NULL };
+	static const char *r_button[] = { "b", "button", NULL };
+	static const char **r_motion_type = mouse_motion_type;
+	int i;
+	unsigned int id;
+	unsigned int arg;
+
+	if (*value == '\0')
+		return 0;
+	if ((i = prefix_casematch(value, r_mo)) == -1)
+		return -1;
+	value += strlen(r_mo[i]);
+	if ((i = prefix_getuint(value, &id)) == 0)
+		return -1;
+	value += i;
+	if (*value != '-')
+		return -1;
+	++value;
+	if ((i = prefix_casematch(value, r_button)) != -1) {
+		value += strlen(r_button[i]);
+		if ((i = prefix_getuint(value, &arg)) == 0)
+			return -1;
+		value += i;
+		if (*value != '\0')
+			return -1;
+		return MO_BUTTON(id, arg);
+	}
+	if ((i = prefix_casematch(value, r_motion_type)) != -1) {
+		arg = r_motion_type[i][0];
+		value += strlen(r_motion_type[i]);
+		if (*value != '\0')
+			return -1;
+		return MO_MOTION(id, arg);
+	}
+	return -1;
+}
+
 /* Parse the CTV type. As new CTV filters get submitted expect this to grow ;)
  * Current values are:
  *  off      - No CTV
@@ -477,118 +571,174 @@ intptr_t rc_number(const char *value, intptr_t *)
 struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "key_pad1_up", rc_keysym, &pad1_up[RCBK] },
 	{ "joy_pad1_up", rc_joypad, &pad1_up[RCBJ] },
+	{ "mou_pad1_up", rc_mouse, &pad1_up[RCBM] },
 	{ "key_pad1_down", rc_keysym, &pad1_down[RCBK] },
 	{ "joy_pad1_down", rc_joypad, &pad1_down[RCBJ] },
+	{ "mou_pad1_down", rc_mouse, &pad1_down[RCBM] },
 	{ "key_pad1_left", rc_keysym, &pad1_left[RCBK] },
 	{ "joy_pad1_left", rc_joypad, &pad1_left[RCBJ] },
+	{ "mou_pad1_left", rc_mouse, &pad1_left[RCBM] },
 	{ "key_pad1_right", rc_keysym, &pad1_right[RCBK] },
 	{ "joy_pad1_right", rc_joypad, &pad1_right[RCBJ] },
+	{ "mou_pad1_right", rc_mouse, &pad1_right[RCBM] },
 	{ "key_pad1_a", rc_keysym, &pad1_a[RCBK] },
 	{ "joy_pad1_a", rc_joypad, &pad1_a[RCBJ] },
+	{ "mou_pad1_a", rc_mouse, &pad1_a[RCBM] },
 	{ "key_pad1_b", rc_keysym, &pad1_b[RCBK] },
 	{ "joy_pad1_b", rc_joypad, &pad1_b[RCBJ] },
+	{ "mou_pad1_b", rc_mouse, &pad1_b[RCBM] },
 	{ "key_pad1_c", rc_keysym, &pad1_c[RCBK] },
 	{ "joy_pad1_c", rc_joypad, &pad1_c[RCBJ] },
+	{ "mou_pad1_c", rc_mouse, &pad1_c[RCBM] },
 	{ "key_pad1_x", rc_keysym, &pad1_x[RCBK] },
 	{ "joy_pad1_x", rc_joypad, &pad1_x[RCBJ] },
+	{ "mou_pad1_x", rc_mouse, &pad1_x[RCBM] },
 	{ "key_pad1_y", rc_keysym, &pad1_y[RCBK] },
 	{ "joy_pad1_y", rc_joypad, &pad1_y[RCBJ] },
+	{ "mou_pad1_y", rc_mouse, &pad1_y[RCBM] },
 	{ "key_pad1_z", rc_keysym, &pad1_z[RCBK] },
 	{ "joy_pad1_z", rc_joypad, &pad1_z[RCBJ] },
+	{ "mou_pad1_z", rc_mouse, &pad1_z[RCBM] },
 	{ "key_pad1_mode", rc_keysym, &pad1_mode[RCBK] },
 	{ "joy_pad1_mode", rc_joypad, &pad1_mode[RCBJ] },
+	{ "mou_pad1_mode", rc_mouse, &pad1_mode[RCBM] },
 	{ "key_pad1_start", rc_keysym, &pad1_start[RCBK] },
 	{ "joy_pad1_start", rc_joypad, &pad1_start[RCBJ] },
+	{ "mou_pad1_start", rc_mouse, &pad1_start[RCBM] },
 	{ "key_pad2_up", rc_keysym, &pad2_up[RCBK] },
 	{ "joy_pad2_up", rc_joypad, &pad2_up[RCBJ] },
+	{ "mou_pad2_up", rc_mouse, &pad2_up[RCBM] },
 	{ "key_pad2_down", rc_keysym, &pad2_down[RCBK] },
 	{ "joy_pad2_down", rc_joypad, &pad2_down[RCBJ] },
+	{ "mou_pad2_down", rc_mouse, &pad2_down[RCBM] },
 	{ "key_pad2_left", rc_keysym, &pad2_left[RCBK] },
 	{ "joy_pad2_left", rc_joypad, &pad2_left[RCBJ] },
+	{ "mou_pad2_left", rc_mouse, &pad2_left[RCBM] },
 	{ "key_pad2_right", rc_keysym, &pad2_right[RCBK] },
 	{ "joy_pad2_right", rc_joypad, &pad2_right[RCBJ] },
+	{ "mou_pad2_right", rc_mouse, &pad2_right[RCBM] },
 	{ "key_pad2_a", rc_keysym, &pad2_a[RCBK] },
 	{ "joy_pad2_a", rc_joypad, &pad2_a[RCBJ] },
+	{ "mou_pad2_a", rc_mouse, &pad2_a[RCBM] },
 	{ "key_pad2_b", rc_keysym, &pad2_b[RCBK] },
 	{ "joy_pad2_b", rc_joypad, &pad2_b[RCBJ] },
+	{ "mou_pad2_b", rc_mouse, &pad2_b[RCBM] },
 	{ "key_pad2_c", rc_keysym, &pad2_c[RCBK] },
 	{ "joy_pad2_c", rc_joypad, &pad2_c[RCBJ] },
+	{ "mou_pad2_c", rc_mouse, &pad2_c[RCBM] },
 	{ "key_pad2_x", rc_keysym, &pad2_x[RCBK] },
 	{ "joy_pad2_x", rc_joypad, &pad2_x[RCBJ] },
+	{ "mou_pad2_x", rc_mouse, &pad2_x[RCBM] },
 	{ "key_pad2_y", rc_keysym, &pad2_y[RCBK] },
 	{ "joy_pad2_y", rc_joypad, &pad2_y[RCBJ] },
+	{ "mou_pad2_y", rc_mouse, &pad2_y[RCBM] },
 	{ "key_pad2_z", rc_keysym, &pad2_z[RCBK] },
 	{ "joy_pad2_z", rc_joypad, &pad2_z[RCBJ] },
+	{ "mou_pad2_z", rc_mouse, &pad2_z[RCBM] },
 	{ "key_pad2_mode", rc_keysym, &pad2_mode[RCBK] },
 	{ "joy_pad2_mode", rc_joypad, &pad2_mode[RCBJ] },
+	{ "mou_pad2_mode", rc_mouse, &pad2_mode[RCBM] },
 	{ "key_pad2_start", rc_keysym, &pad2_start[RCBK] },
 	{ "joy_pad2_start", rc_joypad, &pad2_start[RCBJ] },
+	{ "mou_pad2_start", rc_mouse, &pad2_start[RCBM] },
 	{ "key_pico_pen_up", rc_keysym, &pico_pen_up[RCBK] },
 	{ "joy_pico_pen_up", rc_joypad, &pico_pen_up[RCBJ] },
+	{ "mou_pico_pen_up", rc_mouse, &pico_pen_up[RCBM] },
 	{ "key_pico_pen_down", rc_keysym, &pico_pen_down[RCBK] },
 	{ "joy_pico_pen_down", rc_joypad, &pico_pen_down[RCBJ] },
+	{ "mou_pico_pen_down", rc_mouse, &pico_pen_down[RCBM] },
 	{ "key_pico_pen_left", rc_keysym, &pico_pen_left[RCBK] },
 	{ "joy_pico_pen_left", rc_joypad, &pico_pen_left[RCBJ] },
+	{ "mou_pico_pen_left", rc_mouse, &pico_pen_left[RCBM] },
 	{ "key_pico_pen_right", rc_keysym, &pico_pen_right[RCBK] },
 	{ "joy_pico_pen_right", rc_joypad, &pico_pen_right[RCBJ] },
+	{ "mou_pico_pen_right", rc_mouse, &pico_pen_right[RCBM] },
 	{ "key_pico_pen_button", rc_keysym, &pico_pen_button[RCBK] },
 	{ "joy_pico_pen_button", rc_joypad, &pico_pen_button[RCBJ] },
+	{ "mou_pico_pen_button", rc_mouse, &pico_pen_button[RCBM] },
 	{ "int_pico_pen_stride", rc_number, &pico_pen_stride },
 	{ "int_pico_pen_delay", rc_number, &pico_pen_delay },
 	{ "key_fix_checksum", rc_keysym, &dgen_fix_checksum[RCBK] },
 	{ "joy_fix_checksum", rc_joypad, &dgen_fix_checksum[RCBJ] },
+	{ "mou_fix_checksum", rc_mouse, &dgen_fix_checksum[RCBM] },
 	{ "key_quit", rc_keysym, &dgen_quit[RCBK] },
 	{ "joy_quit", rc_joypad, &dgen_quit[RCBJ] },
+	{ "mou_quit", rc_mouse, &dgen_quit[RCBM] },
 	{ "key_craptv_toggle", rc_keysym, &dgen_craptv_toggle[RCBK] },
 	{ "joy_craptv_toggle", rc_joypad, &dgen_craptv_toggle[RCBJ] },
+	{ "mou_craptv_toggle", rc_mouse, &dgen_craptv_toggle[RCBM] },
 	{ "key_scaling_toggle", rc_keysym, &dgen_scaling_toggle[RCBK] },
 	{ "joy_scaling_toggle", rc_joypad, &dgen_scaling_toggle[RCBJ] },
+	{ "mou_scaling_toggle", rc_mouse, &dgen_scaling_toggle[RCBM] },
 	{ "key_screenshot", rc_keysym, &dgen_screenshot[RCBK] },
 	{ "joy_screenshot", rc_joypad, &dgen_screenshot[RCBJ] },
+	{ "mou_screenshot", rc_mouse, &dgen_screenshot[RCBM] },
 	{ "key_reset", rc_keysym, &dgen_reset[RCBK] },
 	{ "joy_reset", rc_joypad, &dgen_reset[RCBJ] },
+	{ "mou_reset", rc_mouse, &dgen_reset[RCBM] },
 	{ "key_slot_0", rc_keysym, &dgen_slot_0[RCBK] },
 	{ "joy_slot_0", rc_joypad, &dgen_slot_0[RCBJ] },
+	{ "mou_slot_0", rc_mouse, &dgen_slot_0[RCBM] },
 	{ "key_slot_1", rc_keysym, &dgen_slot_1[RCBK] },
 	{ "joy_slot_1", rc_joypad, &dgen_slot_1[RCBJ] },
+	{ "mou_slot_1", rc_mouse, &dgen_slot_1[RCBM] },
 	{ "key_slot_2", rc_keysym, &dgen_slot_2[RCBK] },
 	{ "joy_slot_2", rc_joypad, &dgen_slot_2[RCBJ] },
+	{ "mou_slot_2", rc_mouse, &dgen_slot_2[RCBM] },
 	{ "key_slot_3", rc_keysym, &dgen_slot_3[RCBK] },
 	{ "joy_slot_3", rc_joypad, &dgen_slot_3[RCBJ] },
+	{ "mou_slot_3", rc_mouse, &dgen_slot_3[RCBM] },
 	{ "key_slot_4", rc_keysym, &dgen_slot_4[RCBK] },
 	{ "joy_slot_4", rc_joypad, &dgen_slot_4[RCBJ] },
+	{ "mou_slot_4", rc_mouse, &dgen_slot_4[RCBM] },
 	{ "key_slot_5", rc_keysym, &dgen_slot_5[RCBK] },
 	{ "joy_slot_5", rc_joypad, &dgen_slot_5[RCBJ] },
+	{ "mou_slot_5", rc_mouse, &dgen_slot_5[RCBM] },
 	{ "key_slot_6", rc_keysym, &dgen_slot_6[RCBK] },
 	{ "joy_slot_6", rc_joypad, &dgen_slot_6[RCBJ] },
+	{ "mou_slot_6", rc_mouse, &dgen_slot_6[RCBM] },
 	{ "key_slot_7", rc_keysym, &dgen_slot_7[RCBK] },
 	{ "joy_slot_7", rc_joypad, &dgen_slot_7[RCBJ] },
+	{ "mou_slot_7", rc_mouse, &dgen_slot_7[RCBM] },
 	{ "key_slot_8", rc_keysym, &dgen_slot_8[RCBK] },
 	{ "joy_slot_8", rc_joypad, &dgen_slot_8[RCBJ] },
+	{ "mou_slot_8", rc_mouse, &dgen_slot_8[RCBM] },
 	{ "key_slot_9", rc_keysym, &dgen_slot_9[RCBK] },
 	{ "joy_slot_9", rc_joypad, &dgen_slot_9[RCBJ] },
+	{ "mou_slot_9", rc_mouse, &dgen_slot_9[RCBM] },
 	{ "key_slot_next", rc_keysym, &dgen_slot_next[RCBK] },
 	{ "joy_slot_next", rc_joypad, &dgen_slot_next[RCBJ] },
+	{ "mou_slot_next", rc_mouse, &dgen_slot_next[RCBM] },
 	{ "key_slot_prev", rc_keysym, &dgen_slot_prev[RCBK] },
 	{ "joy_slot_prev", rc_joypad, &dgen_slot_prev[RCBJ] },
+	{ "mou_slot_prev", rc_mouse, &dgen_slot_prev[RCBM] },
 	{ "key_save", rc_keysym, &dgen_save[RCBK] },
 	{ "joy_save", rc_joypad, &dgen_save[RCBJ] },
+	{ "mou_save", rc_mouse, &dgen_save[RCBM] },
 	{ "key_load", rc_keysym, &dgen_load[RCBK] },
 	{ "joy_load", rc_joypad, &dgen_load[RCBJ] },
+	{ "mou_load", rc_mouse, &dgen_load[RCBM] },
 	{ "key_z80_toggle", rc_keysym, &dgen_z80_toggle[RCBK] },
 	{ "joy_z80_toggle", rc_joypad, &dgen_z80_toggle[RCBJ] },
+	{ "mou_z80_toggle", rc_mouse, &dgen_z80_toggle[RCBM] },
 	{ "key_cpu_toggle", rc_keysym, &dgen_cpu_toggle[RCBK] },
 	{ "joy_cpu_toggle", rc_joypad, &dgen_cpu_toggle[RCBJ] },
+	{ "mou_cpu_toggle", rc_mouse, &dgen_cpu_toggle[RCBM] },
 	{ "key_stop", rc_keysym, &dgen_stop[RCBK] },
 	{ "joy_stop", rc_joypad, &dgen_stop[RCBJ] },
+	{ "mou_stop", rc_mouse, &dgen_stop[RCBM] },
 	{ "key_game_genie", rc_keysym, &dgen_game_genie[RCBK] },
 	{ "joy_game_genie", rc_joypad, &dgen_game_genie[RCBJ] },
+	{ "mou_game_genie", rc_mouse, &dgen_game_genie[RCBM] },
 	{ "key_fullscreen_toggle", rc_keysym, &dgen_fullscreen_toggle[RCBK] },
 	{ "joy_fullscreen_toggle", rc_joypad, &dgen_fullscreen_toggle[RCBJ] },
+	{ "mou_fullscreen_toggle", rc_mouse, &dgen_fullscreen_toggle[RCBM] },
 	{ "key_debug_enter", rc_keysym, &dgen_debug_enter[RCBK] },
 	{ "joy_debug_enter", rc_joypad, &dgen_debug_enter[RCBJ] },
+	{ "mou_debug_enter", rc_mouse, &dgen_debug_enter[RCBM] },
 	{ "key_prompt", rc_keysym, &dgen_prompt[RCBK] },
 	{ "joy_prompt", rc_joypad, &dgen_prompt[RCBJ] },
+	{ "mou_prompt", rc_mouse, &dgen_prompt[RCBM] },
 	{ "bool_vdp_hide_plane_a", rc_boolean, &dgen_vdp_hide_plane_a },
 	{ "bool_vdp_hide_plane_b", rc_boolean, &dgen_vdp_hide_plane_b },
 	{ "bool_vdp_hide_plane_w", rc_boolean, &dgen_vdp_hide_plane_w },
@@ -615,8 +765,10 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "int_volume", rc_number, &dgen_volume },
 	{ "key_volume_inc", rc_keysym, &dgen_volume_inc[RCBK] },
 	{ "joy_volume_inc", rc_joypad, &dgen_volume_inc[RCBJ] },
+	{ "mou_volume_inc", rc_mouse, &dgen_volume_inc[RCBM] },
 	{ "key_volume_dec", rc_keysym, &dgen_volume_dec[RCBK] },
 	{ "joy_volume_dec", rc_joypad, &dgen_volume_dec[RCBJ] },
+	{ "mou_volume_dec", rc_mouse, &dgen_volume_dec[RCBM] },
 	{ "bool_mjazz", rc_boolean, &dgen_mjazz }, // SH
 	{ "int_nice", rc_number, &dgen_nice },
 	{ "int_hz", rc_number, &dgen_hz }, // SH
@@ -652,6 +804,7 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "bool_doublebuffer", rc_boolean, &dgen_doublebuffer }, // SH
 	{ "bool_screen_thread", rc_boolean, &dgen_screen_thread }, // SH
 	{ "bool_joystick", rc_boolean, &dgen_joystick }, // SH
+	{ "int_mouse_delay", rc_number, &dgen_mouse_delay },
 	{ NULL, NULL, NULL }
 };
 
@@ -717,7 +870,8 @@ struct rc_field *rc_binding_add(const char *rc, const char *to)
 			return NULL;
 		snprintf(tmp, sizeof(tmp), "%.*s", (int)off, s);
 		if ((type = RCBJ, ((code = rc_joypad(tmp, NULL)) == -1)) &&
-		    (type = RCBK, ((code = rc_keysym(tmp, NULL)) == -1)))
+		    (type = RCBK, ((code = rc_keysym(tmp, NULL)) == -1)) &&
+		    (type = RCBM, ((code = rc_mouse(tmp, NULL)) == -1)))
 			return NULL;
 		item[i].assigned = true;
 		item[i].type = type;
@@ -1011,6 +1165,16 @@ void dump_rc(FILE *file)
 			if (js != NULL) {
 				fprintf(file, "\"%s\"", js);
 				free(js);
+			}
+			else
+				fputs("''", file);
+		}
+		else if (rc->parser == rc_mouse) {
+			char *mo = dump_mouse(val);
+
+			if (mo != NULL) {
+				fprintf(file, "\"%s\"", mo);
+				free(mo);
 			}
 			else
 				fputs("''", file);

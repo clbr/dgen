@@ -20,79 +20,79 @@ struct rc_str {
 #ifdef IS_MAIN_CPP
 #define RCVAR(name, def) intptr_t name = def
 #define RCSTR(name, def) struct rc_str name = { def, NULL, NULL }
-#define RCCTL(name, defk, defj) \
-	intptr_t name[RCB_NUM] = { defk, defj }
+#define RCCTL(name, defk, defj, defm) \
+	intptr_t name[RCB_NUM] = { defk, defj, defm }
 #else
 #define RCVAR(name, def) extern intptr_t name
 #define RCSTR(name, def) extern struct rc_str name
-#define RCCTL(name, defk, defj) \
+#define RCCTL(name, defk, defj, defm) \
 	extern intptr_t name[RCB_NUM]
 #endif
 
-RCCTL(pad1_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE));
-RCCTL(pad1_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE));
-RCCTL(pad1_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE));
-RCCTL(pad1_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE));
-RCCTL(pad1_a, 'a', JS_BUTTON(0, 0));
-RCCTL(pad1_b, 's', JS_BUTTON(0, 3));
-RCCTL(pad1_c, 'd', JS_BUTTON(0, 1));
-RCCTL(pad1_x, 'q', JS_BUTTON(0, 6));
-RCCTL(pad1_y, 'w', JS_BUTTON(0, 4));
-RCCTL(pad1_z, 'e', JS_BUTTON(0, 5));
-RCCTL(pad1_mode, PDK_BACKSPACE, JS_BUTTON(0, 9));
-RCCTL(pad1_start, PDK_RETURN, JS_BUTTON(0, 8));
+RCCTL(pad1_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE), 0);
+RCCTL(pad1_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE), 0);
+RCCTL(pad1_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE), 0);
+RCCTL(pad1_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE), 0);
+RCCTL(pad1_a, 'a', JS_BUTTON(0, 0), 0);
+RCCTL(pad1_b, 's', JS_BUTTON(0, 3), 0);
+RCCTL(pad1_c, 'd', JS_BUTTON(0, 1), 0);
+RCCTL(pad1_x, 'q', JS_BUTTON(0, 6), 0);
+RCCTL(pad1_y, 'w', JS_BUTTON(0, 4), 0);
+RCCTL(pad1_z, 'e', JS_BUTTON(0, 5), 0);
+RCCTL(pad1_mode, PDK_BACKSPACE, JS_BUTTON(0, 9), 0);
+RCCTL(pad1_start, PDK_RETURN, JS_BUTTON(0, 8), 0);
 
-RCCTL(pad2_up, PDK_KP8, JS_AXIS(1, 1, JS_AXIS_NEGATIVE));
-RCCTL(pad2_down, PDK_KP2, JS_AXIS(1, 1, JS_AXIS_POSITIVE));
-RCCTL(pad2_left, PDK_KP4, JS_AXIS(1, 0, JS_AXIS_NEGATIVE));
-RCCTL(pad2_right, PDK_KP6, JS_AXIS(1, 0, JS_AXIS_POSITIVE));
-RCCTL(pad2_a, PDK_DELETE, JS_BUTTON(1, 0));
-RCCTL(pad2_b, PDK_END, JS_BUTTON(1, 3));
-RCCTL(pad2_c, PDK_PAGEDOWN, JS_BUTTON(1, 1));
-RCCTL(pad2_x, PDK_INSERT, JS_BUTTON(1, 6));
-RCCTL(pad2_y, PDK_HOME, JS_BUTTON(1, 4));
-RCCTL(pad2_z, PDK_PAGEUP, JS_BUTTON(1, 5));
-RCCTL(pad2_mode, PDK_KP_PLUS, JS_BUTTON(1, 9));
-RCCTL(pad2_start, PDK_KP_ENTER, JS_BUTTON(1, 8));
+RCCTL(pad2_up, PDK_KP8, JS_AXIS(1, 1, JS_AXIS_NEGATIVE), 0);
+RCCTL(pad2_down, PDK_KP2, JS_AXIS(1, 1, JS_AXIS_POSITIVE), 0);
+RCCTL(pad2_left, PDK_KP4, JS_AXIS(1, 0, JS_AXIS_NEGATIVE), 0);
+RCCTL(pad2_right, PDK_KP6, JS_AXIS(1, 0, JS_AXIS_POSITIVE), 0);
+RCCTL(pad2_a, PDK_DELETE, JS_BUTTON(1, 0), 0);
+RCCTL(pad2_b, PDK_END, JS_BUTTON(1, 3), 0);
+RCCTL(pad2_c, PDK_PAGEDOWN, JS_BUTTON(1, 1), 0);
+RCCTL(pad2_x, PDK_INSERT, JS_BUTTON(1, 6), 0);
+RCCTL(pad2_y, PDK_HOME, JS_BUTTON(1, 4), 0);
+RCCTL(pad2_z, PDK_PAGEUP, JS_BUTTON(1, 5), 0);
+RCCTL(pad2_mode, PDK_KP_PLUS, JS_BUTTON(1, 9), 0);
+RCCTL(pad2_start, PDK_KP_ENTER, JS_BUTTON(1, 8), 0);
 
-RCCTL(pico_pen_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE));
-RCCTL(pico_pen_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE));
-RCCTL(pico_pen_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE));
-RCCTL(pico_pen_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE));
-RCCTL(pico_pen_button, PDK_RETURN, JS_BUTTON(0, 0));
+RCCTL(pico_pen_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE), 0);
+RCCTL(pico_pen_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE), 0);
+RCCTL(pico_pen_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE), 0);
+RCCTL(pico_pen_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE), 0);
+RCCTL(pico_pen_button, PDK_RETURN, JS_BUTTON(0, 0), 0);
 RCVAR(pico_pen_stride, 2);
 RCVAR(pico_pen_delay, 2);
 
-RCCTL(dgen_fix_checksum, PDK_F1, 0);
-RCCTL(dgen_quit, PDK_ESCAPE, 0);
-RCCTL(dgen_craptv_toggle, PDK_F5, 0);
-RCCTL(dgen_scaling_toggle, PDK_F6, 0);
-RCCTL(dgen_screenshot, PDK_F12, 0);
-RCCTL(dgen_reset, PDK_TAB, 0);
-RCCTL(dgen_z80_toggle, PDK_F10, 0);
-RCCTL(dgen_cpu_toggle, PDK_F11, 0);
-RCCTL(dgen_stop, 'z', 0);
-RCCTL(dgen_prompt, ':', 0);
-RCCTL(dgen_game_genie, PDK_F9, 0);
-RCCTL(dgen_fullscreen_toggle, (KEYSYM_MOD_ALT | PDK_RETURN), 0);
-RCCTL(dgen_debug_enter, '`', 0);
-RCCTL(dgen_volume_inc, '=', 0);
-RCCTL(dgen_volume_dec, '-', 0);
+RCCTL(dgen_fix_checksum, PDK_F1, 0, 0);
+RCCTL(dgen_quit, PDK_ESCAPE, 0, 0);
+RCCTL(dgen_craptv_toggle, PDK_F5, 0, 0);
+RCCTL(dgen_scaling_toggle, PDK_F6, 0, 0);
+RCCTL(dgen_screenshot, PDK_F12, 0, 0);
+RCCTL(dgen_reset, PDK_TAB, 0, 0);
+RCCTL(dgen_z80_toggle, PDK_F10, 0, 0);
+RCCTL(dgen_cpu_toggle, PDK_F11, 0, 0);
+RCCTL(dgen_stop, 'z', 0, 0);
+RCCTL(dgen_prompt, ':', 0, 0);
+RCCTL(dgen_game_genie, PDK_F9, 0, 0);
+RCCTL(dgen_fullscreen_toggle, (KEYSYM_MOD_ALT | PDK_RETURN), 0, 0);
+RCCTL(dgen_debug_enter, '`', 0, 0);
+RCCTL(dgen_volume_inc, '=', 0, 0);
+RCCTL(dgen_volume_dec, '-', 0, 0);
 
-RCCTL(dgen_slot_0, '0', 0);
-RCCTL(dgen_slot_1, '1', 0);
-RCCTL(dgen_slot_2, '2', 0);
-RCCTL(dgen_slot_3, '3', 0);
-RCCTL(dgen_slot_4, '4', 0);
-RCCTL(dgen_slot_5, '5', 0);
-RCCTL(dgen_slot_6, '6', 0);
-RCCTL(dgen_slot_7, '7', 0);
-RCCTL(dgen_slot_8, '8', 0);
-RCCTL(dgen_slot_9, '9', 0);
-RCCTL(dgen_slot_next, PDK_F8, 0);
-RCCTL(dgen_slot_prev, PDK_F7, 0);
-RCCTL(dgen_save, PDK_F2, 0);
-RCCTL(dgen_load, PDK_F3, 0);
+RCCTL(dgen_slot_0, '0', 0, 0);
+RCCTL(dgen_slot_1, '1', 0, 0);
+RCCTL(dgen_slot_2, '2', 0, 0);
+RCCTL(dgen_slot_3, '3', 0, 0);
+RCCTL(dgen_slot_4, '4', 0, 0);
+RCCTL(dgen_slot_5, '5', 0, 0);
+RCCTL(dgen_slot_6, '6', 0, 0);
+RCCTL(dgen_slot_7, '7', 0, 0);
+RCCTL(dgen_slot_8, '8', 0, 0);
+RCCTL(dgen_slot_9, '9', 0, 0);
+RCCTL(dgen_slot_next, PDK_F8, 0, 0);
+RCCTL(dgen_slot_prev, PDK_F7, 0, 0);
+RCCTL(dgen_save, PDK_F2, 0, 0);
+RCCTL(dgen_load, PDK_F3, 0, 0);
 
 RCVAR(dgen_autoload, 0);
 RCVAR(dgen_autosave, 0);
@@ -122,6 +122,7 @@ RCVAR(dgen_joystick, 1);
 #else
 RCVAR(dgen_joystick, 0);
 #endif
+RCVAR(dgen_mouse_delay, 50);
 
 RCVAR(dgen_fps, 0);
 RCVAR(dgen_buttons, 0);

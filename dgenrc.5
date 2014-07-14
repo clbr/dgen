@@ -34,6 +34,10 @@ section below.
 A joystick/joypad value. May be set to a joystick identifier listed in the
 .Sx JOYSTICK IDENTIFIERS
 section below.
+.It Ar mou_*
+A mouse action. May be set to a mouse identifier listed in the
+.Sx MOUSE IDENTIFIERS
+section below.
 .It Ar bool_*
 A boolean value. "false", "no", and "0" values are taken as false, while
 "true", "yes", and any number except 0 are taken as true.
@@ -85,31 +89,39 @@ fields has a corresponding "joy_pad2" field, to map to the second controller.
 Use joysticks to emulate the controllers. Note that the keyboard keys will
 still work if this value is set. This field is only available if you have
 joystick support enabled.
+.It int_mouse_delay [50]
+Number of milliseconds to wait after the last mouse motion event to release
+buttons bound to such events.
 .El
 .Sh USER-DEFINED BINDINGS
 .Bl -tag -width xxxx
 .It bind_{keysym} Ar action
 .It bind_{joypad} Ar action
-Defines a new keyboard or joystick/joypad binding to an arbitrary
+.It bind_{mouse} Ar action
+Defines a new keyboard, joystick/joypad or mouse binding to an arbitrary
 action. These variables use the
 .Ar keysym
 format as defined in
-.Sx KEY IDENTIFIERS
-and the
+.Sx KEY IDENTIFIERS ,
+the
 .Ar joypad
 format as defined in
-.Sx JOYSTICK IDENTIFIERS .
+.Sx JOYSTICK IDENTIFIERS ,
+or the
+.Ar mouse
+format as defined in
+.Sx MOUSE IDENTIFIERS .
 When
 .Ar action
-is prefixed with "key_" or "joy_", it becomes an alias to the corresponding
-variable in
+is prefixed with "key_", "joy_" or "mou_", it becomes an alias to the
+corresponding variable in
 .Sx CONTROLLERS .
 Otherwise, it is interpreted as if entered at the prompt, and can be used to
 modify variables or execute commands (see
 .Xr dgenrc 5
 for more information).
 No bindings are defined by default.
-.It bind_"{keysym|joypad} [{keysym|joypad} [...]]" Ar action
+.It bind_"{keysym|joypad|mouse} [{keysym|joypad|mouse} [...]]" Ar action
 Alternate syntax that supports combining several identifiers to perform
 .Ar action .
 Controller types can be mixed. Identifiers are separated by spaces. To avoid
@@ -136,6 +148,8 @@ Volume level, in percent. Values above 100 cause distorsion.
 .It key_volume_dec [-]
 .It joy_volume_inc []
 .It joy_volume_dec []
+.It mou_volume_inc []
+.It mou_volume_dec []
 Bindings for volume control.
 .It bool_mjazz [false]
 MJazz option - puts 2 more FM chips in the Megadrive for a sort of 22 channel
@@ -172,6 +186,7 @@ scaling filters.
 Retain original aspect ratio when resizing window.
 .It key_fullscreen_toggle [alt-enter]
 .It joy_fullscreen_toggle []
+.It mou_fullscreen_toggle []
 Button to toggle fullscreen mode (this may do nothing if SDL doesn't support
 fullscreen toggling on your platform.)
 .It int_info_height [-1]
@@ -203,63 +218,80 @@ enabled and only works if multi-threading support is compiled-in.
 .Bl -tag -width xxxx
 .It key_slot_X [X]
 .It joy_slot_X []
+.It mou_slot_X []
 Sets the current save-state slot to number X.
 .It key_slot_next [f8]
 .It joy_slot_next []
+.It mou_slot_next []
 Switch to the next save-slot.
 .It key_slot_prev [f7]
 .It joy_slot_prev []
+.It mou_slot_prev []
 Switch to the previous save-slot.
 .It key_save [f2]
 .It joy_save []
+.It mou_save []
 Saves state to the current slot.
 .It key_load [f3]
 .It joy_load []
+.It mou_load []
 Loads state from the current slot.
 .El
 .Sh MISCELLANEOUS KEYS
 .Bl -tag -width xxxx
 .It key_fix_checksum [f1]
 .It joy_fix_checksum []
+.It mou_fix_checksum []
 Fixes the checksum value. Some older games will freeze with a red screen if
 the ROM has been hacked or modified with Game Genie codes. If it does, pressing
 this, and resetting should fix the problem.
 .It key_quit [escape]
 .It joy_quit []
+.It mou_quit []
 Exit DGen or switch to the next ROM on the command-line.
 .It key_craptv_toggle [f5]
 .It joy_craptv_toggle []
+.It mou_craptv_toggle []
 Toggles Crap-TV image filters. These filters aren't available in 8 bpp mode.
 .It key_scaling_toggle [f6]
 .It joy_scaling_toggle []
+.It mou_scaling_toggle []
 Toggles scaling algorithms. See scaling_startup below.
 .It key_reset [tab]
 .It joy_reset []
+.It mou_reset []
 Restart the Genesis emulation.
 .It key_cpu_toggle [f11]
 .It joy_cpu_toggle []
+.It mou_cpu_toggle []
 Switch CPU emulators. The x86 assembly CPU emulator StarScream is fast, but
 has glitches which affect a few games. Switching to the slower Musashi core
 will fix these problems, at a speed penalty.
 .It key_z80_toggle [f10]
 .It joy_z80_toggle []
+.It mou_z80_toggle []
 Switch Z80 emulators. MZ80 is a bit faster than CZ80, particularly in its
 assembly version (only available for x86), but CZ80 works with more
 games. This key can also disable Z80 emulation.
 .It key_stop [z]
 .It joy_stop []
+.It mou_stop []
 Pause emulation, so you can concentrate on real life for a few seconds. :)
 .It key_game_genie [f9]
 .It joy_game_genie []
+.It mou_game_genie []
 Enter a Game Genie or Hex code. This key also works in stopped mode.
 .It key_screenshot [f12]
 .It joy_screenshot []
+.It mou_screenshot []
 Take a screenshot. Not available in 8 bpp mode.
 .It key_prompt [:]
 .It joy_prompt []
+.It mou_prompt []
 Pause emulation and display interactive prompt. Also works in stopped mode.
 .It key_debug_enter [`]
 .It joy_debug_enter []
+.It mou_debug_enter []
 Break into the debugger. Only meaningful if debugger support is compiled-in.
 .El
 .Sh PREFERENCES
@@ -412,6 +444,16 @@ abbreviated as "a".
 .It Hats: joystickX-hatY-{direction}
 For joystick/joypad number X, hat number Y and direction. "hat" can be
 abbreviated as "h". Possible directions are "up", "right", "down", "left".
+.El
+.Sh MOUSE IDENTIFIERS
+These identifiers describe a mouse event. Each detected mouse is numbered
+starting from 0. Two different event types are supported.
+.Bl -tag -width xxxx
+.It Buttons: mouseX-buttonY
+For mouse number X, button number Y. "button" can be abbreviated as "b".
+.It Motions: mouseX-{direction}
+For mouse number X and direction. Possible directions are "up", "right",
+"down", "left".
 .El
 .Sh SEE ALSO
 .Xr dgen 1

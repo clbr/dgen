@@ -78,6 +78,29 @@
 	(JS_MAKE_IDENTIFIER(id) |		\
 	 JS_MAKE_HAT((hat), (direction)))
 
+// Macros to manage mouse events.
+//
+// Integer format (32b): 000000tt iiiiiiii 00000000 aaaaaaaa
+//
+// t: type (0-3):
+//    0 if not configured/invalid.
+//    1 for a button, "a" is the button index.
+//    2 for a motion, "a" is the direction.
+// i: system identifier for mouse (0-255).
+// a: button number (0-255), motion direction ('u', 'd', 'l' and 'r' for "up",
+//    "down", "left" and "right").
+#define MO_TYPE_BUTTON JS_TYPE_BUTTON
+#define MO_TYPE_MOTION JS_TYPE_AXIS
+
+#define MO_GET_IDENTIFIER(v) JS_GET_IDENTIFIER(v)
+#define MO_IS_BUTTON(v) JS_IS_BUTTON(v)
+#define MO_IS_MOTION(v) JS_IS_AXIS(v)
+#define MO_GET_BUTTON(v) JS_GET_BUTTON(v)
+#define MO_GET_MOTION(v) MO_GET_BUTTON(v)
+
+#define MO_BUTTON(id, button) JS_BUTTON(id, button)
+#define MO_MOTION(id, direction) JS_AXIS(id, 0, direction)
+
 // All the CTV engine names, in string form for the RC and message bar
 extern const char *ctv_names[];
 
@@ -93,12 +116,14 @@ extern void parse_rc(FILE *file, const char *name);
 
 extern char *dump_keysym(intptr_t k);
 extern char *dump_joypad(intptr_t k);
+extern char *dump_mouse(intptr_t k);
 extern void dump_rc(FILE *file);
 
 extern intptr_t rc_number(const char *value, intptr_t *);
 extern intptr_t rc_keysym(const char *code, intptr_t *);
 extern intptr_t rc_boolean(const char *value, intptr_t *);
 extern intptr_t rc_joypad(const char *desc, intptr_t *);
+extern intptr_t rc_mouse(const char *desc, intptr_t *);
 extern intptr_t rc_ctv(const char *value, intptr_t *);
 extern intptr_t rc_scaling(const char *value, intptr_t *);
 extern intptr_t rc_emu_z80(const char *value, intptr_t *);
@@ -123,13 +148,14 @@ struct rc_field {
 enum rc_binding_type {
 	RCBK, // Keysym.
 	RCBJ, // Joypad.
+	RCBM, // Mouse.
 	RCB_NUM
 };
 
 struct rc_binding_item {
 	unsigned int assigned:1; // Whether item contains valid data.
 	enum rc_binding_type type:4; // See enum rc_binding_type.
-	intptr_t code; // keysym or joypad code.
+	intptr_t code; // keysym, joypad or mouse code.
 };
 
 struct rc_binding {

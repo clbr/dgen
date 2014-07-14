@@ -3765,8 +3765,6 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	SDL_EnableUNICODE(1);
 	// Set the titlebar.
 	SDL_WM_SetCaption("DGen/SDL " VER, "DGen/SDL " VER);
-	// Hide the cursor.
-	SDL_ShowCursor(0);
 	// Initialize screen.
 	if (screen_init(0, 0))
 		goto fail;
@@ -4538,6 +4536,16 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 			stop_events_msg(~0u, "%s is bound to \"%s\"",
 					rc->fieldname, js);
 		free(js);
+	}
+	else if (rc->parser == rc_mouse) {
+		char *mo = dump_mouse(val);
+
+		if ((mo == NULL) || (mo[0] == '\0'))
+			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
+		else
+			stop_events_msg(~0u, "%s is bound to \"%s\"",
+					rc->fieldname, mo);
+		free(mo);
 	}
 	else if (rc->parser == rc_ctv) {
 		i = val;
@@ -5794,6 +5802,8 @@ static void manage_calibration(enum rc_binding_type type, intptr_t code)
 			dump = dump_keysym(code);
 		else if (type == RCBJ)
 			dump = dump_joypad(code);
+		else if (type == RCBM)
+			dump = dump_mouse(code);
 		else
 			dump = NULL;
 		assert(calibration_steps[step].twice == false);
@@ -5923,6 +5933,8 @@ static int manage_bindings(md& md, bool pressed, enum rc_binding_type type,
 			dump = dump_keysym(code);
 		else if (type == RCBJ)
 			dump = dump_joypad(code);
+		else if (type == RCBM)
+			dump = dump_mouse(code);
 		else
 			dump = NULL;
 		if (dump != NULL) {
@@ -5941,7 +5953,8 @@ static int manage_bindings(md& md, bool pressed, enum rc_binding_type type,
 		assert((intptr_t)rcb->to != -1);
 		// For keyboard and joystick bindings, perform related action.
 		if ((type = RCBK, !strncasecmp("key_", rcb->to, 4)) ||
-		    (type = RCBJ, !strncasecmp("joy_", rcb->to, 4))) {
+		    (type = RCBJ, !strncasecmp("joy_", rcb->to, 4)) ||
+		    (type = RCBM, !strncasecmp("mou_", rcb->to, 4))) {
 			struct rc_field *rcf = rc_fields;
 
 			while (rcf->fieldname != NULL) {
@@ -6064,6 +6077,28 @@ static void manage_pico_pen(md& megad)
 
 #endif
 
+static bool mouse_is_grabbed()
+{
+	return (SDL_WM_GrabInput(SDL_GRAB_QUERY) == SDL_GRAB_ON);
+}
+
+static void mouse_grab(bool grab)
+{
+	SDL_GrabMode mode = SDL_WM_GrabInput(SDL_GRAB_QUERY);
+
+	if ((grab) && (!pd_freeze) && (mode == SDL_GRAB_OFF)) {
+		// Hide the cursor.
+		SDL_ShowCursor(0);
+		stop_events_msg(~0u,
+				"Mouse trapped. Stop emulation to release.");
+		SDL_WM_GrabInput(SDL_GRAB_ON);
+	}
+	else if ((!grab) && (mode == SDL_GRAB_ON)) {
+		SDL_ShowCursor(1);
+		SDL_WM_GrabInput(SDL_GRAB_OFF);
+	}
+}
+
 static int stop_events(md& megad, enum events status)
 {
 	struct ctl* ctl;
@@ -6091,6 +6126,7 @@ static int stop_events(md& megad, enum events status)
 			return -1;
 		pd_graphics_update(true);
 	}
+	mouse_grab(false);
 	return 0;
 }
 
@@ -6104,6 +6140,70 @@ static void restart_events(md& megad)
 	handle_prompt_complete_clear();
 	SDL_EnableKeyRepeat(0, 0);
 	events = STARTED;
+}
+
+static struct {
+	unsigned long when[0x100];
+	uint8_t enabled[0x100 / 8];
+	unsigned int count;
+} mouse_motion_release;
+
+#define MOUSE_MOTION_RELEASE_IS_ENABLED(which) \
+	(mouse_motion_release.enabled[(which) / 8] & (1 << ((which) % 8)))
+#define MOUSE_MOTION_RELEASE_DISABLE(which) \
+	(mouse_motion_release.enabled[(which) / 8] &= ~(1 << ((which) % 8)))
+#define MOUSE_MOTION_RELEASE_ENABLE(which) \
+	(mouse_motion_release.enabled[(which) / 8] |= (1 << ((which) % 8)))
+
+static void mouse_motion_delay_release(unsigned int which, bool enable)
+{
+	if (which >= elemof(mouse_motion_release.when)) {
+		DEBUG(("mouse index too high (%u)", which));
+		return;
+	}
+	if (!enable) {
+		if (!MOUSE_MOTION_RELEASE_IS_ENABLED(which))
+			return;
+		MOUSE_MOTION_RELEASE_DISABLE(which);
+		assert(mouse_motion_release.count != 0);
+		--mouse_motion_release.count;
+		return;
+	}
+	if (!MOUSE_MOTION_RELEASE_IS_ENABLED(which)) {
+		MOUSE_MOTION_RELEASE_ENABLE(which);
+		++mouse_motion_release.count;
+		assert(mouse_motion_release.count <=
+		       elemof(mouse_motion_release.when));
+	}
+	mouse_motion_release.when[which] =
+		(pd_usecs() + (dgen_mouse_delay * 1000));
+}
+
+static bool mouse_motion_released(SDL_Event *event)
+{
+	unsigned int i;
+	unsigned long now;
+
+	if (mouse_motion_release.count == 0)
+		return false;
+	now = pd_usecs();
+	for (i = 0; (i != mouse_motion_release.count); ++i) {
+		unsigned long diff;
+
+		if (!MOUSE_MOTION_RELEASE_IS_ENABLED(i))
+			continue;
+		diff = (mouse_motion_release.when[i] - now);
+		if (diff < (unsigned long)(dgen_mouse_delay * 1000))
+			continue;
+		event->motion.type = SDL_MOUSEMOTION;
+		event->motion.which = i;
+		event->motion.xrel = 0;
+		event->motion.yrel = 0;
+		MOUSE_MOTION_RELEASE_DISABLE(i);
+		--mouse_motion_release.count;
+		return true;
+	}
+	return false;
 }
 
 // The massive event handler!
@@ -6128,22 +6228,26 @@ int pd_handle_events(md &megad)
 		{ SDL_HAT_DOWN, JS_HAT_DOWN },
 		{ SDL_HAT_LEFT, JS_HAT_LEFT }
 	};
-	uint32_t plist[elemof(hat_value)];
-	uint32_t rlist[elemof(hat_value)];
-	unsigned int i, pi, ri;
 	unsigned int hat_value_map;
 	intptr_t joypad;
 	bool pressed;
 #endif
+	uint32_t plist[8];
+	uint32_t rlist[8];
+	unsigned int i, pi, ri;
 	SDL_Event event;
 	uint16_t ksym_uni;
 	intptr_t ksym;
+	intptr_t mouse;
+	unsigned int which;
 
 #ifdef WITH_DEBUGGER
 	if ((megad.debug_trap) && (megad.debug_enter() < 0))
 		return 0;
 #endif
 next_event:
+	if (mouse_motion_released(&event))
+		goto mouse_motion;
 	if (!SDL_PollEvent(&event)) {
 #ifdef WITH_PICO
 		manage_pico_pen(megad);
@@ -6416,6 +6520,124 @@ next_event:
 				return 0;
 		}
 		if (manage_bindings(megad, false, RCBK, ksym) == 0)
+			return 0;
+		break;
+	case SDL_MOUSEMOTION:
+		if (!mouse_is_grabbed())
+			break;
+	mouse_motion:
+		which = event.motion.which;
+		pi = 0;
+		ri = 0;
+		if (event.motion.xrel < 0) {
+			plist[pi++] = MO_MOTION(which, 'l');
+			rlist[ri++] = MO_MOTION(which, 'r');
+		}
+		else if (event.motion.xrel > 0) {
+			plist[pi++] = MO_MOTION(which, 'r');
+			rlist[ri++] = MO_MOTION(which, 'l');
+		}
+		else {
+			rlist[ri++] = MO_MOTION(which, 'r');
+			rlist[ri++] = MO_MOTION(which, 'l');
+		}
+		if (event.motion.yrel < 0) {
+			plist[pi++] = MO_MOTION(which, 'u');
+			rlist[ri++] = MO_MOTION(which, 'd');
+		}
+		else if (event.motion.yrel > 0) {
+			plist[pi++] = MO_MOTION(which, 'd');
+			rlist[ri++] = MO_MOTION(which, 'u');
+		}
+		else {
+			rlist[ri++] = MO_MOTION(which, 'd');
+			rlist[ri++] = MO_MOTION(which, 'u');
+		}
+		if (pi)
+			mouse_motion_delay_release(which, true);
+		else
+			mouse_motion_delay_release(which, false);
+		for (i = 0; (i != ri); ++i)
+			manage_combos(megad, false, RCBM, rlist[i]);
+		for (i = 0; (i != pi); ++i)
+			manage_combos(megad, true, RCBM, plist[i]);
+		if (events != STARTED)
+			break;
+		if (calibrating) {
+			for (i = 0; ((calibrating) && (i != pi)); ++i)
+				manage_calibration(RCBM, plist[i]);
+			break;
+		}
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			// Release buttons first.
+			for (i = 0; (i != ri); ++i) {
+				if ((ctl->pressed == false) ||
+				    ((uint32_t)(*ctl->rc)[RCBM] != rlist[i]))
+					continue;
+				ctl->pressed = false;
+				ctl->coord = true;
+				ctl->x = event.motion.x;
+				ctl->y = event.motion.y;
+				if ((ctl->release != NULL) &&
+				    (ctl->release(*ctl, megad) == 0))
+					return 0;
+			}
+			for (i = 0; (i != pi); ++i) {
+				if ((uint32_t)(*ctl->rc)[RCBM] == plist[i]) {
+					assert(ctl->press != NULL);
+					ctl->pressed = true;
+					ctl->coord = true;
+					ctl->x = event.motion.x;
+					ctl->y = event.motion.y;
+					if (ctl->press(*ctl, megad) == 0)
+						return 0;
+				}
+			}
+		}
+		for (i = 0; (i != ri); ++i)
+			if (!manage_bindings(megad, false, RCBM, rlist[i]))
+				return 0;
+		for (i = 0; (i != pi); ++i)
+			if (!manage_bindings(megad, true, RCBM, plist[i]))
+				return 0;
+		break;
+	case SDL_MOUSEBUTTONDOWN:
+		assert(event.button.state == SDL_PRESSED);
+		mouse_grab(true);
+		pressed = true;
+		goto mouse_button;
+	case SDL_MOUSEBUTTONUP:
+		assert(event.button.state == SDL_RELEASED);
+		pressed = false;
+	mouse_button:
+		mouse = MO_BUTTON(event.button.which, event.button.button);
+		manage_combos(megad, pressed, RCBM, mouse);
+		if (events != STARTED)
+			break;
+		if (calibrating) {
+			if (pressed)
+				manage_calibration(RCBM, mouse);
+			break;
+		}
+		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
+			if ((*ctl->rc)[RCBM] != mouse)
+				continue;
+			ctl->pressed = pressed;
+			ctl->coord = true;
+			ctl->x = event.button.x;
+			ctl->y = event.button.y;
+			if (pressed == false) {
+				if ((ctl->release != NULL) &&
+				    (ctl->release(*ctl, megad) == 0))
+					return 0;
+			}
+			else {
+				assert(ctl->press != NULL);
+				if (ctl->press(*ctl, megad) == 0)
+					return 0;
+			}
+		}
+		if (manage_bindings(megad, pressed, RCBM, mouse) == 0)
 			return 0;
 		break;
 	case SDL_VIDEORESIZE:

@@ -327,6 +327,10 @@ scaling_startup = stretch
 # Use a joystick?
 bool_joystick = yes
 
+# Number of milliseconds to wait after the last mouse motion event to release
+# buttons bound to such events.
+int_mouse_delay = 50
+
 # Use OpenGL mode?
 bool_opengl = yes
 
