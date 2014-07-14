@@ -3275,7 +3275,7 @@ static int prompt_cmd_filter_none(class md&, unsigned int ac, const char**)
 static bool calibrating = false; //< True during calibration.
 static unsigned int calibrating_controller; ///< Controller being calibrated.
 
-static void manage_calibration(bool type, intptr_t code);
+static void manage_calibration(enum rc_binding_type type, intptr_t code);
 
 /**
  * Interactively calibrate a controller.
@@ -3298,7 +3298,7 @@ prompt_cmd_calibrate(class md&, unsigned int n_args, const char** args)
 	}
 	else
 		return CMD_EINVAL;
-	manage_calibration(false, -1);
+	manage_calibration(RCB_NUM, -1);
 	return (CMD_OK | CMD_MSG);
 }
 
@@ -5163,7 +5163,7 @@ enum ctl_e {
 // Controls definitions.
 struct ctl {
 	enum ctl_e type;
-	intptr_t (*rc)[2];
+	intptr_t (*rc)[RCB_NUM];
 	bool pressed;
 	int (*const press)(struct ctl&, md&);
 	int (*const release)(struct ctl&, md&);
@@ -5708,43 +5708,43 @@ static struct {
 	enum ctl_e const id[2]; ///< Controls indices in control[].
 	bool once; ///< If button has been pressed once.
 	bool twice; ///< If button has been pressed twice.
-	bool type; ///< Type of code, false for keysym, true for joypad.
-	intptr_t code; ///< Temporary keysym or joypad code.
+	enum rc_binding_type type; ///< Type of code.
+	intptr_t code; ///< Temporary code.
 } calibration_steps[] = {
 	{ "START", { CTL_PAD1_START, CTL_PAD2_START },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "MODE", { CTL_PAD1_MODE, CTL_PAD2_MODE },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "A", { CTL_PAD1_A, CTL_PAD2_A },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "B", { CTL_PAD1_B, CTL_PAD2_B },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "C", { CTL_PAD1_C, CTL_PAD2_C },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "X", { CTL_PAD1_X, CTL_PAD2_X },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "Y", { CTL_PAD1_Y, CTL_PAD2_Y },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "Z", { CTL_PAD1_Z, CTL_PAD2_Z },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "UP", { CTL_PAD1_UP, CTL_PAD2_UP },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "DOWN", { CTL_PAD1_DOWN, CTL_PAD2_DOWN },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "LEFT", { CTL_PAD1_LEFT, CTL_PAD2_LEFT },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ "RIGHT", { CTL_PAD1_RIGHT, CTL_PAD2_RIGHT },
-	  false, false, false, -1 },
+	  false, false, RCB_NUM, -1 },
 	{ NULL, { CTL_, CTL_ },
-	  false, false, false, -1 }
+	  false, false, RCB_NUM, -1 }
 };
 
 /**
  * Handle input during calibration process.
- * @param type Type of code (false for keysym, true for joypad).
- * @param code keysym/joypad code to process.
+ * @param type Type of code.
+ * @param code Code to process.
  */
-static void manage_calibration(bool type, intptr_t code)
+static void manage_calibration(enum rc_binding_type type, intptr_t code)
 {
 	unsigned int step = 0;
 
@@ -5780,7 +5780,7 @@ static void manage_calibration(bool type, intptr_t code)
 		for (step = 0; (step != elemof(calibration_steps)); ++step) {
 			calibration_steps[step].once = false;
 			calibration_steps[step].twice = false;
-			calibration_steps[step].type = false;
+			calibration_steps[step].type = RCB_NUM;
 			calibration_steps[step].code = -1;
 		}
 		// Restart emulation.
@@ -5790,8 +5790,14 @@ static void manage_calibration(bool type, intptr_t code)
 		return;
 	}
 	if (calibration_steps[step].once == false) {
-		char *dump = (type ? dump_joypad(code) : dump_keysym(code));
+		char *dump;
 
+		if (type == RCBK)
+			dump = dump_keysym(code);
+		else if (type == RCBJ)
+			dump = dump_joypad(code);
+		else
+			dump = NULL;
 		assert(calibration_steps[step].twice == false);
 		calibration_steps[step].once = true;
 		calibration_steps[step].type = type;
@@ -5805,7 +5811,7 @@ static void manage_calibration(bool type, intptr_t code)
 		    (calibration_steps[step].code == code))
 			filter_text_msg("OK\n");
 		else {
-			calibration_steps[step].type = false;
+			calibration_steps[step].type = RCB_NUM;
 			calibration_steps[step].code = -1;
 			filter_text_msg("none\n");
 		}
@@ -5832,7 +5838,7 @@ ask:
 				code = calibration_steps[i].code;
 				assert((size_t)id < elemof(control));
 				assert(control[id].type == id);
-				if (id != CTL_)
+				if ((id != CTL_) && (type != RCB_NUM))
 					(*control[id].rc)[type] = code;
 			}
 			filter_text_msg("\n"
@@ -5849,7 +5855,8 @@ ask:
 
 static struct rc_binding_item combos[64];
 
-static void manage_combos(md& md, bool pressed, bool type, intptr_t code)
+static void manage_combos(md& md, bool pressed, enum rc_binding_type type,
+			  intptr_t code)
 {
 	unsigned int i;
 
@@ -5904,7 +5911,8 @@ static bool check_combos(md& md, struct rc_binding_item item[],
 	return (found == num);
 }
 
-static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
+static int manage_bindings(md& md, bool pressed, enum rc_binding_type type,
+			   intptr_t code)
 {
 	struct rc_binding *rcb = rc_binding_head.next;
 	size_t pos = 0;
@@ -5913,10 +5921,12 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 	if ((dgen_buttons) && (pressed)) {
 		char *dump;
 
-		if (type)
+		if (type == RCBK)
+			dump = dump_keysym(code);
+		else if (type == RCBJ)
 			dump = dump_joypad(code);
 		else
-			dump = dump_keysym(code);
+			dump = NULL;
 		if (dump != NULL) {
 			stop_events_msg(~0u, "Pressed \"%s\".", dump);
 			free(dump);
@@ -5932,8 +5942,8 @@ static int manage_bindings(md& md, bool pressed, bool type, intptr_t code)
 		assert(rcb->to != NULL);
 		assert((intptr_t)rcb->to != -1);
 		// For keyboard and joystick bindings, perform related action.
-		if ((type = false, !strncasecmp("key_", rcb->to, 4)) ||
-		    (type = true, !strncasecmp("joy_", rcb->to, 4))) {
+		if ((type = RCBK, !strncasecmp("key_", rcb->to, 4)) ||
+		    (type = RCBJ, !strncasecmp("joy_", rcb->to, 4))) {
 			struct rc_field *rcf = rc_fields;
 
 			while (rcf->fieldname != NULL) {
@@ -6183,27 +6193,27 @@ next_event:
 						     hat_value[i][1]);
 	joypad_axis:
 		for (i = 0; (i != ri); ++i)
-			manage_combos(megad, false, true, rlist[i]);
+			manage_combos(megad, false, RCBJ, rlist[i]);
 		for (i = 0; (i != pi); ++i)
-			manage_combos(megad, true, true, plist[i]);
+			manage_combos(megad, true, RCBJ, plist[i]);
 		if (events != STARTED)
 			break;
 		if (calibrating) {
 			for (i = 0; ((calibrating) && (i != pi)); ++i)
-				manage_calibration(true, plist[i]);
+				manage_calibration(RCBJ, plist[i]);
 			break;
 		}
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			// Release buttons first.
 			for (i = 0; (i != ri); ++i) {
 				if ((ctl->pressed == true) &&
-				    ((uint32_t)(*ctl->rc)[1] == rlist[i]) &&
+				    ((uint32_t)(*ctl->rc)[RCBJ] == rlist[i]) &&
 				    (ctl->release != NULL) &&
 				    (ctl->release(*ctl, megad) == 0))
 					return 0;
 			}
 			for (i = 0; (i != pi); ++i) {
-				if ((uint32_t)(*ctl->rc)[1] == plist[i]) {
+				if ((uint32_t)(*ctl->rc)[RCBJ] == plist[i]) {
 					assert(ctl->press != NULL);
 					if (ctl->press(*ctl, megad) == 0)
 						return 0;
@@ -6211,10 +6221,10 @@ next_event:
 			}
 		}
 		for (i = 0; (i != ri); ++i)
-			if (!manage_bindings(megad, false, true, rlist[i]))
+			if (!manage_bindings(megad, false, RCBJ, rlist[i]))
 				return 0;
 		for (i = 0; (i != pi); ++i)
-			if (!manage_bindings(megad, true, true, plist[i]))
+			if (!manage_bindings(megad, true, RCBJ, plist[i]))
 				return 0;
 		break;
 	case SDL_JOYBUTTONDOWN:
@@ -6226,16 +6236,16 @@ next_event:
 		pressed = false;
 	joypad_button:
 		joypad = JS_BUTTON(event.jbutton.which, event.jbutton.button);
-		manage_combos(megad, pressed, true, joypad);
+		manage_combos(megad, pressed, RCBJ, joypad);
 		if (events != STARTED)
 			break;
 		if (calibrating) {
 			if (pressed)
-				manage_calibration(true, joypad);
+				manage_calibration(RCBJ, joypad);
 			break;
 		}
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
-			if ((*ctl->rc)[1] != joypad)
+			if ((*ctl->rc)[RCBJ] != joypad)
 				continue;
 			if (pressed == false) {
 				if ((ctl->release != NULL) &&
@@ -6248,7 +6258,7 @@ next_event:
 					return 0;
 			}
 		}
-		if (manage_bindings(megad, pressed, true, joypad) == 0)
+		if (manage_bindings(megad, pressed, RCBJ, joypad) == 0)
 			return 0;
 		break;
 #endif // WITH_JOYSTICK
@@ -6272,7 +6282,7 @@ next_event:
 		if (event.key.keysym.mod & KMOD_META)
 			ksym |= KEYSYM_MOD_META;
 
-		manage_combos(megad, true, false, ksym);
+		manage_combos(megad, true, RCBK, ksym);
 
 		switch (events) {
 			int ret;
@@ -6350,18 +6360,18 @@ next_event:
 		}
 
 		if (calibrating) {
-			manage_calibration(false, ksym);
+			manage_calibration(RCBK, ksym);
 			break;
 		}
 
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
-			if (ksym != (*ctl->rc)[0])
+			if (ksym != (*ctl->rc)[RCBK])
 				continue;
 			assert(ctl->press != NULL);
 			if (ctl->press(*ctl, megad) == 0)
 				return 0;
 		}
-		if (manage_bindings(megad, true, false, ksym) == 0)
+		if (manage_bindings(megad, true, RCBK, ksym) == 0)
 			return 0;
 		break;
 	case SDL_KEYUP:
@@ -6374,11 +6384,11 @@ next_event:
 		if (ksym_uni)
 			ksym = ksym_uni;
 
-		manage_combos(megad, false, false, ksym);
-		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_ALT));
-		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_SHIFT));
-		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_CTRL));
-		manage_combos(megad, false, false, (ksym | KEYSYM_MOD_META));
+		manage_combos(megad, false, RCBK, ksym);
+		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_ALT));
+		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_SHIFT));
+		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_CTRL));
+		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_META));
 
 		if (events != STARTED)
 			break;
@@ -6388,13 +6398,13 @@ next_event:
 		// The only time we care about key releases is for the
 		// controls, but ignore key modifiers so they never get stuck.
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
-			if (ksym != ((*ctl->rc)[0] & ~KEYSYM_MOD_MASK))
+			if (ksym != ((*ctl->rc)[RCBK] & ~KEYSYM_MOD_MASK))
 				continue;
 			if ((ctl->release != NULL) &&
 			    (ctl->release(*ctl, megad) == 0))
 				return 0;
 		}
-		if (manage_bindings(megad, false, false, ksym) == 0)
+		if (manage_bindings(megad, false, RCBK, ksym) == 0)
 			return 0;
 		break;
 	case SDL_VIDEORESIZE:

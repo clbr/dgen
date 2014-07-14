@@ -120,9 +120,15 @@ struct rc_field {
 #define RC_BIND_PREFIX "bind_"
 #define RC_BIND_ITEMS 8
 
+enum rc_binding_type {
+	RCBK, // Keysym.
+	RCBJ, // Joypad.
+	RCB_NUM
+};
+
 struct rc_binding_item {
 	unsigned int assigned:1; // Whether item contains valid data.
-	unsigned int type:1; // 0 for keysym, 1 for joypad.
+	enum rc_binding_type type:4; // See enum rc_binding_type.
 	intptr_t code; // keysym or joypad code.
 };
 
