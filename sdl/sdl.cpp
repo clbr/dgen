@@ -5365,21 +5365,37 @@ static int ctl_pad2_release(struct ctl& ctl, md& megad)
 
 static int ctl_pico_pen(struct ctl& ctl, md& megad)
 {
+	static unsigned int min_y = 0x1fc;
+	static unsigned int max_y = 0x2f7;
+	static unsigned int min_x = 0x3c;
+	static unsigned int max_x = 0x17c;
 	static const struct {
 		enum ctl_e type;
 		unsigned int coords:1;
 		unsigned int dir:1;
 		unsigned int lim[2];
 	} motion[] = {
-		{ CTL_PICO_PEN_UP, 1, 0, { 0x1fc, 0x2f7 } },
-		{ CTL_PICO_PEN_DOWN, 1, 1, { 0x1fc, 0x2f7 } },
-		{ CTL_PICO_PEN_LEFT, 0, 0, { 0x3c, 0x17c } },
-		{ CTL_PICO_PEN_RIGHT, 0, 1, { 0x3c, 0x17c } }
+		{ CTL_PICO_PEN_UP, 1, 0, { min_y, max_y } },
+		{ CTL_PICO_PEN_DOWN, 1, 1, { min_y, max_y } },
+		{ CTL_PICO_PEN_LEFT, 0, 0, { min_x, max_x } },
+		{ CTL_PICO_PEN_RIGHT, 0, 1, { min_x, max_x } }
 	};
 	unsigned int i;
 
 	if (ctl.type == CTL_PICO_PEN_BUTTON) {
 		megad.pad[0] &= ~MD_PICO_PENBTN_MASK;
+		return 1;
+	}
+	// Use coordinates if available.
+	if ((ctl.coord) &&
+	    (screen.window_width != 0) &&
+	    (screen.window_height != 0)) {
+		megad.pico_pen_coords[1] =
+			(min_y + ((ctl.y * (max_y - min_y)) /
+				  screen.window_height));
+		megad.pico_pen_coords[0] =
+			(min_x + ((ctl.x * (max_x - min_x)) /
+				  screen.window_width));
 		return 1;
 	}
 	for (i = 0; (i != elemof(motion)); ++i) {
@@ -6052,10 +6068,15 @@ static void manage_pico_pen(md& megad)
 	if (!megad.pico_enabled)
 		return;
 	// Repeat pen motion as long as buttons are not released.
-	if (((control[CTL_PICO_PEN_UP].pressed) ||
-	     (control[CTL_PICO_PEN_DOWN].pressed) ||
-	     (control[CTL_PICO_PEN_LEFT].pressed) ||
-	     (control[CTL_PICO_PEN_RIGHT].pressed)) &&
+	// This is not necessary when pen is managed by direct coordinates.
+	if ((((control[CTL_PICO_PEN_UP].pressed) &&
+	      (!control[CTL_PICO_PEN_UP].coord)) ||
+	     ((control[CTL_PICO_PEN_DOWN].pressed) &&
+	      (!control[CTL_PICO_PEN_DOWN].coord)) ||
+	     ((control[CTL_PICO_PEN_LEFT].pressed) &&
+	      (!control[CTL_PICO_PEN_LEFT].coord)) ||
+	     ((control[CTL_PICO_PEN_RIGHT].pressed) &&
+	      (!control[CTL_PICO_PEN_RIGHT].coord))) &&
 	    (pico_pen_now = pd_usecs(),
 	     ((pico_pen_now - pico_pen_last_update) >=
 	      ((unsigned long)pico_pen_delay * 1000)))) {

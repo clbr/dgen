@@ -55,11 +55,26 @@ RCCTL(pad2_z, PDK_PAGEUP, JS_BUTTON(1, 5), 0);
 RCCTL(pad2_mode, PDK_KP_PLUS, JS_BUTTON(1, 9), 0);
 RCCTL(pad2_start, PDK_KP_ENTER, JS_BUTTON(1, 8), 0);
 
-RCCTL(pico_pen_up, PDK_UP, JS_AXIS(0, 1, JS_AXIS_NEGATIVE), 0);
-RCCTL(pico_pen_down, PDK_DOWN, JS_AXIS(0, 1, JS_AXIS_POSITIVE), 0);
-RCCTL(pico_pen_left, PDK_LEFT, JS_AXIS(0, 0, JS_AXIS_NEGATIVE), 0);
-RCCTL(pico_pen_right, PDK_RIGHT, JS_AXIS(0, 0, JS_AXIS_POSITIVE), 0);
-RCCTL(pico_pen_button, PDK_RETURN, JS_BUTTON(0, 0), 0);
+RCCTL(pico_pen_up,
+      PDK_UP,
+      JS_AXIS(0, 1, JS_AXIS_NEGATIVE),
+      MO_MOTION(0, 'u'));
+RCCTL(pico_pen_down,
+      PDK_DOWN,
+      JS_AXIS(0, 1, JS_AXIS_POSITIVE),
+      MO_MOTION(0, 'd'));
+RCCTL(pico_pen_left,
+      PDK_LEFT,
+      JS_AXIS(0, 0, JS_AXIS_NEGATIVE),
+      MO_MOTION(0, 'l'));
+RCCTL(pico_pen_right,
+      PDK_RIGHT,
+      JS_AXIS(0, 0, JS_AXIS_POSITIVE),
+      MO_MOTION(0, 'r'));
+RCCTL(pico_pen_button,
+      PDK_RETURN,
+      JS_BUTTON(0, 0),
+      MO_BUTTON(0, 1));
 RCVAR(pico_pen_stride, 2);
 RCVAR(pico_pen_delay, 2);
 
