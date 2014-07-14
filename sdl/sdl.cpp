@@ -5162,16 +5162,19 @@ enum ctl_e {
 
 // Controls definitions.
 struct ctl {
-	enum ctl_e type;
-	intptr_t (*rc)[RCB_NUM];
-	bool pressed;
+	const enum ctl_e type;
+	intptr_t (*const rc)[RCB_NUM];
 	int (*const press)(struct ctl&, md&);
 	int (*const release)(struct ctl&, md&);
+#define DEF 0, 0, 0, 0
+	unsigned int pressed:1;
+	unsigned int coord:1;
+	unsigned int x:10;
+	unsigned int y:10;
 };
 
 static int ctl_pad1(struct ctl& ctl, md& megad)
 {
-	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
 		megad.pad[0] &= ~MD_UP_MASK;
@@ -5217,7 +5220,6 @@ static int ctl_pad1(struct ctl& ctl, md& megad)
 
 static int ctl_pad1_release(struct ctl& ctl, md& megad)
 {
-	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD1_UP:
 		megad.pad[0] |= MD_UP_MASK;
@@ -5263,7 +5265,6 @@ static int ctl_pad1_release(struct ctl& ctl, md& megad)
 
 static int ctl_pad2(struct ctl& ctl, md& megad)
 {
-	ctl.pressed = true;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
 		megad.pad[1] &= ~MD_UP_MASK;
@@ -5309,7 +5310,6 @@ static int ctl_pad2(struct ctl& ctl, md& megad)
 
 static int ctl_pad2_release(struct ctl& ctl, md& megad)
 {
-	ctl.pressed = false;
 	switch (ctl.type) {
 	case CTL_PAD2_UP:
 		megad.pad[1] |= MD_UP_MASK;
@@ -5370,7 +5370,6 @@ static int ctl_pico_pen(struct ctl& ctl, md& megad)
 	};
 	unsigned int i;
 
-	ctl.pressed = true;
 	if (ctl.type == CTL_PICO_PEN_BUTTON) {
 		megad.pad[0] &= ~MD_PICO_PENBTN_MASK;
 		return 1;
@@ -5396,7 +5395,6 @@ static int ctl_pico_pen(struct ctl& ctl, md& megad)
 
 static int ctl_pico_pen_release(struct ctl& ctl, md& megad)
 {
-	ctl.pressed = false;
 	if (ctl.type == CTL_PICO_PEN_BUTTON)
 		megad.pad[0] |= MD_PICO_PENBTN_MASK;
 	return 1;
@@ -5624,83 +5622,83 @@ static int ctl_dgen_debug_enter(struct ctl&, md& megad)
 
 static struct ctl control[] = {
 	// Array indices and control[].type must match enum ctl_e's order.
-	{ CTL_PAD1_UP, &pad1_up, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_DOWN, &pad1_down, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_LEFT, &pad1_left, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_RIGHT, &pad1_right, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_A, &pad1_a, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_B, &pad1_b, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_C, &pad1_c, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_X, &pad1_x, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_Y, &pad1_y, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_Z, &pad1_z, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_MODE, &pad1_mode, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD1_START, &pad1_start, false, ctl_pad1, ctl_pad1_release },
-	{ CTL_PAD2_UP, &pad2_up, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_DOWN, &pad2_down, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_LEFT, &pad2_left, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_RIGHT, &pad2_right, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_A, &pad2_a, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_B, &pad2_b, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_C, &pad2_c, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_X, &pad2_x, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_Y, &pad2_y, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_Z, &pad2_z, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_MODE, &pad2_mode, false, ctl_pad2, ctl_pad2_release },
-	{ CTL_PAD2_START, &pad2_start, false, ctl_pad2, ctl_pad2_release },
+	{ CTL_PAD1_UP, &pad1_up, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_DOWN, &pad1_down, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_LEFT, &pad1_left, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_RIGHT, &pad1_right, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_A, &pad1_a, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_B, &pad1_b, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_C, &pad1_c, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_X, &pad1_x, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_Y, &pad1_y, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_Z, &pad1_z, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_MODE, &pad1_mode, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD1_START, &pad1_start, ctl_pad1, ctl_pad1_release, DEF },
+	{ CTL_PAD2_UP, &pad2_up, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_DOWN, &pad2_down, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_LEFT, &pad2_left, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_RIGHT, &pad2_right, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_A, &pad2_a, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_B, &pad2_b, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_C, &pad2_c, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_X, &pad2_x, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_Y, &pad2_y, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_Z, &pad2_z, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_MODE, &pad2_mode, ctl_pad2, ctl_pad2_release, DEF },
+	{ CTL_PAD2_START, &pad2_start, ctl_pad2, ctl_pad2_release, DEF },
 #ifdef WITH_PICO
 	{ CTL_PICO_PEN_UP,
-	  &pico_pen_up, false, ctl_pico_pen, ctl_pico_pen_release },
+	  &pico_pen_up, ctl_pico_pen, ctl_pico_pen_release, DEF },
 	{ CTL_PICO_PEN_DOWN,
-	  &pico_pen_down, false, ctl_pico_pen, ctl_pico_pen_release },
+	  &pico_pen_down, ctl_pico_pen, ctl_pico_pen_release, DEF },
 	{ CTL_PICO_PEN_LEFT,
-	  &pico_pen_left, false, ctl_pico_pen, ctl_pico_pen_release },
+	  &pico_pen_left, ctl_pico_pen, ctl_pico_pen_release, DEF },
 	{ CTL_PICO_PEN_RIGHT,
-	  &pico_pen_right, false, ctl_pico_pen, ctl_pico_pen_release },
+	  &pico_pen_right, ctl_pico_pen, ctl_pico_pen_release, DEF },
 	{ CTL_PICO_PEN_BUTTON,
-	  &pico_pen_button, false, ctl_pico_pen, ctl_pico_pen_release },
+	  &pico_pen_button, ctl_pico_pen, ctl_pico_pen_release, DEF },
 #endif
-	{ CTL_DGEN_QUIT, &dgen_quit, false, ctl_dgen_quit, NULL },
+	{ CTL_DGEN_QUIT, &dgen_quit, ctl_dgen_quit, NULL, DEF },
 	{ CTL_DGEN_CRAPTV_TOGGLE,
-	  &dgen_craptv_toggle, false, ctl_dgen_craptv_toggle, NULL },
+	  &dgen_craptv_toggle, ctl_dgen_craptv_toggle, NULL, DEF },
 	{ CTL_DGEN_SCALING_TOGGLE,
-	  &dgen_scaling_toggle, false, ctl_dgen_scaling_toggle, NULL },
-	{ CTL_DGEN_RESET, &dgen_reset, false, ctl_dgen_reset, NULL },
-	{ CTL_DGEN_SLOT0, &dgen_slot_0, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT1, &dgen_slot_1, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT2, &dgen_slot_2, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT3, &dgen_slot_3, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT4, &dgen_slot_4, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT5, &dgen_slot_5, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT6, &dgen_slot_6, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT7, &dgen_slot_7, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT8, &dgen_slot_8, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT9, &dgen_slot_9, false, ctl_dgen_slot, NULL },
-	{ CTL_DGEN_SLOT_NEXT, &dgen_slot_next, false, ctl_dgen_slot_next, NULL },
-	{ CTL_DGEN_SLOT_PREV, &dgen_slot_prev, false, ctl_dgen_slot_prev, NULL },
-	{ CTL_DGEN_SAVE, &dgen_save, false, ctl_dgen_save, NULL },
-	{ CTL_DGEN_LOAD, &dgen_load, false, ctl_dgen_load, NULL },
+	  &dgen_scaling_toggle, ctl_dgen_scaling_toggle, NULL, DEF },
+	{ CTL_DGEN_RESET, &dgen_reset, ctl_dgen_reset, NULL, DEF },
+	{ CTL_DGEN_SLOT0, &dgen_slot_0, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT1, &dgen_slot_1, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT2, &dgen_slot_2, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT3, &dgen_slot_3, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT4, &dgen_slot_4, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT5, &dgen_slot_5, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT6, &dgen_slot_6, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT7, &dgen_slot_7, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT8, &dgen_slot_8, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT9, &dgen_slot_9, ctl_dgen_slot, NULL, DEF },
+	{ CTL_DGEN_SLOT_NEXT, &dgen_slot_next, ctl_dgen_slot_next, NULL, DEF },
+	{ CTL_DGEN_SLOT_PREV, &dgen_slot_prev, ctl_dgen_slot_prev, NULL, DEF },
+	{ CTL_DGEN_SAVE, &dgen_save, ctl_dgen_save, NULL, DEF },
+	{ CTL_DGEN_LOAD, &dgen_load, ctl_dgen_load, NULL, DEF },
 	{ CTL_DGEN_Z80_TOGGLE,
-	  &dgen_z80_toggle, false, ctl_dgen_z80_toggle, NULL },
+	  &dgen_z80_toggle, ctl_dgen_z80_toggle, NULL, DEF },
 	{ CTL_DGEN_CPU_TOGGLE,
-	  &dgen_cpu_toggle, false, ctl_dgen_cpu_toggle, NULL },
-	{ CTL_DGEN_STOP, &dgen_stop, false, ctl_dgen_stop, NULL },
-	{ CTL_DGEN_PROMPT, &dgen_prompt, false, ctl_dgen_prompt, NULL },
+	  &dgen_cpu_toggle, ctl_dgen_cpu_toggle, NULL, DEF },
+	{ CTL_DGEN_STOP, &dgen_stop, ctl_dgen_stop, NULL, DEF },
+	{ CTL_DGEN_PROMPT, &dgen_prompt, ctl_dgen_prompt, NULL, DEF },
 	{ CTL_DGEN_GAME_GENIE,
-	  &dgen_game_genie, false, ctl_dgen_game_genie, NULL },
+	  &dgen_game_genie, ctl_dgen_game_genie, NULL, DEF },
 	{ CTL_DGEN_VOLUME_INC,
-	  &dgen_volume_inc, false, ctl_dgen_volume, NULL },
+	  &dgen_volume_inc, ctl_dgen_volume, NULL, DEF },
 	{ CTL_DGEN_VOLUME_DEC,
-	  &dgen_volume_dec, false, ctl_dgen_volume, NULL },
+	  &dgen_volume_dec, ctl_dgen_volume, NULL, DEF },
 	{ CTL_DGEN_FULLSCREEN_TOGGLE,
-	  &dgen_fullscreen_toggle, false, ctl_dgen_fullscreen_toggle, NULL },
+	  &dgen_fullscreen_toggle, ctl_dgen_fullscreen_toggle, NULL, DEF },
 	{ CTL_DGEN_FIX_CHECKSUM,
-	  &dgen_fix_checksum, false, ctl_dgen_fix_checksum, NULL },
+	  &dgen_fix_checksum, ctl_dgen_fix_checksum, NULL, DEF },
 	{ CTL_DGEN_SCREENSHOT,
-	  &dgen_screenshot, false, ctl_dgen_screenshot, NULL },
+	  &dgen_screenshot, ctl_dgen_screenshot, NULL, DEF },
 	{ CTL_DGEN_DEBUG_ENTER,
-	  &dgen_debug_enter, false, ctl_dgen_debug_enter, NULL },
-	{ CTL_, NULL, false, NULL, NULL }
+	  &dgen_debug_enter, ctl_dgen_debug_enter, NULL, DEF },
+	{ CTL_, NULL, NULL, NULL, DEF }
 };
 
 static struct {
@@ -6079,6 +6077,8 @@ static int stop_events(md& megad, enum events status)
 	for (ctl = control; (ctl->rc != NULL); ++ctl) {
 		if (ctl->pressed == false)
 			continue;
+		ctl->pressed = false;
+		ctl->coord = false;
 		if ((ctl->release != NULL) &&
 		    (ctl->release(*ctl, megad) == 0))
 			return -1; // XXX do something about this.
@@ -6206,15 +6206,20 @@ next_event:
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			// Release buttons first.
 			for (i = 0; (i != ri); ++i) {
-				if ((ctl->pressed == true) &&
-				    ((uint32_t)(*ctl->rc)[RCBJ] == rlist[i]) &&
-				    (ctl->release != NULL) &&
+				if ((ctl->pressed == false) ||
+				    ((uint32_t)(*ctl->rc)[RCBJ] != rlist[i]))
+					continue;
+				ctl->pressed = false;
+				ctl->coord = false;
+				if ((ctl->release != NULL) &&
 				    (ctl->release(*ctl, megad) == 0))
 					return 0;
 			}
 			for (i = 0; (i != pi); ++i) {
 				if ((uint32_t)(*ctl->rc)[RCBJ] == plist[i]) {
 					assert(ctl->press != NULL);
+					ctl->pressed = true;
+					ctl->coord = false;
 					if (ctl->press(*ctl, megad) == 0)
 						return 0;
 				}
@@ -6247,6 +6252,8 @@ next_event:
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if ((*ctl->rc)[RCBJ] != joypad)
 				continue;
+			ctl->pressed = pressed;
+			ctl->coord = false;
 			if (pressed == false) {
 				if ((ctl->release != NULL) &&
 				    (ctl->release(*ctl, megad) == 0))
@@ -6368,6 +6375,8 @@ next_event:
 			if (ksym != (*ctl->rc)[RCBK])
 				continue;
 			assert(ctl->press != NULL);
+			ctl->pressed = true;
+			ctl->coord = false;
 			if (ctl->press(*ctl, megad) == 0)
 				return 0;
 		}
@@ -6400,6 +6409,8 @@ next_event:
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if (ksym != ((*ctl->rc)[RCBK] & ~KEYSYM_MOD_MASK))
 				continue;
+			ctl->pressed = false;
+			ctl->coord = false;
 			if ((ctl->release != NULL) &&
 			    (ctl->release(*ctl, megad) == 0))
 				return 0;
