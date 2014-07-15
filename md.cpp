@@ -576,6 +576,10 @@ md::md(bool pal, char region):
 	vgm_dump = false;
 #endif
 
+#ifdef WITH_PICO
+	pico_enabled = false;
+#endif
+
   memset(&m68k_state, 0, sizeof(m68k_state));
   memset(&z80_state, 0, sizeof(z80_state));
 
@@ -1010,7 +1014,7 @@ int md::load(const char *name)
 	// If it is, the Sega Pico I/O area will be enabled, and the
 	// Megadrive I/O area will be disabled.
 	if ((!strncmp(cart_head.system_name, "SEGA PICO", 9)) ||
-	    (!strncmp(cart_head.system_name, "SEGATOYS PICO", 9)))
+	    (!strncmp(cart_head.system_name, "SEGATOYS PICO", 13)))
 		pico_enabled = true;
 	else
 		pico_enabled = false;
