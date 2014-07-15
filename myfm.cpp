@@ -129,6 +129,9 @@ void md::fm_reset()
 		YM2612ResetChip(1);
 		YM2612ResetChip(2);
 	}
+	SN76496_init(0,
+		     (((pal) ? PAL_MCLK : NTSC_MCLK) / 15),
+		     dgen_soundrate, 16);
 }
 
 void md::dac_init()

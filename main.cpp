@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
       if (dgen_soundsegs < 0)
 	      dgen_soundsegs = 0;
       samples = (dgen_soundsegs * (rate / dgen_hz));
-      dgen_sound = pd_sound_init(rate, samples);
+      pd_sound_init(rate, samples);
     }
 
 	rom = argv[optind];
@@ -515,10 +515,6 @@ next_rom:
 	startclk = pd_usecs();
 	oldclk = startclk;
 	fpsclk = startclk;
-
-	// Start audio
-	if (dgen_sound)
-		pd_sound_start();
 
 	// Show cartridge header
 	if (dgen_show_carthead)
@@ -630,10 +626,6 @@ next_rom:
 		}
 	}
 
-	// Pause audio.
-	if (dgen_sound)
-		pd_sound_pause();
-
 #ifdef WITH_JOYSTICK
 	if (dgen_joystick)
 		megad->deinit_joysticks();
@@ -667,6 +659,7 @@ next_rom:
 clean_up:
 	// Cleanup
 	delete megad;
+	pd_sound_deinit();
 	pd_quit();
 	// Save configuration.
 	if (dgen_autoconf) {

@@ -1439,7 +1439,6 @@ int md::debug_cmd_cont(int n_args, char **args)
 	(void) args;
 
 	debug_trap = false;
-	pd_sound_start();
 	return (0); // causes debugger to exit
 }
 
@@ -1790,7 +1789,6 @@ int md::debug_cmd_step(int n_args, char **args)
 	}
 	fflush(stdout);
 	debug_trap = false;
-	pd_sound_start();
 	return (0); // continue executing
 out:
 	fflush(stdout);
@@ -2095,7 +2093,6 @@ void md::debug_leave()
 		return;
 	linenoise_nb_clean();
 	debug_trap = false;
-	pd_sound_start();
 }
 
 /**
@@ -2112,7 +2109,6 @@ int md::debug_enter()
 	int				 ret;
 
 	if (debug_trap == false) {
-		pd_sound_pause();
 		pd_message("Debug trap.");
 		debug_trap = true;
 

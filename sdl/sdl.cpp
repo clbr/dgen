@@ -3964,6 +3964,9 @@ int pd_sound_init(long &freq, unsigned int &samples)
 	SDL_AudioSpec wanted;
 	SDL_AudioSpec spec;
 
+	// Clean up first.
+	pd_sound_deinit();
+
 	// Set the desired format
 	wanted.freq = freq;
 #ifdef WORDS_BIGENDIAN
@@ -4022,6 +4025,9 @@ int pd_sound_init(long &freq, unsigned int &samples)
 		goto snd_error;
 	}
 
+	// Start sound output.
+	SDL_PauseAudio(0);
+
 	// It's all good!
 	return 1;
 
@@ -4043,6 +4049,7 @@ snd_error:
 void pd_sound_deinit()
 {
 	if (sound.cbuf.data.i16 != NULL) {
+		SDL_PauseAudio(1);
 		SDL_CloseAudio();
 		free((void *)sound.cbuf.data.i16);
 	}
@@ -4052,28 +4059,14 @@ void pd_sound_deinit()
 }
 
 /**
- * Start/stop audio processing.
- */
-void pd_sound_start()
-{
-  SDL_PauseAudio(0);
-}
-
-/**
- * Pause sound.
- */
-void pd_sound_pause()
-{
-  SDL_PauseAudio(1);
-}
-
-/**
  * Return samples read/write indices in the buffer.
  */
 unsigned int pd_sound_rp()
 {
 	unsigned int ret;
 
+	if (!sound.cbuf.size)
+		return 0;
 	SDL_LockAudio();
 	ret = sound.cbuf.i;
 	SDL_UnlockAudio();
@@ -4084,6 +4077,8 @@ unsigned int pd_sound_wp()
 {
 	unsigned int ret;
 
+	if (!sound.cbuf.size)
+		return 0;
 	SDL_LockAudio();
 	ret = ((sound.cbuf.i + sound.cbuf.s) % sound.cbuf.size);
 	SDL_UnlockAudio();
@@ -4095,6 +4090,8 @@ unsigned int pd_sound_wp()
  */
 void pd_sound_write()
 {
+	if (!sound.cbuf.size)
+		return;
 	SDL_LockAudio();
 	cbuf_write(&sound.cbuf, (uint8_t *)sndi.lr, (sndi.len * 4));
 	SDL_UnlockAudio();
@@ -4434,7 +4431,6 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 			dgen_pal = pal;
 			megad.pal = pal;
 			megad.init_pal();
-			megad.init_sound();
 			video.is_pal = pal;
 			video.height = vblank;
 			video.hz = hz;
@@ -4474,8 +4470,7 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 
 			pd_sound_deinit();
 			samples = (dgen_soundsegs * (rate / video.hz));
-			dgen_sound = pd_sound_init(rate, samples);
-			if (dgen_sound == 0)
+			if (!pd_sound_init(rate, samples))
 				fail = true;
 			YM2612_dump(0, ym2612_buf);
 			SN76496_dump(0, sn76496_buf);
@@ -6126,8 +6121,6 @@ static int stop_events(md& megad, enum events status)
 
 	stopped = 1;
 	pd_freeze = true;
-	if (dgen_sound)
-		pd_sound_pause();
 	events = status;
 	// Release controls.
 	for (ctl = control; (ctl->rc != NULL); ++ctl) {
@@ -6156,8 +6149,6 @@ static void restart_events(md& megad)
 	(void)megad;
 	stopped = 1;
 	pd_freeze = false;
-	if (dgen_sound)
-		pd_sound_start();
 	handle_prompt_complete_clear();
 	SDL_EnableKeyRepeat(0, 0);
 	events = STARTED;
@@ -6235,6 +6226,9 @@ static bool mouse_motion_released(SDL_Event *event)
 int pd_handle_events(md &megad)
 {
 	static uint16_t kpress[0x100];
+#ifdef WITH_DEBUGGER
+	static bool debug_trap;
+#endif
 #ifdef WITH_JOYSTICK
 	static uint32_t const axis_value[][3] = {
 		// { pressed, [implicitly released ...] }
@@ -6265,6 +6259,13 @@ int pd_handle_events(md &megad)
 #ifdef WITH_DEBUGGER
 	if ((megad.debug_trap) && (megad.debug_enter() < 0))
 		return 0;
+	if (debug_trap != megad.debug_trap) {
+		debug_trap = megad.debug_trap;
+		if (debug_trap)
+			mouse_grab(false);
+		if (sound.cbuf.size)
+			SDL_PauseAudio(debug_trap == true);
+	}
 #endif
 next_event:
 	if (mouse_motion_released(&event))
