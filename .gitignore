@@ -1,13 +1,14 @@
 *.o
 *.a
 *.obj
+*.exe
 .deps
 aclocal.m4
 autom4te.cache
 Makefile
 Makefile.in
 /dgen
-/tobin
+/dgen_tobin
 /configure
 /config.log
 /config.status
@@ -24,7 +25,7 @@ Makefile.in
 /mz80/mz80.c
 /mz80/x86-mz80.asm
 /sdl/pbm2df
-/sdl/dgenfont.cpp
+/sdl/dgenfont*.cpp
 /star/star
 /star/starcpu.asm
 /cyclone/Cyclone.s
