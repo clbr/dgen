@@ -3757,10 +3757,31 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 		video.is_pal = 0;
 		video.height = 224;
 	}
+#ifndef __MINGW32__
+	// [fbcon workaround]
+	// Disable SDL_FBACCEL (if unset) before calling SDL_Init() in case
+	// fbcon is to be used. Prevents SDL_FillRect() and SDL_SetVideoMode()
+	// from hanging when hardware acceleration is available.
+	setenv("SDL_FBACCEL", "0", 0);
+	// [fbcon workaround]
+	// A mouse is never required.
+	setenv("SDL_NOMOUSE", "1", 0);
+#endif
 	if (SDL_Init(SDL_INIT_VIDEO | (want_sound ? SDL_INIT_AUDIO : 0))) {
 		fprintf(stderr, "sdl: can't init SDL: %s\n", SDL_GetError());
 		return 0;
 	}
+#ifndef __MINGW32__
+	{
+		char buf[32];
+
+		// [fbcon workaround]
+		// Double buffering usually makes screen blink during refresh.
+		if ((SDL_VideoDriverName(buf, sizeof(buf))) &&
+		    (!strcmp(buf, "fbcon")))
+			dgen_doublebuffer = 0;
+	}
+#endif
 	// Required for text input.
 	SDL_EnableUNICODE(1);
 	// Set the titlebar.
