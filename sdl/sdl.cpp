@@ -3550,8 +3550,20 @@ opengl_failed:
 	       scrtmp.width, scrtmp.height, scrtmp.bpp, flags));
 	scrtmp.surface = SDL_SetVideoMode(scrtmp.width, scrtmp.height,
 					  scrtmp.bpp, flags);
-	if (scrtmp.surface == NULL)
+	if (scrtmp.surface == NULL) {
+#ifdef WITH_OPENGL
+		// Try again without OpenGL.
+		if (flags & SDL_OPENGL) {
+			assert(scrtmp.want_opengl);
+			DEBUG(("OpenGL initialization failed, retrying"
+			       " without it."));
+			dgen_opengl = 0;
+			flags &= ~SDL_OPENGL;
+			goto opengl_failed;
+		}
+#endif
 		return -1;
+	}
 	DEBUG(("SDL_SetVideoMode succeeded"));
 	// Update with current values.
 	scrtmp.window_width = scrtmp.surface->w;
