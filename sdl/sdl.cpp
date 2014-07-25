@@ -6465,6 +6465,11 @@ next_event:
 
 		manage_combos(megad, true, RCBK, ksym);
 
+		if (calibrating) {
+			manage_calibration(RCBK, ksym);
+			break;
+		}
+
 		switch (events) {
 			int ret;
 
@@ -6540,11 +6545,6 @@ next_event:
 			goto next_event;
 		}
 
-		if (calibrating) {
-			manage_calibration(RCBK, ksym);
-			break;
-		}
-
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if (ksym != (*ctl->rc)[RCBK])
 				continue;
@@ -6573,9 +6573,9 @@ next_event:
 		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_CTRL));
 		manage_combos(megad, false, RCBK, (ksym | KEYSYM_MOD_META));
 
-		if (events != STARTED)
-			break;
 		if (calibrating)
+			break;
+		if (events != STARTED)
 			break;
 
 		// The only time we care about key releases is for the
@@ -6631,13 +6631,13 @@ next_event:
 			manage_combos(megad, false, RCBM, rlist[i]);
 		for (i = 0; (i != pi); ++i)
 			manage_combos(megad, true, RCBM, plist[i]);
-		if (events != STARTED)
-			break;
 		if (calibrating) {
 			for (i = 0; ((calibrating) && (i != pi)); ++i)
 				manage_calibration(RCBM, plist[i]);
 			break;
 		}
+		if (events != STARTED)
+			break;
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			// Release buttons first.
 			for (i = 0; (i != ri); ++i) {
@@ -6682,13 +6682,13 @@ next_event:
 	mouse_button:
 		mouse = MO_BUTTON(event.button.which, event.button.button);
 		manage_combos(megad, pressed, RCBM, mouse);
-		if (events != STARTED)
-			break;
 		if (calibrating) {
 			if (pressed)
 				manage_calibration(RCBM, mouse);
 			break;
 		}
+		if (events != STARTED)
+			break;
 		for (struct ctl* ctl = control; (ctl->rc != NULL); ++ctl) {
 			if ((*ctl->rc)[RCBM] != mouse)
 				continue;
