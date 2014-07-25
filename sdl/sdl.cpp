@@ -513,6 +513,28 @@ static const char game_genie_str[] = "Enter Game Genie/Hex code: ";
 
 /// Enable emulation by default.
 bool pd_freeze = false;
+static unsigned int pd_freeze_ref = 0;
+
+static void freeze(bool toggle)
+{
+	if (toggle == true) {
+		if (!pd_freeze_ref) {
+			assert(pd_freeze == false);
+			pd_freeze = true;
+		}
+		pd_freeze_ref++;
+	}
+	else {
+		if (pd_freeze_ref) {
+			assert(pd_freeze == true);
+			pd_freeze_ref--;
+			if (!pd_freeze_ref)
+				pd_freeze = false;
+		}
+		else
+			assert(pd_freeze == false);
+	}
+}
 
 /**
  * Elapsed time in microseconds.
@@ -5795,7 +5817,7 @@ static void manage_calibration(enum rc_binding_type type, intptr_t code)
 	assert(calibrating_controller < 2);
 	if (!calibrating) {
 		// Stop emulation, enter calibration mode.
-		pd_freeze = true;
+		freeze(true);
 		calibrating = true;
 		filter_text_str[0] = '\0';
 		filter_text_msg(FILTER_TEXT_BG_BLACK
@@ -5828,7 +5850,7 @@ static void manage_calibration(enum rc_binding_type type, intptr_t code)
 			calibration_steps[step].code = -1;
 		}
 		// Restart emulation.
-		pd_freeze = false;
+		freeze(false);
 		calibrating = false;
 		filters_pluck(&filter_text_def);
 		return;
@@ -6146,7 +6168,7 @@ static int stop_events(md& megad, enum events status)
 	struct ctl* ctl;
 
 	stopped = 1;
-	pd_freeze = true;
+	freeze(true);
 	events = status;
 	// Release controls.
 	for (ctl = control; (ctl->rc != NULL); ++ctl) {
@@ -6174,7 +6196,7 @@ static void restart_events(md& megad)
 {
 	(void)megad;
 	stopped = 1;
-	pd_freeze = false;
+	freeze(false);
 	handle_prompt_complete_clear();
 	SDL_EnableKeyRepeat(0, 0);
 	events = STARTED;
