@@ -53,11 +53,15 @@ extern "C" {
 }
 #endif
 
+/// Number of microseconds to sustain messages
+#define MESSAGE_LIFE 3000000
+
 static void pd_message_process(void);
 static size_t pd_message_write(const char *msg, size_t len, unsigned int mark);
 static size_t pd_message_display(const char *msg, size_t len,
 				 unsigned int mark, bool update);
 static void pd_message_postpone(const char *msg);
+static void pd_message_cursor(unsigned int mark, const char *msg, ...);
 
 /// Generic type for supported colour depths.
 typedef union {
@@ -410,7 +414,7 @@ static struct {
 #define PROMPT_RET_EXIT 0x02 ///< leave prompt normally
 #define PROMPT_RET_ERROR 0x04 ///< leave prompt with error
 #define PROMPT_RET_ENTER 0x10 ///< previous line entered
-#define PROMPT_RET_MSG 0x80 ///< stop_events_msg() has been used
+#define PROMPT_RET_MSG 0x80 ///< pd_message() has been used
 
 struct prompt_command {
 	const char* name;
@@ -484,7 +488,7 @@ static const struct prompt_command prompt_command[] = {
 #define CMD_EINVAL 0x01 ///< invalid argument
 #define CMD_FAIL 0x02 ///< command failed
 #define CMD_ERROR 0x03 ///< fatal error, DGen should exit
-#define CMD_MSG 0x80 ///< stop_events_msg() has been used
+#define CMD_MSG 0x80 ///< pd_message() has been used
 
 /// Stopped flag used by pd_stopped()
 static int stopped = 0;
@@ -521,11 +525,6 @@ unsigned long pd_usecs(void)
 	gettimeofday(&tv, NULL);
 	return (unsigned long)((tv.tv_sec * 1000000) + tv.tv_usec);
 }
-
-/// Number of microseconds to sustain messages
-#define MESSAGE_LIFE 3000000
-
-static void stop_events_msg(unsigned int mark, const char *msg, ...);
 
 /**
  * Prompt "exit" command handler.
@@ -564,11 +563,11 @@ static int prompt_cmd_load(class md& md, unsigned int ac, const char** av)
 	pd_message("");
 	if (md.load(av[1])) {
 		mdscr_splash();
-		stop_events_msg(~0u, "Unable to load \"%s\"", s);
+		pd_message("Unable to load \"%s\"", s);
 		free(s);
 		return (CMD_FAIL | CMD_MSG);
 	}
-	stop_events_msg(~0u, "Loaded \"%s\"", s);
+	pd_message("Loaded \"%s\"", s);
 	free(s);
 	if (dgen_show_carthead)
 		pd_show_carthead(md);
@@ -679,7 +678,7 @@ static int prompt_cmd_unload(class md& md, unsigned int, const char**)
 	extern void ram_save(class md&);
 
 	info.length = 0; // clear postponed messages
-	stop_events_msg(~0u, "No cartridge.");
+	pd_message("No cartridge.");
 	ram_save(md);
 	if (dgen_autosave) {
 		slot = 0;
@@ -755,8 +754,8 @@ static int prompt_cmd_config_load(class md& md, unsigned int ac,
 		return CMD_FAIL;
 	f = dgen_fopen("config", av[1], (DGEN_READ | DGEN_CURRENT));
 	if (f == NULL) {
-		stop_events_msg(~0u, "Cannot load configuration \"%s\": %s.",
-				s, strerror(errno));
+		pd_message("Cannot load configuration \"%s\": %s.",
+			   s, strerror(errno));
 		free(s);
 		return (CMD_FAIL | CMD_MSG);
 	}
@@ -764,7 +763,7 @@ static int prompt_cmd_config_load(class md& md, unsigned int ac,
 	fclose(f);
 	for (i = 0; (rc_fields[i].fieldname != NULL); ++i)
 		prompt_rehash_rc_field(&rc_fields[i], md);
-	stop_events_msg(~0u, "Loaded configuration \"%s\".", s);
+	pd_message("Loaded configuration \"%s\".", s);
 	free(s);
 	return (CMD_OK | CMD_MSG);
 }
@@ -790,14 +789,14 @@ static int prompt_cmd_config_save(class md& md, unsigned int ac,
 		return CMD_FAIL;
 	f = dgen_fopen("config", av[1], (DGEN_WRITE | DGEN_TEXT));
 	if (f == NULL) {
-		stop_events_msg(~0u, "Cannot save configuration \"%s\": %s",
-				s, strerror(errno));
+		pd_message("Cannot save configuration \"%s\": %s",
+			   s, strerror(errno));
 		free(s);
 		return (CMD_FAIL | CMD_MSG);
 	}
 	dump_rc(f);
 	fclose(f);
-	stop_events_msg(~0u, "Saved configuration \"%s\"", s);
+	pd_message("Saved configuration \"%s\"", s);
 	free(s);
 	return (CMD_OK | CMD_MSG);
 }
@@ -919,29 +918,29 @@ static int prompt_cmd_vgmdump(class md& md, unsigned int ac, const char** av)
 		return CMD_EINVAL;
 	if (!strcasecmp(av[1], "stop")) {
 		if (md.vgm_dump == false)
-			stop_events_msg(~0u, "VGM dumping already stopped.");
+			pd_message("VGM dumping already stopped.");
 		else {
 			md.vgm_dump_stop();
-			stop_events_msg(~0u, "Stopped VGM dumping.");
+			pd_message("Stopped VGM dumping.");
 		}
 		return (CMD_OK | CMD_MSG);
 	}
 	if (strcasecmp(av[1], "start"))
 		return CMD_EINVAL;
 	if (ac < 3) {
-		stop_events_msg(~0u, "VGM file name required.");
+		pd_message("VGM file name required.");
 		return (CMD_EINVAL | CMD_MSG);
 	}
 	s = backslashify((const uint8_t *)av[2], strlen(av[2]), 0, NULL);
 	if (s == NULL)
 		return CMD_FAIL;
 	if (md.vgm_dump_start(av[2])) {
-		stop_events_msg(~0u, "Cannot dump VGM to \"%s\": %s",
-				s, strerror(errno));
+		pd_message("Cannot dump VGM to \"%s\": %s",
+			   s, strerror(errno));
 		free(s);
 		return (CMD_FAIL | CMD_MSG);
 	}
-	stop_events_msg(~0u, "Started VGM dumping to \"%s\"", s);
+	pd_message("Started VGM dumping to \"%s\"", s);
 	free(s);
 	return (CMD_OK | CMD_MSG);
 }
@@ -2443,10 +2442,10 @@ retry:
 	out->updated = true;
 	// Initialize HQX if necessary.
 	if (hqx_initialized == false) {
-		stop_events_msg(~0u, "Initializing hqx...");
+		pd_message_cursor(~0u, "Initializing hqx...");
 		stopped = 1;
 		hqxInit();
-		stop_events_msg(~0u, "");
+		pd_message_cursor(~0u, "");
 		hqx_initialized = true;
 	}
 	goto process;
@@ -4259,7 +4258,11 @@ static enum kb_input kb_input(kb_input_t *input, uint32_t ksym,
 	return KB_INPUT_IGNORED;
 }
 
-static void stop_events_msg(unsigned int mark, const char *msg, ...)
+/**
+ * Write a message to the status bar while displaying a cursor and without
+ * buffering.
+ */
+static void pd_message_cursor(unsigned int mark, const char *msg, ...)
 {
 	va_list vl;
 	char buf[1024];
@@ -4522,12 +4525,12 @@ static int prompt_rehash_rc_field(const struct rc_field *rc, md& megad)
 #endif
 	}
 	if (fail) {
-		stop_events_msg(~0u, "Failed to rehash value.");
+		pd_message("Failed to rehash value.");
 		return (PROMPT_RET_EXIT | PROMPT_RET_MSG);
 	}
 	return PROMPT_RET_CONT;
 video_warn:
-	stop_events_msg(~0u, "Failed to reinitialize video.");
+	pd_message("Failed to reinitialize video.");
 	return (PROMPT_RET_EXIT | PROMPT_RET_MSG);
 video_fail:
 	fprintf(stderr, "sdl: fatal error while trying to change screen"
@@ -4541,75 +4544,72 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	intptr_t val = *rc->variable;
 
 	if (rc->parser == rc_number)
-		stop_events_msg(~0u, "%s is %ld", rc->fieldname, val);
+		pd_message("%s is %ld", rc->fieldname, val);
 	else if (rc->parser == rc_keysym) {
 		char *ks = dump_keysym(val);
 
 		if ((ks == NULL) || (ks[0] == '\0'))
-			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
+			pd_message("%s isn't bound", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is bound to \"%s\"",
-					rc->fieldname, ks);
+			pd_message("%s is bound to \"%s\"", rc->fieldname, ks);
 		free(ks);
 	}
 	else if (rc->parser == rc_boolean)
-		stop_events_msg(~0u, "%s is %s", rc->fieldname,
-				((val) ? "true" : "false"));
+		pd_message("%s is %s", rc->fieldname,
+			   ((val) ? "true" : "false"));
 	else if (rc->parser == rc_joypad) {
 		char *js = dump_joypad(val);
 
 		if ((js == NULL) || (js[0] == '\0'))
-			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
+			pd_message("%s isn't bound", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is bound to \"%s\"",
-					rc->fieldname, js);
+			pd_message("%s is bound to \"%s\"", rc->fieldname, js);
 		free(js);
 	}
 	else if (rc->parser == rc_mouse) {
 		char *mo = dump_mouse(val);
 
 		if ((mo == NULL) || (mo[0] == '\0'))
-			stop_events_msg(~0u, "%s isn't bound", rc->fieldname);
+			pd_message("%s isn't bound", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is bound to \"%s\"",
-					rc->fieldname, mo);
+			pd_message("%s is bound to \"%s\"", rc->fieldname, mo);
 		free(mo);
 	}
 	else if (rc->parser == rc_ctv) {
 		i = val;
 		if (i >= NUM_CTV)
-			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+			pd_message("%s is undefined", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
-					ctv_names[i]);
+			pd_message("%s is \"%s\"", rc->fieldname,
+				   ctv_names[i]);
 	}
 	else if (rc->parser == rc_scaling) {
 		i = val;
 		if (i >= NUM_SCALING)
-			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+			pd_message("%s is undefined", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
-					scaling_names[i]);
+			pd_message("%s is \"%s\"", rc->fieldname,
+				   scaling_names[i]);
 	}
 	else if (rc->parser == rc_emu_z80) {
 		for (i = 0; (emu_z80_names[i] != NULL); ++i)
 			if (i == (size_t)val)
 				break;
 		if (emu_z80_names[i] == NULL)
-			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+			pd_message("%s is undefined", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
-					emu_z80_names[i]);
+			pd_message("%s is \"%s\"", rc->fieldname,
+				   emu_z80_names[i]);
 	}
 	else if (rc->parser == rc_emu_m68k) {
 		for (i = 0; (emu_m68k_names[i] != NULL); ++i)
 			if (i == (size_t)val)
 				break;
 		if (emu_m68k_names[i] == NULL)
-			stop_events_msg(~0u, "%s is undefined", rc->fieldname);
+			pd_message("%s is undefined", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname,
-					emu_m68k_names[i]);
+			pd_message("%s is \"%s\"", rc->fieldname,
+				   emu_m68k_names[i]);
 	}
 	else if (rc->parser == rc_region) {
 		const char *s;
@@ -4624,8 +4624,8 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 			s = "Japan (PAL)";
 		else
 			s = "Auto";
-		stop_events_msg(~0u, "%s is \"%c\" (%s)", rc->fieldname,
-				(val ? (char)val : (char)' '), s);
+		pd_message("%s is \"%c\" (%s)", rc->fieldname,
+			   (val ? (char)val : (char)' '), s);
 	}
 	else if ((rc->parser == rc_string) ||
 		 (rc->parser == rc_rom_path)) {
@@ -4633,16 +4633,15 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		char *s;
 
 		if (rs->val == NULL)
-			stop_events_msg(~0u, "%s has no value", rc->fieldname);
+			pd_message("%s has no value", rc->fieldname);
 		else if ((s = backslashify((const uint8_t *)rs->val,
 					   strlen(rs->val), 0,
 					   NULL)) != NULL) {
-			stop_events_msg(~0u, "%s is \"%s\"", rc->fieldname, s);
+			pd_message("%s is \"%s\"", rc->fieldname, s);
 			free(s);
 		}
 		else
-			stop_events_msg(~0u, "%s can't be displayed",
-					rc->fieldname);
+			pd_message("%s can't be displayed", rc->fieldname);
 	}
 	else if (rc->parser == rc_bind) {
 		char *f = backslashify((uint8_t *)rc->fieldname,
@@ -4653,15 +4652,14 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 		assert((intptr_t)s != -1);
 		s = backslashify((uint8_t *)s, strlen(s), 0, NULL);
 		if ((f == NULL) || (s == NULL))
-			stop_events_msg(~0u, "%s can't be displayed",
-					rc->fieldname);
+			pd_message("%s can't be displayed", rc->fieldname);
 		else
-			stop_events_msg(~0u, "%s is bound to \"%s\"", f, s);
+			pd_message("%s is bound to \"%s\"", f, s);
 		free(f);
 		free(s);
 	}
 	else
-		stop_events_msg(~0u, "%s: can't display value", rc->fieldname);
+		pd_message("%s: can't display value", rc->fieldname);
 }
 
 static int handle_prompt_enter(class md& md)
@@ -4692,13 +4690,11 @@ static int handle_prompt_enter(class md& md)
 		if (cret & CMD_MSG)
 			ret |= PROMPT_RET_MSG;
 		else if (cret & CMD_FAIL) {
-			stop_events_msg(~0u, "%s: command failed",
-					(char *)pp.argv[0]);
+			pd_message("%s: command failed", (char *)pp.argv[0]);
 			ret |= PROMPT_RET_MSG;
 		}
 		else if (cret & CMD_EINVAL) {
-			stop_events_msg(~0u, "%s: invalid argument",
-					(char *)pp.argv[0]);
+			pd_message("%s: invalid argument", (char *)pp.argv[0]);
 			ret |= PROMPT_RET_MSG;
 		}
 		goto end;
@@ -4720,8 +4716,7 @@ binding_retry:
 		potential = rc_fields[i].parser((char *)pp.argv[1],
 						rc_fields[i].variable);
 		if ((rc_fields[i].parser != rc_number) && (potential == -1)) {
-			stop_events_msg(~0u, "%s: invalid value",
-					(char *)pp.argv[0]);
+			pd_message("%s: invalid value",	(char *)pp.argv[0]);
 			ret |= PROMPT_RET_MSG;
 			break;
 		}
@@ -4754,8 +4749,7 @@ binding_retry:
 			binding_tried = true;
 			goto binding_retry;
 		}
-		stop_events_msg(~0u, "%s: unknown command",
-				(char *)pp.argv[0]);
+		pd_message("%s: unknown command", (char *)pp.argv[0]);
 		ret |= PROMPT_RET_MSG;
 	}
 end:
@@ -5125,8 +5119,8 @@ static int handle_prompt(uint32_t ksym, uint16_t ksym_uni, md& megad)
 end:
 	if ((ret & ~(PROMPT_RET_CONT | PROMPT_RET_ENTER)) == 0) {
 		ph = &p->history[(p->current)];
-		stop_events_msg((p->cursor + 1),
-				"%s%.*s", prompt_str, ph->length, ph->line);
+		pd_message_cursor((p->cursor + 1),
+				  "%s%.*s", prompt_str, ph->length, ph->line);
 	}
 	return ret;
 }
@@ -5591,7 +5585,7 @@ static int ctl_dgen_cpu_toggle(struct ctl&, md& megad)
 
 static int ctl_dgen_stop(struct ctl&, md& megad)
 {
-	stop_events_msg(~0u, stopped_str);
+	pd_message(stopped_str);
 	if (stop_events(megad, STOPPED) != 0)
 		return 0;
 	return 1;
@@ -5599,7 +5593,7 @@ static int ctl_dgen_stop(struct ctl&, md& megad)
 
 static int ctl_dgen_prompt(struct ctl&, md& megad)
 {
-	stop_events_msg(strlen(prompt_str), prompt_str);
+	pd_message_cursor(strlen(prompt_str), prompt_str);
 	if (stop_events(megad, PROMPT) != 0)
 		return 0;
 	return 1;
@@ -5607,7 +5601,7 @@ static int ctl_dgen_prompt(struct ctl&, md& megad)
 
 static int ctl_dgen_game_genie(struct ctl&, md& megad)
 {
-	stop_events_msg(strlen(game_genie_str), game_genie_str);
+	pd_message_cursor(strlen(game_genie_str), game_genie_str);
 	if (stop_events(megad, GAME_GENIE) != 0)
 		return 0;
 	return 1;
@@ -5667,7 +5661,7 @@ static int ctl_dgen_debug_enter(struct ctl&, md& megad)
 		megad.debug_leave();
 #else
 	(void)megad;
-	stop_events_msg(~0u, "Debugger support not built in.");
+	pd_message("Debugger support not built in.");
 #endif
 	return 1;
 }
@@ -5982,7 +5976,7 @@ static int manage_bindings(md& md, bool pressed, enum rc_binding_type type,
 		else
 			dump = NULL;
 		if (dump != NULL) {
-			stop_events_msg(~0u, "Pressed \"%s\".", dump);
+			pd_message("Pressed \"%s\".", dump);
 			free(dump);
 		}
 	}
@@ -6060,19 +6054,19 @@ static int manage_game_genie(md& megad, intptr_t ksym, intptr_t ksym_uni)
 	case KB_INPUT_ENTERED:
 		megad.patch(input.buf, &errors, &applied, &reverted);
 		if (errors)
-			stop_events_msg(~0u, "Invalid code.");
+			pd_message("Invalid code.");
 		else if (reverted)
-			stop_events_msg(~0u, "Reverted.");
+			pd_message("Reverted.");
 		else if (applied)
-			stop_events_msg(~0u, "Applied.");
+			pd_message("Applied.");
 		else {
 		case KB_INPUT_ABORTED:
-			stop_events_msg(~0u, "Aborted.");
+			pd_message("Aborted.");
 		}
 		goto over;
 	case KB_INPUT_CONSUMED:
-		stop_events_msg((len + input.pos), "%s%.*s", game_genie_str,
-				(int)input.pos, buf);
+		pd_message_cursor((len + input.pos), "%s%.*s", game_genie_str,
+				  (int)input.pos, buf);
 		break;
 	case KB_INPUT_IGNORED:
 		break;
@@ -6138,8 +6132,7 @@ static void mouse_grab(bool grab)
 	if ((grab) && (!pd_freeze) && (mode == SDL_GRAB_OFF)) {
 		// Hide the cursor.
 		SDL_ShowCursor(0);
-		stop_events_msg(~0u,
-				"Mouse trapped. Stop emulation to release.");
+		pd_message("Mouse trapped. Stop emulation to release.");
 		SDL_WM_GrabInput(SDL_GRAB_ON);
 	}
 	else if ((!grab) && (mode == SDL_GRAB_ON)) {
@@ -6465,12 +6458,12 @@ next_event:
 			if (ret & PROMPT_RET_EXIT) {
 				if (events == STOPPED_PROMPT) {
 					// Return to stopped mode.
-					stop_events_msg(~0u, stopped_str);
+					pd_message(stopped_str);
 					events = STOPPED;
 					goto next_event;
 				}
 				if ((ret & PROMPT_RET_MSG) == 0)
-					stop_events_msg(~0u, "RUNNING.");
+					pd_message("RUNNING.");
 				restart_events(megad);
 				goto next_event;
 			}
@@ -6479,7 +6472,7 @@ next_event:
 				if (events == STOPPED_PROMPT)
 					goto next_event;
 				if ((ret & PROMPT_RET_MSG) == 0)
-					stop_events_msg(~0u, "");
+					pd_message("");
 				restart_events(megad);
 				goto next_event;
 			}
@@ -6491,7 +6484,7 @@ next_event:
 				goto next_event;
 			if (events == STOPPED_GAME_GENIE) {
 				// Return to stopped mode.
-				stop_events_msg(~0u, stopped_str);
+				pd_message(stopped_str);
 				events = STOPPED;
 			}
 			else
@@ -6500,13 +6493,13 @@ next_event:
 		case STOPPED:
 			// In basic stopped mode, handle a few keysyms.
 			if (ksym == dgen_game_genie[0]) {
-				stop_events_msg(strlen(game_genie_str),
-						game_genie_str);
+				pd_message_cursor(strlen(game_genie_str),
+						  game_genie_str);
 				events = STOPPED_GAME_GENIE;
 			}
 			else if (ksym == dgen_prompt[0]) {
-				stop_events_msg(strlen(prompt_str),
-						prompt_str);
+				pd_message_cursor(strlen(prompt_str),
+						  prompt_str);
 				events = STOPPED_PROMPT;
 			}
 			else if (ksym == dgen_quit[0]) {
@@ -6514,7 +6507,7 @@ next_event:
 				return 0;
 			}
 			else if (ksym == dgen_stop[0]) {
-				stop_events_msg(~0u, "RUNNING.");
+				pd_message("RUNNING.");
 				restart_events(megad);
 			}
 #ifdef WITH_DEBUGGER
@@ -6698,16 +6691,14 @@ next_event:
 	case SDL_VIDEORESIZE:
 		switch (screen_init(event.resize.w, event.resize.h)) {
 		case 0:
-			stop_events_msg(~0u,
-					"Video resized to %ux%u.",
-					screen.surface->w,
-					screen.surface->h);
+			pd_message("Video resized to %ux%u.",
+				   screen.surface->w,
+				   screen.surface->h);
 			break;
 		case -1:
-			stop_events_msg(~0u,
-					"Failed to resize video to %ux%u.",
-					event.resize.w,
-					event.resize.h);
+			pd_message("Failed to resize video to %ux%u.",
+				   event.resize.w,
+				   event.resize.h);
 			break;
 		default:
 			fprintf(stderr,
