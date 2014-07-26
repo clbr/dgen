@@ -566,6 +566,15 @@ intptr_t rc_number(const char *value, intptr_t *)
 	return strtol(value, NULL, 0);
 }
 
+intptr_t rc_soundrate(const char *value, intptr_t *)
+{
+	long r = strtol(value, NULL, 0);
+
+	if (r < 8000)
+		r = 8000;
+	return r;
+}
+
 /* This is a table of all the RC options, the variables they affect, and the
  * functions to parse their values. */
 struct rc_field rc_fields[RC_FIELDS_SIZE] = {
@@ -759,7 +768,7 @@ struct rc_field rc_fields[RC_FIELDS_SIZE] = {
 	{ "emu_z80_startup", rc_emu_z80, &dgen_emu_z80 }, // SH
 	{ "emu_m68k_startup", rc_emu_m68k, &dgen_emu_m68k }, // SH
 	{ "bool_sound", rc_boolean, &dgen_sound }, // SH
-	{ "int_soundrate", rc_number, &dgen_soundrate }, // SH
+	{ "int_soundrate", rc_soundrate, &dgen_soundrate }, // SH
 	{ "int_soundsegs", rc_number, &dgen_soundsegs }, // SH
 	{ "int_soundsamples", rc_number, &dgen_soundsamples }, // SH
 	{ "int_volume", rc_number, &dgen_volume },
@@ -1145,7 +1154,8 @@ void dump_rc(FILE *file)
 		}
 		fprintf(file, "%s = ", s);
 		free(s);
-		if (rc->parser == rc_number)
+		if ((rc->parser == rc_number) ||
+		    (rc->parser == rc_soundrate))
 			fprintf(file, "%ld", (long)val);
 		else if (rc->parser == rc_keysym) {
 			char *ks = dump_keysym(val);

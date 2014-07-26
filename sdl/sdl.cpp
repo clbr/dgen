@@ -4565,7 +4565,8 @@ static void prompt_show_rc_field(const struct rc_field *rc)
 	size_t i;
 	intptr_t val = *rc->variable;
 
-	if (rc->parser == rc_number)
+	if ((rc->parser == rc_number) ||
+	    (rc->parser == rc_soundrate))
 		pd_message("%s is %ld", rc->fieldname, val);
 	else if (rc->parser == rc_keysym) {
 		char *ks = dump_keysym(val);
@@ -4951,7 +4952,8 @@ static int handle_prompt_complete(class md& md, bool rwd)
 			}
 		}
 		// Numbers.
-		else if (rc->parser == rc_number) {
+		else if ((rc->parser == rc_number) ||
+			 (rc->parser == rc_soundrate)) {
 			char buf[10];
 
 		rc_number_retry:

@@ -132,6 +132,7 @@ extern intptr_t rc_region(const char *value, intptr_t *);
 extern intptr_t rc_string(const char *value, intptr_t *);
 extern intptr_t rc_rom_path(const char *value, intptr_t *);
 extern intptr_t rc_bind(const char *value, intptr_t *variable);
+extern intptr_t rc_soundrate(const char *value, intptr_t *);
 
 extern struct rc_str *rc_str_list;
 extern void rc_str_cleanup(void);
