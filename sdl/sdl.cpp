@@ -6692,7 +6692,10 @@ next_event:
 		break;
 	case SDL_MOUSEBUTTONDOWN:
 		assert(event.button.state == SDL_PRESSED);
-		mouse_grab(true);
+#ifdef WITH_DEBUGGER
+		if (!debug_trap)
+#endif
+			mouse_grab(true);
 		pressed = true;
 		goto mouse_button;
 	case SDL_MOUSEBUTTONUP:
