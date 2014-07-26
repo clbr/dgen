@@ -3819,6 +3819,8 @@ int pd_graphics_init(int want_sound, int want_pal, int hz)
 	SDL_EnableUNICODE(1);
 	// Set the titlebar.
 	SDL_WM_SetCaption("DGen/SDL " VER, "DGen/SDL " VER);
+	// Hide the cursor.
+	SDL_ShowCursor(0);
 	// Initialize screen.
 	if (screen_init(0, 0))
 		goto fail;
@@ -6268,6 +6270,8 @@ static bool mouse_motion_released(SDL_Event *event)
 	return false;
 }
 
+#define MOUSE_SHOW_USECS (unsigned long)(2 * 1000000)
+
 // The massive event handler!
 // I know this is an ugly beast, but please don't be discouraged. If you need
 // help, don't be afraid to ask me how something works. Basically, just handle
@@ -6279,6 +6283,8 @@ int pd_handle_events(md &megad)
 #ifdef WITH_DEBUGGER
 	static bool debug_trap;
 #endif
+	static unsigned long hide_mouse_when;
+	static bool hide_mouse;
 #ifdef WITH_JOYSTICK
 	static uint32_t const axis_value[][3] = {
 		// { pressed, [implicitly released ...] }
@@ -6317,6 +6323,12 @@ int pd_handle_events(md &megad)
 			SDL_PauseAudio(debug_trap == true);
 	}
 #endif
+	if ((hide_mouse) &&
+	    ((hide_mouse_when - pd_usecs()) >= MOUSE_SHOW_USECS)) {
+		if (!mouse_is_grabbed())
+			SDL_ShowCursor(0);
+		hide_mouse = false;
+	}
 next_event:
 	if (mouse_motion_released(&event))
 		goto mouse_motion;
@@ -6595,8 +6607,13 @@ next_event:
 			return 0;
 		break;
 	case SDL_MOUSEMOTION:
-		if (!mouse_is_grabbed())
+		if (!mouse_is_grabbed()) {
+			// Only show mouse pointer for a few seconds.
+			SDL_ShowCursor(1);
+			hide_mouse_when = (pd_usecs() + MOUSE_SHOW_USECS);
+			hide_mouse = true;
 			break;
+		}
 	mouse_motion:
 		which = event.motion.which;
 		pi = 0;
