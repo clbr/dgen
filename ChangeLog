@@ -3,6 +3,77 @@
 WHAT'S NEW?
 --------------------------------------------------------------------------------
 
+v1.33 <- v1.32
+ * Joystick hat is now handled correctly.
+ * Added bindings to switch between previous/next save slots.
+ * Fixed joystick calibration issues.
+ * Fixed ROM corruption when using Musashi. ROM was not actually read-only.
+ * Fixed support for overlapping save RAM and ROM areas.
+ * When only Musashi is compiled-in, ROM is not byteswapped anymore to
+   improve performance.
+ * Disabled automatic ROM checksum fix as it prevents a few ROMs from
+   working correctly. Can still be done manually.
+ * Debugger: fixed Musashi disassembler to avoid truncating values read
+   from memory.
+ * Debugger: removed dependency on Musashi. Debugger support can now be
+   enabled without it, but it won't be able to disassemble M68K code when
+   doing so.
+ * Debugger: M68K debugging is now supported by all M68K cores (Musashi,
+   StarScream and Cyclone).
+ * Debugger: fixed Z80 endianness issue when displaying registers.
+ * Improved Z80 BUSREQ/RESET IO read emulation to fix a few games that rely on
+   prefetched PC data when reading these addresses.
+ * Implemented word (16 bit) memory callbacks for CZ80 to improve performance.
+ * Debugger: integrated dZ80, a Z80 disassembler.
+ * Fixed interrupt mode 0 in CZ80, fixes sound issues in a few games.
+ * Debugger: added full Z80 debugging support. It is supported by all Z80
+   cores (MZ80, CZ80 and DrZ80).
+ * Fixed CPU dump/restore routines which caused games to crash when switching
+   between CPU emulators.
+ * Fixed DrZ80 documentation about its Z80 state structure. Modified DGen
+   accordingly to solve dump/restore issues.
+ * Replaced bool_opengl_aspect with bool_aspect, which also forces scaling
+   by the same amount in both directions.
+ * Merged scaling and pre/postscale filters APIs. Crap TV filters and scalers
+   (scale2x, hqx) now use a similar API. Makes things a lot simpler.
+ * Added "stretch" filter to replace the basic scaler. As its name suggests,
+   this filter can stretch the picture to fit the window size and is as fast
+   as its predecessor. Useful when OpenGL cannot be used.
+ * Since filters can be stacked, added two combinations: scale2x + stretch and
+   hqx + stretch. Obviously slower than scale2x or hqx alone, but allows
+   picture to fit the entire window while looking nicer than simply
+   stretching it.
+ * Refactored screen initialization, window size is now completely free and
+   never modified by DGen/SDL (except during init).
+ * Disabled save/restore when no ROM is loaded.
+ * Added config_save and config_load commands.
+ * Calibration screen is not a CTV filter anymore and is always available.
+ * Added preliminary support for Sega Pico.
+ * Added VGM dumping functionality (vgmdump command).
+ * Fixed DAC data type for Cyclone (distorted sound due to improper type
+   conversion).
+ * Improved DAC rendering for much better sound quality (try Tiido's Tempo
+   Theme ROM). The default sound rate is now 44100Hz instead of 22050Hz.
+ * Added missing YM2612 and DAC information to save states.
+ * Fixed pbm2df issues on Windows by open files in text mode.
+ * Fixed bind_* commands to run only once.
+ * Added support for key/joystick button combinations bindings. In short,
+   pressing several buttons simultaneously to execute a command (such as
+   quitting DGen/SDL) is now supported. See documentation.
+ * Merged stopped and main events loops to remove some redundancy.
+ * Added standard bindings for Pico pen.
+ * Added mouse input support. Mouse buttons and axes can be bound like any
+   other controller (also added mou_* variables similar to joy_* and key_*).
+ * Fixed sound (re)initialization which sometimes caused sound to stop after
+   loading a ROM.
+ * Added various workarounds for fbcon (Linux's framebuffer). A common issue
+   is screen blinking due to double buffering, now disabled by default.
+   Inability to run as a normal user due to missing mouse input and hanging
+   during SDL_SetVideoMode() are also worked around.
+ * Usual bunch of miscellaneous bugfixes and improvements (libarchive API
+   update, many compilation warnings and other issues introduced by recent
+   changes).
+
 v1.32 <- v1.31
  * Debugger: the displayed instruction after hitting a breakpoint was wrong,
    this is now fixed.

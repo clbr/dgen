@@ -50,6 +50,11 @@ Efry <efry@users.sourceforge.net>
   - Added DrZ80 1.0.
 Arek <arek@users.sourceforge.net>
   - Fixed libarchive detection in configure.
+Giuseppe Gatta <tails92@gmail.com>
+  - Implemented VGM dumping.
+  - Added Pico support.
+Rocka84 <rocka84@users.sf.net>
+  - Added bindings to switch between save slots.
 
 The following people involuntarily contributed to DGen:
 
@@ -74,3 +79,5 @@ Salvatore Sanfilippo, Pieter Noordhuis, Steve Bennett
   - See linenoise/linenoise.c.
 Andrea Mazzoleni
   - See scale2x/AUTHORS.
+Mark Incley
+  - Author of dZ80.
