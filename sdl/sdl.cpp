@@ -6186,12 +6186,6 @@ static int stop_events(md& megad, enum events status)
 	}
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
 			    SDL_DEFAULT_REPEAT_INTERVAL);
-	// Switch out of fullscreen mode (assuming this is supported)
-	if (screen.is_fullscreen) {
-		if (set_fullscreen(0) < -1)
-			return -1;
-		pd_graphics_update(true);
-	}
 	mouse_grab(false);
 	return 0;
 }
