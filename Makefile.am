@@ -1,5 +1,7 @@
 # DGen/SDL v1.26+
 
+ACLOCAL_AMFLAGS = -I m4
+
 include $(top_srcdir)/Makefile.asm.am
 
 DIST_SUBDIRS = musa mz80 sdl star cyclone doc
@@ -42,6 +44,13 @@ dgen_LDADD += cyclone/libcyclonecpu.a
 endif
 
 bin_PROGRAMS = dgen dgen_tobin
+
+if WITH_RECORD_VIDEO
+bin_PROGRAMS += dgz2png
+dgz2png_SOURCES = dgz2png.c
+dgz2png_CFLAGS = $(OPENMP_CFLAGS)
+dgz2png_LDADD = -llzo2 -lpng
+endif
 
 man_MANS = dgen.1 dgenrc.5 dgen_tobin.1
 

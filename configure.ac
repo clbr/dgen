@@ -12,13 +12,15 @@ AC_INIT(
 dnl We'll need machine type later.
 AC_CANONICAL_SYSTEM
 
+AC_CONFIG_MACRO_DIR([m4])
+
 dnl Initialize Automake.
 AM_INIT_AUTOMAKE([silent-rules])
 AM_SILENT_RULES([yes])
 AM_PROG_AS
+AM_PROG_CC_C_O
 
 dnl Check for standard programs.
-AC_PROG_CC
 AC_PROG_CC_C99
 AC_PROG_CPP
 AC_PROG_CXX
@@ -26,6 +28,9 @@ AC_PROG_CXXCPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_RANLIB
+
+dnl OpenMP is used by the video converter.
+AX_OPENMP
 
 dnl Set the value of make, if make doesn't already.
 AC_PROG_MAKE_SET
@@ -623,6 +628,38 @@ AC_ARG_ENABLE(
 	[USE_VGMDUMP=no]
 )
 
+dnl Check for LZO, for video recording
+AC_CHECK_LIB([lzo2], [lzo1x_1_compress], [HAVE_LIBLZO2=yes], [unset HAVE_LIBLZO2])
+AC_CHECK_HEADERS([lzo/lzo1x.h], [HAVE_LZO1X_H=yes], [unset HAVE_LZO1X_H])
+AC_ARG_ENABLE(
+	[record-video],
+	[AS_HELP_STRING(
+		[--enable-record-video],
+		[enable low-overhead video recording [default=auto]]
+	)],
+	[USE_RECORD_VIDEO=$enableval],
+	[USE_RECORD_VIDEO=auto]
+)
+AS_IF(
+	[test "x$USE_RECORD_VIDEO" != xno -a -z "$HAVE_LIBLZO2"],
+	[AC_MSG_WARN(
+		[Video recording requires LZO.]
+	)
+	USE_RECORD_VIDEO=no]
+)
+AS_IF(
+	[test "x$USE_RECORD_VIDEO" != xno -a -z "$HAVE_LZO1X_H"],
+	[AC_MSG_WARN(
+		[Video recording requires LZO.]
+	)
+	USE_RECORD_VIDEO=no]
+)
+AS_IF(
+	[test "x$USE_RECORD_VIDEO" != xno],
+	[USE_RECORD_VIDEO=yes
+	LIBS="$LIBS -llzo2"]
+)
+
 dnl Check for Doxygen.
 AC_ARG_WITH(
 	[doxygen],
@@ -662,6 +699,7 @@ AS_IF([test "x$USE_DEBUG" != xyes], [AC_DEFINE([NDEBUG])])
 AS_IF([test "x$USE_DEBUG_VDP" = xyes], [AC_DEFINE([WITH_DEBUG_VDP])])
 AS_IF([test "x$USE_PICO" = xyes], [AC_DEFINE([WITH_PICO])])
 AS_IF([test "x$USE_VGMDUMP" = xyes], [AC_DEFINE([WITH_VGMDUMP])])
+AS_IF([test "x$USE_RECORD_VIDEO" = xyes], [AC_DEFINE([WITH_RECORD_VIDEO])])
 AS_IF([test "x$USE_JOYSTICK" = xyes], [AC_DEFINE([WITH_JOYSTICK])])
 AS_IF([test "x$USE_THREADS" = xyes], [AC_DEFINE([WITH_THREADS])])
 AS_IF([test "x$WITH_MUSA" = xyes], [AC_DEFINE([WITH_MUSA])])
@@ -687,6 +725,7 @@ AS_IF([test "x$USE_X86_TILES" = xyes], [AC_DEFINE([WITH_X86_TILES])])
 AM_CONDITIONAL([WITH_DEBUG_VDP], [test "x$USE_DEBUG_VDP" = xyes])
 AM_CONDITIONAL([WITH_PICO], [test "x$USE_PICO" = xyes])
 AM_CONDITIONAL([WITH_VGMDUMP], [test "x$USE_VGMDUMP" = xyes])
+AM_CONDITIONAL([WITH_RECORD_VIDEO], [test "x$USE_RECORD_VIDEO" = xyes])
 AM_CONDITIONAL([WITH_DEBUGGER], [test "x$USE_DEBUGGER" = xyes])
 AM_CONDITIONAL([WITH_DZ80], [test "x$WITH_DZ80" = xyes])
 AM_CONDITIONAL([WITH_CTV], [test "x$USE_CTV" = xyes])
@@ -727,6 +766,7 @@ AC_SUBST(CPPFLAGS_B)
 AC_SUBST(CFLAGS_B)
 AC_SUBST(CXXFLAGS_B)
 AC_SUBST(LDFLAGS_B)
+AC_SUBST(OPENMP_CFLAGS)
 
 dnl Done!
 AC_OUTPUT(
@@ -755,6 +795,7 @@ Front-end
   VDP debugging: $USE_DEBUG_VDP
   Sega Pico: $USE_PICO
   VGM dumping: $USE_VGMDUMP
+  Video recording: $USE_RECORD_VIDEO
 
 CPU cores
   Musashi M68K: $WITH_MUSA

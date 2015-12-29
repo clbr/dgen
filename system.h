@@ -9,6 +9,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef WITH_RECORD_VIDEO
+#include <lzo/lzo1x.h>
+extern char *video_dir;
+#endif
+
 #ifdef __cplusplus
 #define SYSTEM_H_BEGIN_ extern "C" {
 #define SYSTEM_H_END_ }

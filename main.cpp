@@ -35,6 +35,10 @@
 static long dgen_mingw_detach = 1;
 #endif
 
+#ifdef WITH_RECORD_VIDEO
+char *video_dir;
+#endif
+
 // Defined in ras.cpp, and set to true if the Genesis palette's changed.
 extern int pal_dirty;
 
@@ -104,6 +108,9 @@ static void help()
   "    -s SLOT         Load the saved state from the given slot at startup.\n"
 #ifdef __MINGW32__
   "    -m              Do not detach from console.\n"
+#endif
+#ifdef WITH_RECORD_VIDEO
+  "    -V DIR          Record video into this directory.\n"
 #endif
   );
   // Display platform-specific options
@@ -248,6 +255,9 @@ int main(int argc, char *argv[])
 #ifdef __MINGW32__
 	   "m"
 #endif
+#ifdef WITH_RECORD_VIDEO
+           "V:"
+#endif
 	   "s:hvr:n:p:R:NPH:d:D:",
 	   pd_options);
   while((c = getopt(argc, argv, temp)) != EOF)
@@ -283,6 +293,14 @@ int main(int argc, char *argv[])
 	  // Game Genie patches
 	  patches = optarg;
 	  break;
+	case 'V':
+#ifdef WITH_RECORD_VIDEO
+	  if (access(optarg, W_OK) == 0)
+	    video_dir = strdup(optarg);
+	  else
+	    fprintf(stderr, "Directory %s doesn't exist, or not writable\n", optarg);
+#endif
+	break;
 	case 'R':
 		// Region selection
 		if (strlen(optarg) != 1)
@@ -418,6 +436,13 @@ int main(int argc, char *argv[])
       fprintf(stderr, "main: Couldn't initialize graphics!\n");
       return 1;
     }
+#ifdef WITH_RECORD_VIDEO
+  if (lzo_init() != LZO_E_OK)
+  {
+    fprintf(stderr, "main: error initializing LZO!\n");
+    return 1;
+  }
+#endif
   if(dgen_sound)
     {
       long rate = dgen_soundrate;

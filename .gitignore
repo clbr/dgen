@@ -9,6 +9,7 @@ Makefile
 Makefile.in
 /dgen
 /dgen_tobin
+/dgz2png
 /configure
 /config.log
 /config.status
@@ -17,6 +18,7 @@ Makefile.in
 /install-sh
 /missing
 /depcomp
+/compile
 /INSTALL
 /musa/m68kmake
 /musa/m68kops.c

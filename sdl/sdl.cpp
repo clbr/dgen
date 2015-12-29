@@ -53,6 +53,11 @@ extern "C" {
 }
 #endif
 
+#ifdef WITH_RECORD_VIDEO
+static uint8_t *compressbuf;
+static uint32_t compressbuf_size;
+#endif
+
 /// Number of microseconds to sustain messages
 #define MESSAGE_LIFE 3000000
 
@@ -183,6 +188,46 @@ static void screen_unlock()
 	SDL_UnlockSurface(screen.surface);
 }
 
+#ifdef WITH_RECORD_VIDEO
+#ifdef WITH_OPENGL
+static void save_gl_frame(const struct texture& tex);
+#endif
+static void save_sdl_frame(SDL_Surface * const surf);
+
+static void save_frame(const void * const buf, const uint8_t is32, const uint32_t w,
+			const uint32_t h) {
+
+	static uint32_t frame = 0;
+	uint8_t workmem[LZO1X_1_MEM_COMPRESS];
+	const uint32_t size = w * h * (is32 ? 4 : 2);
+
+	char path[PATH_MAX];
+	snprintf(path, PATH_MAX, "%s/frame_%06d.dgz", video_dir, frame);
+
+	FILE *f = fopen(path, "w");
+	if (!f) return;
+
+	lzo_uint destlen = compressbuf_size;
+	int ret = lzo1x_1_compress((const uint8_t *) buf, size, compressbuf, &destlen,
+					workmem);
+	if (ret != LZO_E_OK) {
+		fprintf(stderr, "LZO failed with %d\n", ret);
+		return;
+	}
+
+	//printf("Compressed from %u to %u, %.2f%%\n", size, destlen, destlen * 100.0f / size);
+
+	fwrite(&is32, 1, 1, f);
+	fwrite(&w, 4, 1, f);
+	fwrite(&h, 4, 1, f);
+
+	fwrite(compressbuf, destlen, 1, f);
+
+	fclose(f);
+	frame++;
+}
+#endif
+
 /**
  * Do not call this directly, use screen_update() instead.
  */
@@ -191,9 +236,19 @@ static void screen_update_once()
 #ifdef WITH_OPENGL
 	if (screen.is_opengl) {
 		update_texture(screen.texture);
+#ifdef WITH_RECORD_VIDEO
+		if (video_dir)
+			save_gl_frame(screen.texture);
+#endif
 		return;
 	}
 #endif
+
+#ifdef WITH_RECORD_VIDEO
+	if (video_dir)
+		save_sdl_frame(screen.surface);
+#endif
+
 	SDL_Flip(screen.surface);
 }
 
@@ -1900,7 +1955,41 @@ static void update_texture(struct texture& texture)
 	SDL_GL_SwapBuffers();
 }
 
+#ifdef WITH_RECORD_VIDEO
+static void save_gl_frame(const struct texture& tex) {
+	if (tex.u32 == 0)
+		save_frame(tex.buf.u16, false, tex.vis_width, tex.vis_height);
+	else
+		save_frame(tex.buf.u32, 2, tex.vis_width, tex.vis_height);
+}
+#endif // WITH_RECORD_VIDEO
+
 #endif // WITH_OPENGL
+
+#ifdef WITH_RECORD_VIDEO
+static void save_sdl_frame(SDL_Surface * const surf) {
+	if (surf->format->BitsPerPixel != 16 && surf->format->BitsPerPixel != 32) {
+		static bool warned = false;
+		if (!warned) {
+			warned = true;
+			fprintf(stderr, "Sorry, cannot record this bit depth (%u)\n",
+				surf->format->BitsPerPixel);
+		}
+		return;
+	}
+	if (screen_lock())
+		return;
+
+	uint8_t type = surf->format->BitsPerPixel == 16 ? 0 : 1;
+	if (type && surf->format->Rshift)
+		type = 2; // BGR
+
+	save_frame(surf->pixels, type,
+			surf->w, surf->h);
+
+	screen_unlock();
+}
+#endif // WITH_RECORD_VIDEO
 
 /**
  * This filter passes input to output unchanged, only centered or truncated
@@ -3671,6 +3760,12 @@ opengl_failed:
 		// Free OpenGL resources.
 		DEBUG(("releasing OpenGL resources"));
 		release_texture(screen.texture);
+	}
+#endif
+#ifdef WITH_RECORD_VIDEO
+	if (video_dir) {
+		compressbuf_size = scrtmp.width * scrtmp.height * 4 * 1.1f;
+		compressbuf = (uint8_t *) calloc(compressbuf_size, 1);
 	}
 #endif
 	// Set up the Mega Drive screen.
