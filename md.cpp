@@ -904,7 +904,7 @@ int md::plug_in(unsigned char *cart,int len)
 	memory_map(); // Update memory map to include this cartridge
 	md_set_star(0);
 #endif
-  mappers_init();
+  mappers_init(this);
   reset(); // Reset megadrive
   return 0;
 }

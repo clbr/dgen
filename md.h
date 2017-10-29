@@ -397,8 +397,10 @@ private:
   unsigned int romlen;
   unsigned char *mem,*rom,*ram,*z80ram;
   // Saveram stuff:
+public:
   unsigned char *saveram; // The actual saveram buffer
   unsigned save_start, save_len; // Start address and length
+private:
   int save_prot, save_active; // Flags set from $A130F1
 public:
   md_vdp vdp;
