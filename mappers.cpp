@@ -217,7 +217,7 @@ uint8_t mapper_pier_solar_readword(const uint32_t addr, uint16_t * const ret) {
 
 	if (addr >= 0x280000 && addr < 0x400000) {
 		// Last 1.5mb is banked in 512kb banks
-		const uint8_t bank = (addr - 0x280000) >> 18;
+		const uint8_t bank = (addr - 0x280000) >> 19;
 		*ret = megad->rom[(addr & 0x7ffff) + (pier_bank[bank] * 0x80000)] << 8;
 		*ret |= megad->rom[((addr + 1) & 0x7ffff) + (pier_bank[bank] * 0x80000)];
 		return 1;
@@ -269,7 +269,7 @@ uint8_t mapper_pier_solar_readbyte(const uint32_t addr, uint8_t * const ret) {
 
 	if (addr >= 0x280000 && addr < 0x400000) {
 		// Last 1.5mb is banked in 512kb banks
-		const uint8_t bank = (addr - 0x280000) >> 18;
+		const uint8_t bank = (addr - 0x280000) >> 19;
 		*ret = megad->rom[(addr & 0x7ffff) + (pier_bank[bank] * 0x80000)];
 		return 1;
 	}
@@ -299,7 +299,7 @@ uint8_t mapper_pier_solar_writebyte(const uint32_t addr, const uint8_t val) {
 		case 0xa13007:
 			off = (addr - 0xa13000) / 2;
 			pier_bank[off - 1] = val & 0xf;
-			//printf("Set bank %u to %u\n", off, val);
+			//printf("Set bank %u to %u\n", off - 1, val);
 			return 1;
 		break;
 		case 0xa13008:
