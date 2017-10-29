@@ -196,10 +196,6 @@ void mappers_init(md * in) {
 uint8_t mapper_pier_solar_readword(const uint32_t addr, uint16_t * const ret) {
 
 	switch (addr) {
-		case 0xa1300a:
-			*ret = stm95.get_so_line() & 1;
-			return 1;
-		break;
 		case 0x0015e6:
 		case 0x0015e8:
 			// ugly hack until we don't know much about game protection
@@ -243,9 +239,67 @@ uint8_t mapper_pier_solar_writeword(const uint32_t addr, const uint16_t val) {
 		case 0xa13006:
 			off = (addr - 0xa13000) / 2;
 			pier_bank[off - 1] = val & 0xf;
+			//printf("Set bank %u to %u\n", off, val);
 			return 1;
 		break;
 		case 0xa13008:
+			//printf("Writing stm bits %x\n", val);
+			stm95.set_si_line(val & 0x01);
+			stm95.set_sck_line((val & 0x02)?ASSERT_LINE:CLEAR_LINE);
+			stm95.set_halt_line((val & 0x04)?ASSERT_LINE:CLEAR_LINE);
+			stm95.set_cs_line((val & 0x08)?ASSERT_LINE:CLEAR_LINE);
+			return 1;
+		break;
+	}
+
+	return 0;
+}
+
+// Byte versions
+uint8_t mapper_pier_solar_readbyte(const uint32_t addr, uint8_t * const ret) {
+
+	switch (addr) {
+		case 0xa1300a:
+		case 0xa1300b:
+			//printf("reading from chip, %x\n", addr);
+			*ret = stm95.get_so_line() & 1;
+			return 1;
+		break;
+	}
+
+	if (addr >= 0x280000 && addr < 0x400000) {
+		// Last 1.5mb is banked in 512kb banks
+		const uint8_t bank = (addr - 0x280000) >> 18;
+		*ret = megad->rom[(addr & 0x7ffff) + (pier_bank[bank] * 0x80000)];
+		return 1;
+	}
+
+	return 0;
+}
+
+uint8_t mapper_pier_solar_writebyte(const uint32_t addr, const uint8_t val) {
+
+	uint8_t off;
+
+	switch (addr) {
+		case 0xa13000:
+		case 0xa13001:
+			//fprintf(stderr, "A13001 write %02x\n", val);
+		break;
+		case 0xa13002:
+		case 0xa13003:
+		case 0xa13004:
+		case 0xa13005:
+		case 0xa13006:
+		case 0xa13007:
+			off = (addr - 0xa13000) / 2;
+			pier_bank[off - 1] = val & 0xf;
+			//printf("Set bank %u to %u\n", off, val);
+			return 1;
+		break;
+		case 0xa13008:
+		case 0xa13009:
+			//printf("Writing stm bits %x\n", val);
 			stm95.set_si_line(val & 0x01);
 			stm95.set_sck_line((val & 0x02)?ASSERT_LINE:CLEAR_LINE);
 			stm95.set_halt_line((val & 0x04)?ASSERT_LINE:CLEAR_LINE);

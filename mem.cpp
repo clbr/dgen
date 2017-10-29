@@ -242,6 +242,15 @@ uint8_t md::misc_readbyte(uint32_t a)
 {
 	/* clip to 24-bit */
 	a &= 0x00ffffff;
+	uint8_t ret;
+
+	switch (mapper) {
+		case MAPPER_PIER_SOLAR:
+			if (mapper_pier_solar_readbyte(a, &ret))
+				return ret;
+		break;
+	}
+
 	/* 0x000000-0x7fffff: ROM */
 	if (a <= M68K_ROM_END) {
 		return m68k_ROM_read(a);
@@ -405,6 +414,14 @@ void md::misc_writebyte(uint32_t a, uint8_t d)
 {
 	/* clip to 24-bit */
 	a &= 0x00ffffff;
+
+	switch (mapper) {
+		case MAPPER_PIER_SOLAR:
+			if (mapper_pier_solar_writebyte(a, d))
+				return;
+		break;
+	}
+
 	/* 0x000000-0x7fffff: ROM */
 	if (a <= M68K_ROM_END) {
 		m68k_ROM_write(a, d);
