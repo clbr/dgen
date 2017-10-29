@@ -222,7 +222,8 @@ uint8_t mapper_pier_solar_readword(const uint32_t addr, uint16_t * const ret) {
 	if (addr >= 0x280000 && addr < 0x400000) {
 		// Last 1.5mb is banked in 512kb banks
 		const uint8_t bank = (addr - 0x280000) >> 18;
-		*ret = megad->rom[(addr & 0x7ffff) + (pier_bank[bank] * 0x80000)];
+		*ret = megad->rom[(addr & 0x7ffff) + (pier_bank[bank] * 0x80000)] << 8;
+		*ret |= megad->rom[((addr + 1) & 0x7ffff) + (pier_bank[bank] * 0x80000)];
 		return 1;
 	}
 
