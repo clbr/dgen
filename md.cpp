@@ -15,6 +15,7 @@
 #include "rc-vars.h"
 #include "debug.h"
 #include "decode.h"
+#include "mappers.h"
 
 extern FILE *debug_log;
 
@@ -903,6 +904,7 @@ int md::plug_in(unsigned char *cart,int len)
 	memory_map(); // Update memory map to include this cartridge
 	md_set_star(0);
 #endif
+  mappers_init();
   reset(); // Reset megadrive
   return 0;
 }

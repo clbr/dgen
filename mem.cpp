@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "md.h"
 #include "mem.h"
+#include "mappers.h"
 
 /**
  * Read one byte from the memory space.
@@ -450,6 +451,14 @@ uint16_t md::misc_readword(uint32_t a)
 	uint16_t ret;
 
 	a &= 0x00ffffff;
+
+	switch (mapper) {
+		case MAPPER_PIER_SOLAR:
+			if (mapper_pier_solar_readword(a, &ret))
+				return ret;
+		break;
+	}
+
 	/* BUSREQ */
 	if ((a & 0xffff00) == 0xa11100)
 		return ((!z80_st_busreq << 8) | (m68k_read_pc() & 0xfeff));
@@ -491,6 +500,14 @@ uint16_t md::misc_readword(uint32_t a)
 void md::misc_writeword(uint32_t a, uint16_t d)
 {
 	a &= 0x00ffffff;
+
+	switch (mapper) {
+		case MAPPER_PIER_SOLAR:
+			if (mapper_pier_solar_writeword(a, d))
+				return;
+		break;
+	}
+
 	/* Z80 */
 	if ((a >= 0xa00000) && (a < 0xa10000)) {
 		if ((!z80_st_busreq) && (a < 0xa04000))

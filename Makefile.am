@@ -78,6 +78,7 @@ dgen_SOURCES =		\
 	sn76496.c	\
 	ras-drawplane.h	\
 	ras.cpp		\
+	mappers.cpp	\
 	main.cpp	\
 	mem.cpp		\
 	pd.h		\
