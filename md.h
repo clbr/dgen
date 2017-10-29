@@ -393,7 +393,7 @@ private:
 	unsigned int ok: 1;
 	unsigned int ok_ym2612: 1; // YM2612
 	unsigned int ok_sn76496: 1; // SN76496
-
+public:
   unsigned int romlen;
   unsigned char *mem,*rom,*ram,*z80ram;
   // Saveram stuff:
