@@ -880,6 +880,19 @@ int md::plug_in(unsigned char *cart,int len)
       save_start = save_len = 0;
       saveram = NULL;
     }
+
+	// Special cases
+	switch (mapper) {
+		case MAPPER_PIER_SOLAR:
+			save_start = 0x800000;
+			save_len = 0x1000;
+			if (saveram) free(saveram);
+			saveram = (unsigned char*)calloc(1, save_len);
+		break;
+		default:
+		break;
+	}
+
 #ifdef WITH_MUSA
 	md_set_musa(1);
 	musa_memory_map();
@@ -1008,6 +1021,10 @@ int md::load(const char *name)
   cart_head.save_end   = temp[0x1b8]<<24 | temp[0x1b9]<<16 | temp[0x1ba]<<8 | temp[0x1bb];
   memcpy((void*)cart_head.memo,       (void*)(temp + 0x1c8), 0x28);
   memcpy((void*)cart_head.countries,  (void*)(temp + 0x1f0), 0x10);
+
+	mapper = MAPPER_NONE;
+	if (memcmp(cart_head.product_no, "GM T-574023-", 12) == 0)
+		mapper = MAPPER_PIER_SOLAR;
 
 #ifdef WITH_PICO
 	// Check if cartridge inserted is intended for Sega Pico.
