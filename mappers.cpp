@@ -285,6 +285,11 @@ uint8_t mapper_pier_solar_writebyte(const uint32_t addr, const uint8_t val) {
 		case 0xa13000:
 		case 0xa13001:
 			//fprintf(stderr, "A13001 write %02x\n", val);
+			/* bits 7-4: unused ?                           */
+			/* bit 3: enable SPI registers access ?         */
+			/* bit 2: not used ?                            */
+			/* bit 1: enable bankswitch registers access ?  */
+			/* bit 0: always set, enable hardware access ?  */
 		break;
 		case 0xa13002:
 		case 0xa13003:
